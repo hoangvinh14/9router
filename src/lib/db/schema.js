@@ -3,11 +3,11 @@
 // pre-change safety backup in migrate.js: when the stored version is lower,
 // one lightweight DB backup is taken before applying schema changes. Forgetting
 // to bump only skips that backup — it does NOT break the additive auto-sync.
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const PRAGMA_SQL = `
 PRAGMA journal_mode = WAL;
-PRAGMA synchronous = NORMAL;
+PRAGMA synchronous = FULL;
 PRAGMA temp_store = MEMORY;
 PRAGMA mmap_size = 30000000;
 PRAGMA cache_size = -64000;
@@ -86,6 +86,43 @@ export const TABLES = {
     },
     indexes: ["CREATE INDEX IF NOT EXISTS idx_ak_key ON apiKeys(key)"],
   },
+  apiKeyBindings: {
+    columns: {
+      apiKeyId: "TEXT PRIMARY KEY", fingerprint: "TEXT UNIQUE NOT NULL",
+      createdAt: "TEXT NOT NULL", retiredAt: "TEXT",
+    },
+  },
+  apiKeyBudgetPolicies: {
+    columns: {
+      apiKeyId: "TEXT PRIMARY KEY",
+      weeklyLimitNanoUsd: "INTEGER CHECK (weeklyLimitNanoUsd BETWEEN 0 AND 9000000000000000)",
+      monthlyLimitNanoUsd: "INTEGER CHECK (monthlyLimitNanoUsd BETWEEN 0 AND 9000000000000000)",
+      version: "INTEGER NOT NULL DEFAULT 1", updatedAt: "TEXT NOT NULL",
+    },
+  },
+  apiKeyAccounting: {
+    columns: {
+      attemptId: "TEXT PRIMARY KEY", requestId: "TEXT NOT NULL", apiKeyId: "TEXT NOT NULL",
+      ownerInstanceId: "TEXT NOT NULL", startedAt: "TEXT NOT NULL", finishedAt: "TEXT",
+      provider: "TEXT NOT NULL", model: "TEXT NOT NULL", endpoint: "TEXT NOT NULL", connectionId: "TEXT",
+      outcome: "TEXT", state: "TEXT NOT NULL CHECK (state IN ('pending','settled','unresolved','not_dispatched','waived'))",
+      usageJson: "TEXT", priceSnapshotJson: "TEXT",
+      costNanoUsd: "INTEGER CHECK (costNanoUsd BETWEEN 0 AND 9000000000000000)",
+      resolutionVersion: "INTEGER NOT NULL DEFAULT 0", terminalJson: "TEXT", manuallyResolved: "INTEGER NOT NULL DEFAULT 0",
+    },
+    indexes: [
+      "CREATE INDEX IF NOT EXISTS idx_aka_key_time_state ON apiKeyAccounting(apiKeyId, startedAt, state)",
+      "CREATE INDEX IF NOT EXISTS idx_aka_key_state ON apiKeyAccounting(apiKeyId, state)",
+    ],
+  },
+  apiKeyAccountingAudit: {
+    columns: {
+      id: "TEXT PRIMARY KEY", attemptId: "TEXT", apiKeyId: "TEXT", gapId: "TEXT",
+      operationId: "TEXT UNIQUE NOT NULL", actor: "TEXT NOT NULL", reason: "TEXT NOT NULL", action: "TEXT NOT NULL",
+      beforeJson: "TEXT NOT NULL", afterJson: "TEXT NOT NULL", createdAt: "TEXT NOT NULL",
+    },
+    indexes: ["CREATE INDEX IF NOT EXISTS idx_akaa_key_time ON apiKeyAccountingAudit(apiKeyId, createdAt)"],
+  },
   combos: {
     columns: {
       id: "TEXT PRIMARY KEY",
@@ -114,6 +151,8 @@ export const TABLES = {
       model: "TEXT",
       connectionId: "TEXT",
       apiKey: "TEXT",
+      apiKeyId: "TEXT",
+      attemptId: "TEXT",
       endpoint: "TEXT",
       promptTokens: "INTEGER DEFAULT 0",
       completionTokens: "INTEGER DEFAULT 0",
@@ -127,6 +166,8 @@ export const TABLES = {
       "CREATE INDEX IF NOT EXISTS idx_uh_provider ON usageHistory(provider)",
       "CREATE INDEX IF NOT EXISTS idx_uh_model ON usageHistory(model)",
       "CREATE INDEX IF NOT EXISTS idx_uh_conn ON usageHistory(connectionId)",
+      "CREATE INDEX IF NOT EXISTS idx_uh_key_time ON usageHistory(apiKeyId, timestamp)",
+      "CREATE INDEX IF NOT EXISTS idx_uh_attempt ON usageHistory(attemptId)",
     ],
   },
   usageDaily: {

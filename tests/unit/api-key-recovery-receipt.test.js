@@ -1,0 +1,40 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { it, expect } from "vitest";
+import { createSqlJsAdapter } from "@/lib/db/adapters/sqljsAdapter.js";
+import { acquireWriterOwnership } from "@/lib/db/writerOwnership.js";
+import { openAccountingCoverage } from "@/lib/db/accountingCoverage.js";
+import { runMigrationOnce } from "@/lib/db/migrate.js";
+import { insertAttemptSync, finalizeAttemptSync, resolveAttemptSync } from "@/lib/db/repos/apiKeyAccountingRepo.js";
+import { recoveryReceiptSync } from "@/lib/apiKeyBudget/recoveryReceipt.js";
+it("SQL.js committed receipts survive reopen, reject audit-only gap until sidecar ack and never echo unknown operation", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "9router-receipt-sqljs-")), file = path.join(dir, "db.sqlite"), owner = acquireWriterOwnership(dir); let db;
+  try {
+    db = await createSqlJsAdapter(file, owner); await runMigrationOnce(db); db.coverage = openAccountingCoverage(db, owner);
+    insertAttemptSync(db, { attemptId: "attempt-a", requestId: "req-a", apiKeyId: "key-a", ownerInstanceId: owner.instanceId, provider: "fixture", model: "fixture", endpoint: "chat", startedAt: "2026-10-03T00:00:00.000Z" });
+    finalizeAttemptSync(db, "attempt-a", { state: "unresolved", outcome: "failed", costNanoUsd: null, finishedAt: "2026-10-03T00:01:00.000Z" });
+    const operation = { operationId: "operation-a", actor: "dashboard-session", reason: "Audited", evidence: "Exact amount proof", action: "cost_correction", expectedVersion: 1, costNanoUsd: "1000000001" }, target = { kind: "attempt", id: "attempt-a" };
+    resolveAttemptSync(db, "attempt-a", operation);
+    const receipt = recoveryReceiptSync(db, "key-a", target, operation);
+    expect(receipt).toMatchObject({ costUsd: "1.000000001", operationId: "operation-a", resolutionVersion: 2 });
+    for (const bad of [{ ...operation, operationId: "not-committed" }, { ...operation, costNanoUsd: "1" }]) expect(() => recoveryReceiptSync(db, "key-a", target, bad)).toThrow("unavailable");
+    expect(() => recoveryReceiptSync(db, "key-b", target, operation)).toThrow();
+    db.coverage.latchGap("key-a", "Fixture uncertainty");
+    const gap = db.coverage.status("key-a").gaps[0];
+    const gapOperation = { gapId: gap.id, apiKeyId: "key-a", expectedGeneration: gap.generation, actor: "dashboard-session", reason: "Audited", evidence: "Gap waiver", operationId: "operation-gap" };
+    const { operationId, ...auditPayload } = gapOperation;
+    db.durableTransaction(() => db.run("INSERT INTO apiKeyAccountingAudit(id,apiKeyId,gapId,operationId,actor,reason,action,beforeJson,afterJson,createdAt) VALUES(?,?,?,?,?,?,?,?,?,?)", ["audit-gap", "key-a", gap.id, operationId, "dashboard-session", "Audited", "coverage_waiver", JSON.stringify(gap), JSON.stringify(auditPayload), "2026-10-03T00:02:00.000Z"]));
+    const gapTarget = { kind: "gap", id: gap.id };
+    expect(() => recoveryReceiptSync(db, "key-a", gapTarget, gapOperation)).toThrow("unavailable");
+    db.close(); db = await createSqlJsAdapter(file, owner); db.coverage = openAccountingCoverage(db, owner);
+    expect(recoveryReceiptSync(db, "key-a", target, operation)).toEqual(receipt);
+    expect(() => recoveryReceiptSync(db, "key-a", gapTarget, gapOperation)).toThrow();
+    db.coverage.reconcileGap(gapOperation);
+    const acknowledged = recoveryReceiptSync(db, "key-a", gapTarget, gapOperation);
+    expect(acknowledged).toMatchObject({ operationId: "operation-gap", generation: gap.generation });
+    db.close(); db = await createSqlJsAdapter(file, owner); db.coverage = openAccountingCoverage(db, owner);
+    expect(recoveryReceiptSync(db, "key-a", gapTarget, gapOperation)).toEqual(acknowledged);
+    expect(JSON.stringify([receipt, acknowledged])).not.toMatch(/Audited|proof|reason|evidence|actor/);
+  } finally { db?.close(); owner.release(); fs.rmSync(dir, { recursive: true, force: true }); }
+}, 20000);

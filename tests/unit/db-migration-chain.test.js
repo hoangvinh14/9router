@@ -83,6 +83,25 @@ describe("Schema migrations", () => {
     expect(aliases).toHaveLength(1);
   });
 
+  it.each([0, 1])("real v%s schema missing accounting columns migrates additively", async version => {
+    fs.mkdirSync(path.join(tempDir, "db"), { recursive: true });
+    const { DatabaseSync } = await import("node:sqlite");
+    const fixture = new DatabaseSync(path.join(tempDir, "db", "data.sqlite"));
+    fixture.exec(`CREATE TABLE _meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
+      CREATE TABLE apiKeys(id TEXT PRIMARY KEY,key TEXT UNIQUE NOT NULL,name TEXT,machineId TEXT,isActive INTEGER DEFAULT 1,createdAt TEXT NOT NULL);
+      CREATE TABLE usageHistory(id INTEGER PRIMARY KEY AUTOINCREMENT,timestamp TEXT NOT NULL,apiKey TEXT,cost REAL DEFAULT 0);
+      INSERT INTO apiKeys VALUES('v1-key','exact-v1-secret','legacy',NULL,1,'2026-09-01T00:00:00.000Z');
+      INSERT INTO usageHistory(timestamp,apiKey,cost) VALUES('2026-09-01T00:00:00.000Z','exact-v1-secret',12.5);`);
+    fixture.prepare("INSERT INTO _meta VALUES('schemaVersion',?)").run(String(version));
+    fixture.close();
+    const { getAdapter } = await import("@/lib/db/driver.js");
+    const db = await getAdapter();
+    expect(db.get("SELECT value FROM _meta WHERE key='schemaVersion'").value).toBe("2");
+    expect(db.get("SELECT apiKeyId,cost FROM usageHistory")).toMatchObject({ apiKeyId: "v1-key", cost: 12.5 });
+    expect(db.all("SELECT * FROM apiKeyAccounting")).toEqual([]);
+    expect(db.get("SELECT value FROM _meta WHERE key='ledgerStartedAt'")).toBeUndefined();
+    expect(db.all("PRAGMA index_list(usageHistory)").map(i => i.name)).toContain("idx_uh_key_time");
+  });
   it("auto-sync re-creates missing index when DB lacks it", async () => {
     const { getAdapter } = await import("@/lib/db/driver.js");
     const db = await getAdapter();

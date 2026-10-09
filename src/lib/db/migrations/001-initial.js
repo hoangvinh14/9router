@@ -8,7 +8,8 @@ export default {
   up(db) {
     for (const [name, def] of Object.entries(TABLES)) {
       db.exec(buildCreateTableSql(name, def));
-      for (const idx of def.indexes || []) db.exec(idx);
+      // Existing version-0 databases may lack columns introduced by later
+      // migrations. Additive sync creates indexes after those columns exist.
     }
   },
 };

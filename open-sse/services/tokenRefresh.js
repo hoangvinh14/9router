@@ -1,4 +1,5 @@
 import { PROVIDERS } from "../config/providers.js";
+import { awaitAbortableWork, waitAbortable } from "../utils/abortableWork.js";
 import { OAUTH_ENDPOINTS, REFRESH_LEAD_MS } from "../config/appConstants.js";
 import {
   refreshXaiToken,
@@ -254,19 +255,23 @@ export async function getAllAccessTokens(userInfo, log) {
   return results;
 }
 
-export async function refreshWithRetry(refreshFn, maxRetries = 3, log = null) {
+export async function refreshWithRetry(refreshFn, maxRetries = 3, log = null, { signal = null, isTerminalError = null } = {}) {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
+    signal?.throwIfAborted();
     if (attempt > 0) {
       const delay = attempt * 1000;
       log?.debug?.("TOKEN_REFRESH", `Retry ${attempt}/${maxRetries} after ${delay}ms`);
-      await new Promise(r => setTimeout(r, delay));
+      await waitAbortable(delay, signal);
     }
 
     try {
-      const result = await refreshFn();
+      const result = await awaitAbortableWork(() => signal ? refreshFn({ signal }) : refreshFn(), signal);
+      signal?.throwIfAborted();
       if (result) return result;
     } catch (error) {
-      log?.warn?.("TOKEN_REFRESH", `Attempt ${attempt + 1}/${maxRetries} failed: ${error.message}`);
+      if (signal?.aborted) throw signal.reason;
+      if (isTerminalError?.(error)) throw error;
+      log?.warn?.("TOKEN_REFRESH", `Attempt ${attempt + 1}/${maxRetries} failed: ${error?.message || 'refresh unavailable'}`);
     }
   }
 

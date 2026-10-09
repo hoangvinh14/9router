@@ -17,6 +17,8 @@ vi.mock("../../src/sse/services/auth.js", () => ({
   isValidApiKey: vi.fn(),
 }));
 vi.mock("@/lib/localDb", () => ({ getSettings: async () => ({ requireApiKey: false }) }));
+// This suite verifies OFF-path legacy analytics, not active ledger ownership.
+vi.mock("@/lib/apiKeyBudget/requestAccounting.js", () => ({ createRequestAccounting: async () => null }));
 vi.mock("../../src/sse/services/model.js", () => ({
   getModelInfo: async () => ({ provider: "openai", model: "text-embedding-3-small" }),
 }));

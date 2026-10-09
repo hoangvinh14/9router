@@ -71,6 +71,21 @@ describe("reorderByCapabilities", () => {
     expect(out).toBe(models);
   });
 
+  it.each([
+    [['deepseek/deepseek-chat', 'deepseek/deepseek-reasoner'], ['vision']],
+    [['deepseek/deepseek-chat', 'deepseek/deepseek-chat', 'deepseek/deepseek-reasoner'], ['vision', 'pdf']],
+  ])('no-fit frozen input preserves identity, duplicate entries and exact order %#', (input, capabilities) => {
+    const models = Object.freeze(input), before = [...models];
+    expect(reorderByCapabilities(models, new Set(capabilities))).toBe(models);
+    expect(models).toEqual(before);
+  });
+  it('mixed tiers reorder frozen input stably without dropping duplicate fallbacks or mutating caller', () => {
+    const models = Object.freeze(['deepseek/deepseek-chat', 'anthropic/claude-sonnet-4.6', 'deepseek/deepseek-chat', 'anthropic/claude-sonnet-4.6']);
+    const out = reorderByCapabilities(models, new Set(['vision']));
+    expect(out).not.toBe(models);
+    expect(out).toEqual(['anthropic/claude-sonnet-4.6', 'anthropic/claude-sonnet-4.6', 'deepseek/deepseek-chat', 'deepseek/deepseek-chat']);
+    expect(models).toEqual(['deepseek/deepseek-chat', 'anthropic/claude-sonnet-4.6', 'deepseek/deepseek-chat', 'anthropic/claude-sonnet-4.6']);
+  });
   it("single model -> unchanged", () => {
     const models = ["a/x"];
     expect(reorderByCapabilities(models, new Set(["vision"]))).toBe(models);

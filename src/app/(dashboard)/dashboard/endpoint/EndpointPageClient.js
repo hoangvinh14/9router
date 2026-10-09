@@ -18,6 +18,9 @@ import EndpointRow from "./components/EndpointRow";
 import StatusAlert from "./components/StatusAlert";
 import Tooltip from "./components/Tooltip";
 import SecurityWarning from "./components/SecurityWarning";
+import ApiKeyBudgetPanel from "@/shared/components/ApiKeyBudgetPanel";
+import GlobalAccountingPanel from "@/shared/components/GlobalAccountingPanel";
+import { openTailscaleLogin, tailscaleLoginUrl } from "@/shared/utils/tailscaleLoginUrl";
 export default function APIPageClient({ machineId }) {
   const [keys, setKeys] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +28,8 @@ export default function APIPageClient({ machineId }) {
   const [newKeyName, setNewKeyName] = useState("");
   const [createdKey, setCreatedKey] = useState(null);
   const [confirmState, setConfirmState] = useState(null);
+  const [budgetKey, setBudgetKey] = useState(null);
+  const [showGlobalAccounting, setShowGlobalAccounting] = useState(false);
 
   const [requireApiKey, setRequireApiKey] = useState(false);
   const [requireLogin, setRequireLogin] = useState(true);
@@ -476,7 +481,13 @@ export default function APIPageClient({ machineId }) {
   // Show inline login button instead of auto-opening popup (browsers block popups
   // opened after async work because the user gesture is lost).
   const requestUserAuth = (url, label) => {
-    setTsAuthUrl(url);
+    const trusted = tailscaleLoginUrl(url);
+    if (!trusted) {
+      setTsAuthUrl(""); setTsAuthLabel("");
+      setTsStatus({ type: "error", message: "Tailscale returned an untrusted login URL; navigation blocked." });
+      return;
+    }
+    setTsAuthUrl(trusted);
     setTsAuthLabel(label);
   };
 
@@ -865,7 +876,7 @@ export default function APIPageClient({ machineId }) {
                   <Button
                     size="sm"
                     icon="open_in_new"
-                    onClick={() => window.open(tsAuthUrl, "tailscale_auth", "width=600,height=700,noopener,noreferrer")}
+                    onClick={() => { if (!openTailscaleLogin(tsAuthUrl)) setTsStatus({ type: "error", message: "Untrusted Tailscale login URL blocked." }); }}
                   >
                     {tsAuthLabel || "Open"}
                   </Button>
@@ -962,9 +973,10 @@ export default function APIPageClient({ machineId }) {
             <span className="material-symbols-outlined text-primary">vpn_key</span>
             API Keys
           </h2>
-          <Button icon="add" onClick={() => setShowAddModal(true)}>
-            Create Key
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="ghost" onClick={() => setShowGlobalAccounting(true)}>Global accounting recovery</Button>
+            <Button icon="add" onClick={() => setShowAddModal(true)}>Create Key</Button>
+          </div>
         </div>
 
         <div className="flex items-center justify-between pb-4 mb-4 border-b border-border">
@@ -1035,7 +1047,8 @@ export default function APIPageClient({ machineId }) {
                     <p className="text-xs text-orange-500 mt-1">Paused</p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button type="button" className="p-2 text-sm text-primary border border-border-subtle rounded-lg" onClick={() => setBudgetKey({ id: key.id, name: key.name })} aria-label={`Budget and accounting for ${key.name}`}>Budget / accounting</button>
                   <Toggle
                     size="sm"
                     checked={key.isActive ?? true}
@@ -1067,6 +1080,9 @@ export default function APIPageClient({ machineId }) {
           </div>
         )}
       </Card>
+
+      {budgetKey && <ApiKeyBudgetPanel key={budgetKey.id} apiKeyId={budgetKey.id} keyName={budgetKey.name} onClose={() => setBudgetKey(null)} />}
+      {showGlobalAccounting && <GlobalAccountingPanel onClose={() => setShowGlobalAccounting(false)} />}
 
       {/* Add Key Modal */}
       <Modal

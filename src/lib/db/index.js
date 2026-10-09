@@ -1,6 +1,8 @@
 // Public API barrel — all DB functions
 import { getAdapter } from "./driver.js";
 import { stringifyJson, parseJson } from "./helpers/jsonCol.js";
+import { validateKeyBindings, retainKeyBindings, retireKeyBindings } from "./helpers/apiKeyBindings.js";
+import { prepareExplicitKeyPolicies } from "./explicitPolicy.js";
 
 // Settings
 export {
@@ -29,7 +31,7 @@ export {
 
 // API keys
 export {
-  getApiKeys, getApiKeyById, createApiKey, updateApiKey, deleteApiKey, validateApiKey,
+  getApiKeys, getApiKeyById, createApiKey, updateApiKey, deleteApiKey, validateApiKey, resolveApiKey,
 } from "./repos/apiKeysRepo.js";
 
 // Combos
@@ -67,12 +69,17 @@ export {
   saveRequestDetail, getRequestDetails, getRequestDetailById, getDistinctProviders,
 } from "./repos/requestDetailsRepo.js";
 
-// Export/import full DB
+export { getApiKeyBudgetPolicy, getApiKeyAccountingAttempt } from "./repos/apiKeyAccountingRepo.js";
+
+// Configuration export/import — NOT a physical accounting backup.
 export async function exportDb() {
   const db = await getAdapter();
   const { exportSettings } = await import("./repos/settingsRepo.js");
 
   const out = {
+    exportVersion: 2,
+    accounting: { completeBackup: false, ledgerStartedAt: db.get("SELECT value FROM _meta WHERE key='ledgerStartedAt'")?.value ?? null,
+      coverage: db.coverage.status() },
     settings: await exportSettings(),
     providerConnections: db.all(`SELECT * FROM providerConnections`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, provider: r.provider, authType: r.authType, name: r.name, email: r.email, priority: r.priority, isActive: r.isActive === 1, createdAt: r.createdAt, updatedAt: r.updatedAt })),
     providerNodes: db.all(`SELECT * FROM providerNodes`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, type: r.type, name: r.name, createdAt: r.createdAt, updatedAt: r.updatedAt })),
@@ -99,8 +106,12 @@ export async function importDb(payload) {
   }
   const db = await getAdapter();
 
-  db.transaction(() => {
-    // Wipe all tables (keep _meta)
+  const incomingKeys = payload.apiKeys || [];
+  validateKeyBindings(db, db.coverage, incomingKeys);
+  const incomingIds = new Set(incomingKeys.map(k => k.id));
+  const retiring = db.all("SELECT * FROM apiKeys").filter(k => !incomingIds.has(k.id));
+  function applyConfig() {
+    // Replace config only; accounting and retired bindings remain intact.
     db.run(`DELETE FROM settings`);
     db.run(`DELETE FROM providerConnections`);
     db.run(`DELETE FROM providerNodes`);
@@ -160,6 +171,19 @@ export async function importDb(payload) {
     for (const [provider, models] of Object.entries(payload.pricing || {})) {
       db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('pricing', ?, ?)`, [provider, stringifyJson(models || {})]);
     }
+  }
+  // Exercise every binding, serializer and SQL constraint in a rolled-back
+  // transaction before the cross-file retirement point. This is not a complete
+  // cross-file atomicity claim: a crash after retirement remains fail-closed.
+  const validated = new Error("config import preflight rollback");
+  try { db.transaction(() => { prepareExplicitKeyPolicies(db, incomingKeys); applyConfig(); throw validated; }); }
+  catch (error) { if (error !== validated) throw error; }
+  db.durableTransaction(() => {
+    validateKeyBindings(db, db.coverage, incomingKeys);
+    prepareExplicitKeyPolicies(db, incomingKeys);
+    retireKeyBindings(db, db.coverage, retiring);
+    retainKeyBindings(db, db.coverage, incomingKeys);
+    applyConfig();
   });
 
   return await exportDb();

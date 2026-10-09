@@ -25,6 +25,11 @@ const nextConfig = {
     root: tracingRoot
   },
   outputFileTracingRoot: tracingRoot,
+  // SQL.js resolves this binary dynamically beside its external JS module.
+  // Standalone tracing cannot infer that lookup; retain the exact runtime asset.
+  outputFileTracingIncludes: {
+    "/*": ["./node_modules/sql.js/dist/sql-wasm.wasm"]
+  },
   outputFileTracingExcludes: {
     "*": ["./gitbook/**/*"]
   },

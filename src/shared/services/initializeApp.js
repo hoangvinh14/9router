@@ -83,6 +83,12 @@ async function runHeavyStartup() {
   await cleanupProviderConnections();
   const settings = await getSettings();
 
+  // Explicit opt-in only, default off. Ownership/health and persisted schedule
+  // are checked by the coordinator; startup never performs an immediate fetch.
+  import("@/lib/pricing/catalogSchedule.js")
+    .then(({ initializeCatalogSchedule }) => initializeCatalogSchedule())
+    .catch(() => console.warn("[ReferencePricing] scheduler startup unavailable"));
+
   // Auto-resume tunnel (once per process)
   if (settings.tunnelEnabled && !g.tunnelAutoResumed) {
     g.tunnelAutoResumed = true;

@@ -13,6 +13,8 @@ import { DEFAULT_RETRY_CONFIG, HTTP_STATUS, resolveRetryEntry } from "../config/
 import { dbg } from "../utils/debugLog.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
 import { stripCodexUnsupportedPatterns } from "../utils/codexToolSchema.js";
+import { ACCOUNTED_CODEX_SSE_MODE } from '../config/accountedCodexCandidate.js';
+import { executeAccountedResponsesCandidate } from './accountedResponses.js';
 
 // SSE error patterns inside 200-OK bodies. Some retry same account first; capacity rotates accounts.
 const CODEX_SSE_RETRY_PATTERNS = ["server_is_overloaded", "service_unavailable_error"];
@@ -275,6 +277,10 @@ export class CodexExecutor extends BaseExecutor {
   }
 
   async execute(args) {
+    if (args.accounting) {
+      args.accounting.assertSupported(args.accountingMode === ACCOUNTED_CODEX_SSE_MODE);
+      return executeAccountedResponsesCandidate(this, args);
+    }
     const imgCount = Array.isArray(args.body?.input) ? args.body.input.reduce((n, it) => n + (Array.isArray(it.content) ? it.content.filter(c => c.type === "image_url").length : 0), 0) : 0;
     const inputLen = Array.isArray(args.body?.input) ? args.body.input.length : 0;
     dbg("CODEX", `execute start | inputItems=${inputLen} | images=${imgCount} | sessionId=${this._currentSessionId || "pending"}`);

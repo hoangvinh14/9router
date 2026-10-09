@@ -1,6 +1,7 @@
 // OpenAI-compatible embeddings adapter (most providers)
 import { bearerAuth } from "./_base.js";
 import { PROVIDER_MEDIA } from "../../providers/index.js";
+import { FORMATS } from "../../translator/formats.js";
 
 // media-only providers without a registry file keep URL here; rest derive from registry media.embeddingConfig.baseUrl
 const ENDPOINTS = {
@@ -13,6 +14,8 @@ const embedUrl = (id) => embedCfg(id).baseUrl || ENDPOINTS[id];
 export default function createOpenAIEmbeddingAdapter(providerId) {
   const cfg = embedCfg(providerId);
   return {
+    // Explicit initial certification; compatible shape alone is not authority.
+    accountingSchema: providerId === "openai" ? FORMATS.OPENAI : null,
     buildUrl: () => embedUrl(providerId),
     buildHeaders: (creds) => {
       return { "Content-Type": "application/json", ...bearerAuth(creds), ...(cfg.headers || {}) };

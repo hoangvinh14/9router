@@ -1,8 +1,19 @@
 import { Readable } from "stream";
+import { ProxyPoolUnavailableError } from './proxyPolicyError.js';
 import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
-import { dbg } from "./debugLog.js";
+import { validatePersistedGlobalProxy, resolvePersistedPoolProxy, shouldBypassByNoProxy } from '../config/accountedProxyAuthority.js';
+import { validateAccountingProxyEnvironment } from '../config/accountedProxyEnvironment.js';
+import { validateAccountingBaseDispatch } from '../config/accountedBaseDispatch.js';
 
-const originalFetch = globalThis.fetch;
+// Module re-evaluation may see our previously published policy wrapper rather
+// than the captured transport. Only unwrap wrappers registered by this module;
+// a new external fetch replacement remains the transport for the new instance.
+// Weak keys retain no obsolete wrapper chain. This is HMR identity bookkeeping,
+// not a same-process security sandbox or permission to unwrap foreign wrappers.
+const fetchOriginsKey = Symbol.for('9router.proxyFetch.wrapperOrigins');
+const fetchOrigins = globalThis[fetchOriginsKey] ??= new WeakMap();
+const currentFetch = globalThis.fetch;
+const originalFetch = fetchOrigins.get(currentFetch) ?? currentFetch;
 const proxyDispatchers = new Map();
 
 // ─── TLS fingerprinting via got-scraping (browser-like JA3) ───────────────
@@ -163,21 +174,6 @@ function shouldBypassMitmDns(url) {
   } catch { return false; }
 }
 
-function shouldBypassByNoProxy(targetUrl, noProxyValue) {
-  const noProxy = normalizeString(noProxyValue);
-  if (!noProxy) return false;
-
-  let hostname;
-  try { hostname = new URL(targetUrl).hostname.toLowerCase(); } catch { return false; }
-  const patterns = noProxy.split(",").map((p) => p.trim().toLowerCase()).filter(Boolean);
-
-  return patterns.some((pattern) => {
-    if (pattern === "*") return true;
-    if (pattern.startsWith(".")) return hostname.endsWith(pattern) || hostname === pattern.slice(1);
-    return hostname === pattern || hostname.endsWith(`.${pattern}`);
-  });
-}
-
 /**
  * Get proxy URL from environment
  */
@@ -313,7 +309,10 @@ async function createBypassRequest(parsedUrl, realIP, options) {
             for await (const chunk of res) chunks.push(chunk);
             return Buffer.concat(chunks).toString();
           },
-          json: async () => JSON.parse(await response.text()),
+          json: async () => {
+            try { return JSON.parse(await response.text()); }
+            catch (error) { throw error; } // Keep existing read/parse rejection, never invent a body.
+          },
         };
         resolve(response);
       });
@@ -329,13 +328,56 @@ async function createBypassRequest(parsedUrl, realIP, options) {
   });
 }
 
-export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
+export async function proxyAwareFetch(url, options = {}, proxyOptions = null, contract = null) {
   const targetUrl = typeof url === "string" ? url : url.toString();
+
+  // A required saved pool that is unavailable cannot be replaced by legacy,
+  // environment/global proxy, relay or DNS-bypass transport. Check before any
+  // resolution/fetch path, including the accounting single-POST owner.
+  if (proxyOptions?.strictProxy === true && proxyOptions?.proxyPoolId &&
+      proxyOptions?.proxyPoolUnavailable === true) {
+    throw new ProxyPoolUnavailableError();
+  }
+
+  // Accounting POST owners cannot tolerate hidden billable replays. This
+  // opt-in path deliberately avoids relay, MITM/TLS fallback and direct retry.
+  // Dispatcher acquisition precedes exactly one captured native fetch call.
+  if (contract?.singlePost === true) {
+    if (Object.hasOwn(contract, 'proxyEnvironment')) validateAccountingProxyEnvironment(contract.proxyEnvironment);
+    const baseTransport = Object.hasOwn(contract, 'baseTransport') ? validateAccountingBaseDispatch(contract.baseTransport, targetUrl) : null;
+    if (normalizeString(proxyOptions?.vercelRelayUrl)) throw new Error('Accounting single-POST relay unsupported');
+    if (options.method !== 'POST' || options.redirect !== 'error') throw new Error('Accounting single-POST request policy required');
+    // Independently persisted saved authority overrides the mutable environment
+    // even when its NO_PROXY deliberately resolves to direct. Validate before
+    // connection precedence, so malformed authority never silently falls back.
+    const persisted = proxyOptions && Object.hasOwn(proxyOptions, 'persistedGlobalProxy')
+      ? validatePersistedGlobalProxy(proxyOptions.persistedGlobalProxy) : null;
+    const hasPool = proxyOptions && Object.hasOwn(proxyOptions, 'persistedPoolProxy');
+    const connectionProxyUrl = hasPool ? null : resolveConnectionProxyUrl(targetUrl, proxyOptions);
+    const globalProxyUrl = persisted
+      ? (shouldBypassByNoProxy(targetUrl, persisted.noProxy) ? null : persisted.url)
+      : hasPool ? null : normalizeProxyUrl(getEnvProxyUrl(targetUrl));
+    const proxyUrl = hasPool
+      ? resolvePersistedPoolProxy(targetUrl, proxyOptions.persistedPoolProxy, persisted || undefined)
+      : connectionProxyUrl || globalProxyUrl;
+    const proxyIntended = proxyOptions?.proxyPoolId || proxyOptions?.enabled === true ||
+      proxyOptions?.connectionProxyEnabled === true || normalizeString(proxyOptions?.url ?? proxyOptions?.connectionProxyUrl);
+    if (!hasPool && !proxyUrl && proxyOptions?.strictProxy === true && proxyIntended) throw new Error('[ProxyFetch] Proxy required but none resolved (strictProxy=true)');
+    const dispatcher = proxyUrl ? await getDispatcher(proxyUrl) : undefined;
+    // Dispatcher acquisition yields; refuse changed original proxy environment
+    // again immediately before the one native POST, never re-resolve/replay.
+    if (Object.hasOwn(contract, 'proxyEnvironment')) validateAccountingProxyEnvironment(contract.proxyEnvironment);
+    if (baseTransport) validateAccountingBaseDispatch(baseTransport, targetUrl);
+    options.signal?.throwIfAborted();
+    return originalFetch(url, dispatcher ? { ...options, dispatcher } : options);
+  }
 
   // Vercel relay: forward request via relay headers
   const vercelRelayUrl = normalizeString(proxyOptions?.vercelRelayUrl);
   if (vercelRelayUrl) {
-    const parsed = new URL(targetUrl);
+    let parsed;
+    try { parsed = new URL(targetUrl); }
+    catch (error) { throw error; } // Preserve OFF relay validation failure; never dispatch invalid URL.
     const baseHeaders = options.headers instanceof Headers
       ? Object.fromEntries(options.headers.entries())
       : { ...(options.headers || {}) };
@@ -417,7 +459,9 @@ async function patchedFetch(url, options = {}) {
   return proxyAwareFetch(url, options, null);
 }
 
-// Idempotency guard — only patch once to avoid wrapping multiple times
+// Register before publication so later evaluations never call an older policy
+// wrapper as native fetch (which could replay a single-POST via TLS fallback).
+fetchOrigins.set(patchedFetch, originalFetch);
 if (globalThis.fetch !== patchedFetch) {
   globalThis.fetch = patchedFetch;
 }

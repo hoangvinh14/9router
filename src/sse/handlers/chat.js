@@ -16,15 +16,24 @@ import { getTransform as getPxpipeTransform } from "@/lib/pxpipe/loader.js";
 import { appendPxpipeEvent } from "@/lib/pxpipe/events.js";
 import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { upstreamResponseHeaders } from "open-sse/utils/upstreamHeaders.js";
+import { awaitAbortableWork } from "open-sse/utils/abortableWork.js";
 import { handleComboChat, handleFusionChat, detectRequiredCapabilities } from "open-sse/services/combo.js";
 import { augmentModelsWithCapacityAdapter, withCapacityAdapterStripping, getActiveAdapterStrategy } from "open-sse/services/capacityAdapter.js";
 import { handleBypassRequest } from "open-sse/utils/bypassHandler.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
-import { detectFormatByEndpoint } from "open-sse/translator/formats.js";
+import { detectFormatByEndpoint, FORMATS } from "open-sse/translator/formats.js";
 import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { getProjectIdForConnection } from "open-sse/services/projectId.js";
 import { stripModelContextMarker } from "open-sse/utils/modelMarkers.js";
+import { isAccountedOpenaiChatProvider } from 'open-sse/config/accountedChatProviders.js';
+import { ACCOUNTED_ANTHROPIC_GATEWAY_PATHS } from 'open-sse/config/accountedAnthropicCandidate.js';
+import { ACCOUNTED_CODEX_GATEWAY_PATHS, supportsCodexRequest } from 'open-sse/config/accountedCodexCandidate.js';
+import { getGeminiOriginal, supportsGeminiRequest, ACCOUNTED_GEMINI_MODEL } from 'open-sse/config/accountedGeminiCandidate.js';
+import { MAX_ACCOUNTED_COMBO_DEPTH } from 'open-sse/config/apiKeyBudgetConstants.js';
+import { createRequestAccounting } from "@/lib/apiKeyBudget/requestAccounting.js";
+import { handleUnhealthyChatEntry } from "@/lib/apiKeyBudget/unhealthyChatEntry.js";
+import { isApiKeyBudgetError, budgetErrorResponse } from "@/lib/apiKeyBudget/errors.js";
 
 /**
  * Handle chat completion request
@@ -32,6 +41,14 @@ import { stripModelContextMarker } from "open-sse/utils/modelMarkers.js";
  * Format detection and translation handled by translator
  */
 export async function handleChat(request, clientRawRequest = null) {
+  try { return await handleChatRequest(request, clientRawRequest); }
+  catch (error) {
+    if (request.signal?.aborted) throw request.signal.reason;
+    if (isApiKeyBudgetError(error)) return budgetErrorResponse(error);
+    throw error;
+  }
+}
+async function handleChatRequest(request, clientRawRequest = null) {
   let body;
   try {
     body = await request.json();
@@ -40,9 +57,16 @@ export async function handleChat(request, clientRawRequest = null) {
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid JSON body");
   }
 
+  // Poisoned storage needs independently persisted caller/config authority
+  // before any ordinary settings/auth/model/account repository is read.
+  const unhealthyResponse = await handleUnhealthyChatEntry(request, body, handleChatCore, log);
+  if (unhealthyResponse) return unhealthyResponse;
+
   // Build clientRawRequest for logging (if not provided)
   if (!clientRawRequest) {
-    const url = new URL(request.url);
+    let url;
+    try { url = new URL(request.url); }
+    catch { return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid gateway request URL"); }
     clientRawRequest = {
       endpoint: url.pathname,
       body,
@@ -86,6 +110,16 @@ export async function handleChat(request, clientRawRequest = null) {
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");
   }
 
+  const accounting = await createRequestAccounting(request);
+  const geminiOriginal = getGeminiOriginal(request);
+  if (accounting && geminiOriginal) {
+    accounting.assertSupported(geminiOriginal.validRoute && geminiOriginal.model === modelStr &&
+      supportsGeminiRequest(geminiOriginal.body));
+    // Restore the detached original only when recording is active. Native
+    // wrapper cannot create a second context or strip tools into eligibility.
+    body = { ...geminiOriginal.body, model: modelStr, stream: geminiOriginal.stream };
+  }
+
   // Bypass naming/warmup requests before combo rotation to avoid wasting rotation slots
   const userAgent = request?.headers?.get("user-agent") || "";
   const bypassResponse = handleBypassRequest(body, modelStr, userAgent, !!settings.ccFilterNaming);
@@ -103,18 +137,23 @@ export async function handleChat(request, clientRawRequest = null) {
     const augmentedModels = augmentModelsWithCapacityAdapter(comboModels, requiredCapabilities, settings);
     const adapterAdded = augmentedModels.filter((m) => !comboModels.includes(m));
 
+    // Augmentation selects candidates, not a billable attempt. Each concrete
+    // candidate still verifies provider/schema and owns its actual POST below.
+    accounting?.gate();
     if (comboStrategy === "fusion") {
       log.info("CHAT", `Combo "${modelStr}" with ${comboModels.length} models (strategy: fusion)`);
       return handleFusionChat({
         body,
         models: comboModels,
-        handleSingleModel: (b, m, isPanel) => {
+        accounting,
+        signal: request?.signal,
+        handleSingleModel: (b, m, isPanel, dispatchSignal) => {
           let cleanRawReq = clientRawRequest;
           if (isPanel && clientRawRequest) {
             const { tools, tool_choice, ...cleanBody } = clientRawRequest.body || {};
             cleanRawReq = { ...clientRawRequest, body: cleanBody };
           }
-          return handleSingleModelChat(b, m, cleanRawReq, request, apiKey);
+          return handleSingleModelChat(b, m, cleanRawReq, request, apiKey, null, accounting, dispatchSignal, accounting ? [modelStr] : []);
         },
         log,
         comboName: modelStr,
@@ -127,9 +166,11 @@ export async function handleChat(request, clientRawRequest = null) {
     log.info("CHAT", `Combo "${modelStr}" with ${augmentedModels.length} models (strategy: ${comboStrategy}, sticky: ${comboStickyLimit})`);
     return handleComboChat({
       body,
+      accounting,
+      signal: request?.signal,
       models: augmentedModels,
       handleSingleModel: withCapacityAdapterStripping(
-        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey),
+        (b, m) => handleSingleModelChat(accounting ? structuredClone(b) : b, m, clientRawRequest, request, apiKey, null, accounting, null, accounting ? [modelStr] : []),
         adapterAdded
       ),
       log,
@@ -143,13 +184,16 @@ export async function handleChat(request, clientRawRequest = null) {
   // target lacks a capability the request needs (e.g. no vision, request has an image).
   const soloAugmented = augmentModelsWithCapacityAdapter([modelStr], requiredCapabilities, settings);
   if (soloAugmented.length > 1) {
+    accounting?.gate();
     const adapterAdded = soloAugmented.filter((m) => m !== modelStr);
     log.info("CHAT", `Capacity adapter for [${[...requiredCapabilities].join(",")}] on "${modelStr}" → trying ${soloAugmented.join(", ")}`);
     return handleComboChat({
       body,
       models: soloAugmented,
+      accounting,
+      signal: request?.signal,
       handleSingleModel: withCapacityAdapterStripping(
-        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey),
+        (b, m) => handleSingleModelChat(accounting ? structuredClone(b) : b, m, clientRawRequest, request, apiKey, null, accounting),
         adapterAdded
       ),
       log,
@@ -158,24 +202,34 @@ export async function handleChat(request, clientRawRequest = null) {
     });
   }
 
-  return handleSingleModelChat(body, modelStr, clientRawRequest, request, apiKey, contextMarker ? `${modelStr.slice(modelStr.indexOf("/") + 1)}[${contextMarker}]` : null);
+  return handleSingleModelChat(body, modelStr, clientRawRequest, request, apiKey, contextMarker ? `${modelStr.slice(modelStr.indexOf("/") + 1)}[${contextMarker}]` : null, accounting);
 }
 
 /**
  * Handle single model chat request
  */
-async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null, requestedModel = null) {
-  const modelInfo = await getModelInfo(modelStr);
+async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null, requestedModel = null, accounting = null, signalOverride = null, comboPath = []) {
+  const requestSignal = signalOverride || request?.signal;
+  if (accounting) { requestSignal?.throwIfAborted(); accounting.gate(); }
+  const modelInfo = await awaitAbortableWork(() => getModelInfo(modelStr), accounting ? requestSignal : null);
 
   // If provider is null, this might be a combo name - check and handle
   if (!modelInfo.provider) {
-    const comboModels = await getComboModels(modelStr);
+    const comboModels = await awaitAbortableWork(() => getComboModels(modelStr), accounting ? requestSignal : null);
     if (comboModels) {
+      // Combo identities come from the exact-name resolver; prefer its canonical
+      // name, never a client tracking ID. Branch-local paths allow sibling reuse.
+      const comboId = modelInfo.model || modelStr;
+      accounting?.assertSupported(!comboPath.includes(comboId) && comboPath.length < MAX_ACCOUNTED_COMBO_DEPTH);
+      const nextPath = accounting ? [...comboPath, comboId] : comboPath;
       const chatSettings = await getSettings();
       // Check for combo-specific strategy first, fallback to global
       const comboStrategies = chatSettings.comboStrategies || {};
       const comboSpecificStrategy = comboStrategies[modelStr]?.fallbackStrategy;
       const comboStrategy = comboSpecificStrategy || chatSettings.comboStrategy || "fallback";
+      // Nested fusion needs a separate bounded fan-out contract. Depth alone
+      // does not bound parallel work; keep this branch closed until certified.
+      accounting?.assertSupported(comboStrategy !== "fusion");
       const requiredCapabilities = detectRequiredCapabilities(body);
       const augmentedModels = augmentModelsWithCapacityAdapter(comboModels, requiredCapabilities, chatSettings);
       const adapterAdded = augmentedModels.filter((m) => !comboModels.includes(m));
@@ -185,13 +239,15 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         return handleFusionChat({
           body,
           models: comboModels,
-          handleSingleModel: (b, m, isPanel) => {
+          accounting,
+          signal: requestSignal,
+          handleSingleModel: (b, m, isPanel, dispatchSignal) => {
             let cleanRawReq = clientRawRequest;
             if (isPanel && clientRawRequest) {
               const { tools, tool_choice, ...cleanBody } = clientRawRequest.body || {};
               cleanRawReq = { ...clientRawRequest, body: cleanBody };
             }
-            return handleSingleModelChat(b, m, cleanRawReq, request, apiKey);
+            return handleSingleModelChat(b, m, cleanRawReq, request, apiKey, null, accounting, dispatchSignal || requestSignal, nextPath);
           },
           log,
           comboName: modelStr,
@@ -205,8 +261,10 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       return handleComboChat({
         body,
         models: augmentedModels,
+        accounting,
+        signal: requestSignal,
         handleSingleModel: withCapacityAdapterStripping(
-          (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey),
+          (b, m) => handleSingleModelChat(accounting ? structuredClone(b) : b, m, clientRawRequest, request, apiKey, null, accounting, requestSignal, nextPath),
           adapterAdded
         ),
         log,
@@ -220,6 +278,26 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
   }
 
   const { provider, model } = modelInfo;
+  // Potential standard native slice only; eligibility is not transport approval.
+  // Core and the actual POST owner still deny OAuth/beta/unsupported options.
+  // Explicit boolean intent and exact native route only; body-shape/substrings
+  // cannot approve a different billed entry point.
+  let nativeAccountingCandidate = false;
+  if (accounting && provider === 'anthropic' && typeof body.stream === 'boolean') {
+    try { nativeAccountingCandidate = ACCOUNTED_ANTHROPIC_GATEWAY_PATHS.includes(new URL(request.url).pathname); }
+    catch { return errorResponse(HTTP_STATUS.BAD_REQUEST, 'Invalid gateway request URL'); }
+  }
+  if (accounting && provider === 'codex') {
+    try { nativeAccountingCandidate = ACCOUNTED_CODEX_GATEWAY_PATHS.includes(new URL(request.url).pathname) && supportsCodexRequest({ ...body, model }, model); }
+    catch { return errorResponse(HTTP_STATUS.BAD_REQUEST, 'Invalid gateway request URL'); }
+  }
+  if (accounting && provider === 'gemini') {
+    const original = getGeminiOriginal(request);
+    nativeAccountingCandidate = !!original && original.validRoute && original.model === modelStr &&
+      (modelStr === model || modelStr === `gemini/${model}`) && ACCOUNTED_GEMINI_MODEL.test(model) &&
+      typeof body.stream === 'boolean' && body.stream === original.stream && supportsGeminiRequest(original.body);
+  }
+  accounting?.assertSupported(isAccountedOpenaiChatProvider(provider) || nativeAccountingCandidate);
 
   // Routing shown in the unified "▶" line (client model → provider/model)
 
@@ -233,7 +311,8 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
   let lastHeaders = null;
 
   while (true) {
-    const credentials = await getProviderCredentials(provider, excludeConnectionIds, model, { requestedModel: requestedModel || model });
+    if (accounting) { requestSignal?.throwIfAborted(); accounting.gate(); }
+    const credentials = await awaitAbortableWork(() => getProviderCredentials(provider, excludeConnectionIds, model, { requestedModel: requestedModel || model }), accounting ? requestSignal : null);
 
     // All accounts unavailable
     if (!credentials || credentials.allRateLimited) {
@@ -252,7 +331,8 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     }
 
     // Account selection shown in the unified "▶" line (acc:...)
-    const refreshedCredentials = await checkAndRefreshToken(provider, credentials);
+    const refreshedCredentials = await awaitAbortableWork(() => checkAndRefreshToken(provider, credentials), accounting ? requestSignal : null);
+    if (accounting) requestSignal?.throwIfAborted();
 
     // Ensure real project ID is available for providers that need it (P0 fix: cold miss)
     if ((provider === "antigravity" || provider === "gemini-cli") && !refreshedCredentials.projectId) {
@@ -267,7 +347,14 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     // Use shared chatCore
     const chatSettings = await getSettings();
     const providerThinking = (chatSettings.providerThinking || {})[provider] || null;
+    let sourceFormatOverride = null;
+    if (request?.url) {
+      try { sourceFormatOverride = detectFormatByEndpoint(new URL(request.url).pathname, body); }
+      catch { return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid gateway request URL"); }
+    }
     const result = await handleChatCore({
+      accounting,
+      signal: requestSignal,
       body: { ...body, model: `${provider}/${model}` },
       modelInfo: { provider, model },
       credentials: refreshedCredentials,
@@ -296,7 +383,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       // Per-provider user overrides (custom headers / connect timeout) from settings
       providerOverrides: (chatSettings.providerOverrides || {})[provider] || null,
       // Detect source format by endpoint + body
-      sourceFormatOverride: request?.url ? detectFormatByEndpoint(new URL(request.url).pathname, body) : null,
+      sourceFormatOverride,
       onCredentialsRefreshed: async (newCreds) => {
         await updateProviderCredentials(credentials.connectionId, {
           ...newCreds,
@@ -312,6 +399,9 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     });
 
     if (result.success) return result.response;
+    // Failed billable attempt is terminal before control-plane mutations or
+    // another account selection. Local refusal never creates provider cooldown.
+    if (accounting) { requestSignal?.throwIfAborted(); accounting.gate(); }
 
     // Antigravity 409/429: refresh live quota to get exact resetAt before locking
     let quotaResetMs = null;

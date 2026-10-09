@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { BaseExecutor } from "./base.js";
+import { readRetryErrorBody } from "../utils/retryErrorBody.js";
 import { PROVIDERS } from "../config/providers.js";
 import { OAUTH_ENDPOINTS, ANTIGRAVITY_HEADERS, AG_DEFAULT_TOOLS, AG_TOOL_SUFFIX, ANTIGRAVITY_PROMPT_REWRITES } from "../config/appConstants.js";
 import { HTTP_STATUS } from "../config/runtimeConfig.js";
@@ -418,17 +419,20 @@ export class AntigravityExecutor extends BaseExecutor {
   // Hook called by BaseExecutor.tryRetry: derive delay from Retry-After (header → body),
   // cap at MAX_RETRY_AFTER_MS, else retry transient Antigravity failures with backoff.
   // Return false to veto (fallback URL / final error).
-  async computeRetryDelay(response, attempt) {
+  async computeRetryDelay(response, attempt, _defaultDelayMs, { signal } = {}) {
     let bodyText = "";
     let errorJson = null;
     let retryMs = this.parseRetryHeaders(response.headers);
 
     try {
-      bodyText = await response.clone().text();
+      bodyText = await readRetryErrorBody(response, { signal });
       errorJson = bodyText ? JSON.parse(bodyText) : null;
     } catch {
-      // ignore parse errors → fall through to status/message based retry
+      // Caller cancellation is never a retry-metadata parse failure. Time/size
+      // inspection failures use existing header/status fallback, not truncation.
+      signal?.throwIfAborted();
     }
+    signal?.throwIfAborted();
 
     const errorMessage = this.extractErrorMessage(errorJson, bodyText);
 

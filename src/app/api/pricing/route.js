@@ -1,18 +1,24 @@
 import { NextResponse } from "next/server";
 import { getPricing, updatePricing, resetPricing, resetAllPricing } from "@/lib/localDb.js";
 import { getDefaultPricing } from "open-sse/providers/pricing.js";
+import { PricingValidationError, readPricingMutation, validatePricingIdentifier } from "@/lib/pricing/pricingValidation.js";
+import { authorizeManagement } from '@/lib/auth/managementGuard.js';
+
+const json = (body, options = {}) => NextResponse.json(body, { ...options, headers: { 'Cache-Control': 'no-store' } });
 
 /**
  * GET /api/pricing
  * Get current pricing configuration (merged user + defaults)
  */
-export async function GET() {
+export async function GET(request) {
+  const auth = await authorizeManagement(request);
+  if (auth.response) return auth.response;
   try {
     const pricing = await getPricing();
-    return NextResponse.json(pricing);
-  } catch (error) {
-    console.error("Error fetching pricing:", error);
-    return NextResponse.json(
+    return json(pricing);
+  } catch {
+    console.error("Error fetching pricing");
+    return json(
       { error: "Failed to fetch pricing" },
       { status: 500 }
     );
@@ -22,61 +28,23 @@ export async function GET() {
 /**
  * PATCH /api/pricing
  * Update pricing configuration
- * Body: { provider: { model: { input: number, output: number, cached: number, ... } } }
+ * Body: complete model rates as decimal strings or legacy finite numbers.
+ * Optional cache/reasoning fields inherit documented input/output rates.
  */
 export async function PATCH(request) {
+  const auth = await authorizeManagement(request, { mutation: true });
+  if (auth.response) return auth.response;
   try {
-    const body = await request.json();
-
-    // Validate body structure
-    if (typeof body !== "object" || body === null) {
-      return NextResponse.json(
-        { error: "Invalid pricing data format" },
-        { status: 400 }
-      );
-    }
-
-    // Validate pricing structure
-    for (const [provider, models] of Object.entries(body)) {
-      if (typeof models !== "object" || models === null) {
-        return NextResponse.json(
-          { error: `Invalid pricing for provider: ${provider}` },
-          { status: 400 }
-        );
-      }
-
-      for (const [model, pricing] of Object.entries(models)) {
-        if (typeof pricing !== "object" || pricing === null) {
-          return NextResponse.json(
-            { error: `Invalid pricing for model: ${provider}/${model}` },
-            { status: 400 }
-          );
-        }
-
-        // Validate pricing fields
-        const validFields = ["input", "output", "cached", "reasoning", "cache_creation"];
-        for (const [key, value] of Object.entries(pricing)) {
-          if (!validFields.includes(key)) {
-            return NextResponse.json(
-              { error: `Invalid pricing field: ${key} for ${provider}/${model}` },
-              { status: 400 }
-            );
-          }
-          if (typeof value !== "number" || isNaN(value) || value < 0) {
-            return NextResponse.json(
-              { error: `Invalid pricing value for ${key} in ${provider}/${model}: must be non-negative number` },
-              { status: 400 }
-            );
-          }
-        }
-      }
-    }
+    let body;
+    try { body = await readPricingMutation(request); }
+    catch { return json({ error: "Invalid pricing data: complete bounded decimal rates required" }, { status: 400 }); }
 
     const updatedPricing = await updatePricing(body);
-    return NextResponse.json(updatedPricing);
+    return json(updatedPricing);
   } catch (error) {
-    console.error("Error updating pricing:", error);
-    return NextResponse.json(
+    if (error instanceof PricingValidationError) return json({ error: error.message }, { status: 400 });
+    console.error("Error updating pricing");
+    return json(
       { error: "Failed to update pricing" },
       { status: 500 }
     );
@@ -89,10 +57,17 @@ export async function PATCH(request) {
  * Query params: ?provider=xxx&model=yyy (optional)
  */
 export async function DELETE(request) {
+  const auth = await authorizeManagement(request, { mutation: true });
+  if (auth.response) return auth.response;
   try {
     const { searchParams } = new URL(request.url);
     const provider = searchParams.get("provider");
     const model = searchParams.get("model");
+    try {
+      if (provider !== null) validatePricingIdentifier(provider);
+      if (model !== null) validatePricingIdentifier(model);
+      if (model !== null && provider === null) throw new PricingValidationError();
+    } catch { return json({ error: "Invalid pricing reset target" }, { status: 400 }); }
 
     if (provider && model) {
       // Reset specific model
@@ -106,10 +81,10 @@ export async function DELETE(request) {
     }
 
     const pricing = await getPricing();
-    return NextResponse.json(pricing);
-  } catch (error) {
-    console.error("Error resetting pricing:", error);
-    return NextResponse.json(
+    return json(pricing);
+  } catch {
+    console.error("Error resetting pricing");
+    return json(
       { error: "Failed to reset pricing" },
       { status: 500 }
     );
@@ -120,13 +95,15 @@ export async function DELETE(request) {
  * GET /api/pricing/defaults
  * Get default pricing configuration
  */
-export async function GET_DEFAULTS() {
+export async function GET_DEFAULTS(request) {
+  const auth = await authorizeManagement(request);
+  if (auth.response) return auth.response;
   try {
     const defaultPricing = getDefaultPricing();
-    return NextResponse.json(defaultPricing);
-  } catch (error) {
-    console.error("Error fetching default pricing:", error);
-    return NextResponse.json(
+    return json(defaultPricing);
+  } catch {
+    console.error("Error fetching default pricing");
+    return json(
       { error: "Failed to fetch default pricing" },
       { status: 500 }
     );

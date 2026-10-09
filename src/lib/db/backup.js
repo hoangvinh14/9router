@@ -10,6 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { BACKUPS_DIR, ensureDirs } from "./paths.js";
 import { timestampSlug, getAppVersion } from "./version.js";
+import { atomicDurableWrite, fsyncDirectory } from "./durableFile.js";
 
 const KEEP_BACKUPS = 3;
 
@@ -39,6 +40,11 @@ export function backupFile(srcPath, destDir, destName = null) {
 export function backupDbLite(adapter, destDir, destName = "data.sqlite") {
   const dest = path.join(destDir, destName);
   try { fs.rmSync(dest, { force: true }); } catch {}
+  if (adapter.backupTo) {
+    adapter.backupTo(dest, BACKUP_EXCLUDE_TABLES);
+    if (adapter.coverage) atomicDurableWrite(path.join(destDir, ".accounting-coverage.json"), fs.readFileSync(adapter.coverage.file));
+    return dest;
+  }
   const escaped = dest.replace(/'/g, "''");
 
   adapter.exec(`ATTACH DATABASE '${escaped}' AS bak`);
@@ -55,10 +61,20 @@ export function backupDbLite(adapter, destDir, destName = "data.sqlite") {
         adapter.exec(createSql);
         adapter.exec(`INSERT INTO bak.${t.name} SELECT * FROM main.${t.name}`);
       }
+      const included = new Set(tables.map(t => t.name));
+      for (const object of adapter.all("SELECT type,tbl_name,sql FROM main.sqlite_master WHERE type IN ('index','trigger') AND sql IS NOT NULL")) {
+        if (!included.has(object.tbl_name)) continue;
+        const sql = object.sql.replace(/CREATE (UNIQUE )?(INDEX|TRIGGER)( IF NOT EXISTS)?\s+/i, (_, unique = "", kind, exists = "") => `CREATE ${unique}${kind}${exists} bak.`);
+        adapter.exec(sql);
+      }
     });
   } finally {
     try { adapter.exec("DETACH DATABASE bak"); } catch {}
   }
+  const fd = fs.openSync(dest, "r");
+  try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+  fsyncDirectory(destDir);
+  if (adapter.coverage) atomicDurableWrite(path.join(destDir, ".accounting-coverage.json"), fs.readFileSync(adapter.coverage.file));
   return dest;
 }
 

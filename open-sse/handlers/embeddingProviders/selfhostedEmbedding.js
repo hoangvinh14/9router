@@ -35,6 +35,7 @@ export class MissingBaseUrlError extends Error {
 
 export default {
   ...baseAdapter,
+  accountingSchema: null, // Endpoint configuration alone is not usage authority.
   buildUrl: (_model, creds) => {
     const rawBaseUrl = creds?.providerSpecificData?.baseUrl;
     if (!rawBaseUrl || !String(rawBaseUrl).trim()) throw new MissingBaseUrlError();

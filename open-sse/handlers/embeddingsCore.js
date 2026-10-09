@@ -3,6 +3,7 @@ import { HTTP_STATUS, FETCH_CONNECT_TIMEOUT_MS } from "../config/runtimeConfig.j
 import { getExecutor } from "../executors/index.js";
 import { refreshWithRetry } from "../services/tokenRefresh.js";
 import { getEmbeddingAdapter } from "./embeddingProviders/index.js";
+import { handleAccountedEmbedding } from "./embeddingProviders/accountedRequest.js";
 
 /**
  * Core embeddings handler — orchestrator only. Provider-specific URL/headers/body/normalize
@@ -17,6 +18,9 @@ export async function handleEmbeddingsCore({
   log,
   onCredentialsRefreshed,
   onRequestSuccess,
+  accounting = null,
+  signal = null,
+  connectionId = null,
 }) {
   const { provider, model } = modelInfo;
 
@@ -58,6 +62,9 @@ export async function handleEmbeddingsCore({
   }
 
   log?.debug?.("EMBEDDINGS", `${provider.toUpperCase()} | ${model} | input_type=${Array.isArray(input) ? `array[${input.length}]` : "string"}`);
+
+  if (accounting) return handleAccountedEmbedding({ adapter, provider, model, credentials, ctx, requestBody, url, headers,
+    accounting, signal, connectionId, log, onCredentialsRefreshed, onRequestSuccess });
 
   let providerResponse;
   try {

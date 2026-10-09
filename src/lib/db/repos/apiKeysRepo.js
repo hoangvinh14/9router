@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { getAdapter } from "../driver.js";
+import { retainKeyBindings, retireKeyBindings, validateKeyBindings } from "../helpers/apiKeyBindings.js";
+import { prepareExplicitKeyPolicies } from "../explicitPolicy.js";
 
 function rowToKey(row) {
   if (!row) return null;
@@ -38,20 +40,27 @@ export async function createApiKey(name, machineId) {
     isActive: true,
     createdAt: new Date().toISOString(),
   };
-  db.run(
-    `INSERT INTO apiKeys(id, key, name, machineId, isActive, createdAt) VALUES(?, ?, ?, ?, ?, ?)`,
-    [apiKey.id, apiKey.key, apiKey.name, apiKey.machineId, 1, apiKey.createdAt]
-  );
+  db.durableTransaction(() => {
+    validateKeyBindings(db, db.coverage, [apiKey]);
+    prepareExplicitKeyPolicies(db, [apiKey]);
+    retainKeyBindings(db, db.coverage, [apiKey]);
+    db.run(
+      `INSERT INTO apiKeys(id, key, name, machineId, isActive, createdAt) VALUES(?, ?, ?, ?, ?, ?)`,
+      [apiKey.id, apiKey.key, apiKey.name, apiKey.machineId, 1, apiKey.createdAt]
+    );
+  });
   return apiKey;
 }
 
 export async function updateApiKey(id, data) {
   const db = await getAdapter();
   let result = null;
-  db.transaction(() => {
+  db.durableTransaction(() => {
     const row = db.get(`SELECT * FROM apiKeys WHERE id = ?`, [id]);
     if (!row) return;
+    if (data.id !== undefined && data.id !== id) throw new Error("API key ID is immutable");
     const merged = { ...rowToKey(row), ...data };
+    validateKeyBindings(db, db.coverage, [merged]);
     db.run(
       `UPDATE apiKeys SET key = ?, name = ?, machineId = ?, isActive = ? WHERE id = ?`,
       [merged.key, merged.name, merged.machineId, merged.isActive ? 1 : 0, id]
@@ -63,13 +72,23 @@ export async function updateApiKey(id, data) {
 
 export async function deleteApiKey(id) {
   const db = await getAdapter();
-  const res = db.run(`DELETE FROM apiKeys WHERE id = ?`, [id]);
-  return (res?.changes ?? 0) > 0;
+  return db.durableTransaction(() => {
+    const row = db.get("SELECT * FROM apiKeys WHERE id=?", [id]);
+    if (!row) return false;
+    retireKeyBindings(db, db.coverage, [row]);
+    return Number(db.run(`DELETE FROM apiKeys WHERE id = ?`, [id]).changes) > 0;
+  });
+}
+
+export async function resolveApiKey(key) {
+  const db = await getAdapter();
+  const row = db.get(`SELECT * FROM apiKeys WHERE key = ? AND isActive = 1`, [key]);
+  if (!row) return null;
+  validateKeyBindings(db, db.coverage, [row]);
+  const { key: secret, ...identity } = rowToKey(row);
+  return identity;
 }
 
 export async function validateApiKey(key) {
-  const db = await getAdapter();
-  const row = db.get(`SELECT isActive FROM apiKeys WHERE key = ?`, [key]);
-  if (!row) return false;
-  return row.isActive === 1 || row.isActive === true;
+  return Boolean(await resolveApiKey(key));
 }

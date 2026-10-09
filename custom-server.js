@@ -58,6 +58,12 @@ http.createServer = (...args) => {
     const xff = req.headers["x-forwarded-for"];
     const xRealIp = req.headers["x-real-ip"];
     const viaProxy = !!(xff || xRealIp);
+    // Capture presence (including empty values) before Next populates forwarding
+    // authority headers. These stamps are authenticated by PEER_TOKEN below;
+    // client-provided copies are always overwritten, never treated as proof.
+    const authorityForwarded = Object.hasOwn(req.headers, "x-forwarded-host")
+      || Object.hasOwn(req.headers, "x-forwarded-proto");
+    const socketProtocol = req.socket?.encrypted === true ? "https:" : "http:";
     const isLoopbackProxy = socketIp === "127.0.0.1" || socketIp === "::1" || socketIp === "::ffff:127.0.0.1";
     // Trust forwarding headers only when the TCP peer is a local reverse proxy.
     // Direct/public sockets remain keyed by the unspoofable peer address.
@@ -67,8 +73,12 @@ http.createServer = (...args) => {
     delete req.headers["x-forwarded-for"];
     delete req.headers["x-9r-via-proxy"];
     delete req.headers["x-9r-peer-token"];
+    delete req.headers["x-9r-socket-proto"];
+    delete req.headers["x-9r-authority-forwarded"];
     req.headers["x-9r-real-ip"] = ip;
     req.headers["x-9r-peer-token"] = PEER_TOKEN;
+    req.headers["x-9r-socket-proto"] = socketProtocol;
+    req.headers["x-9r-authority-forwarded"] = authorityForwarded ? "1" : "0";
     if (viaProxy) req.headers["x-9r-via-proxy"] = "1";
     return handler(req, res);
   };

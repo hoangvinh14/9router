@@ -5,11 +5,7 @@ import antigravity from "../../open-sse/providers/registry/antigravity.js";
 
 const MAX = 10000;
 function res(status, headers = {}, body = null) {
-  return {
-    status,
-    headers: { get: (k) => headers[k.toLowerCase()] ?? null },
-    clone: () => ({ text: async () => (body == null ? "" : JSON.stringify(body)) }),
-  };
+  return new Response(body == null ? "" : JSON.stringify(body), { status, headers });
 }
 
 describe("antigravity computeRetryDelay hook (D3)", () => {

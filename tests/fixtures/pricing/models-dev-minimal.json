@@ -1,0 +1,18 @@
+{
+  "openai": {
+    "id": "openai",
+    "models": {
+      "gpt-5": { "id": "gpt-5", "cost": { "input": 1.25, "output": 10, "cache_read": 0.125 }, "modalities": { "input": ["text"], "output": ["text"] } },
+      "free-fixture": { "id": "free-fixture", "cost": { "input": 0, "output": 0, "cache_read": 0 } },
+      "unknown-fixture": { "id": "unknown-fixture" },
+      "tier-fixture": { "id": "tier-fixture", "cost": { "input": 1, "output": 2, "tiers": [{ "tier": { "size": 200000, "type": "context" }, "input": 2, "output": 4 }] } },
+      "audio-fixture": { "id": "audio-fixture", "cost": { "input": 1, "output": 2, "input_audio": 3 } }
+    }
+  },
+  "anthropic": {
+    "id": "anthropic",
+    "models": {
+      "claude-sonnet-4-6": { "id": "claude-sonnet-4-6", "cost": { "input": 3, "output": 15, "cache_read": 0.3, "cache_write": 3.75 } }
+    }
+  }
+}

@@ -2,6 +2,9 @@ import { EventEmitter } from "events";
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 import { getMeta, setMeta } from "../helpers/metaStore.js";
+import { redactUsageBuckets } from "../helpers/usageAttribution.js";
+import { getAttemptSync } from "./apiKeyAccountingRepo.js";
+import { nanoUsdToDecimal } from "../../pricing/money.js";
 
 function maskApiKey(key) {
   if (!key || typeof key !== "string") return null;
@@ -89,9 +92,9 @@ function aggregateEntryToDay(day, entry) {
     addToCounter(day.byAccount, entry.connectionId, { ...vals, meta: { rawModel: entry.model, provider: entry.provider } });
   }
 
-  const apiKeyVal = entry.apiKey && typeof entry.apiKey === "string" ? entry.apiKey : "local-no-key";
+  const apiKeyVal = entry.apiKeyId ? `key:${entry.apiKeyId}` : entry.apiKey && typeof entry.apiKey === "string" ? entry.apiKey : "local-no-key";
   const akModelKey = `${apiKeyVal}|${entry.model}|${entry.provider || "unknown"}`;
-  addToCounter(day.byApiKey, akModelKey, { ...vals, meta: { rawModel: entry.model, provider: entry.provider, apiKey: entry.apiKey || null } });
+  addToCounter(day.byApiKey, akModelKey, { ...vals, meta: { rawModel: entry.model, provider: entry.provider, apiKeyId: entry.apiKeyId || null, apiKey: entry.apiKey || null } });
 
   const endpoint = entry.endpoint || "Unknown";
   const epKey = `${endpoint}|${entry.model}|${entry.provider || "unknown"}`;
@@ -314,6 +317,65 @@ export async function saveRequestUsage(entry) {
   }
 }
 
+// A retained, database-unique projection receipt commits in the SAME durable
+// transaction as history/day/lifetime. It closes settlement->projection crash
+// replay gaps and survives analytics retention/clear, preventing resurrection
+// or duplicate surviving daily totals. Config import does not replace this kv
+// scope. Failure is analytics-only; caller may retry by attemptId from ledger.
+export function projectAccountingUsageSync(db, attemptId) {
+  const attempt = getAttemptSync(db, attemptId);
+  if (!attempt || !["settled", "waived"].includes(attempt.state) || attempt.costNanoUsd === null) throw new Error("Terminal accounting required for projection");
+  const u = attempt.usage;
+  const entry = { timestamp: attempt.startedAt, provider: attempt.provider, model: attempt.model, connectionId: attempt.connectionId,
+    apiKeyId: attempt.apiKeyId, attemptId, apiKey: null, endpoint: attempt.endpoint, status: attempt.outcome || "recovered",
+    // Numeric conversion is display-only, never allowance truth or repricing.
+    cost: Number(nanoUsdToDecimal(attempt.costNanoUsd)), tokens: u ? {
+      prompt_tokens: u.input, completion_tokens: u.output + (u.reasoningIncludedInOutput ? 0 : u.reasoning), cached_tokens: u.cacheRead,
+    } : {} };
+  let inserted = false;
+  db.durableTransaction(() => {
+    if (db.get("SELECT key FROM kv WHERE scope='accountingProjection' AND key=?", [attemptId])) return;
+    db.run("INSERT INTO kv(scope,key,value) VALUES('accountingProjection',?,?)", [attemptId, JSON.stringify({ version: 1, apiKeyId: attempt.apiKeyId, resolutionVersion: attempt.resolutionVersion })]);
+    db.run(`INSERT INTO usageHistory(timestamp,provider,model,connectionId,apiKey,apiKeyId,attemptId,endpoint,promptTokens,completionTokens,cost,status,tokens,meta) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [entry.timestamp,entry.provider,entry.model,entry.connectionId,null,entry.apiKeyId,attemptId,entry.endpoint,entry.tokens.prompt_tokens || 0,entry.tokens.completion_tokens || 0,entry.cost,entry.status,stringifyJson(entry.tokens),stringifyJson({ accountingState: attempt.state, usageAvailable: Boolean(u), costNanoUsd: attempt.costNanoUsd })]);
+    const dateKey = getLocalDateKey(entry.timestamp);
+    const row = db.get("SELECT data FROM usageDaily WHERE dateKey=?", [dateKey]);
+    const day = row ? parseJson(row.data, {}) : {};
+    aggregateEntryToDay(day, entry);
+    db.run("INSERT INTO usageDaily(dateKey,data) VALUES(?,?) ON CONFLICT(dateKey) DO UPDATE SET data=excluded.data", [dateKey,stringifyJson(day)]);
+    const current = db.get("SELECT value FROM _meta WHERE key='totalRequestsLifetime'");
+    db.run("INSERT INTO _meta(key,value) VALUES('totalRequestsLifetime',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [String((current ? parseInt(current.value,10) : 0) + 1)]);
+    inserted = true;
+  });
+  if (inserted) { pushToRing(entry); scheduleStatsEvent("update",250); }
+  return { inserted };
+}
+export async function projectAccountingUsage(attemptId) { return projectAccountingUsageSync(await getAdapter(), attemptId); }
+
+// Explicit bounded repair only; no startup timer or inference wiring. Each
+// projection remains independently durable. A new sweep starts with null cursor
+// so failures or concurrent settlements before the cursor are retried later.
+export function replayAccountingUsageSync(db, { limit = 50, afterAttemptId = null } = {}) {
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100 || afterAttemptId !== null && (typeof afterAttemptId !== "string" || !afterAttemptId || afterAttemptId.length > 512)) throw new Error("Invalid accounting replay page");
+  if (!db.health().healthy) throw new Error("Accounting replay storage unavailable");
+  const rows = db.all(`SELECT a.attemptId FROM apiKeyAccounting a
+    LEFT JOIN kv receipt ON receipt.scope='accountingProjection' AND receipt.key=a.attemptId
+    WHERE a.state IN ('settled','waived') AND a.costNanoUsd IS NOT NULL AND receipt.key IS NULL
+      AND (? IS NULL OR a.attemptId>?) ORDER BY a.attemptId LIMIT ?`, [afterAttemptId, afterAttemptId, limit + 1]);
+  const page = rows.slice(0, limit);
+  let projected = 0;
+  const failedAttemptIds = [];
+  for (const { attemptId } of page) {
+    // Uncertain adapter persistence is not safe for subsequent RAM reads.
+    if (!db.health().healthy) throw new Error("Accounting replay storage unavailable");
+    try { if (projectAccountingUsageSync(db, attemptId).inserted) projected++; }
+    catch { failedAttemptIds.push(attemptId); }
+  }
+  if (!db.health().healthy) throw new Error("Accounting replay storage unavailable");
+  return { attempted: page.length, projected, failedAttemptIds, nextCursor: rows.length > limit ? page[page.length - 1].attemptId : null };
+}
+export async function replayAccountingUsage(options) { return replayAccountingUsageSync(await getAdapter(), options); }
+
 export async function getUsageHistory(filter = {}) {
   const db = await getAdapter();
   const conds = [];
@@ -325,11 +387,11 @@ export async function getUsageHistory(filter = {}) {
   if (filter.endDate) { conds.push("timestamp <= ?"); params.push(new Date(filter.endDate).toISOString()); }
 
   const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
-  const rows = db.all(`SELECT timestamp, provider, model, connectionId, apiKey, endpoint, cost, status, tokens FROM usageHistory ${where} ORDER BY id ASC`, params);
+  const rows = db.all(`SELECT timestamp, provider, model, connectionId, apiKey, apiKeyId, attemptId, endpoint, cost, status, tokens FROM usageHistory ${where} ORDER BY id ASC`, params);
 
   return rows.map((r) => ({
     timestamp: r.timestamp, provider: r.provider, model: r.model,
-    connectionId: r.connectionId, apiKeyMasked: maskApiKey(r.apiKey), endpoint: r.endpoint,
+    connectionId: r.connectionId, apiKeyId: r.apiKeyId, attemptId: r.attemptId, apiKeyMasked: maskApiKey(r.apiKey), endpoint: r.endpoint,
     cost: r.cost, status: r.status, tokens: parseJson(r.tokens, {}),
   }));
 }
@@ -506,12 +568,12 @@ export async function getUsageStats(period = "all") {
         const provider = ak.provider || "";
         const providerDisplayName = providerNodeNameMap[provider] || provider;
         const apiKeyVal = ak.apiKey;
-        const keyInfo = apiKeyVal ? apiKeyMap[apiKeyVal] : null;
-        const keyName = keyInfo?.name || (apiKeyVal ? apiKeyVal.slice(0, 8) + "..." : "Local (No API Key)");
+        const keyInfo = ak.apiKeyId ? allApiKeys.find(k => k.id === ak.apiKeyId) : apiKeyVal ? apiKeyMap[apiKeyVal] : null;
+        const keyName = keyInfo?.name || (ak.apiKeyId ? `Deleted key ${ak.apiKeyId}` : apiKeyVal ? apiKeyVal.slice(0, 8) + "..." : "Local (No API Key)");
         const apiKeyMasked = maskApiKey(apiKeyVal);
         const apiKeyKey = apiKeyMasked || "local-no-key";
         if (!stats.byApiKey[akKey]) {
-          stats.byApiKey[akKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel, provider: providerDisplayName, apiKeyMasked, keyName, apiKeyKey, lastUsed: dateKey };
+          stats.byApiKey[akKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel, provider: providerDisplayName, apiKeyId: ak.apiKeyId || null, apiKeyMasked, keyName, apiKeyKey, lastUsed: dateKey };
         }
         stats.byApiKey[akKey].requests += ak.requests || 0;
         stats.byApiKey[akKey].promptTokens += ak.promptTokens || 0;
@@ -548,7 +610,7 @@ export async function getUsageStats(period = "all") {
       Date.now() - OVERLAY_WINDOW_MS
     );
     const histRows = db.all(
-      `SELECT timestamp, provider, model, connectionId, apiKey, endpoint FROM usageHistory WHERE timestamp >= ?`,
+      `SELECT timestamp, provider, model, connectionId, apiKey, apiKeyId, endpoint FROM usageHistory WHERE timestamp >= ?`,
       [new Date(overlayCutoff).toISOString()]
     );
     for (const e of histRows) {
@@ -562,7 +624,7 @@ export async function getUsageStats(period = "all") {
         if (stats.byAccount[accountKey] && new Date(ts) > new Date(stats.byAccount[accountKey].lastUsed)) stats.byAccount[accountKey].lastUsed = ts;
       }
 
-      const apiKeyKey = (e.apiKey && typeof e.apiKey === "string")
+      const apiKeyKey = e.apiKeyId ? `key:${e.apiKeyId}|${e.model}|${e.provider || "unknown"}` : (e.apiKey && typeof e.apiKey === "string")
         ? `${e.apiKey}|${e.model}|${e.provider || "unknown"}`
         : "local-no-key";
       if (stats.byApiKey[apiKeyKey] && new Date(ts) > new Date(stats.byApiKey[apiKeyKey].lastUsed)) stats.byApiKey[apiKeyKey].lastUsed = ts;
@@ -582,7 +644,7 @@ export async function getUsageStats(period = "all") {
       cutoff = new Date(Date.now() - PERIOD_MS["24h"]).toISOString();
     }
     const filtered = db.all(
-      `SELECT timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, tokens FROM usageHistory WHERE timestamp >= ?`,
+      `SELECT timestamp, provider, model, connectionId, apiKey, apiKeyId, endpoint, promptTokens, completionTokens, cost, tokens FROM usageHistory WHERE timestamp >= ?`,
       [cutoff]
     );
 
@@ -631,15 +693,15 @@ export async function getUsageStats(period = "all") {
         if (new Date(r.timestamp) > new Date(stats.byAccount[accountKey].lastUsed)) stats.byAccount[accountKey].lastUsed = r.timestamp;
       }
 
-      if (r.apiKey && typeof r.apiKey === "string") {
-        const keyInfo = apiKeyMap[r.apiKey];
-        const keyName = keyInfo?.name || r.apiKey.slice(0, 8) + "...";
+      if (r.apiKeyId || r.apiKey && typeof r.apiKey === "string") {
+        const keyInfo = r.apiKeyId ? allApiKeys.find(k => k.id === r.apiKeyId) : apiKeyMap[r.apiKey];
+        const keyName = keyInfo?.name || (r.apiKeyId ? `Deleted key ${r.apiKeyId}` : r.apiKey.slice(0, 8) + "...");
         const apiKeyMasked = maskApiKey(r.apiKey);
         // Key by the FULL api key (same as the daily rollup + lastUsed overlay)
         // — masking here collided all keys sharing a prefix into one bucket.
-        const akKey = `${r.apiKey}|${r.model}|${r.provider || "unknown"}`;
+        const akKey = `${r.apiKeyId ? `key:${r.apiKeyId}` : r.apiKey}|${r.model}|${r.provider || "unknown"}`;
         if (!stats.byApiKey[akKey]) {
-          stats.byApiKey[akKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel: r.model, provider: providerDisplayName, apiKeyMasked, keyName, apiKeyKey: apiKeyMasked, lastUsed: r.timestamp };
+          stats.byApiKey[akKey] = { requests: 0, promptTokens: 0, completionTokens: 0, cachedTokens: 0, cost: 0, rawModel: r.model, provider: providerDisplayName, apiKeyId: r.apiKeyId || null, apiKeyMasked, keyName, apiKeyKey: apiKeyMasked, lastUsed: r.timestamp };
         }
         const ake = stats.byApiKey[akKey];
         ake.requests++; ake.promptTokens += promptTokens; ake.completionTokens += completionTokens; ake.cachedTokens += cachedTokens; ake.cost += entryCost;
@@ -665,6 +727,9 @@ export async function getUsageStats(period = "all") {
   }
 
   stats.totalRequests = Object.values(stats.byProvider).reduce((sum, p) => sum + (p.requests || 0), 0);
+  // Transitional legacy storage may still contain credentials. Never serialize
+  // those raw composite keys through stats/SSE, even for historical daily rows.
+  stats.byApiKey = redactUsageBuckets(db, stats.byApiKey);
   return stats;
 }
 

@@ -1,0 +1,54 @@
+# Approved direction — I/O group commit and cache accounting
+
+## Decision / boundaries
+
+User prioritizes I/O/throughput and accepted the recommended **group commit with durable ACK**, then accepted cache accounting semantics and requested a plan update. This is not approval for a 60-second unacknowledged RAM spend buffer. Outcome: fewer commit/persistence calls under concurrent load, without losing acknowledged spend or granting allowance from uncertain storage after restart.
+
+A pricing memo is closed for sequential delivery. B now implements the bounded typed group writer/coordinator/service and internal queued Base opt-in with own durable ACK; production app consumers remain synchronous. Performance gains and full-family/runtime acceptance are **not certified**. Explicit service-only Node/SQL.js measurement passed8/8pairedcases: equal exactledger, burst durablecalls128→8/SQLjsimagebytes about93.7%less; low-load width1 no commit benefit and queued slowerall4samples, burstNodeelapsedmixed/SQLjsfaster but ACKlatency higher. One sample/scenario/notdeploymentacceptance; details in [package-b-service-io-measurement.md](./package-b-service-io-measurement.md). Diagnostic read/health counters running separately; no deployment latency threshold or spend-cache approval. Current implementation/evidence is tracked in [package-b-execution.md](./package-b-execution.md). Reuse current owners/storage/money logic; no new database/Redis, hard cap/reservations, multiwriter, weaker PRAGMA/fsync, precision relaxation, changed routing strategy, timeout increases or production activation. Design contract/AC remain authority, supplemented by these requirements. No extra provider inventory or foundation restart induced by this decision.
+
+## Ownership / sequence
+
+- A: bounded immutable validated pricing memo keyed by committed pricing/mapping revision and provider/model/endpoint. Publish/invalidate after successful write, clear on reopen/invalid health; no inference fetch, repeated catalog parsing/hash when revision unchanged, fuzzy mapping or partial-source merge.
+- B: one process-local accounting write coordinator owned by the existing DATA_DIR writer; do not put key/attempt state on executor singletons. Existing repos/adapters remain monetary authority. A group may contain operations from different requests/keys, not one shared accounting identity.
+- C: use exact acknowledged ledger spend for week/month gates; keep indexed BigInt-safe aggregation. Derived spend cache is **not approved implementation by this decision**: benchmark first, prove all mutation/recovery/reset/reopen invalidation before proposing it.
+- D: crash/replay/recovery and actual-adapter group ACK parity.
+- E: matched throughput/latency/I/O acceptance and full compatibility/security review.
+
+### Intended group write lifecycle
+
+```text
+request-local prepared operation
+  → bounded coordinator queue (not a spend authority)
+  → short group transaction: fresh gates + validated per-attempt mutations
+  → one durable commit/persist for accepted group
+  → per-operation ACK/result
+  → allowed POST or eligible native terminal
+```
+
+1. Capture original immutable wire/identity/model/price/proxy/cancellation provenance; enqueue only internal validated commands, not arbitrary user callbacks. Bound queue entries/bytes, group size and maximum coalescing wait; flush when threshold/wait reached and promptly at low traffic. Concrete tunables must follow matched measurements, not invented deadlines. No indefinite wait for a full group.
+2. Existing synchronous durableTransaction callbacks stay synchronous. Await queue/ACK **outside** the transaction; extract existing mutation primitives only as needed to avoid nested durable transactions/per-row fsync. Narrow write/repo/service consumer change, no new parallel ledger or generic app-wide transaction framework. Current service's no-yield gate-to-intent guarantee must be replaced deliberately, not silently broken by an await.
+3. At dequeue/transaction, refresh health/ownership/key activity/binding/policy/windows/coverage and applicable pricing/config authority before intent. An operation whose prepared authority no longer matches must refuse/reprepare from original intent according to existing contract, not silently switch its provider/model/price. Recheck terminal CAS/receipt state for settlements. Queue delay does not give cached authorization. Assign intent startedAt at the actual admitted durable-intent operation, not a stale enqueue time that can misattribute a calendar window.
+4. Operations remain FIFO ordered for relevant shared state. A successor/judge rechecks gate after predecessor ACK; no self-await/dependency cycle inside a group. Pending remains nonreservation, concurrent accepted attempts may overshoot. Sidecar/gap/maintenance CAS retain their sole existing durable owner and ordering; group DB ACK never substitutes for an independently required sidecar ACK.
+5. Compute exact cost and round **once per attempt before batching**. Keep separate attempt IDs, snapshots, CAS, audit/receipts; batch changes commit granularity, not charge granularity. Advance analytics/derived caches only after durable ACK, once per actual state transition.
+6. Known per-operation refusal/duplicate/conflict must not manufacture success for that operation or needlessly poison unrelated keys: validate/resolve using existing atomic/CAS rules before writes as applicable; use tested rollback-safe per-operation boundaries if needed. Do not promise partial durability inside one group. Any group commit/fsync uncertainty => no member receives success ACK; follow existing poisoned-storage/gap/unresolved rules, never blind replay/retry to green. Late observation/recovery preserves original receipt and one settlement owner.
+7. Caller cancellation before dispatch still means no POST. Remove provably unexecuted queued intent when possible; cancellation after durable intent cannot fabricate not_dispatched evidence. Preserve exact reason including false, recorded charge and late terminal sink. Shutdown drains bounded outstanding work without early ACK; killed process recovery uses persisted intent/receipt, not discarded RAM.
+
+## Cache accounting semantics
+
+- Upstream prompt cache read/write: raw schema → inclusive input + validated cache subsets. Cost = uncached input × input rate + cacheRead × cached rate + cacheWrite × creation rate + output/reasoning per inclusion flag. Never price full inclusive input then add cache a second time. Preserve explicit zero and original snapshot.
+- Missing optional cache price uses **documented fallback** in snapshot only when supported schema permits (current math falls back to input rate); do not infer discounted/free price. This is exact virtual cost under chosen rates, not an invoice match claim. Unknown/ambiguous usage stays unresolved, no invented zero.
+- Mixed cache-write TTL/tier/rates must be supported explicitly by schema/pricing; no broad support claim from a generic cache_creation rate. Strict unsupported handling remains safety until accepted coverage completed.
+- Local response-cache hit with proven **no new upstream POST**: no new upstream attempt/debit; never reuse original charged attempt's usage as a fresh charge. Client request/hit counts may be recorded separately. Cache miss/revalidation/speculative/racing fetch that actually reaches upstream still has its own attempt, even if cached answer is returned. Cache keys/access must preserve key/config isolation; zero debit does not authorize bypass of invalid/disabled identity, ownership, maintenance or applicable budget admission gates. No response-cache implementation claim or new response-cache engine implied.
+
+## Finite verification / DONE additions
+
+- Focused queue scheduling at low/burst load; bounded memory/wait/fairness, two-key isolation, policy disable/limit change while queued, reset crossing, pricing revision change, duplicate/conflict/CAS and abort-before/after-ACK.
+- Crash before transaction/during commit/after commit before delivered ACK; uncertain commit/reopen and original receipt replay. Assert zero POST before own durable intent ACK; no terminal success before own settlement/gap ACK; no duplicate debit, no lost predecessor or detached sink.
+- Applicable actual Bun/better-sqlite3/Node/SQL.js durability tests; SQL.js should export/persist once per successful group, not once per row. Native group commit may reduce commit calls; no fixed fsync-count promise because WAL/checkpoint/filesystem behavior varies.
+- Exact cache-read/write math per schema, explicit zero/fallback/missing usage, reasoning inclusion, cache TTL/tier ambiguity, price change mid-attempt; local hit/miss/revalidation/race verifies actual POST count and debit. Prove old usage never recharged.
+- Matched isolated group-enabled vs per-operation baseline: commit/persist count per attempt, disk bytes where measurable, CPU/event-loop delay, throughput, p50/p95/p99 overhead, queue delay/memory; low/burst/sustained load and small/large ledger on each available adapter. No live providers or operator DB.
+- Before benchmark, declare workload and acceptance threshold from deployment needs; not settled yet. Under burst load prove fewer commit/persist calls with equal ledger outcomes; latency/queue/health costs reported, not hidden. One faster synthetic result is not all-user scalability certification. Group failure/deadlock/invalid authority blocks closure even if throughput improves.
+
+## Evidence status / source comparison
+
+Production service inference callers remain synchronous by default. Internal queued request/Base owners now use the bounded coordinator and typed service operations, refreshing authority inside each group member savepoint and withholding result until the outer durable ACK. Repo primitive alone never grants admission. SQL.js release/rollback uncertainty poisons the adapter. Current scoped reload-safe51/51, affected265/265, verifiedTLS4/4, precedence55/55, nativeabort61/61 and terminal/originalprice45/45 receipts pass; these overlap and are not full family/adapter/product coverage. A service-only measurement passed8paired ledger/I/O invariant cases with documented low-load/latency regressions; read/health diagnostic counters pending. Neither is throughput/latency/deployment acceptance. New group mechanism invalidates only affected write/ACK evidence after implementation, not all native protocol/parser fixtures. Run impact-based gates then; do not rerun them for this docs change. Source comparison: [OmniRoute report](../../reports/omniroute-budget-pricing-performance-comparison.md), which observed price caches but buffered spend60s/1000 and best-effort ledger, not this durable group-ACK design. No code copied; MIT notice required if future substantial port occurs. Production enforcement OFF; old failed gates remain failed.

@@ -4,8 +4,10 @@ import { applyThinking, extractThinking, stripThinkingSuffix } from "../translat
 import { FORMATS } from "../translator/formats.js";
 import { normalizeClaudePassthrough, anchorClaudeCache } from "../translator/formats/claude.js";
 import { createStreamController } from "../utils/streamHandler.js";
+import { SSE_HEADERS_CORS } from "../utils/sseConstants.js";
 import { refreshWithRetry } from "../services/tokenRefresh.js";
 import { createRequestLogger } from "../utils/requestLogger.js";
+import { awaitAbortableWork } from "../utils/abortableWork.js";
 import { getModelTargetFormat, getModelSupportedFormats, getModelStrip, getModelUpstreamId, getModelType, PROVIDER_ID_TO_ALIAS } from "../config/providerModels.js";
 import { PROVIDERS } from "../config/providers.js";
 import { createErrorResult, parseUpstreamError, formatProviderError } from "../utils/error.js";
@@ -28,6 +30,11 @@ import { compressMessages, formatRtkLog } from "../rtk/index.js";
 import { compressWithHeadroom, formatHeadroomLog, formatHeadroomSizeLog, isHeadroomPhantomSavings } from "../rtk/headroom.js";
 import { compressWithPxpipe } from "../rtk/pxpipe.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
+import { isAccountedOpenaiChatProvider } from '../config/accountedChatProviders.js';
+import { ACCOUNTED_ANTHROPIC_CANDIDATE_MODE, ACCOUNTED_ANTHROPIC_LIVE_MODE, supportsAnthropicLiveRequest } from '../config/accountedAnthropicCandidate.js';
+import { ACCOUNTED_RESPONSES_MODE, ACCOUNTED_RESPONSES_SSE_MODE, supportsResponsesRequest } from '../config/accountedResponsesCandidate.js';
+import { ACCOUNTED_CODEX_SSE_MODE, supportsCodexRequest } from '../config/accountedCodexCandidate.js';
+import { ACCOUNTED_GEMINI_MODE, ACCOUNTED_GEMINI_SSE_MODE, supportsGeminiInternalRequest, markGeminiNativeResponse } from '../config/accountedGeminiCandidate.js';
 import { stripUnsupportedModalities } from "../translator/concerns/modality.js";
 import { prefetchRemoteImages } from "../translator/concerns/prefetch.js";
 import { defaultClaudeToolType, shouldDefaultClaudeToolType } from "../translator/concerns/toolCall.js";
@@ -60,7 +67,7 @@ export function stripContinuityFields(body) {
   return body;
 }
 
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, providerOverrides }) {
+export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, providerOverrides, accounting = null, signal = null, persistedGlobalProxy = undefined, persistedPoolProxy = undefined }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
   // Stable per-session color so all lines of one CLI conversation share a tag
@@ -103,6 +110,26 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const stripList = getModelStrip(alias, model);
   const upstreamModel = getModelUpstreamId(alias, model);
 
+  // Native JSON eligibility must inspect the original request before savers or
+  // normalization can remove an unsupported option. External compression is
+  // outside this initial text-only slice; deny, never silently disable it.
+  if (accounting && sourceFormat === FORMATS.OPENAI_RESPONSES) {
+    accounting.assertSupported(upstreamModel === model && !headroomEnabled && !pxpipeEnabled &&
+      (provider === 'openai' && supportsResponsesRequest({ ...body, model }, model) ||
+       provider === 'codex' && targetFormat === FORMATS.OPENAI_RESPONSES && supportsCodexRequest({ ...body, model }, model) &&
+       !cavemanEnabled && !ponytailEnabled && (!providerThinking?.mode || providerThinking.mode === 'auto')));
+  }
+
+  if (accounting && provider === 'anthropic' && sourceFormat === FORMATS.CLAUDE && body.stream === true) {
+    accounting.assertSupported(upstreamModel === model && supportsAnthropicLiveRequest({ ...body, model }, model) && !headroomEnabled && !pxpipeEnabled);
+  }
+
+  if (accounting && provider === 'gemini') {
+    accounting.assertSupported(sourceFormat === FORMATS.GEMINI && targetFormat === FORMATS.GEMINI && upstreamModel === model &&
+      supportsGeminiInternalRequest({ ...body, model }, model) && !headroomEnabled && !pxpipeEnabled &&
+      !cavemanEnabled && !ponytailEnabled && (!providerThinking?.mode || providerThinking.mode === 'auto'));
+  }
+
   // Inject provider-level thinking config override (only if client hasn't set)
   // on/off → extended type (body.thinking), none/low/medium/high → effort type (body.reasoning_effort)
   if (providerThinking?.mode && providerThinking.mode !== "auto") {
@@ -130,7 +157,9 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const preTranslateRtkLine = formatRtkLog(preTranslateRtk);
   if (preTranslateRtkLine) console.log(preTranslateRtkLine);
 
-  const clientRequestedStreaming = body.stream === true || sourceFormat === FORMATS.ANTIGRAVITY || sourceFormat === FORMATS.GEMINI || sourceFormat === FORMATS.GEMINI_CLI;
+  const nativeGeminiCandidate = !!accounting && provider === 'gemini' && sourceFormat === FORMATS.GEMINI &&
+    targetFormat === FORMATS.GEMINI && typeof body.stream === 'boolean' && upstreamModel === model;
+  const clientRequestedStreaming = nativeGeminiCandidate ? body.stream : (body.stream === true || sourceFormat === FORMATS.ANTIGRAVITY || sourceFormat === FORMATS.GEMINI || sourceFormat === FORMATS.GEMINI_CLI);
   const providerRequiresStreaming = PROVIDERS[provider]?.forceStream === true;
   let stream = providerRequiresStreaming ? true : (body.stream !== false);
 
@@ -156,6 +185,28 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     stream = false;
   }
 
+  // Internal standard native candidate; the app provider guard is independent.
+  // Actual executor still checks API-key/headers/URL/serialized request policy.
+  const nativeClaudeCandidate = !!accounting && provider === 'anthropic' &&
+    sourceFormat === FORMATS.CLAUDE && targetFormat === FORMATS.CLAUDE && typeof body.stream === 'boolean' &&
+    body.stream === clientRequestedStreaming && upstreamModel === model;
+  const nativeResponsesCandidate = !!accounting && provider === 'openai' &&
+    sourceFormat === FORMATS.OPENAI_RESPONSES && typeof body.stream === 'boolean' &&
+    body.stream === clientRequestedStreaming && upstreamModel === model;
+  const nativeCodexCandidate = !!accounting && provider === 'codex' && sourceFormat === FORMATS.OPENAI_RESPONSES &&
+    targetFormat === FORMATS.OPENAI_RESPONSES && body.stream === true && upstreamModel === model;
+  const nativeAccountingCandidate = nativeClaudeCandidate || nativeResponsesCandidate || nativeGeminiCandidate || nativeCodexCandidate;
+  let accountingMode = null;
+  if (nativeClaudeCandidate) { accountingMode = body.stream ? ACCOUNTED_ANTHROPIC_LIVE_MODE : ACCOUNTED_ANTHROPIC_CANDIDATE_MODE; stream = true; body = structuredClone(body); }
+  else if (nativeResponsesCandidate) { accountingMode = body.stream ? ACCOUNTED_RESPONSES_SSE_MODE : ACCOUNTED_RESPONSES_MODE; stream = body.stream; body = structuredClone(body); }
+  else if (nativeGeminiCandidate) { accountingMode = body.stream ? ACCOUNTED_GEMINI_SSE_MODE : ACCOUNTED_GEMINI_MODE; stream = body.stream; body = structuredClone(body); }
+  else if (nativeCodexCandidate) { accountingMode = ACCOUNTED_CODEX_SSE_MODE; stream = true; body = structuredClone(body); }
+  else if (clientRequestedStreaming) accountingMode = 'live-openai-sse';
+  else if (providerRequiresStreaming) accountingMode = 'buffered-openai-sse';
+  accounting?.assertSupported(nativeAccountingCandidate || sourceFormat !== FORMATS.OPENAI_RESPONSES &&
+    isAccountedOpenaiChatProvider(provider) && targetFormat === FORMATS.OPENAI &&
+    (!clientRequestedStreaming || sourceFormat === FORMATS.OPENAI && (body.n === undefined || body.n === 1)));
+
   const reqLogger = await createRequestLogger(sourceFormat, targetFormat, model);
   if (clientRawRequest) reqLogger.logClientRawRequest(clientRawRequest.endpoint, clientRawRequest.body, clientRawRequest.headers);
   reqLogger.logRawRequest(body);
@@ -170,7 +221,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   if (credentials) credentials.rawHeaders = clientRawRequest?.headers || {};
 
   // Auto-strip media blocks the model can't read (vision/audio/pdf) before translation.
-  if (!passthrough) {
+  if (!passthrough && !nativeAccountingCandidate) {
     const caps = getCapabilitiesForModel(provider, model);
     if (stripUnsupportedModalities(body, sourceFormat, caps)) {
       log?.debug?.("MODALITY", `stripped unsupported media for ${provider}/${model}`);
@@ -185,7 +236,9 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   let translatedBody;
   let toolNameMap;
   let customToolNames;
-  if (passthrough) {
+  if (nativeAccountingCandidate) {
+    translatedBody = { ...body, model };
+  } else if (passthrough) {
     log?.debug?.("PASSTHROUGH", `${clientTool} → ${provider} | native lossless`);
     translatedBody = { ...body, model: stripThinkingSuffix(upstreamModel) };
     if (provider === "codex") {
@@ -338,7 +391,18 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     connectionProxyEnabled: credentials?.providerSpecificData?.connectionProxyEnabled === true,
     connectionProxyUrl: credentials?.providerSpecificData?.connectionProxyUrl || "",
     connectionNoProxy: credentials?.providerSpecificData?.connectionNoProxy || "",
+    strictProxy: credentials?.providerSpecificData?.strictProxy === true,
+    proxyPoolUnavailable: credentials?.providerSpecificData?.proxyPoolUnavailable === true,
+    proxyPoolId: credentials?.providerSpecificData?.connectionProxyPoolId || null,
     vercelRelayUrl: credentials?.providerSpecificData?.vercelRelayUrl || "",
+    ...(accounting && persistedGlobalProxy !== undefined ? { persistedGlobalProxy: structuredClone(persistedGlobalProxy) } : {}),
+    ...(accounting && persistedPoolProxy !== undefined ? {
+      persistedPoolProxy: structuredClone(persistedPoolProxy),
+      connectionProxyEnabled: true, connectionProxyUrl: persistedPoolProxy.url,
+      connectionNoProxy: persistedPoolProxy.noProxy, proxyPoolId: persistedPoolProxy.id,
+      strictProxy: persistedPoolProxy.strictProxy,
+      proxyPoolUnavailable: false,
+    } : {}),
   };
 
   if (proxyOptions.vercelRelayUrl) {
@@ -368,7 +432,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   }
 
   // Execute request
-  let providerResponse, providerUrl, providerHeaders, finalBody;
+  let providerResponse, providerUrl, providerHeaders, finalBody, accountingLive = false, accountingMessage = null;
   // Most executors return their registry format. Cursor AgentService is an
   // exception: it is decoded by the executor into OpenAI-compatible output.
   let providerResponseFormat = targetFormat;
@@ -380,12 +444,26 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       credentials,
       providerSessionId: sessionSeed,
       clientTool,
-      signal: streamController.signal,
+      signal: signal ? AbortSignal.any([signal, streamController.signal]) : streamController.signal,
+      accounting,
+      accountingMode,
+      connectionId,
       log,
       proxyOptions,
       providerOverrides,
     });
     providerResponse = result.response;
+    accountingLive = result.accountingLive === true;
+    if (nativeAccountingCandidate) {
+      // Valid owner success was already authorized. A fresh admission gate here
+      // would incorrectly reject a settled response exactly at the threshold.
+      // A failed native response is already terminal-owned too, but has no
+      // successful raw message/live transfer. Preserve it as failure, never
+      // demand success evidence or refresh/re-dispatch after its owner ACK.
+      if (result.accountingOwned !== true || providerResponse.ok &&
+          ([ACCOUNTED_RESPONSES_SSE_MODE, ACCOUNTED_ANTHROPIC_LIVE_MODE, ACCOUNTED_GEMINI_SSE_MODE, ACCOUNTED_CODEX_SSE_MODE].includes(accountingMode) ? !accountingLive : !result.accountingMessage)) accounting.assertSupported(false);
+      accountingMessage = result.accountingMessage;
+    }
     providerUrl = result.url;
     providerHeaders = result.headers;
     finalBody = result.transformedBody;
@@ -396,6 +474,11 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     }
     reqLogger.logTargetRequest(providerUrl, providerHeaders, finalBody);
   } catch (error) {
+    if (signal?.aborted || accounting?.isLocalError(error)) {
+      trackPendingRequest(model, provider, connectionId, false, true);
+      if (signal?.aborted) throw signal.reason;
+      throw error;
+    }
     trackPendingRequest(model, provider, connectionId, false, true);
     appendRequestLog({ model, provider, connectionId, status: `FAILED ${error.name === "AbortError" ? 499 : HTTP_STATUS.BAD_GATEWAY}` }).catch(() => { });
     saveRequestDetail(buildRequestDetail({
@@ -420,8 +503,26 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     return createErrorResult(HTTP_STATUS.BAD_GATEWAY, errMsg);
   }
 
+  if (nativeAccountingCandidate && providerResponse.ok && accountingLive) {
+    // The stream owns raw lifecycle, settlement and withheld native terminals.
+    // Do not close its controller or run success callbacks before clean EOF/ACK.
+    return { success: true, response: nativeGeminiCandidate ? markGeminiNativeResponse(providerResponse) : providerResponse };
+  }
+  if (nativeAccountingCandidate && providerResponse.ok) {
+    // Owner already inspected raw protocol, durably settled, and authorized.
+    // Never parse native frames through the OpenAI converter or meter twice.
+    signal?.throwIfAborted();
+    if (onRequestSuccess) await onRequestSuccess();
+    signal?.throwIfAborted();
+    trackPendingRequest(model, provider, connectionId, false);
+    streamController.handleComplete();
+    const nativeResponse = Response.json(accountingMessage, { headers: { 'Cache-Control': 'no-store' } });
+    return { success: true, response: nativeGeminiCandidate ? markGeminiNativeResponse(nativeResponse) : nativeResponse };
+  }
+
   // Handle 401/403 - try token refresh (skip for noAuth providers)
-  if (!executor.noAuth && (providerResponse.status === HTTP_STATUS.UNAUTHORIZED || providerResponse.status === HTTP_STATUS.FORBIDDEN)) {
+  if (!nativeAccountingCandidate && !executor.noAuth && (providerResponse.status === HTTP_STATUS.UNAUTHORIZED || providerResponse.status === HTTP_STATUS.FORBIDDEN)) {
+    accounting?.gate();
     try {
       // Mutate credentials after each successful refresh: rotating refresh_token
       // providers (xAI/grok-cli) issue a new RT on every refresh; without this,
@@ -429,17 +530,25 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       // invalid_grant → auth_failed retryable=false.
       const newCredentials = await refreshWithRetry(async () => {
         const result = await executor.refreshCredentials(credentials, log);
+        if (accounting) signal?.throwIfAborted();
         if (result?.refreshToken && result.refreshToken !== credentials.refreshToken) {
           if (result.accessToken) credentials.accessToken = result.accessToken;
           credentials.refreshToken = result.refreshToken;
         }
         return result;
-      }, 3, log);
+      }, 3, log, accounting ? { signal, isTerminalError: accounting.isLocalError } : {});
+      if (accounting) signal?.throwIfAborted();
       if (newCredentials?.accessToken || newCredentials?.copilotToken) {
         if (log?.line) log.line(reqTag, "🔑", `TOKEN REFRESHED · ${provider}/${model}`);
         Object.assign(credentials, newCredentials);
         if (onCredentialsRefreshed) {
-          try { await onCredentialsRefreshed(newCredentials); } catch (e) { log?.warn?.("TOKEN", `onCredentialsRefreshed failed: ${e.message}`); }
+          try {
+            await awaitAbortableWork(() => onCredentialsRefreshed(newCredentials), accounting ? signal : null);
+          } catch (e) {
+            if (accounting && signal?.aborted) throw signal.reason;
+            if (accounting?.isLocalError(e)) throw e;
+            log?.warn?.("TOKEN", `onCredentialsRefreshed failed: ${e?.message || 'unavailable'}`);
+          }
         }
         try {
           const retryResult = await executor.execute({
@@ -449,21 +558,31 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
             credentials,
             providerSessionId: sessionSeed,
             clientTool,
-            signal: streamController.signal,
+            signal: signal ? AbortSignal.any([signal, streamController.signal]) : streamController.signal,
+            accounting,
+            accountingMode,
+            connectionId,
             log,
             proxyOptions,
             providerOverrides,
           });
           if (retryResult.response.ok) {
             providerResponse = retryResult.response;
+            accountingLive = retryResult.accountingLive === true;
             providerUrl = retryResult.url;
             providerResponseFormat = retryResult.responseFormat || targetFormat;
           }
-        } catch { log?.warn?.("TOKEN", `${provider.toUpperCase()} | retry after refresh failed`); }
+        } catch (error) {
+          if (signal?.aborted) throw signal.reason;
+          if (accounting?.isLocalError(error)) throw error;
+          log?.warn?.("TOKEN", `${provider.toUpperCase()} | retry after refresh failed`);
+        }
       } else {
         log?.warn?.("TOKEN", `${provider.toUpperCase()} | refresh failed`);
       }
     } catch (e) {
+      if (signal?.aborted) throw signal.reason;
+      if (accounting?.isLocalError(e)) throw e;
       log?.warn?.("TOKEN", `${provider.toUpperCase()} | refresh threw: ${e.message}`);
     }
   }
@@ -493,7 +612,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     return createErrorResult(statusCode, errMsg, resetsAtMs, upstreamResponseHeaders(providerResponse.headers));
   }
 
-  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, pxpipe: pxpipeSummary, reqTag, log };
+  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, accountingOwned: !!accounting, pxpipe: pxpipeSummary, reqTag, log };
   const appendLog = (extra) => appendRequestLog({ model, provider, connectionId, ...extra }).catch(() => { });
   const trackDone = () => trackPendingRequest(model, provider, connectionId, false);
 
@@ -508,6 +627,12 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     const result = await handleNonStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, reqLogger, toolNameMap, customToolNames, trackDone, appendLog });
     streamController.handleComplete();
     return result;
+  }
+
+  // Certified raw same-format stream owns settlement and terminal bytes. Never
+  // run it through legacy estimates, duplicate analytics or synthetic DONE.
+  if (accountingLive) {
+    return { success: true, response: new Response(providerResponse.body, { headers: { ...SSE_HEADERS_CORS, ...upstreamResponseHeaders(providerResponse.headers), 'Cache-Control': 'no-store' } }) };
   }
 
   // Streaming response

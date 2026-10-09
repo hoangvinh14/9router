@@ -7,6 +7,18 @@ vi.mock("../../open-sse/services/qoderModels.js", () => ({
   resolveQoderCredentials: vi.fn(),
 }));
 
+// Transform the cold dependency graph during collection, not inside the signed
+// transport assertion's 5s deadline. Every case still resets/reimports modules
+// AFTER stubbing fetch, so the real proxy layer captures that case's fetch.
+// This suite verifies replay/cancellation, not cold module-load performance.
+const collectionFetch = globalThis.fetch;
+try {
+  await import("../../open-sse/executors/qoder.js");
+} finally {
+  globalThis.fetch = collectionFetch;
+  vi.resetModules();
+}
+
 const request = {
   model: "auto",
   body: { messages: [{ role: "user", content: "hello" }], max_tokens: 32 },

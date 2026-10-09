@@ -1,37 +1,67 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Card from "@/shared/components/Card";
 import PricingModal from "@/shared/components/PricingModal";
+import PricingCoverage from "@/shared/components/PricingCoverage";
 
 export default function PricingSettingsPage() {
-  const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [currentPricing, setCurrentPricing] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
+  const [catalogStatus, setCatalogStatus] = useState(null);
+  const [error, setError] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
 
   useEffect(() => {
-    loadPricing();
-  }, []);
+    const controller = new AbortController(); let active = true;
+    const load = async () => {
+      setLoading(true); setError("");
+      try {
+        const [pricing, status] = await Promise.all([
+          fetch("/api/pricing", { signal: controller.signal }),
+          fetch("/api/pricing/sync", { signal: controller.signal }),
+        ]);
+        if (!pricing.ok) throw new Error("Effective pricing could not be loaded");
+        const prices = await pricing.json();
+        const catalog = status.ok ? await status.json() : null;
+        if (!active) return;
+        setCurrentPricing(prices); setCatalogStatus(catalog);
+        if (!status.ok) setError("Pricing sync status unavailable or access denied");
+      } catch (error) {
+        if (!active || controller.signal.aborted) return;
+        setCurrentPricing(null); setCatalogStatus(null);
+        setError(error.message || "Pricing unavailable");
+      } finally { if (active) setLoading(false); }
+    };
+    load();
+    return () => { active = false; controller.abort(); };
+  }, [revision]);
 
-  const loadPricing = async () => {
-    setLoading(true);
+  const handlePricingUpdated = () => setRevision(value => value + 1);
+  const handleSync = async () => {
+    setSyncing(true); setError("");
     try {
-      const response = await fetch("/api/pricing");
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentPricing(data);
-      }
-    } catch (error) {
-      console.error("Failed to load pricing:", error);
-    } finally {
-      setLoading(false);
-    }
+      const response = await fetch("/api/pricing/sync", { method: "POST" });
+      const status = await response.json();
+      if (response.ok || response.status === 502) setCatalogStatus(status);
+      if (!response.ok) throw new Error(response.status === 502 ? "Catalog sync degraded. Last-known-good pricing is retained; invalid rates are not rounded." : "Pricing sync denied or storage unavailable");
+      handlePricingUpdated();
+    } catch (error) { setError(error.message || "Pricing sync failed"); }
+    finally { setSyncing(false); }
   };
 
-  const handlePricingUpdated = () => {
-    loadPricing();
+  const handleSchedule = async enabled => {
+    setScheduling(true); setError("");
+    try {
+      const response = await fetch("/api/pricing/sync", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ schedulerEnabled: enabled }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.configurationSaved ? "Schedule preference saved, but timer configuration failed. Reload and retry." : "Schedule change denied or storage unavailable");
+      setCatalogStatus(previous => ({ ...previous, ...result }));
+    } catch (error) { setError(error.message || "Schedule change failed"); }
+    finally { setScheduling(false); }
   };
 
   // Count total models with pricing
@@ -90,11 +120,34 @@ export default function PricingSettingsPage() {
           <div className="text-text-muted text-sm uppercase font-semibold">
             Status
           </div>
-          <div className="text-2xl font-bold mt-1 text-success">
-            {loading ? "..." : "Active"}
+          <div className="text-2xl font-bold mt-1">
+            {loading ? "..." : !catalogStatus ? "Unavailable" : catalogStatus.error ? "Degraded" : catalogStatus.revision ? "Synced" : "Not synced"}
           </div>
         </Card>
       </div>
+
+      {error && <p role="alert" className="text-danger">{error}</p>}
+      <Card className="p-6 space-y-3">
+        <h2 className="text-xl font-semibold">Reference pricing catalog</h2>
+        <p className="text-sm text-text-muted">Virtual reference costs, not upstream invoices. Manual overrides take priority. Sync only updates pricing, never routing models or capabilities.</p>
+        <dl className="text-sm space-y-1">
+          <div><dt className="inline font-semibold">Source: </dt><dd className="inline">https://models.dev/api.json</dd></div>
+          <div><dt className="inline font-semibold">Last successful sync: </dt><dd className="inline">{catalogStatus?.lastSuccess || "None"}</dd></div>
+          <div><dt className="inline font-semibold">Validated catalog prices: </dt><dd className="inline">{catalogStatus?.pricedCount ?? "Unknown"}</dd></div>
+          <div><dt className="inline font-semibold">24-hour scheduler: </dt><dd className="inline">{catalogStatus?.schedulerConfigured ? catalogStatus.schedulerEnabled ? "Enabled" : "Configured, not running" : "Off"}</dd></div>
+        </dl>
+        <button type="button" onClick={handleSync} disabled={loading || syncing || scheduling || !catalogStatus} className="px-4 py-2 bg-primary text-white rounded disabled:opacity-50">
+          {syncing ? "Syncing catalog..." : "Sync reference pricing"}
+        </button>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={catalogStatus?.schedulerConfigured === true} disabled={loading || syncing || scheduling || !catalogStatus} onChange={event => handleSchedule(event.target.checked)} />
+          Enable automatic reference pricing sync every 24 hours
+        </label>
+        <p className="text-sm text-text-muted">Default off. First scheduled sync is 24 hours after timer startup. Disabling prevents new scheduled fetches; an already running sync may finish.</p>
+        <p className="text-sm text-text-muted">Unsupported, missing or overprecision prices are not treated as free. A rejected batch keeps the last-known-good catalog.</p>
+      </Card>
+
+      <PricingCoverage refreshRevision={revision} />
 
       {/* Info Section */}
       <Card className="p-6">
@@ -102,7 +155,7 @@ export default function PricingSettingsPage() {
         <div className="space-y-3 text-sm text-text-muted">
           <p>
             <strong>Cost Calculation:</strong> Costs are calculated based on token usage and pricing rates.
-            Each request&apos;s cost is determined by: (input_tokens × input_rate) + (output_tokens × output_rate) + (cached_tokens × cached_rate)
+            Reference cost applies USD-per-million rates to exact usage components. Cached input subsets are subtracted from ordinary input; included reasoning is not charged twice. Unknown usage is not zero.
           </p>
           <p>
             <strong>Pricing Format:</strong> All rates are in <strong>dollars per million tokens</strong> ($/1M tokens).

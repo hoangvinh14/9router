@@ -141,6 +141,21 @@ export async function resolveConnectionProxyConfig(
       }
     }
 
+    // An unavailable required pool is not authority to use a different proxy.
+    // Carry this denial independently of URL resolution through auth/core.
+    if (poolStrictProxy) {
+      return {
+        source: "pool-unavailable",
+        proxyPoolId,
+        proxyPool: null,
+        strictProxy: true,
+        proxyPoolUnavailable: true,
+        connectionProxyEnabled: false,
+        connectionProxyUrl: "",
+        connectionNoProxy: "",
+      };
+    }
+
     /**
      * -----------------------------
      * Legacy Proxy Fallback

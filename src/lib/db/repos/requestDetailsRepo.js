@@ -57,6 +57,7 @@ async function getObservabilityConfig() {
 let writeBuffer = [];
 let flushTimer = null;
 let isFlushing = false;
+let shutdownRegistered = false;
 
 function sanitizeHeaders(headers) {
   if (!headers || typeof headers !== "object") return {};
@@ -137,6 +138,7 @@ async function flushToDatabase() {
     console.error("[requestDetailsRepo] Batch write failed:", e);
   } finally {
     isFlushing = false;
+    releaseIdleShutdownHandler();
   }
 }
 
@@ -144,6 +146,9 @@ export async function saveRequestDetail(detail) {
   const config = await getObservabilityConfig();
   if (!config.enabled) {return;}
 
+  // Importing a cold module must not retain a process listener. Each module
+  // copy owns its listeners only while it has queued/in-flight best-effort logs.
+  ensureShutdownHandler();
   writeBuffer.push(detail);
 
   // Trigger immediate flush if batch threshold reached.
@@ -210,15 +215,23 @@ const _shutdownHandler = async () => {
 };
 
 function ensureShutdownHandler() {
-  process.off("beforeExit", _shutdownHandler);
-  process.off("SIGINT", _shutdownHandler);
-  process.off("SIGTERM", _shutdownHandler);
-  process.off("exit", _shutdownHandler);
-
+  if (shutdownRegistered) return;
+  shutdownRegistered = true;
   process.on("beforeExit", _shutdownHandler);
   process.on("SIGINT", _shutdownHandler);
   process.on("SIGTERM", _shutdownHandler);
   process.on("exit", _shutdownHandler);
 }
 
-ensureShutdownHandler();
+function releaseIdleShutdownHandler() {
+  // A spliced buffer is empty while getAdapter/config/write are still pending.
+  // Never detach then, or remove another module copy's pending-work handler.
+  if (isFlushing || writeBuffer.length > 0) return;
+  if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+  if (!shutdownRegistered) return;
+  shutdownRegistered = false;
+  process.off("beforeExit", _shutdownHandler);
+  process.off("SIGINT", _shutdownHandler);
+  process.off("SIGTERM", _shutdownHandler);
+  process.off("exit", _shutdownHandler);
+}

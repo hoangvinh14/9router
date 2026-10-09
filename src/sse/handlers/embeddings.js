@@ -13,6 +13,8 @@ import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { saveRequestUsage } from "@/lib/usageDb.js";
+import { createRequestAccounting } from "@/lib/apiKeyBudget/requestAccounting.js";
+import { isApiKeyBudgetError, budgetErrorResponse } from "@/lib/apiKeyBudget/errors.js";
 
 function exactEmbeddingUsage(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw) || raw.estimated === true) return null;
@@ -38,7 +40,9 @@ export async function handleEmbeddings(request) {
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid JSON body");
   }
 
-  const url = new URL(request.url);
+  let url;
+  try { url = new URL(request.url); }
+  catch { return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid gateway request URL"); }
   const modelStr = body.model;
 
   log.request("POST", `${url.pathname} | ${modelStr}`);
@@ -74,6 +78,10 @@ export async function handleEmbeddings(request) {
     log.warn("EMBEDDINGS", "Missing input");
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: input");
   }
+
+  let accounting;
+  try { accounting = await createRequestAccounting(request); }
+  catch (error) { if (isApiKeyBudgetError(error)) return budgetErrorResponse(error); throw error; }
 
   const modelInfo = await getModelInfo(modelStr);
   if (!modelInfo.provider) {
@@ -117,7 +125,11 @@ export async function handleEmbeddings(request) {
 
     const refreshedCredentials = await checkAndRefreshToken(provider, credentials);
 
-    const result = await handleEmbeddingsCore({
+    let result;
+    try { result = await handleEmbeddingsCore({
+      accounting,
+      signal: request.signal,
+      connectionId: credentials.connectionId,
       body: { ...body, model: `${provider}/${model}` },
       modelInfo: { provider, model },
       credentials: refreshedCredentials,
@@ -132,11 +144,15 @@ export async function handleEmbeddings(request) {
       onRequestSuccess: async () => {
         await clearAccountError(credentials.connectionId, credentials, model);
       }
-    });
+    }); } catch (error) {
+      if (request.signal?.aborted) throw request.signal.reason;
+      if (isApiKeyBudgetError(error)) return budgetErrorResponse(error);
+      throw error;
+    }
 
     if (result.success) {
       const usage = exactEmbeddingUsage(result.usage);
-      if (usage) {
+      if (usage && !result.accountingOwned) {
         saveRequestUsage({
           provider,
           model,

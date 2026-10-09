@@ -1,5 +1,5 @@
 // Locks BaseExecutor.execute retry/fallback behavior (docs 04 GAP #1, docs 11 §7).
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock the network layer so we can script upstream responses.
 const fetchMock = vi.fn();
@@ -20,8 +20,155 @@ function makeExec(config) {
 }
 
 const creds = { apiKey: "k" };
+const { ProxyPoolUnavailableError } = await import('../../open-sse/utils/proxyPolicyError.js');
 
-beforeEach(() => fetchMock.mockReset());
+// mockReset returns the mock function. Do not return it from beforeEach:
+// Vitest treats returned functions as cleanup and would invoke the fetch mock.
+beforeEach(() => { fetchMock.mockReset(); });
+afterEach(() => vi.useRealTimers());
+
+describe('BaseExecutor local proxy policy refusal is not retryable network failure', () => {
+  it.each([false, 'caller policy cancellation', new Error('caller policy cancellation')])('caller abort still owns exact reason over typed policy refusal: %s', async reason => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const ex = makeExec({ baseUrls: ['https://a/api', 'https://b/api'] });
+    fetchMock.mockImplementationOnce(async () => { controller.abort(reason); throw new ProxyPoolUnavailableError(); });
+    let observed;
+    const work = ex.execute({ model: 'm', body: {}, stream: false, credentials: creds, signal: controller.signal }).catch(value => { observed = value; });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(observed).toBe(reason);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+    await work;
+  });
+  it('message lookalike is not granted local policy classification and keeps network retries', async () => {
+    vi.useFakeTimers();
+    const ex = makeExec({ baseUrl: 'https://a/api', retry: { 502: { attempts: 1, delayMs: 3000 } } });
+    fetchMock.mockRejectedValueOnce(new Error(new ProxyPoolUnavailableError().message)).mockResolvedValueOnce(res(200));
+    const work = ex.execute({ model: 'm', body: {}, stream: false, credentials: creds });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1); expect(vi.getTimerCount()).toBe(1);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect((await work).response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2); expect(vi.getTimerCount()).toBe(0);
+  });
+  it('required unavailable pool rejects exactly without network backoff or URL fallback', async () => {
+    vi.useFakeTimers();
+    const error = new ProxyPoolUnavailableError();
+    const ex = makeExec({ baseUrls: ['https://a/api', 'https://b/api'] });
+    ex.computeRetryDelay = vi.fn(() => { throw new Error('Policy entered retry hook'); });
+    fetchMock.mockRejectedValue(error);
+    let reason;
+    const work = ex.execute({ model: 'm', body: {}, stream: false, credentials: creds }).catch(value => { reason = value; });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(reason).toBe(error);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(ex.computeRetryDelay).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+    await work;
+  });
+});
+
+describe("BaseExecutor caller cancellation owns retries", () => {
+  const config = { baseUrls: ["https://a/api", "https://b/api"], retry: { 502: { attempts: 2, delayMs: 5000 } } };
+  const args = signal => ({ model: "m", body: {}, stream: false, credentials: creds, signal });
+  async function rejectedReason(promise) { try { await promise; throw new Error("Expected rejection"); } catch (reason) { return reason; } }
+  it.each([new Error("caller custom reason"), "primitive caller reason"])("pre-abort prevents transformation and fetch: %s", async reason => {
+    const controller = new AbortController(); controller.abort(reason);
+    const ex = makeExec(config); ex.transformRequest = vi.fn();
+    expect(await rejectedReason(ex.execute(args(controller.signal)))).toBe(reason);
+    expect(ex.transformRequest).not.toHaveBeenCalled(); expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("default abort during fetch never enters network retries/fallback", async () => {
+    const controller = new AbortController();
+    fetchMock.mockImplementationOnce(async () => { controller.abort(); throw controller.signal.reason; });
+    expect(await rejectedReason(makeExec(config).execute(args(controller.signal)))).toBe(controller.signal.reason);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it.each(["status", "network"])("abort cancels %s backoff and leaves no timer or second POST", async kind => {
+    vi.useFakeTimers(); const controller = new AbortController(), reason = new Error("cancel backoff");
+    const cancel = vi.fn().mockResolvedValue(undefined);
+    if (kind === "status") fetchMock.mockResolvedValueOnce({ ...res(502), body: { cancel } });
+    else fetchMock.mockRejectedValueOnce(new Error("ECONNRESET"));
+    const result = rejectedReason(makeExec(config).execute(args(controller.signal)));
+    await vi.advanceTimersByTimeAsync(0); expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(1); controller.abort(reason);
+    expect(await result).toBe(reason); expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(6000); expect(fetchMock).toHaveBeenCalledTimes(1);
+    // Status response is disposed before backoff, not held until caller abort.
+    if (kind === "status") { expect(cancel).toHaveBeenCalledWith(undefined); expect(cancel).toHaveBeenCalledTimes(1); }
+  });
+  it("custom reason from an in-flight fetch escapes before retry/fallback", async () => {
+    const controller = new AbortController(), reason = "custom reason";
+    fetchMock.mockImplementationOnce(async () => { controller.abort(reason); throw new Error("transport wraps cancellation"); });
+    expect(await rejectedReason(makeExec(config).execute(args(controller.signal)))).toBe(reason);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it("abort while retry hook is pending prevents the next POST when it settles", async () => {
+    const controller = new AbortController(), reason = new Error("cancel hook"); let release, entered;
+    const started = new Promise(resolve => { entered = resolve; });
+    const hook = new Promise(resolve => { release = resolve; }); const ex = makeExec(config);
+    ex.computeRetryDelay = vi.fn(() => { entered(); return hook; });
+    const cancel = vi.fn().mockRejectedValue(new Error("cleanup failed"));
+    fetchMock.mockResolvedValueOnce({ ...res(502), body: { cancel } });
+    const result = rejectedReason(ex.execute(args(controller.signal))); await started;
+    controller.abort(reason); release(0);
+    expect(await result).toBe(reason); expect(fetchMock).toHaveBeenCalledTimes(1); expect(cancel).toHaveBeenCalledWith(reason);
+  });
+  it.each(["primitive hook abort", new Error("custom hook abort")])("never-returning hook promptly yields exact caller reason: %s", async reason => {
+    let entered; const started = new Promise(resolve => { entered = resolve; });
+    const controller = new AbortController(), ex = makeExec(config);
+    const cancel = vi.fn(() => new Promise(() => {}));
+    ex.computeRetryDelay = vi.fn(() => { entered(); return new Promise(() => {}); });
+    const add = vi.spyOn(controller.signal, "addEventListener"), remove = vi.spyOn(controller.signal, "removeEventListener");
+    fetchMock.mockResolvedValueOnce({ ...res(502), body: { cancel } });
+    const result = rejectedReason(ex.execute(args(controller.signal))); await started;
+    controller.abort(reason); expect(await result).toBe(reason);
+    expect(fetchMock).toHaveBeenCalledTimes(1); expect(cancel).toHaveBeenCalledWith(reason);
+    // Match owned hook listeners; AbortSignal.any internals are not ours.
+    for (const [event, callback] of add.mock.calls.filter(row => row[0] === "abort")) expect(remove.mock.calls.some(row => row[0] === event && row[1] === callback)).toBe(true);
+    add.mockRestore(); remove.mockRestore();
+  });
+  it("late hook rejection after cancellation is observed and never retries", async () => {
+    let rejectHook, entered; const started = new Promise(resolve => { entered = resolve; });
+    const controller = new AbortController(), ex = makeExec(config), reason = "late abort";
+    ex.computeRetryDelay = () => { entered(); return new Promise((_resolve, reject) => { rejectHook = reject; }); };
+    fetchMock.mockResolvedValueOnce(res(502));
+    const result = rejectedReason(ex.execute(args(controller.signal))); await started; controller.abort(reason);
+    expect(await result).toBe(reason); rejectHook(new Error("late provider hook error"));
+    await Promise.resolve(); expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it("synchronous hook abort/throw preserves caller reason and disposes once", async () => {
+    const controller = new AbortController(), reason = { caller: "sync hook cancel" }, ex = makeExec(config);
+    const cancel = vi.fn(() => { throw new Error("cleanup failure"); });
+    ex.computeRetryDelay = () => { controller.abort(reason); throw new Error("foreign throw"); };
+    fetchMock.mockResolvedValueOnce({ ...res(502), body: { cancel } });
+    expect(await rejectedReason(ex.execute(args(controller.signal)))).toBe(reason); expect(cancel).toHaveBeenCalledTimes(1); expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it("committed retry disposes response before backoff and never awaits pending cleanup", async () => {
+    vi.useFakeTimers(); const cancel = vi.fn(() => new Promise(() => {}));
+    fetchMock.mockResolvedValueOnce({ ...res(502), body: { cancel } }).mockResolvedValueOnce(res(200));
+    const result = makeExec(config).execute(args(undefined)); await vi.advanceTimersByTimeAsync(0);
+    expect(cancel).toHaveBeenCalledTimes(1); expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(5000); expect((await result).response.status).toBe(200); expect(cancel).toHaveBeenCalledTimes(1);
+  });
+  it("fallback cancels discarded response but a vetoed final response remains readable", async () => {
+    const cancel = vi.fn().mockRejectedValue(new Error("cleanup failure"));
+    const ex = makeExec({ baseUrls: ["https://a/api", "https://b/api"], retry: { 429: { attempts: 0 } } });
+    fetchMock.mockResolvedValueOnce({ ...res(429), body: { cancel } }).mockResolvedValueOnce(res(200));
+    expect((await ex.execute(args(undefined))).response.status).toBe(200); expect(cancel).toHaveBeenCalledTimes(1);
+    const final = new Response("caller owned", { status: 429 }), finalCancel = vi.spyOn(final.body, "cancel");
+    const single = makeExec({ baseUrl: "https://a/api", retry: { 429: { attempts: 1 } } }); single.computeRetryDelay = () => false;
+    fetchMock.mockResolvedValueOnce(final); const returned = await single.execute(args(undefined));
+    expect(returned.response).toBe(final); expect(finalCancel).not.toHaveBeenCalled(); expect(await final.text()).toBe("caller owned");
+  });
+  it("connect timeout retains network retry policy without aborting the caller", async () => {
+    vi.useFakeTimers(); const controller = new AbortController(); const ex = makeExec({ ...config, timeoutMs: 10, retry: { 502: { attempts: 1, delayMs: 0 } } });
+    fetchMock.mockImplementationOnce((_url, init) => new Promise((_resolve, reject) => init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true }))).mockResolvedValueOnce(res(200));
+    const result = ex.execute(args(controller.signal)); await vi.advanceTimersByTimeAsync(11);
+    expect((await result).response.status).toBe(200); expect(controller.signal.aborted).toBe(false); expect(fetchMock).toHaveBeenCalledTimes(2); expect(vi.getTimerCount()).toBe(0);
+  });
+});
 
 describe("BaseExecutor.execute — retry by status (config-driven)", () => {
   it("retries 502 `attempts` times then succeeds", async () => {

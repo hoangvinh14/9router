@@ -1,4 +1,7 @@
 import { handleChat } from "@/sse/handlers/chat.js";
+import { bindGeminiOriginal, isGeminiNativeResponse, ACCOUNTED_GEMINI_ACTION, ACCOUNTED_GEMINI_STREAM_ACTION } from 'open-sse/config/accountedGeminiCandidate.js';
+import { geminiBudgetErrorResponse } from "@/lib/apiKeyBudget/errors.js";
+import { createSseEventDecoder } from "open-sse/utils/sseEventDecoder.js";
 import {
   clearAccountError,
   getProviderCredentials,
@@ -101,9 +104,28 @@ export async function POST(request, { params }) {
       method: "POST",
       headers: request.headers,
       body: JSON.stringify(convertedBody),
+      signal: request.signal,
     });
 
+    // Preserve original work before the lossy converter, not a caller-supplied
+    // body flag. OFF continues through the historical converter unchanged.
+    const url = new URL(request.url);
+    const suffix = path.at(-1);
+    const exactPath = ['v1beta', 'api/v1beta'].some(prefix => url.pathname === `/${prefix}/models/${path.join('/')}`);
+    const nativeAction = stream ? ACCOUNTED_GEMINI_STREAM_ACTION : ACCOUNTED_GEMINI_ACTION;
+    const validRoute = exactPath && [1, 2].includes(path.length) &&
+      typeof suffix === 'string' && suffix.endsWith(nativeAction) &&
+      suffix.slice(0, -nativeAction.length).indexOf(':') === -1 &&
+      [...url.searchParams.keys()].every(key => key === 'key' || stream && key === 'alt') &&
+      (!url.searchParams.has('alt') || url.searchParams.getAll('alt').length === 1 && url.searchParams.get('alt') === 'sse');
+    bindGeminiOriginal(newRequest, body, model, validRoute, stream);
     const response = await handleChat(newRequest);
+    if (isGeminiNativeResponse(response)) {
+      const headers = new Headers(response.headers); headers.set('Access-Control-Allow-Origin', '*');
+      return new Response(response.body, { status: response.status, headers });
+    }
+    const localBudgetError = geminiBudgetErrorResponse(response);
+    if (localBudgetError) return localBudgetError;
 
     if (stream) {
       // Transform OpenAI SSE => Gemini SSE on the fly.
@@ -130,8 +152,8 @@ function extractGeminiClientApiKey(request) {
   const googleApiKey = request.headers.get("x-goog-api-key");
   if (googleApiKey) return googleApiKey;
 
-  const url = new URL(request.url);
-  return url.searchParams.get("key");
+  try { return new URL(request.url).searchParams.get("key"); }
+  catch { return null; }
 }
 
 function normalizeGeminiNativeModel(model) {
@@ -166,8 +188,11 @@ function isGeminiNativeTtsRequest(model, body) {
 }
 
 function buildGeminiNativeUrl(requestUrl, model, action) {
-  const sourceUrl = new URL(requestUrl);
-  const upstreamUrl = new URL(`${GEMINI_NATIVE_BASE_URL}/${normalizeGeminiNativeModel(model)}${action}`);
+  let sourceUrl, upstreamUrl;
+  try {
+    sourceUrl = new URL(requestUrl);
+    upstreamUrl = new URL(`${GEMINI_NATIVE_BASE_URL}/${normalizeGeminiNativeModel(model)}${action}`);
+  } catch { throw new Error('Invalid Gemini native URL'); }
 
   for (const [key, value] of sourceUrl.searchParams.entries()) {
     if (key === "key") continue;
@@ -429,32 +454,24 @@ function transformOpenAISSEToGeminiSSE(upstreamResponse, model) {
     return upstreamResponse;
   }
 
-  const decoder = new TextDecoder();
   const encoder = new TextEncoder();
-
+  let frames;
   const transformStream = new TransformStream({
-    transform(chunk, controller) {
-      const text = decoder.decode(chunk, { stream: true });
-      const lines = text.split("\n");
-
-      for (const line of lines) {
-        if (!line.startsWith("data:")) continue;
-
-        const data = line.slice(5).trim();
-
-        // Drop empty lines and the OpenAI [DONE] sentinel.
-        // Gemini SSE ends by stream close, no sentinel needed.
-        if (!data || data === "[DONE]") continue;
+    start(controller) {
+      frames = createSseEventDecoder(data => {
+        // Transport parser does not authenticate provider error frames. Local
+        // terminal budget events require separate event-specific provenance.
+        if (!data || data.trim() === "[DONE]") return;
 
         let parsed;
         try {
           parsed = JSON.parse(data);
         } catch {
-          continue;
+          return;
         }
 
-        const choice = parsed.choices?.[0];
-        if (!choice) continue;
+        const choice = parsed?.choices?.[0];
+        if (!choice) return;
 
         const delta = choice.delta || {};
 
@@ -467,7 +484,7 @@ function transformOpenAISSEToGeminiSSE(upstreamResponse, model) {
         }
 
         // Skip pure role-only deltas with no content and no finish signal
-        if (parts.length === 0 && !choice.finish_reason) continue;
+        if (parts.length === 0 && !choice.finish_reason) return;
 
         const candidate = {
           content: {
@@ -501,9 +518,10 @@ function transformOpenAISSEToGeminiSSE(upstreamResponse, model) {
         controller.enqueue(
           encoder.encode("data: " + JSON.stringify(geminiChunk) + "\r\n\r\n")
         );
-      }
+      });
     },
-    // No flush() needed: Gemini SSE ends by stream close, not a sentinel
+    transform(chunk) { frames.push(chunk); },
+    flush() { frames.finish(); },
   });
 
   return new Response(upstreamResponse.body.pipeThrough(transformStream), {

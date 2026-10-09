@@ -7,6 +7,8 @@ import { getMetaSync, setMetaSync } from "./helpers/metaStore.js";
 import { makeBackupDir, backupFile, backupDbLite, pruneOldBackups } from "./backup.js";
 import { getAppVersion } from "./version.js";
 import { stringifyJson } from "./helpers/jsonCol.js";
+import { installAccountingInvariants } from "./accountingInvariants.js";
+import { installPricingRevision } from "./pricingRevision.js";
 
 // Marker file: prevents re-importing legacy JSON when user wipes data.sqlite.
 const MIGRATED_MARKER = path.join(DB_DIR, ".migrated-from-json");
@@ -65,7 +67,7 @@ function runVersionedMigrations(adapter) {
   const pending = MIGRATIONS.filter((m) => m.version > current);
   let lastApplied = current;
   for (const m of pending) {
-    adapter.transaction(() => {
+    adapter.durableTransaction(() => {
       m.up(adapter);
       setMetaSync(adapter, "schemaVersion", m.version);
     });
@@ -96,14 +98,14 @@ function syncSchemaFromTables(adapter) {
           adapter.exec(`ALTER TABLE ${tableName} ADD COLUMN ${colName} ${safeDef}`);
           console.log(`[DB][sync] +column ${tableName}.${colName}`);
         } catch (e) {
-          console.warn(`[DB][sync] add column ${tableName}.${colName} failed: ${e.message}`);
+          throw new Error(`[DB][sync] required column ${tableName}.${colName} unavailable`, { cause: e });
         }
       }
     }
 
     // Indexes (idempotent)
     for (const idx of def.indexes || []) {
-      try { adapter.exec(idx); } catch {}
+      adapter.exec(idx);
     }
   }
 }
@@ -244,10 +246,12 @@ export async function runMigrationOnce(adapter) {
   }
 
   // 1. Always run versioned migrations chain (skip-version safe)
-  const migInfo = runVersionedMigrations(adapter);
+  runVersionedMigrations(adapter);
 
   // 2. Additive sync (auto add missing columns/indexes declared in TABLES)
   syncSchemaFromTables(adapter);
+  installAccountingInvariants(adapter);
+  installPricingRevision(adapter);
 
   // Stamp the schema version we just reached so future boots skip re-backup.
   setMetaSync(adapter, "backupSchemaVersion", SCHEMA_VERSION);
@@ -266,7 +270,7 @@ export async function runMigrationOnce(adapter) {
     for (const f of Object.values(LEGACY_FILES)) backupFile(f, backupDir);
 
     try {
-      adapter.transaction(() => {
+      adapter.durableTransaction(() => {
         importLegacyMain(adapter, legacyMain);
         importLegacyUsage(adapter, legacyUsage);
         importLegacyDisabled(adapter, legacyDisabled);
@@ -278,7 +282,7 @@ export async function runMigrationOnce(adapter) {
     } catch (err) {
       if (err instanceof MigrationAborted) {
         console.error(`[DB][migrate] aborted: ${err.message} | legacy JSON kept | backup: ${backupDir}`);
-        return;
+        throw err;
       }
       throw err;
     }

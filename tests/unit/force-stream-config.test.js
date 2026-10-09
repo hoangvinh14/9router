@@ -1,5 +1,5 @@
 // Guards forceStream moved from chatCore hardcode → PROVIDERS schema (#5).
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { executeMock } = vi.hoisted(() => ({
   executeMock: vi.fn(),
@@ -71,6 +71,8 @@ vi.mock("../../open-sse/rtk/index.js", () => ({
 vi.mock("../../open-sse/rtk/headroom.js", () => ({
   compressWithHeadroom: vi.fn(async () => null),
   formatHeadroomLog: vi.fn(() => ""),
+  formatHeadroomSizeLog: vi.fn(() => ""),
+  isHeadroomPhantomSavings: vi.fn(() => false),
 }));
 
 vi.mock("../../open-sse/providers/capabilities.js", () => ({
@@ -126,6 +128,9 @@ function makeOptions(bodyStream) {
 }
 
 describe("forceStream provider config", () => {
+  let handleChatCore;
+  // Separate cold module setup from assertions; unchanged hook/test deadlines.
+  beforeAll(async () => { ({ handleChatCore } = await import("../../open-sse/handlers/chatCore.js")); });
   beforeEach(() => {
     executeMock.mockReset();
     executeMock.mockRejectedValue(new Error("boom"));
@@ -143,8 +148,6 @@ describe("forceStream provider config", () => {
   });
 
   it.each([undefined, false])( "keeps forced-stream providers streaming for JSON clients when body.stream is %s", async (bodyStream) => {
-    const { handleChatCore } = await import("../../open-sse/handlers/chatCore.js");
-
     await handleChatCore(makeOptions(bodyStream));
 
     expect(executeMock).toHaveBeenCalledTimes(1);
