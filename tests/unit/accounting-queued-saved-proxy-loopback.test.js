@@ -6,10 +6,20 @@ import net from 'node:net';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 const registryFixture = vi.hoisted(() => ({ baseUrl: null }));
+const transportFixture = vi.hoisted(() => ({ dispatchers: [] }));
+// Keep native transport behavior; own its lifetime across module resets. Abort
+// rejection/unknown settlement alone does not drain Undici connection work.
+vi.mock('undici', async importOriginal => {
+  const actual = await importOriginal();
+  return { ...actual, ProxyAgent: class extends actual.ProxyAgent {
+    constructor(options) { super(options); transportFixture.dispatchers.push(this); }
+  } };
+});
 vi.mock('../../open-sse/config/providers.js', async importOriginal => ({ ...(await importOriginal()),
   PROVIDERS: { ...(await importOriginal()).PROVIDERS, get openai() { return { baseUrl: registryFixture.baseUrl }; } } }));
 let db, directory, upstream, proxy, trapProxy, trapHits, trapUrl, targetUrl, proxyUrl, target, BaseExecutor, context, sockets, tunnels, posts, failure, redirectResponse, onPost;
 const previousData = process.env.DATA_DIR;
+let retiredAbortProxyPort = null;
 const listen = server => new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
 beforeEach(async () => {
   directory = fs.mkdtempSync(path.join(os.tmpdir(), '9router-saved-proxy-socket-')); process.env.DATA_DIR = directory; delete global._dbAdapter; vi.resetModules();
@@ -50,12 +60,22 @@ beforeEach(async () => {
   trapProxy = http.createServer((_request, response) => { trapHits++; response.writeHead(502); response.end(); });
   trapProxy.on('connection', track);
   trapProxy.on('connect', (_request, socket) => { trapHits++; socket.end('HTTP/1.1 502 Fixture Trap\r\n\r\n'); });
-  await listen(trapProxy); trapUrl = `http://127.0.0.1:${trapProxy.address().port}`;
+  // Reproduce legal OS port reuse deterministically: the immediately preceding
+  // post-POST abort fixture has closed its owned proxy listener. A late CONNECT
+  // from that retired agent must not leak into this case's competing trap.
+  const trapPort = retiredAbortProxyPort; retiredAbortProxyPort = null;
+  if (trapPort === null) await listen(trapProxy);
+  else await new Promise((resolve, reject) => { trapProxy.once('error', reject); trapProxy.listen(trapPort, '127.0.0.1', resolve); });
+  trapUrl = `http://127.0.0.1:${trapProxy.address().port}`;
   ({ BaseExecutor } = await import('../../open-sse/executors/base.js'));
   context = await (await import('@/lib/apiKeyBudget/requestAccounting.js')).createRequestAccounting(new Request('http://localhost/v1/chat/completions', {
     headers: { Authorization: 'Bearer dummy-key' } }), { adapter: async () => db, queued: true });
 });
 afterEach(async () => {
+  // Drain owned agents before listener/DB close or port reuse. close() may wait
+  // for the deliberately hung abort response; destroy() terminates that work.
+  for (const dispatcher of transportFixture.dispatchers) await dispatcher.destroy();
+  transportFixture.dispatchers = [];
   for (const socket of sockets || []) socket.destroy();
   for (const server of [proxy, trapProxy, upstream]) { server?.closeAllConnections(); if (server?.listening) await new Promise(resolve => server.close(resolve)); }
   vi.restoreAllMocks(); vi.unstubAllEnvs(); db?.close(); delete global._dbAdapter; fs.rmSync(directory, { recursive: true, force: true });
@@ -181,6 +201,7 @@ describe('queued saved global/legacy native HTTP proxy loopback (bounded env pre
     } else {
       expect(posts).toBe(1); expect(tunnels).toBeGreaterThan(0);
       expect(db.all('SELECT state,outcome,costNanoUsd FROM apiKeyAccounting')).toEqual([{ state: 'unresolved', outcome: 'aborted', costNanoUsd: null }]);
+      retiredAbortProxyPort = proxy.address().port;
     }
     expect(db.coverage.status('a').gaps).toHaveLength(0);
   });

@@ -1,4 +1,5 @@
 import { MAX_NANO_USD } from "../../../open-sse/config/apiKeyBudgetConstants.js";
+import { exactCacheWriteTiers } from '../../../open-sse/config/accountingCacheTiers.js';
 
 const USD_SCALE = 1_000_000_000n;
 const TOKEN_UNIT = 1_000_000n;
@@ -29,11 +30,13 @@ function tokens(value, field) {
   if (!Number.isSafeInteger(value) || value < 0) throw new Error(`Invalid exact ${field} token count`);
   return BigInt(value);
 }
-export function costFromExactUsage(usage, rates) {
+export function costFromExactUsage(usage, rates, { requireCacheTiers = false } = {}) {
   if (!usage || usage.exact !== true || typeof usage.reasoningIncludedInOutput !== "boolean") throw new Error("Exact usage inclusion provenance required");
   const input = tokens(usage.input, "input"), output = tokens(usage.output, "output");
   const read = tokens(usage.cacheRead, "cached read"), write = tokens(usage.cacheWrite, "cache write");
   const reasoning = tokens(usage.reasoning, "reasoning");
+  const tiers = exactCacheWriteTiers(usage);
+  if (requireCacheTiers && !tiers) throw new Error('Invalid exact cache-write tier provenance');
   if (read + write > input || usage.reasoningIncludedInOutput && reasoning > output) throw new Error("Invalid exact usage subsets");
   const inputRate = BigInt(decimalToNanoUsd(rates.input));
   const outputRate = BigInt(decimalToNanoUsd(rates.output));
@@ -42,7 +45,12 @@ export function costFromExactUsage(usage, rates) {
   const writeRate = BigInt(decimalToNanoUsd(rates.cache_creation === undefined ? rates.input : rates.cache_creation));
   const reasoningRate = BigInt(decimalToNanoUsd(rates.reasoning === undefined ? rates.output : rates.reasoning));
   const plainOutput = usage.reasoningIncludedInOutput ? output - reasoning : output;
-  const numerator = (input - read - write) * inputRate + read * readRate + write * writeRate + plainOutput * outputRate + reasoning * reasoningRate;
+  // Missing 1h rate never falls back to input/5m or an inferred multiplier.
+  // Explicit zero is supported; a zero observed 1h count needs no missing rate.
+  const hourRate = rates.cache_creation_1h === undefined && (!tiers || tiers.hour === 0)
+    ? 0n : BigInt(decimalToNanoUsd(rates.cache_creation_1h));
+  const writeCost = tiers ? BigInt(tiers.five) * writeRate + BigInt(tiers.hour) * hourRate : write * writeRate;
+  const numerator = (input - read - write) * inputRate + read * readRate + writeCost + plainOutput * outputRate + reasoning * reasoningRate;
   const rounded = (numerator + TOKEN_UNIT / 2n) / TOKEN_UNIT;
   if (rounded > MAX_NANO_USD) throw new Error("Attempt cost range exceeded");
   return rounded.toString();

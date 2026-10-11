@@ -1,0 +1,24 @@
+# Messages inline media — bounded queued OAuth checkpoint
+
+A historically closed; B alone active (F); C–E pending/all13AC unchanged. Direct execution, no delegation/advisor/live billable calls/activation. Enforcement OFF. This extends the [thinking checkpoint](./messages-thinking-continuation.md); it does not close media/full Claude/F/B. User permits commit/push checkpoint if needed, not merge/release/activation.
+
+## Delivered boundary
+
+Separate `allowInlineMedia` boolean is opted into only by internal queued Claude OAuth. Ordinary app/synchronous/GitHub/API-key Messages remain unchanged. Original user image source accepts canonical base64 with png/jpeg/gif/webp MIME; document accepts base64 PDF or text/plain text source, title/context strings. Image content within client tool_result is preserved in the original turn/result with is_error/tool_use_id; no hoisting or media-to-text coercion. Documents inside tool_result, URL/file references, citations and unknown fields stay denied pending their separate boundaries.
+
+`accountingClaudeMedia.js` only validates bounded plain data/canonical encoding/MIME, not actual file signatures or upstream content validity. Base64 linear character check + roundtrip rejects garbage, invalid padding/noncanonical bits and avoids repeated-group regex recursion for larger valid inputs. The existing prepared-data and command/queue bounds are unchanged (262144-byte capture ceiling, including original+actual/headers/config overhead); this is NOT general large-file support or heap/performance certification. Source guard cannot call getters/toJSON. No gateway fetch/decode/render of media bytes; original+actual media history equality allows only generated cache_control adjustments. Actual wire validation still reproduces production transform and complete credentials/config/routes.
+
+Money comes only from raw observed provider usage/cache tiers and original attempt price, never MIME/size/token estimates. No new reader, money sink or terminal authority; original success/EOF/own ACK and strict failed HTTP controls remain. Source/context/media payloads are not written to ledger usage/snapshot fields. Tests use owned loopback HTTP/dummy credentials/disposable DBs, never live providers.
+
+## Receipts / retained failures
+
+- `bacfeba99`: **FAILED11pass/7fail**,18actual assertions, `/tmp/9router-messages-media-before.json`. All seven positive original-media cases refused before transform; negatives safe refusal, not broad support proof. Red retained.
+- `b0d3e6089`: PASS **94/94**,fourexactfiles/no pending, `/tmp/9router-messages-media-after.json`: media18/thinking16/history25/native35. Initial candidate, before final base64/native controls.
+- `bfc46792a`: PASS **77/77**,threeexactfiles/no pending, `/tmp/9router-messages-media-native.json`: media20/native41/storage16. Native actual POST image/document/tool-image preserves sources/title/context/error, own pending/held terminal ACK/original110250 after upstream pricing mutation; ledger usage exact100input/20output not media estimate. Wire source drift, URL and getter refuse before POST/intent; programmable callbacks0. Schema covers large bounded canonical base64 and oversize capture refusal.
+- `b9878e088`: **FAILED532pass/1fail**,25exactfiles/no pending, `/tmp/9router-messages-media-final/{scope,inputs,inventory,affected,sqljs_native}.json`. **1363 before/after input hashes unchanged**, lint18/whitespace0. SQL.js native41/41 repeats same controls, not extra unique coverage. Sole failure catalogued `claude-header-forwarding.test.js` → nonstream api.anthropic.com gotScraping expected1call got0, line295. Gate stays FAILED; no legacy routing repair or all-green relabel. No build/browser/runtime/all-adapter/crash certificate.
+
+## Security / remaining obligations
+
+Inline-only support does not authorize network retrieval of caller URLs: URL-source SSRF boundary remains open. Canonical MIME/base64 is not a malicious-file sandbox; raw media is forwarded to fixed configured upstream only, not rendered locally. No new TLS weakening/redirect/replay/credential exception. Plain-data guard precedes traversal; original+actual/persisted generation equality unchanged. Direct review is scoped, not a complete security audit.
+
+Next F obligations: API-key/public thinking+media, original redacted history, URL/file/citations, accepted additional beta/server tools and remaining families. Nonzero server_tool_use counters currently cannot be settled by token-only schema; never fabricate zero or price search requests with a token rate. Design explicitly excludes standalone search/fetch metering; embedded-tool treatment must preserve exact token usage and its pricing provenance, not silently change the product contract. Existing Cursor/Zed/Qoder semantic observability blockers remain. Then G/T/I/V before B closure and C/D/E afterward. All gates above terminal/consumed; do not poll/relaunch historical gates merely for counts.

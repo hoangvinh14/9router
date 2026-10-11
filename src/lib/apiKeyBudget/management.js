@@ -6,6 +6,7 @@ import { projectAccountingUsageSync } from "../db/repos/usageRepo.js";
 import { budgetWindows } from "./windows.js";
 import { BUDGET_SCOPE } from "../../../open-sse/config/apiKeyBudgetConstants.js";
 import { recoveryReceiptSync } from "./recoveryReceipt.js";
+import { ACCOUNTING_CACHE_TIER_FIELDS } from '../../../open-sse/config/accountingCacheTiers.js';
 
 function failure(status, code) { const error = new Error(code); error.status = status; error.code = code; throw error; }
 export function managementId(value) {
@@ -69,7 +70,7 @@ function publicAttempt(row) {
   return { attemptId: row.attemptId, requestId: row.requestId, apiKeyId: row.apiKeyId, startedAt: row.startedAt, finishedAt: row.finishedAt,
     provider: row.provider, model: row.model, endpoint: row.endpoint, state: row.state, outcome: row.outcome,
     costUsd: row.costNanoUsd === null ? null : nanoUsdToDecimal(row.costNanoUsd), resolutionVersion: row.resolutionVersion,
-    usage: row.usage ? Object.fromEntries(["exact", "input", "output", "cacheRead", "cacheWrite", "reasoning", "reasoningIncludedInOutput"].filter(key => Object.hasOwn(row.usage, key)).map(key => [key, row.usage[key]])) : null,
+    usage: row.usage ? Object.fromEntries(["exact", "input", "output", "cacheRead", "cacheWrite", "reasoning", "reasoningIncludedInOutput", ...ACCOUNTING_CACHE_TIER_FIELDS].filter(key => Object.hasOwn(row.usage, key)).map(key => [key, row.usage[key]])) : null,
     manuallyResolved: Boolean(row.manuallyResolved) };
 }
 export async function listAccountingManagement(id, { limit = 50, afterAttemptId = null, state = null } = {}) {

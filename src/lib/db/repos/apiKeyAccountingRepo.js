@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { MAX_NANO_USD, ACCOUNTING_STATE as STATE } from "../../../../open-sse/config/apiKeyBudgetConstants.js";
 import { getAdapter } from "../driver.js";
 import { costFromExactUsage } from "../../pricing/money.js";
+import { ACCOUNTING_CACHE_TIER_FIELDS } from '../../../../open-sse/config/accountingCacheTiers.js';
 import { explicitPolicyFormat, validateExplicitPolicy } from "../explicitPolicy.js";
 import { validateAccountingUsageEvidence } from '../../../../open-sse/utils/accountingUsageEvidence.js';
 import { synchronousResult } from "../durableFile.js";
@@ -150,7 +151,7 @@ export function resolveAttemptSync(db, attemptId, recovery) {
   if (recovery.action === "exact_usage") fields.push("usage");
   if (Object.keys(recovery).some(field => !fields.includes(field)) || !Number.isSafeInteger(recovery.expectedVersion) || recovery.expectedVersion < 0 || !actions.includes(recovery.action)) throw new Error("Invalid accounting recovery");
   if (recovery.action === "exact_usage") {
-    const usageFields = ["exact", "input", "output", "cacheRead", "cacheWrite", "reasoning", "reasoningIncludedInOutput"];
+    const usageFields = ["exact", "input", "output", "cacheRead", "cacheWrite", "reasoning", "reasoningIncludedInOutput", ...ACCOUNTING_CACHE_TIER_FIELDS];
     if (!recovery.usage || Object.keys(recovery.usage).some(field => !usageFields.includes(field))) throw new Error("Invalid exact recovery usage");
   }
   const payload = canonical(recovery);
@@ -166,7 +167,7 @@ export function resolveAttemptSync(db, attemptId, recovery) {
     if (recovery.action === "exact_usage") {
       const snapshot = readLedgerJson(row.priceSnapshotJson);
       if (!snapshot?.rates) throw new Error("Original price snapshot required for exact recovery");
-      cost = validateNanoUsd(costFromExactUsage(recovery.usage, snapshot.rates));
+      cost = validateNanoUsd(costFromExactUsage(recovery.usage, snapshot.rates, { requireCacheTiers: snapshot.usageSemantics?.cacheWriteTiers === 'observed_5m_1h' }));
     } else if (recovery.action === "cost_correction") cost = validateNanoUsd(recovery.costNanoUsd);
     if (cost === null) throw new Error("Recovery cost required");
     const state = recovery.action === "waive" ? STATE.WAIVED : STATE.SETTLED;

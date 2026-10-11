@@ -15,6 +15,8 @@ import { updateProviderCredentials, checkAndRefreshToken } from "../services/tok
 import { saveRequestUsage } from "@/lib/usageDb.js";
 import { createRequestAccounting } from "@/lib/apiKeyBudget/requestAccounting.js";
 import { isApiKeyBudgetError, budgetErrorResponse } from "@/lib/apiKeyBudget/errors.js";
+import { handleUnhealthyEmbeddingsEntry } from "@/lib/apiKeyBudget/unhealthyChatEntry.js";
+import { handleHealthyGeminiEmbeddingEntry } from "@/lib/apiKeyBudget/geminiEmbeddingEntry.js";
 
 function exactEmbeddingUsage(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw) || raw.estimated === true) return null;
@@ -40,6 +42,20 @@ export async function handleEmbeddings(request) {
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid JSON body");
   }
 
+  // Poisoned unlimited exceptions require independent persisted selection and
+  // own gap ACKs before any ordinary settings/auth/model/account access.
+  try {
+    const exceptional = await handleUnhealthyEmbeddingsEntry(request, body, handleEmbeddingsCore, log);
+    if (exceptional) return exceptional;
+    // Canonical healthy Gemini owns immutable original selection/wire and its
+    // own ACKs before legacy logging, refresh or fallback. OFF returns null.
+    const accountedGemini = await handleHealthyGeminiEmbeddingEntry(request, body, handleEmbeddingsCore);
+    if (accountedGemini) return accountedGemini;
+  } catch (error) {
+    if (request.signal?.aborted) throw request.signal.reason;
+    if (isApiKeyBudgetError(error)) return budgetErrorResponse(error);
+    throw error;
+  }
   let url;
   try { url = new URL(request.url); }
   catch { return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid gateway request URL"); }

@@ -4,6 +4,11 @@ import { getExecutor } from "../executors/index.js";
 import { refreshWithRetry } from "../services/tokenRefresh.js";
 import { getEmbeddingAdapter } from "./embeddingProviders/index.js";
 import { handleAccountedEmbedding } from "./embeddingProviders/accountedRequest.js";
+import { snapshotAccountingPreparedData } from "../config/accountedBaseDispatch.js";
+import { PROVIDER_MEDIA } from '../providers/index.js';
+import { captureUnhealthyApiKeyMaterial } from '../config/accountedUnhealthyChatDispatch.js';
+import { captureGeminiEmbeddingDispatch } from '../config/accountedGeminiEmbeddingDispatch.js';
+import { handleAccountedGeminiEmbedding } from './embeddingProviders/accountedGeminiRequest.js';
 
 /**
  * Core embeddings handler — orchestrator only. Provider-specific URL/headers/body/normalize
@@ -21,8 +26,59 @@ export async function handleEmbeddingsCore({
   accounting = null,
   signal = null,
   connectionId = null,
+  proxyOptions = null,
 }) {
+  const unhealthy = accounting?.requiresUnhealthyEmbeddingsWire === true;
+  const geminiEmbedding = accounting?.requiresGeminiEmbeddingsWire === true;
+  // Internal accounted work must be plain and detached BEFORE reading input or
+  // calling adapters. JSON serialization is not a guard: toJSON/accessors can
+  // execute or erase unsupported original fields. Ordinary sync/OFF is unchanged.
+  if (accounting?.requiresPreparedBaseWire || unhealthy || geminiEmbedding) {
+    body = snapshotAccountingPreparedData(body);
+    modelInfo = snapshotAccountingPreparedData(modelInfo);
+    credentials = snapshotAccountingPreparedData(credentials);
+    proxyOptions = snapshotAccountingPreparedData(proxyOptions);
+  }
   const { provider, model } = modelInfo;
+  // Request-local internal opt-in only. App entry does not issue this flag yet;
+  // plain equality and current config are not persisted origin/ACK permission.
+  if (geminiEmbedding) {
+    accounting.gate();
+    accounting.assertSupported(!unhealthy && (!accounting.requiresPreparedBaseWire ||
+      accounting.requiresQueuedGeminiEmbeddingsWire === true && typeof accounting.assertGeminiEmbeddingImage === 'function') && provider === 'gemini' &&
+      typeof model === 'string' && !!model && (body.model === model || body.model === `gemini/${model}`));
+    const original = body.model === model ? body : snapshotAccountingPreparedData({ ...body, model });
+    captureUnhealthyApiKeyMaterial(credentials, proxyOptions);
+    const mediaConfig = snapshotAccountingPreparedData(PROVIDER_MEDIA.gemini.embeddingConfig);
+    const adapter = getEmbeddingAdapter(provider);
+    accounting.assertSupported(!!adapter);
+    let evidence;
+    try {
+      const ctx = { input: original.input };
+      const actual = adapter.buildBody(model, original);
+      evidence = captureGeminiEmbeddingDispatch({ model, original, actual, mediaConfig, credentials,
+        headers: adapter.buildHeaders(credentials, ctx), url: adapter.buildUrl(model, credentials, ctx),
+        serialized: JSON.stringify(actual), proxyOptions });
+    } catch { throw new Error('Gemini embedding dispatch unavailable'); }
+    // No provider-error catch around own settlement or terminal authorization.
+    const result = await handleAccountedGeminiEmbedding({ evidence, accounting, signal, connectionId });
+    if (!result.success) return createErrorResult(result.status, 'Embedding upstream response unavailable');
+    const normalized = adapter.normalize(result.raw, model);
+    // Legacy Gemini adapter zeros are not raw evidence. Expose counts only when
+    // the owner has validated metadata; unknown remains null rather than zero.
+    normalized.usage = result.usage ? { prompt_tokens: result.usage.input, total_tokens: result.usage.input } : null;
+    if (onRequestSuccess) await onRequestSuccess();
+    return { success: true, accountingOwned: true, usage: normalized.usage,
+      response: Response.json(normalized, { headers: { 'Access-Control-Allow-Origin': '*' } }) };
+  }
+  if (unhealthy) {
+    accounting.gate();
+    accounting.assertSupported(provider === 'openai' && typeof model === 'string' && !!model &&
+      (body.model === model || body.model === `openai/${model}`));
+    // Only the exact gateway prefix may change. Preserve all other fields for
+    // the embeddings-specific full original/prepared validator at the owner.
+    if (body.model !== model) body = snapshotAccountingPreparedData({ ...body, model });
+  }
 
   // Validate input
   const input = body.input;
@@ -63,7 +119,7 @@ export async function handleEmbeddingsCore({
 
   log?.debug?.("EMBEDDINGS", `${provider.toUpperCase()} | ${model} | input_type=${Array.isArray(input) ? `array[${input.length}]` : "string"}`);
 
-  if (accounting) return handleAccountedEmbedding({ adapter, provider, model, credentials, ctx, requestBody, url, headers,
+  if (accounting) return handleAccountedEmbedding({ adapter, provider, model, credentials, ctx, requestBody, originalBody: body, url, headers, proxyOptions,
     accounting, signal, connectionId, log, onCredentialsRefreshed, onRequestSuccess });
 
   let providerResponse;

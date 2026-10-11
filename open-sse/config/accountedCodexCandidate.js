@@ -6,7 +6,7 @@ export const ACCOUNTED_CODEX_URL = 'https://chatgpt.com/backend-api/codex/respon
 export const ACCOUNTED_CODEX_SSE_MODE = 'native-codex-responses-sse';
 export const ACCOUNTED_CODEX_GATEWAY_PATHS = Object.freeze(['/v1/responses', '/api/v1/responses']);
 const REQUEST_FIELDS = Object.freeze(['model', 'input', 'instructions', 'stream', 'store', 'service_tier']);
-const HEADER_FIELDS = Object.freeze(['content-type', 'accept', 'authorization', 'originator', 'user-agent', 'version', 'session_id', 'chatgpt-account-id']);
+export const ACCOUNTED_CODEX_HEADER_FIELDS = Object.freeze(['content-type', 'accept', 'authorization', 'originator', 'user-agent', 'version', 'session_id', 'chatgpt-account-id']);
 const identity = value => typeof value === 'string' && value.length > 0 && !/[\x00-\x20\x7f]/.test(value);
 export function supportsCodexRequest(body, model) {
   // Initial native text-only full Responses transport. Lite prefix, compact,
@@ -30,7 +30,7 @@ export function supportsCodexCandidate(executor, options, url, body, headers) {
     options.body?.stream === true && supportsCodexRequest(body, options.model) &&
     !options.proxyOptions?.vercelRelayUrl && !credentials?.runtimeTransport && !credentials?.apiKey &&
     identity(credentials?.accessToken) && identity(credentials?.connectionId) && identity(account) &&
-    [...normalized.keys()].every(key => HEADER_FIELDS.includes(key)) &&
+    [...normalized.keys()].every(key => ACCOUNTED_CODEX_HEADER_FIELDS.includes(key)) &&
     normalized.get('authorization') === `Bearer ${credentials.accessToken}` &&
     normalized.get('session_id') === credentials.connectionId && normalized.get('chatgpt-account-id') === account &&
     normalized.get('originator') === executor.config.headers?.originator &&

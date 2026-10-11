@@ -66,13 +66,16 @@ function normalizeLegacyProxy(providerSpecificData = {}) {
 export async function resolveConnectionProxyConfig(
   providerSpecificData = {}
 ) {
+  // Once selected, this identity survives any later row/legacy normalization
+  // failure. An exception is not authority to silently leave the assigned pool.
+  let proxyPoolId = null;
   try {
     const proxyPoolIdRaw = normalizeString(
       providerSpecificData?.proxyPoolId
     );
 
     // "__none__" means explicitly disabled
-    const proxyPoolId =
+    proxyPoolId =
       proxyPoolIdRaw === "__none__" ? "" : proxyPoolIdRaw;
 
     const legacy = normalizeLegacyProxy(providerSpecificData);
@@ -89,7 +92,15 @@ export async function resolveConnectionProxyConfig(
      * -----------------------------
      */
     if (proxyPoolId) {
-      const proxyPool = await getProxyPoolById(proxyPoolId);
+      let proxyPool;
+      try {
+        proxyPool = await getProxyPoolById(proxyPoolId);
+      } catch {
+        // Failed lookup cannot prove that the selected pool permits fallback.
+        // Never emit a credential-bearing database/provider error object.
+        console.error("[resolveConnectionProxyConfig] Assigned pool lookup unavailable");
+        proxyPool = null;
+      }
 
       const proxyUrl = normalizeString(proxyPool?.proxyUrl);
       const noProxy = normalizeString(proxyPool?.noProxy);
@@ -99,7 +110,9 @@ export async function resolveConnectionProxyConfig(
         proxyPool.isActive === true &&
         proxyUrl;
 
-      poolStrictProxy = proxyPool?.strictProxy === true;
+      // An absent row has no non-strict policy to authorize legacy/global/direct.
+      // Existing, explicitly non-strict pools retain their fallback semantics.
+      poolStrictProxy = !proxyPool || proxyPool.strictProxy === true;
 
       if (isValidPool) {
         /**
@@ -192,23 +205,21 @@ export async function resolveConnectionProxyConfig(
 
       ...legacy,
     };
-  } catch (error) {
-    console.error(
-      "[resolveConnectionProxyConfig] Failed to resolve proxy config:",
-      error
-    );
+  } catch {
+    console.error("[resolveConnectionProxyConfig] Proxy configuration unavailable");
 
     return {
       source: "error",
 
-      proxyPoolId: null,
+      proxyPoolId: proxyPoolId || null,
       proxyPool: null,
 
       connectionProxyEnabled: false,
       connectionProxyUrl: "",
       connectionNoProxy: "",
 
-      strictProxy: false,
+      strictProxy: Boolean(proxyPoolId),
+      ...(proxyPoolId ? { proxyPoolUnavailable: true } : {}),
     };
   }
 }

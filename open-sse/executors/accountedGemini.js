@@ -5,6 +5,9 @@ import { supportsGeminiCandidate, ACCOUNTED_GEMINI_SSE_MODE } from '../config/ac
 import { createAccountingGeminiSseParser } from '../utils/accountingGeminiSseParser.js';
 import { createAccountedOpenaiStream } from '../utils/accountedOpenaiStream.js';
 import { FETCH_CONNECT_TIMEOUT_MS } from '../config/runtimeConfig.js';
+import { captureAccountingBaseTransport } from '../config/accountedBaseTransport.js';
+import { captureAccountingProxyEnvironment } from '../config/accountedProxyEnvironment.js';
+import { snapshotAccountingPreparedData } from '../config/accountedBaseDispatch.js';
 
 function fetchOnce(invoke, signal) {
   signal.throwIfAborted();
@@ -39,7 +42,20 @@ export async function executeAccountedGeminiCandidate(executor, options) {
   catch (error) { accounting.assertSupported(false); throw error; }
   accounting.assertSupported(supportsGeminiCandidate(executor, options, url, wireBody, headers));
   signal?.throwIfAborted();
-  const attempt = await accounting.beforeAttempt({ provider: executor.provider, model, endpoint: 'chat', connectionId }, true);
+  // Default synchronous owner keeps its two-argument contract. Internal queued
+  // admission receives the original immutable native work, never rebuilt later.
+  const preparedWire = accounting.requiresPreparedBaseWire ? snapshotAccountingPreparedData({
+    protocol: 'native-gemini', url, headers: Object.fromEntries(headers),
+    credentials: { apiKey: credentials?.apiKey ?? null, accessToken: credentials?.accessToken ?? null },
+    providerOverrides: options.providerOverrides ?? null, proxyOptions, proxyEnvironment: captureAccountingProxyEnvironment(),
+    geminiTransport: { model, mode: options.accountingMode, baseTransport: captureAccountingBaseTransport(executor.config), serializedBody: serialized },
+  }) : null;
+  const postHeaders = preparedWire ? preparedWire.headers : headers;
+  const postProxy = preparedWire ? preparedWire.proxyOptions : proxyOptions;
+  const postBody = preparedWire ? preparedWire.geminiTransport.serializedBody : serialized;
+  const attempt = await (preparedWire
+    ? accounting.beforeAttempt({ provider: executor.provider, model, endpoint: 'chat', connectionId }, true, preparedWire)
+    : accounting.beforeAttempt({ provider: executor.provider, model, endpoint: 'chat', connectionId }, true));
   if (signal?.aborted) {
     await accounting.completeAttempt(attempt, { notDispatched: true, outcome: 'aborted' }); signal.throwIfAborted();
   }
@@ -50,7 +66,8 @@ export async function executeAccountedGeminiCandidate(executor, options) {
   try {
     response = await fetchOnce(() => {
       invoked = true;
-      return proxyAwareFetch(url, { method: 'POST', headers, body: serialized, redirect: 'error', signal: merged }, proxyOptions, { singlePost: true });
+      return proxyAwareFetch(url, { method: 'POST', headers: postHeaders, body: postBody, redirect: 'error', signal: merged }, postProxy,
+        preparedWire ? { singlePost: true, proxyEnvironment: preparedWire.proxyEnvironment, geminiTransport: preparedWire.geminiTransport } : { singlePost: true });
     }, merged);
   } catch (error) { transportError = { error }; }
   finally { clearTimeout(timer); }

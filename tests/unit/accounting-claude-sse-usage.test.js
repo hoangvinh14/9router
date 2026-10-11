@@ -200,6 +200,31 @@ describe('unconnected bounded raw Claude usage candidate (not provider or POST-o
       expect(response.bodyUsed).toBe(false);
     }
   });
+  it('failed HTTP opt-in reads exact raw counts only after genuine stop and clean EOF', async () => {
+    let controller, ended = false;
+    const body = new ReadableStream({ start(value) { controller = value; } });
+    const wire = start() + delta() + stop;
+    const work = readBufferedClaudeAccounting(new Response(body, { status: 429, headers: { 'content-type': 'text/event-stream' } }), null,
+      { expectedModel: 'fixture-model', allowFailedHttp: true }).then(value => { ended = true; return value; });
+    controller.enqueue(enc.encode(wire)); await new Promise(resolve => setImmediate(resolve)); expect(ended).toBe(false);
+    controller.close(); expect(await work).toMatchObject({ text: wire, usage: { exact: true, input: 100, output: 20 } });
+    expect(body.locked).toBe(false);
+  });
+  it('failed HTTP opt-in preserves false abort after stop rather than exact usage', async () => {
+    let controller; const caller = new AbortController(), cancel = vi.fn();
+    const body = new ReadableStream({ start(value) { controller = value; }, cancel });
+    const work = readBufferedClaudeAccounting(new Response(body, { status: 500, headers: { 'content-type': 'text/event-stream' } }), caller.signal,
+      { allowFailedHttp: true }).then(value => ({ value }), error => ({ error }));
+    controller.enqueue(enc.encode(start() + delta() + stop)); await new Promise(resolve => setImmediate(resolve)); caller.abort(false);
+    expect((await work).error).toBe(false); expect(cancel).toHaveBeenCalledWith(false); expect(body.locked).toBe(false);
+  });
+  it('failed HTTP opt-in never accepts non-SSE or truthy non-boolean permission', async () => {
+    for (const [type, allowFailedHttp] of [['application/json', true], ['text/event-stream', 'true'], ['text/event-stream', 1]]) {
+      const response = new Response(start() + delta() + stop, { status: 429, headers: { 'content-type': type } });
+      await expect(readBufferedClaudeAccounting(response, null, { allowFailedHttp })).rejects.toThrow('Unsupported raw Claude accounting response');
+      expect(response.bodyUsed).toBe(false);
+    }
+  });
   it('clean EOF missing stop yields unresolved usage, never invented terminal', async () => {
     const wire = start() + delta();
     expect(await readBufferedClaudeAccounting(new Response(wire, { headers: { 'content-type': 'text/event-stream' } }))).toEqual({ text: wire, usage: null });

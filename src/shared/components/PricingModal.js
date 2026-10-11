@@ -138,7 +138,7 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
                 <p className="font-medium mb-1">Pricing Rates Format</p>
                 <p className="text-text-muted">
                   All rates are in <strong>dollars per million tokens</strong> ($/1M tokens).
-                  These are virtual reference costs, not upstream invoices. Blank optional rates inherit input/output rates; explicit zero stays zero. Only edited model rows are saved.
+                  These are virtual reference costs, not upstream invoices. Blank optional rates inherit input/output rates except 1h cache writes, which require an explicit reference rate. Explicit zero stays zero. Only edited model rows are saved.
                 </p>
               </div>
 
@@ -169,7 +169,8 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
                             <th className="px-3 py-2 text-right">Output</th>
                             <th className="px-3 py-2 text-right">Cached</th>
                             <th className="px-3 py-2 text-right">Reasoning</th>
-                            <th className="px-3 py-2 text-right">Cache Creation</th>
+                            <th className="px-3 py-2 text-right">Cache Creation / 5m</th>
+                            <th className="px-3 py-2 text-right">Cache Creation 1h</th>
                             <th className="px-3 py-2 text-right">Override</th>
                           </tr>
                         </thead>

@@ -331,6 +331,10 @@ export function projectAccountingUsageSync(db, attemptId) {
     // Numeric conversion is display-only, never allowance truth or repricing.
     cost: Number(nanoUsdToDecimal(attempt.costNanoUsd)), tokens: u ? {
       prompt_tokens: u.input, completion_tokens: u.output + (u.reasoningIncludedInOutput ? 0 : u.reasoning), cached_tokens: u.cacheRead,
+      ...(u.cacheWrite5m !== undefined && u.cacheWrite1h !== undefined ? {
+        cache_creation_input_tokens: u.cacheWrite,
+        cache_creation: { ephemeral_5m_input_tokens: u.cacheWrite5m, ephemeral_1h_input_tokens: u.cacheWrite1h },
+      } : {}),
     } : {} };
   let inserted = false;
   db.durableTransaction(() => {

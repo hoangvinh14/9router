@@ -8,6 +8,8 @@ import { HTTP_STATUS, FETCH_CONNECT_TIMEOUT_MS } from '../config/runtimeConfig.j
 import { captureAccountingProxyEnvironment } from '../config/accountedProxyEnvironment.js';
 import { captureAccountingBaseTransport } from '../config/accountedBaseTransport.js';
 import { snapshotAccountingPreparedData } from '../config/accountedBaseDispatch.js';
+import { captureUnhealthyChatDispatch, validateUnhealthyChatDispatch } from '../config/accountedUnhealthyChatDispatch.js';
+import { isDeepStrictEqual } from 'node:util';
 
 function awaitFetch(invoke, signal) {
   signal.throwIfAborted();
@@ -32,17 +34,29 @@ function awaitFetch(invoke, signal) {
 export async function executeAccountedBase(executor, options, { fallbackCount, tryRetry, retryAttemptsByUrl }) {
   const { model, body, stream, credentials, signal, proxyOptions, providerOverrides, accounting, connectionId, accountingMode } = options;
   accounting.assertSupported(isAccountedOpenaiChatProvider(executor.provider) && (stream === false || accountingMode === 'buffered-openai-sse' || accountingMode === 'live-openai-sse'));
+  // Internal opt-in only. Capture full original inputs before transformation or
+  // admission yields; this is not persisted credential or gap-ACK authority.
+  const unhealthy = accounting.requiresUnhealthyChatWire === true;
+  const original = unhealthy ? snapshotAccountingPreparedData({ body, credentials, proxyOptions: proxyOptions ?? null,
+    providerOverrides: providerOverrides ?? null, config: executor.config }) : null;
+  if (unhealthy) { accounting.assertSupported(stream === false && fallbackCount === 1); accounting.gate(); }
   let lastError;
   for (let index = 0; index < fallbackCount; index++) {
     signal?.throwIfAborted();
-    const url = executor.buildUrl(model, stream, index, credentials);
-    accounting.assertSupported(isAccountedChatTransport(executor.provider, url, credentials?.runtimeTransport));
-    const transformed = executor.transformRequest(model, body, stream, credentials);
+    const selectedCredentials = original ? original.credentials : credentials;
+    const selectedBody = original ? structuredClone(original.body) : body;
+    const url = executor.buildUrl(model, stream, index, selectedCredentials);
+    accounting.assertSupported(isAccountedChatTransport(executor.provider, url, selectedCredentials?.runtimeTransport));
+    const transformed = executor.transformRequest(model, selectedBody, stream, selectedCredentials);
     const transformedBody = stream ? { ...transformed, stream: true, stream_options: { ...transformed.stream_options, include_usage: true } } : transformed;
     // Detached wire material before admission can yield; singleton header state
     // is never consulted after the await. Pricing model remains resolved identity.
-    const headers = { ...executor.buildHeaders(credentials, stream, url, model, transformedBody), ...(providerOverrides?.headers || {}) };
+    const headers = { ...executor.buildHeaders(selectedCredentials, stream, url, model, transformedBody), ...((original ? original.providerOverrides : providerOverrides)?.headers || {}) };
     const serialized = JSON.stringify(transformedBody);
+    const unhealthyTransport = unhealthy ? captureUnhealthyChatDispatch({ provider: executor.provider, model,
+      body: original.body, config: original.config, credentials: original.credentials, proxyOptions: original.proxyOptions,
+      providerOverrides: original.providerOverrides, url, headers, serialized }) : null;
+    const unhealthyEnvironment = unhealthy ? captureAccountingProxyEnvironment() : null;
     retryAttemptsByUrl[index] ??= 0;
     // Only the queued request owner requests bounded prepared-wire equality;
     // preserve legacy synchronous owner call shape and standalone engine use.
@@ -54,8 +68,8 @@ export async function executeAccountedBase(executor, options, { fallbackCount, t
       baseTransport: captureAccountingBaseTransport(executor.config), urlIndex: index }) : null;
     // Exactly the original immutable values shown to admission reach POST. Do
     // not expose mutable local headers/options then dispatch them after await.
-    const postHeaders = preparedWire ? preparedWire.headers : headers;
-    const resolvedProxyOptions = preparedWire ? preparedWire.proxyOptions : proxyOptions;
+    const postHeaders = unhealthyTransport ? unhealthyTransport.headers : preparedWire ? preparedWire.headers : headers;
+    const resolvedProxyOptions = unhealthyTransport ? unhealthyTransport.proxyOptions : preparedWire ? preparedWire.proxyOptions : proxyOptions;
     const dispatchEvidence = preparedWire ? Object.freeze({ provider: executor.provider,
       baseTransport: preparedWire.baseTransport, urlIndex: preparedWire.urlIndex, runtimeTransport: preparedWire.runtimeTransport }) : null;
     const attempt = await (accounting.requiresPreparedBaseWire
@@ -64,17 +78,47 @@ export async function executeAccountedBase(executor, options, { fallbackCount, t
     if (signal?.aborted) {
       await accounting.completeAttempt(attempt, { notDispatched: true, outcome: 'aborted' }); signal.throwIfAborted();
     }
+    // Admission ACK delivery may yield after the intent row is installed.
+    // Refuse a stale captured graph before transport exposure, with this
+    // attempt's own not-dispatched ACK. Never treat this as a network retry.
+    const assertUnhealthyCurrent = unhealthy ? () => {
+      accounting.gate();
+      if (!isDeepStrictEqual(snapshotAccountingPreparedData(executor.config), original.config)) throw new Error('Unhealthy Chat dispatch unavailable');
+      validateUnhealthyChatDispatch(unhealthyTransport, url,
+        { method: 'POST', redirect: 'error', body: serialized, headers: postHeaders }, resolvedProxyOptions);
+    } : null;
+    if (assertUnhealthyCurrent || accounting.requiresPreparedBaseWire && accounting.assertRoutingCurrent) {
+      try { if (assertUnhealthyCurrent) assertUnhealthyCurrent(); else accounting.assertRoutingCurrent(); }
+      catch (error) {
+        await accounting.completeAttempt(attempt, { notDispatched: true, outcome: 'routing_refused' });
+        throw error;
+      }
+    }
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(new Error('Chat connection deadline exceeded')), executor.config?.timeoutMs || FETCH_CONNECT_TIMEOUT_MS);
     const merged = signal ? AbortSignal.any([signal, ctrl.signal]) : ctrl.signal;
     let response, text, usage = null, usageEvidence = null, transportError;
+    let routingRefusal;
+    const routingGate = assertUnhealthyCurrent || accounting.requiresPreparedBaseWire && accounting.assertRoutingCurrent
+      ? () => {
+        try { if (assertUnhealthyCurrent) assertUnhealthyCurrent(); else accounting.assertRoutingCurrent(); }
+        catch (error) { routingRefusal = { error }; throw error; }
+      } : null;
     // Accounting errors deliberately cannot enter either transport/read catch.
-    try { response = await awaitFetch(() => accounting.requiresPreparedBaseWire
+    try { response = await awaitFetch(() => unhealthyTransport
       ? proxyAwareFetch(url, { method: 'POST', headers: postHeaders, body: serialized, signal: merged, redirect: 'error' }, resolvedProxyOptions,
-        { singlePost: true, proxyEnvironment: preparedWire.proxyEnvironment, baseTransport: dispatchEvidence })
+        { singlePost: true, unhealthyChatTransport: unhealthyTransport, proxyEnvironment: unhealthyEnvironment, routingGate })
+      : accounting.requiresPreparedBaseWire
+      ? proxyAwareFetch(url, { method: 'POST', headers: postHeaders, body: serialized, signal: merged, redirect: 'error' }, resolvedProxyOptions,
+        { singlePost: true, proxyEnvironment: preparedWire.proxyEnvironment, baseTransport: dispatchEvidence,
+          ...(routingGate ? { routingGate } : {}) })
       : proxyAwareFetch(url, { method: 'POST', headers, body: serialized, signal: merged }, resolvedProxyOptions), merged); }
-    catch (error) { transportError = { error }; }
+    catch (error) { if (!routingRefusal) transportError = { error }; }
     finally { clearTimeout(timer); }
+    if (routingRefusal) {
+      await accounting.completeAttempt(attempt, { notDispatched: true, outcome: 'routing_refused' });
+      throw routingRefusal.error;
+    }
     if (!transportError && response.ok && accountingMode === 'live-openai-sse') {
       let liveBody, liveResponse;
       try {
@@ -99,6 +143,12 @@ export async function executeAccountedBase(executor, options, { fallbackCount, t
         text = await readAccountingText(response, signal, { onChunk: observer ? chunk => observer.push(chunk) : null });
         if (observer) {
           const inspected = observer.finish(); usage = inspected.usage; usageEvidence = inspected.usageEvidence;
+        } else if (unhealthy && !response.ok) {
+          // A completely read raw HTTP failure may be non-JSON. Preserve its
+          // status with unknown usage; exact JSON failure usage is still owned.
+          let parsed = null;
+          try { parsed = JSON.parse(text); } catch { /* non-JSON HTTP failure, not read/transport failure */ }
+          usage = normalizeAccountedChatUsage(parsed?.usage, executor.provider);
         } else usage = normalizeAccountedChatUsage(JSON.parse(text)?.usage, executor.provider);
       } catch (error) {
         transportError = { error };
@@ -113,6 +163,7 @@ export async function executeAccountedBase(executor, options, { fallbackCount, t
     signal?.throwIfAborted();
     if (!transportError && response.ok) accounting.assertSuccessfulTerminal(terminal);
     if (transportError || !response.ok) accounting.gate();
+    if (unhealthy && transportError) throw transportError.error;
     if (transportError) {
       lastError = transportError.error;
       if (await tryRetry(index, HTTP_STATUS.BAD_GATEWAY, 'accounted transport error')) { index--; continue; }
@@ -122,6 +173,8 @@ export async function executeAccountedBase(executor, options, { fallbackCount, t
     const replay = new Response(text, { status: response.status, statusText: response.statusText, headers: response.headers });
     let discarded = false;
     const discard = () => { if (discarded) return; discarded = true; try { Promise.resolve(replay.body?.cancel()).catch(() => {}); } catch { /* cleanup only */ } };
+    // No successor selection/update authority exists on an unhealthy writer.
+    if (unhealthy) return { response: replay, url, headers: postHeaders, transformedBody, accountingOwned: true };
     // Prior attempt is terminal before any retry hook/backoff/new admission.
     if (await tryRetry(index, replay.status, `status ${replay.status}`, replay, discard)) { index--; continue; }
     if (executor.shouldRetry(replay.status, index)) { discard(); continue; }

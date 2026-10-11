@@ -353,12 +353,31 @@ describe('unconnected API-key Anthropic actual POST candidate with real ledger (
     expect(await result.response.json()).toMatchObject({ id: 'msg_fixture', type: 'message', model: 'fixture-native', stop_reason: 'end_turn', usage: { output_tokens: 20 } });
     expect(rows()[0]).toMatchObject({ state: 'settled', costNanoUsd: 106500 }); expect(network).toHaveBeenCalledTimes(1); expect(legacyUsage).not.toHaveBeenCalled();
   });
-  it.each(['missing-stop', 'failed-status'])('chatCore native %s is local unresolved, not synthetic success/502/refresh', async mode => {
+  it('chatCore native missing stop is local unresolved, not synthetic success/502/refresh', async () => {
     const { handleChatCore } = await import('open-sse/handlers/chatCore.js');
-    network.mockResolvedValue(new Response(wire(mode), { status: mode === 'failed-status' ? 401 : 200, headers: { 'content-type': 'text/event-stream' } }));
+    network.mockResolvedValue(new Response(wire('missing-stop'), { headers: { 'content-type': 'text/event-stream' } }));
     await expect(handleChatCore({ ...options(await context()), modelInfo: { provider: 'anthropic', model: 'fixture-native' }, sourceFormatOverride: 'claude' }))
       .rejects.toMatchObject({ code: BUDGET_ERROR.UNRESOLVED });
     expect(rows()[0]).toMatchObject({ state: 'unresolved', costNanoUsd: null }); expect(network).toHaveBeenCalledTimes(1); expect(legacyUsage).not.toHaveBeenCalled();
+  });
+  it('chatCore exact failed HTTP settles paid usage once, preserves status and exposes only fixed error', async () => {
+    const { handleChatCore } = await import('open-sse/handlers/chatCore.js');
+    const original = await context(), success = vi.fn(), refreshed = vi.fn();
+    const accounting = { ...original, completeAttempt: vi.fn((...args) => original.completeAttempt(...args)), assertSuccessfulTerminal: vi.fn() };
+    const raw = wire().replace('event: message_delta', textBlockWithPrivateContent() + 'event: message_delta');
+    function textBlockWithPrivateContent() {
+      return event('content_block_start', { index: 0, content_block: { type: 'text', text: '' } }) +
+        event('content_block_delta', { index: 0, delta: { type: 'text_delta', text: 'fixture-private-failed-content' } }) + event('content_block_stop', { index: 0 });
+    }
+    network.mockResolvedValue(new Response(raw, { status: 401, headers: { 'content-type': 'text/event-stream' } }));
+    const result = await handleChatCore({ ...options(accounting), modelInfo: { provider: 'anthropic', model: 'fixture-native' }, sourceFormatOverride: 'claude',
+      onRequestSuccess: success, onCredentialsRefreshed: refreshed });
+    expect(result.success).toBe(false); expect(result.response.status).toBe(401);
+    const error = await result.response.text(); expect(error).toContain('Invalid API key provided'); expect(error).not.toContain('fixture-private-failed-content'); expect(error).not.toContain('message_start');
+    expect(rows()).toHaveLength(1); expect(rows()[0]).toMatchObject({ state: 'settled', outcome: 'failed', costNanoUsd: 106500 });
+    expect(accounting.completeAttempt).toHaveBeenCalledTimes(1); expect(accounting.assertSuccessfulTerminal).not.toHaveBeenCalled();
+    expect(success).not.toHaveBeenCalled(); expect(refreshed).not.toHaveBeenCalled(); expect(appFixture.refresh).not.toHaveBeenCalled();
+    expect(network).toHaveBeenCalledTimes(1); expect(legacyUsage).not.toHaveBeenCalled();
   });
   it.each(['live tools', 'OpenAI source', 'beta headers'])('chatCore native %s remains denied before intent/POST', async mode => {
     const { handleChatCore } = await import('open-sse/handlers/chatCore.js');

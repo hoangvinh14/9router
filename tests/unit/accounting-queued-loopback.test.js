@@ -4,15 +4,29 @@ import path from 'node:path';
 import http from 'node:http';
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest';
 
+const fixtureEngine = process.env.ACCOUNTING_NATIVE_FIXTURE_ENGINE;
+if (fixtureEngine !== undefined && !['node:sqlite', 'sql.js'].includes(fixtureEngine)) throw new Error('Unsupported native accounting fixture engine');
+// Select SQL.js before DB open; ownership, coverage, migrations and the actual
+// adapter remain production code. This is not a runtime fallback permission.
+vi.mock('@/lib/db/engineAcquisition.js', async original => {
+  const actual = await original(); return { ...actual, initializeAvailableAdapter(...args) {
+    if (process.env.ACCOUNTING_NATIVE_FIXTURE_ENGINE === 'sql.js') return null;
+    return actual.initializeAvailableAdapter(...args);
+  } };
+});
 const registryFixture = vi.hoisted(() => ({ baseUrl: null }));
 vi.mock('../../open-sse/config/providers.js', async importOriginal => ({ ...(await importOriginal()),
   PROVIDERS: { ...(await importOriginal()).PROVIDERS, get openai() { return { baseUrl: registryFixture.baseUrl }; } } }));
-let db, directory, server, baseUrl, BaseExecutor, createAccounting, responder, received, serverFailure;
+let db, directory, server, baseUrl, BaseExecutor, createAccounting, responder, received, serverFailure, previousCatalogSource;
 const old = process.env.DATA_DIR;
+// Transform modules outside timed hooks under gate isolation; no DB/network warm-up.
+await Promise.all([import('@/sse/services/accountingRoutingResolver.js'), import('@/lib/db/adapters/sqljsAdapter.js')]);
 const json = { choices: [{ message: { role: 'assistant', content: 'fixture' }, finish_reason: 'stop' }], usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 } };
 beforeEach(async () => {
+  previousCatalogSource = globalThis.__9rCatalogSource;
   directory = fs.mkdtempSync(path.join(os.tmpdir(), '9router-queued-loopback-')); process.env.DATA_DIR = directory; delete global._dbAdapter; vi.resetModules();
   db = await (await import('@/lib/db/driver.js')).getAdapter();
+  if (fixtureEngine !== undefined) expect(db.driver).toBe(fixtureEngine);
   await (await import('@/lib/db/index.js')).importDb({ apiKeys: [{ id: 'a', key: 'dummy-key-a' }, { id: 'b', key: 'dummy-key-b' }], settings: { requireApiKey: true, outboundProxyEnabled: true, outboundProxyUrl: 'http://127.0.0.1:1', outboundNoProxy: '127.0.0.1' },
     providerConnections: [{ id: 'c', provider: 'openai', authType: 'apikey', apiKey: 'dummy-provider' }] });
   db.durableTransaction(() => {
@@ -38,6 +52,8 @@ beforeEach(async () => {
     headers: { Authorization: `Bearer dummy-key-${id}` } }), { adapter: async () => db, queued: true });
 });
 afterEach(async () => {
+  if (previousCatalogSource === undefined) delete globalThis.__9rCatalogSource;
+  else globalThis.__9rCatalogSource = previousCatalogSource;
   server?.closeAllConnections(); if (server?.listening) await new Promise(resolve => server.close(resolve));
   vi.restoreAllMocks(); db?.close(); delete global._dbAdapter; fs.rmSync(directory, { recursive: true, force: true });
   if (old === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = old;
@@ -48,6 +64,230 @@ const args = (accounting, marker) => ({ model: 'fixture-chat', body: { messages:
   // Valid saved NO_PROXY authority bypasses inherited env. No actual relay/proxy.
   proxyOptions: { persistedGlobalProxy: { url: 'http://127.0.0.1:1', noProxy: '127.0.0.1' } } });
 describe('queued Base actual loopback native POST (not real provider/proxy/all family)', { timeout: 20000 }, () => {
+  it.each(['unchanged', 'routing-drift', 'lost-refusal-ack', 'capacity-drift', 'lost-capacity-refusal-ack', 'catalog-drift', 'lost-catalog-refusal-ack'])('captured actual routing graph at native socket intent/terminal ACK boundaries: %s', async mode => {
+    const capacity = mode.includes('capacity');
+    const catalogDrift = mode.includes('catalog');
+    const lostAck = mode.startsWith('lost-');
+    let catalog;
+    if (catalogDrift) {
+      catalog = await import('../../open-sse/providers/catalogOverride.js');
+      fs.writeFileSync(catalog.CATALOG_FILE, JSON.stringify({ models: {}, providers: {} }));
+      await catalog.installCatalogSource();
+    }
+    if (capacity) await (await import('@/lib/db/repos/settingsRepo.js')).updateSettings({
+      capacityAdapter: { vision: { enabled: true, models: ['openai/vision-model'] } } });
+    await (await import('@/lib/db/repos/combosRepo.js')).createCombo({ name: 'routing-root', models: ['openai/fixture-chat'] });
+    const context = await createAccounting();
+    const { createAccountingRoutingResolver } = await import('@/sse/services/accountingRoutingResolver.js');
+    await context.captureRoutingGraph('routing-root', createAccountingRoutingResolver({ model: 'routing-root', stream: false,
+      messages: [{ role: 'user', content: 'native graph' }] }));
+    let attempt, enterIntent, releaseIntent, enterTerminal, releaseTerminal;
+    const intentEntered = new Promise(resolve => { enterIntent = resolve; }), intentHeld = new Promise(resolve => { releaseIntent = resolve; });
+    const terminalEntered = new Promise(resolve => { enterTerminal = resolve; }), terminalHeld = new Promise(resolve => { releaseTerminal = resolve; });
+    const lost = new Error('Fixture lost native routing refusal ACK');
+    const completions = [];
+    const accounting = { ...context,
+      async beforeAttempt(...input) { attempt = await context.beforeAttempt(...input); enterIntent(); await intentHeld; return attempt; },
+      async completeAttempt(h, completion) {
+        completions.push({ id: h.attemptId, completion });
+        const terminal = await context.completeAttempt(h, completion);
+        if (mode !== 'unchanged') { enterTerminal(); await terminalHeld; if (lostAck) throw lost; }
+        return terminal;
+      } };
+    let returned = false;
+    const observed = executor({ 502: { attempts: 2, delayMs: 0 } }).execute(args(accounting, 'native graph'))
+      .then(value => ({ value }), error => ({ error })).then(result => { returned = true; return result; });
+    try {
+      expect(await Promise.race([intentEntered.then(() => null), observed])).toBeNull();
+      expect(received).toHaveLength(0); expect(returned).toBe(false);
+      expect(db.get('SELECT state FROM apiKeyAccounting WHERE attemptId=?', [attempt.attemptId]).state).toBe('pending');
+      if (catalogDrift) fs.writeFileSync(catalog.CATALOG_FILE, JSON.stringify({
+        models: { 'openai:fixture-chat': { vision: true } }, providers: {} }));
+      else if (capacity) await (await import('@/lib/db/repos/settingsRepo.js')).updateSettings({
+        capacityAdapter: { vision: { enabled: false, models: ['openai/vision-model'] } } });
+      else if (mode !== 'unchanged') db.durableTransaction(() => db.run('UPDATE combos SET models=? WHERE name=?', ['["openai/changed"]', 'routing-root']));
+      releaseIntent();
+      if (mode !== 'unchanged') {
+        expect(await Promise.race([terminalEntered.then(() => null), observed])).toBeNull();
+        expect(returned).toBe(false); expect(received).toHaveLength(0);
+        expect(completions).toEqual([{ id: attempt.attemptId, completion: { notDispatched: true, outcome: 'routing_refused' } }]);
+        expect(db.get('SELECT state,costNanoUsd FROM apiKeyAccounting WHERE attemptId=?', [attempt.attemptId]))
+          .toEqual({ state: 'not_dispatched', costNanoUsd: null });
+      }
+      releaseTerminal(); const result = await observed;
+      if (mode === 'unchanged') {
+        expect(result.error).toBeUndefined(); expect(result.value.response.ok).toBe(true); expect(received).toHaveLength(1);
+        expect(received[0].rows).toContainEqual({ requestId: context.requestId, apiKeyId: 'a', state: 'pending' });
+        expect(db.get('SELECT state,costNanoUsd FROM apiKeyAccounting WHERE attemptId=?', [attempt.attemptId]))
+          .toEqual({ state: 'settled', costNanoUsd: 200000 });
+      } else {
+        expect(received).toHaveLength(0);
+        if (lostAck) expect(result.error).toBe(lost);
+        else expect(result.error).toMatchObject({ code: 'api_key_accounting_unavailable' });
+      }
+      expect(serverFailure).toBeNull(); expect(completions).toHaveLength(1);
+      expect(db.all('SELECT attemptId,requestId FROM apiKeyAccounting')).toEqual([{ attemptId: attempt.attemptId, requestId: context.requestId }]);
+      expect(db.coverage.status('a').gaps).toHaveLength(0);
+    } finally { releaseIntent(); releaseTerminal(); await observed; }
+  });
+  it.each(['capacity', 'catalog'])('%s edit after actual failed POST preserves original bill and refuses retry successor', async authority => {
+    const settings = await import('@/lib/db/repos/settingsRepo.js');
+    let catalog;
+    if (authority === 'catalog') {
+      catalog = await import('../../open-sse/providers/catalogOverride.js');
+      fs.writeFileSync(catalog.CATALOG_FILE, JSON.stringify({ v: 2, models: {}, providers: {} }));
+      await catalog.installCatalogSource();
+    } else await settings.updateSettings({ capacityAdapter: { vision: { enabled: true, models: ['openai/vision-model'] } } });
+    const context = await createAccounting();
+    const { createAccountingRoutingResolver } = await import('@/sse/services/accountingRoutingResolver.js');
+    await context.captureRoutingGraph('openai/fixture-chat', createAccountingRoutingResolver({ model: 'openai/fixture-chat',
+      stream: false, messages: [{ role: 'user', content: 'native capacity original' }] }));
+    let attempt; const completions = [];
+    const accounting = { ...context,
+      async beforeAttempt(...input) { attempt = await context.beforeAttempt(...input); return attempt; },
+      async completeAttempt(h, completion) {
+        completions.push(h.attemptId); return context.completeAttempt(h, completion);
+      } };
+    responder = async (_request, response) => {
+      expect(attempt).toBeTruthy();
+      expect(db.get('SELECT state FROM apiKeyAccounting WHERE attemptId=?', [attempt.attemptId]).state).toBe('pending');
+      if (catalog) fs.writeFileSync(catalog.CATALOG_FILE, JSON.stringify({ v: 2,
+        models: { 'openai:fixture-chat': { vision: true } }, providers: {} }));
+      else await settings.updateSettings({ capacityAdapter: { vision: { enabled: false, models: ['openai/vision-model'] } } });
+      db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='openai'",
+        [JSON.stringify({ 'fixture-chat': { input: '9', output: '9' } })]));
+      response.writeHead(429, { 'content-type': 'application/json' }); response.end(JSON.stringify(json));
+    };
+    await expect(executor({ 429: { attempts: 2, delayMs: 0 } }).execute(args(accounting, 'native capacity original')))
+      .rejects.toMatchObject({ code: 'api_key_accounting_unavailable' });
+    expect(serverFailure).toBeNull(); expect(received).toHaveLength(1);
+    expect(received[0].rows).toContainEqual({ requestId: context.requestId, apiKeyId: 'a', state: 'pending' });
+    expect(completions).toEqual([attempt.attemptId]);
+    expect(db.all('SELECT attemptId,requestId,state,costNanoUsd,outcome FROM apiKeyAccounting')).toEqual([
+      { attemptId: attempt.attemptId, requestId: context.requestId, state: 'settled', costNanoUsd: 200000, outcome: 'failed' } ]);
+    expect(db.coverage.status('a').gaps).toHaveLength(0);
+  });
+  it.each(['deliver', 'lost-delivery'])('two-key native completion delivery isolates shared executor/coordinator: %s', async mode => {
+    const a = await createAccounting('a'), b = await createAccounting('b'), ex = executor();
+    const { createAccountingRoutingResolver } = await import('@/sse/services/accountingRoutingResolver.js');
+    for (const context of [a, b]) await context.captureRoutingGraph('openai/fixture-chat', createAccountingRoutingResolver({
+      model: 'openai/fixture-chat', stream: false, messages: [{ role: 'user', content: 'native two-key' }] }));
+    const handles = {}, completions = [], authorized = [];
+    let enter, release, returnedA = false;
+    const entered = new Promise(resolve => { enter = resolve; });
+    const held = new Promise(resolve => { release = resolve; });
+    const lost = new Error('Fixture lost two-key native completion delivery');
+    const wrap = (context, key) => ({ ...context,
+      async beforeAttempt(...input) { const h = await context.beforeAttempt(...input); handles[key] = h; return h; },
+      async completeAttempt(h, completion) {
+        const terminal = await context.completeAttempt(h, completion);
+        completions.push({ key, attemptId: h.attemptId });
+        if (key === 'a') { enter(); await held; if (mode === 'lost-delivery') throw lost; }
+        return terminal;
+      },
+      assertSuccessfulTerminal(terminal) { context.assertSuccessfulTerminal(terminal); authorized.push(key); }
+    });
+    const workA = ex.execute(args(wrap(a, 'a'), 'a')).then(value => ({ value }), error => ({ error }))
+      .then(result => { returnedA = true; return result; });
+    let workB;
+    try {
+      expect(await Promise.race([entered.then(() => null), workA])).toBeNull();
+      expect(returnedA).toBe(false); expect(received).toHaveLength(1); expect(authorized).toEqual([]);
+      expect(db.get('SELECT apiKeyId,requestId,state,costNanoUsd FROM apiKeyAccounting WHERE attemptId=?', [handles.a.attemptId]))
+        .toEqual({ apiKeyId: 'a', requestId: a.requestId, state: 'settled', costNanoUsd: 200000 });
+      // B may obtain its own terminal while A's installed row is not A's delivered ACK.
+      workB = ex.execute(args(wrap(b, 'b'), 'b')).then(value => ({ value }), error => ({ error }));
+      const resultB = await workB;
+      expect(resultB.error).toBeUndefined(); expect(resultB.value.response.ok).toBe(true);
+      expect(returnedA).toBe(false); expect(authorized).toEqual(['b']); expect(received).toHaveLength(2);
+      expect(handles.a.attemptId).not.toBe(handles.b.attemptId); expect(a.requestId).not.toBe(b.requestId);
+      for (const [key, context] of [['a', a], ['b', b]]) {
+        const post = received.find(r => r.body.messages[0].content === key);
+        expect(post.rows).toContainEqual({ apiKeyId: key, requestId: context.requestId, state: 'pending' });
+        expect(db.get('SELECT apiKeyId,requestId,state,costNanoUsd FROM apiKeyAccounting WHERE attemptId=?', [handles[key].attemptId]))
+          .toEqual({ apiKeyId: key, requestId: context.requestId, state: 'settled', costNanoUsd: 200000 });
+      }
+      release(); const resultA = await workA;
+      if (mode === 'lost-delivery') { expect(resultA.error).toBe(lost); expect(authorized).toEqual(['b']); }
+      else { expect(resultA.error).toBeUndefined(); expect(resultA.value.response.ok).toBe(true); expect(authorized).toEqual(['b', 'a']); }
+      expect(completions).toEqual([{ key: 'a', attemptId: handles.a.attemptId }, { key: 'b', attemptId: handles.b.attemptId }]);
+      expect(received).toHaveLength(2); expect(serverFailure).toBeNull();
+      expect(db.all('SELECT attemptId FROM apiKeyAccounting')).toHaveLength(2);
+      for (const key of ['a', 'b']) expect(db.coverage.status(key).gaps).toHaveLength(0);
+    } finally { release(); await workA; if (workB) await workB; }
+  });
+  it.each(['unlimited', 'budgeted-a'])('two simultaneous native POST owners isolate post-received cancellation across gateway keys: %s', async mode => {
+    if (mode === 'budgeted-a') {
+      const { createBudgetContext } = await import('@/lib/apiKeyBudget/service.js');
+      const policy = await createBudgetContext('a', { adapter: async () => db });
+      policy.updatePolicy({ weeklyLimitUsd: '100', monthlyLimitUsd: '100', expectedVersion: 0 });
+    }
+    const a = await createAccounting('a'), b = await createAccounting('b'), ex = executor();
+    const { createAccountingRoutingResolver } = await import('@/sse/services/accountingRoutingResolver.js');
+    for (const context of [a, b]) await context.captureRoutingGraph('openai/fixture-chat', createAccountingRoutingResolver({
+      model: 'openai/fixture-chat', stream: false, messages: [{ role: 'user', content: 'native two-key cancel' }] }));
+    let enterBoth, release;
+    const bothReceived = new Promise(resolve => { enterBoth = resolve; });
+    const held = new Promise(resolve => { release = resolve; });
+    const serverOwners = [], handles = {}, completions = [], authorized = [];
+    responder = (_request, response) => {
+      const owner = held.then(() => {
+        // Responding after cancellation does not assert that foreign work stopped.
+        response.writeHead(200, { 'content-type': 'application/json' }); response.end(JSON.stringify(json));
+      }).then(() => null, error => { serverFailure = error; });
+      serverOwners.push(owner);
+      if (received.length === 2) enterBoth();
+      return owner;
+    };
+    const wrap = (context, key) => ({ ...context,
+      async beforeAttempt(...input) { const h = await context.beforeAttempt(...input); handles[key] = h; return h; },
+      async completeAttempt(h, completion) {
+        const terminal = await context.completeAttempt(h, completion); completions.push({ key, id: h.attemptId }); return terminal;
+      },
+      assertSuccessfulTerminal(terminal) { context.assertSuccessfulTerminal(terminal); authorized.push(key); }
+    });
+    const ctrl = new AbortController(), cancelled = new Error('Fixture two-key post-received cancellation');
+    const workA = ex.execute({ ...args(wrap(a, 'a'), 'a'), signal: ctrl.signal }).then(value => ({ value }), error => ({ error }));
+    let returnedB = false;
+    const workB = ex.execute(args(wrap(b, 'b'), 'b')).then(value => ({ value }), error => ({ error }))
+      .then(result => { returnedB = true; return result; });
+    try {
+      expect(await Promise.race([bothReceived.then(() => null), workA, workB])).toBeNull();
+      expect(received).toHaveLength(2); expect(returnedB).toBe(false); expect(authorized).toEqual([]);
+      for (const [key, context] of [['a', a], ['b', b]]) {
+        const post = received.find(r => r.body.messages[0].content === key);
+        expect(post.rows).toContainEqual({ apiKeyId: key, requestId: context.requestId, state: 'pending' });
+        expect(db.get('SELECT apiKeyId,requestId,state FROM apiKeyAccounting WHERE attemptId=?', [handles[key].attemptId]))
+          .toEqual({ apiKeyId: key, requestId: context.requestId, state: 'pending' });
+      }
+      ctrl.abort(cancelled); const resultA = await workA;
+      expect(resultA.error).toBe(cancelled); expect(returnedB).toBe(false); expect(authorized).toEqual([]);
+      expect(db.get('SELECT state,costNanoUsd FROM apiKeyAccounting WHERE attemptId=?', [handles.a.attemptId]))
+        .toEqual({ state: 'unresolved', costNanoUsd: null });
+      expect(db.get('SELECT state FROM apiKeyAccounting WHERE attemptId=?', [handles.b.attemptId]).state).toBe('pending');
+      if (mode === 'budgeted-a') {
+        // A's unknown bill is key-local; reject a fresh request before another intent/POST.
+        await expect((async () => ex.execute(args(await createAccounting('a'), 'blocked-a')))())
+          .rejects.toMatchObject({ code: 'api_key_accounting_unresolved' });
+        expect(received).toHaveLength(2); expect(db.all('SELECT attemptId FROM apiKeyAccounting')).toHaveLength(2);
+        expect(returnedB).toBe(false); expect(authorized).toEqual([]);
+      }
+      release(); const resultB = await workB; await Promise.all(serverOwners);
+      expect(resultB.error).toBeUndefined(); expect(resultB.value.response.ok).toBe(true); expect(authorized).toEqual(['b']);
+      expect(db.get('SELECT state,costNanoUsd FROM apiKeyAccounting WHERE attemptId=?', [handles.b.attemptId]))
+        .toEqual({ state: 'settled', costNanoUsd: 200000 });
+      expect(db.get('SELECT state,costNanoUsd FROM apiKeyAccounting WHERE attemptId=?', [handles.a.attemptId]))
+        .toEqual({ state: 'unresolved', costNanoUsd: null });
+      expect(completions).toEqual([{ key: 'a', id: handles.a.attemptId }, { key: 'b', id: handles.b.attemptId }]);
+      expect(handles.a.attemptId).not.toBe(handles.b.attemptId); expect(a.requestId).not.toBe(b.requestId);
+      expect(received).toHaveLength(2); expect(db.all('SELECT attemptId FROM apiKeyAccounting')).toHaveLength(2);
+      expect(serverFailure).toBeNull(); for (const key of ['a', 'b']) expect(db.coverage.status(key).gaps).toHaveLength(0);
+    } finally {
+      release(); await Promise.all([workA, workB]);
+      // Both client owners are drained before closing the socket/DB; retain late server work too.
+      await Promise.all(serverOwners);
+    }
+  });
   it('two shared-executor requests POST only with own pending rows and settle separately', async () => {
     const a = await createAccounting('a'), b = await createAccounting('b'), ex = executor();
     const results = await Promise.all([ex.execute(args(a, 'a')), ex.execute(args(b, 'b'))]);
@@ -74,6 +314,88 @@ describe('queued Base actual loopback native POST (not real provider/proxy/all f
     expect(serverFailure).toBeNull(); expect(result.response.ok).toBe(true); expect(received).toHaveLength(2);
     expect(received[1].rows.map(row => row.state).sort()).toEqual(['pending', 'settled']);
     expect(db.all('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual([{ state: 'settled', costNanoUsd: 200000 }, { state: 'settled', costNanoUsd: 200000 }]);
+  });
+  it.each(['deliver', 'lost-delivery'])('native retry second POST waits for successor own intent ACK: %s', async mode => {
+    let count = 0;
+    responder = (_request, response) => { response.writeHead(++count === 1 ? 429 : 200, { 'content-type': 'application/json' }); response.end(JSON.stringify(json)); };
+    const context = await createAccounting(); let admissions = 0, completed = 0, enter, release;
+    const entered = new Promise(resolve => { enter = resolve; });
+    const held = new Promise(resolve => { release = resolve; });
+    const lost = new Error('Fixture lost native successor intent handle');
+    const accounting = { ...context,
+      async beforeAttempt(...input) {
+        admissions++; const attempt = await context.beforeAttempt(...input);
+        if (admissions === 2) { enter(); await held; if (mode === 'lost-delivery') throw lost; }
+        return attempt;
+      },
+      async completeAttempt(...input) { const terminal = await context.completeAttempt(...input); completed++; return terminal; }
+    };
+    let returned = false;
+    const work = executor({ 429: { attempts: 1, delayMs: 0 } }).execute(args(accounting, 'native-successor-ack'))
+      .then(value => ({ value }), error => ({ error })).then(result => { returned = true; return result; });
+    try {
+      await entered;
+      expect(serverFailure).toBeNull(); expect(received).toHaveLength(1); expect(returned).toBe(false);
+      expect(admissions).toBe(2); expect(completed).toBe(1);
+      expect(received[0]).toMatchObject({ method: 'POST', authorization: 'Bearer dummy-provider' });
+      expect(received[0].rows).toContainEqual({ requestId: context.requestId, apiKeyId: 'a', state: 'pending' });
+      expect(db.all('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual([
+        { state: 'settled', costNanoUsd: 200000 }, { state: 'pending', costNanoUsd: null }]);
+    } finally { release(); }
+    const result = await work;
+    expect(serverFailure).toBeNull();
+    if (mode === 'deliver') {
+      expect(result.error).toBeUndefined(); expect(result.value.response.ok).toBe(true); expect(received).toHaveLength(2); expect(completed).toBe(2);
+      expect(received[1]).toMatchObject({ method: 'POST', authorization: 'Bearer dummy-provider' });
+      expect(received[1].rows.map(row => row.state).sort()).toEqual(['pending', 'settled']);
+      const rows = db.all('SELECT attemptId,requestId,state,costNanoUsd FROM apiKeyAccounting');
+      expect(new Set(rows.map(row => row.attemptId)).size).toBe(2); expect(new Set(rows.map(row => row.requestId)).size).toBe(1);
+      expect(rows.map(row => [row.state, row.costNanoUsd])).toEqual([['settled', 200000], ['settled', 200000]]);
+    } else {
+      expect(result.error).toBe(lost); expect(received).toHaveLength(1); expect(completed).toBe(1);
+      expect(db.all('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual([
+        { state: 'settled', costNanoUsd: 200000 }, { state: 'pending', costNanoUsd: null }]);
+    }
+    expect(db.coverage.status('a').gaps).toHaveLength(0);
+  });
+  it.each(['fresh-price', 'exhausted'])('native retry preserves predecessor price and fresh successor gate: %s', async mode => {
+    if (mode === 'exhausted') {
+      const { createBudgetContext } = await import('@/lib/apiKeyBudget/service.js');
+      const policy = await createBudgetContext('a', { adapter: async () => db });
+      policy.updatePolicy({ weeklyLimitUsd: '0.0002', monthlyLimitUsd: '0.0002', expectedVersion: 0 });
+    }
+    let count = 0;
+    responder = (_request, response) => {
+      if (++count === 1) {
+        expect(db.get('SELECT state FROM apiKeyAccounting').state).toBe('pending');
+        db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='openai'", [JSON.stringify({ 'fixture-chat': { input: '10', output: '20' } })]));
+      }
+      response.writeHead(count === 1 ? 429 : 200, { 'content-type': 'application/json' }); response.end(JSON.stringify(json));
+    };
+    const context = await createAccounting(), ex = executor({ 429: { attempts: 1, delayMs: 0 } });
+    let admissions = 0, completed = 0;
+    const accounting = { ...context,
+      async beforeAttempt(...input) {
+        admissions++;
+        if (admissions === 2) expect(db.all('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual([{ state: 'settled', costNanoUsd: 200000 }]);
+        return context.beforeAttempt(...input);
+      },
+      async completeAttempt(...input) { const terminal = await context.completeAttempt(...input); completed++; return terminal; }
+    };
+    if (mode === 'exhausted') {
+      await expect(ex.execute(args(accounting, 'native-budget-exhausted'))).rejects.toMatchObject({ code: 'api_key_budget_exceeded' });
+      expect(received).toHaveLength(1); expect(admissions).toBe(1); expect(completed).toBe(1);
+      expect(db.all('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual([{ state: 'settled', costNanoUsd: 200000 }]);
+    } else {
+      const result = await ex.execute(args(accounting, 'native-fresh-price'));
+      expect(result.response.ok).toBe(true); expect(received).toHaveLength(2); expect(admissions).toBe(2); expect(completed).toBe(2);
+      expect(received[1].rows.map(row => row.state).sort()).toEqual(['pending', 'settled']);
+      expect(db.all('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual([
+        { state: 'settled', costNanoUsd: 200000 }, { state: 'settled', costNanoUsd: 2000000 }]);
+    }
+    expect(serverFailure).toBeNull(); expect(received[0]).toMatchObject({ method: 'POST', authorization: 'Bearer dummy-provider' });
+    expect(received[0].rows).toContainEqual({ requestId: context.requestId, apiKeyId: 'a', state: 'pending' });
+    expect(db.coverage.status('a').gaps).toHaveLength(0);
   });
   it('native success remains blocked until its queued terminal ACK is handed back', async () => {
     const context = await createAccounting();

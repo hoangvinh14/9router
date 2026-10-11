@@ -1,6 +1,7 @@
 import { inspectRawResponsesAccounting } from './accountingResponsesUsage.js';
 import { RESPONSES_ACCOUNTING_EVENT as EVENT, RESPONSES_ACCOUNTING_EVENT_FIELDS, RESPONSES_ACCOUNTING_IN_PROGRESS } from '../config/accountingResponsesStreamSchema.js';
-import { ACCOUNTING_RESPONSES_OBJECT, ACCOUNTING_RESPONSES_COMPLETE, ACCOUNTING_RESPONSES_MESSAGE_FIELDS, ACCOUNTING_RESPONSES_TEXT_FIELDS } from '../config/accountingResponsesSchema.js';
+import { ACCOUNTING_RESPONSES_OBJECT, ACCOUNTING_RESPONSES_COMPLETE, ACCOUNTING_RESPONSES_MESSAGE_FIELDS, ACCOUNTING_RESPONSES_TEXT_FIELDS,
+  ACCOUNTING_RESPONSES_REASONING_FIELDS, ACCOUNTING_RESPONSES_SUMMARY_FIELDS } from '../config/accountingResponsesSchema.js';
 import { RESPONSES_ITEM } from '../translator/schema/blocks.js';
 import { ROLE } from '../translator/schema/roles.js';
 import { ACCOUNTING_SSE_EVENT_MAX_BYTES, ACCOUNTING_SSE_CHUNK_MAX_BYTES } from '../config/accountingStreamLimits.js';
@@ -16,8 +17,8 @@ function equal(a, b) {
 // Raw text-message Responses protocol candidate. Exact usage only emerges at
 // clean EOF after genuine response.completed; no DONE synthesis or translation.
 export function createAccountingResponsesSseParser(onEvent, { expectedModel, maxEventBytes = ACCOUNTING_SSE_EVENT_MAX_BYTES,
-  maxChunkBytes = ACCOUNTING_SSE_CHUNK_MAX_BYTES } = {}) {
-  if (typeof onEvent !== 'function' || typeof expectedModel !== 'string' || !expectedModel ||
+  maxChunkBytes = ACCOUNTING_SSE_CHUNK_MAX_BYTES, allowReasoning = false } = {}) {
+  if (typeof allowReasoning !== 'boolean' || typeof onEvent !== 'function' || typeof expectedModel !== 'string' || !expectedModel ||
       ![maxEventBytes, maxChunkBytes].every(value => Number.isSafeInteger(value) && value > 0)) throw new Error('Invalid Responses SSE configuration');
   const decoder = new TextDecoder('utf-8', { fatal: true }), encoder = new TextEncoder();
   let raw = '', line = '', data = [], eventName = null, bytes = 0, cr = false, ended = false, invalid = false;
@@ -47,12 +48,49 @@ export function createAccountingResponsesSseParser(onEvent, { expectedModel, max
     }
     if (frame.type === EVENT.ITEM_START) {
       const item = frame.item;
+      if (allowReasoning && item?.type === RESPONSES_ITEM.REASONING) {
+        if (active || frame.output_index !== output.length || !fields(item, ACCOUNTING_RESPONSES_REASONING_FIELDS) ||
+            item.status !== RESPONSES_ACCOUNTING_IN_PROGRESS || typeof item.id !== 'string' || !item.id ||
+            output.some(value => value.id === item.id) || !Array.isArray(item.summary) || item.summary.length ||
+            item.encrypted_content !== undefined && typeof item.encrypted_content !== 'string') reject();
+        active = structuredClone(item); return;
+      }
       if (active || frame.output_index !== output.length || !fields(item, ACCOUNTING_RESPONSES_MESSAGE_FIELDS) ||
           item.type !== RESPONSES_ITEM.MESSAGE || item.role !== ROLE.ASSISTANT || item.status !== RESPONSES_ACCOUNTING_IN_PROGRESS ||
           typeof item.id !== 'string' || !item.id || output.some(value => value.id === item.id) || !Array.isArray(item.content) || item.content.length) reject();
       active = structuredClone(item); return;
     }
     if (!active || frame.output_index !== output.length) reject();
+    if (allowReasoning && active.type === RESPONSES_ITEM.REASONING) {
+      if (frame.type === EVENT.ITEM_DONE) {
+        const item = frame.item;
+        if (part || !fields(item, ACCOUNTING_RESPONSES_REASONING_FIELDS) || item.status !== ACCOUNTING_RESPONSES_COMPLETE ||
+            item.encrypted_content !== undefined && typeof item.encrypted_content !== 'string' ||
+            active.encrypted_content !== undefined && item.encrypted_content !== active.encrypted_content ||
+            !equal(item, { ...active, ...(item.encrypted_content !== undefined ? { encrypted_content: item.encrypted_content } : {}), status: ACCOUNTING_RESPONSES_COMPLETE })) reject();
+        output.push(structuredClone(item)); active = null; return;
+      }
+      if (frame.item_id !== active.id || frame.summary_index !== active.summary.length) reject();
+      if (frame.type === EVENT.SUMMARY_START) {
+        if (part || !fields(frame.part, ACCOUNTING_RESPONSES_SUMMARY_FIELDS) ||
+            frame.part.type !== RESPONSES_ITEM.SUMMARY_TEXT || frame.part.text !== '') reject();
+        part = structuredClone(frame.part); text = ''; textDone = false; return;
+      }
+      if (!part) reject();
+      if (frame.type === EVENT.SUMMARY_DELTA) {
+        if (textDone || typeof frame.delta !== 'string') reject();
+        text += frame.delta; if (encoder.encode(text).byteLength > maxEventBytes) reject(); return;
+      }
+      if (frame.type === EVENT.SUMMARY_TEXT_DONE) {
+        if (textDone || frame.text !== text) reject();
+        textDone = true; return;
+      }
+      if (frame.type === EVENT.SUMMARY_DONE) {
+        if (!textDone || !equal(frame.part, { ...part, text })) reject();
+        active.summary.push(structuredClone(frame.part)); part = null; text = ''; textDone = false; return;
+      }
+      reject();
+    }
     if (frame.type === EVENT.ITEM_DONE) {
       if (part || !fields(frame.item, ACCOUNTING_RESPONSES_MESSAGE_FIELDS) || frame.item.status !== ACCOUNTING_RESPONSES_COMPLETE ||
           !equal(frame.item, { ...active, status: ACCOUNTING_RESPONSES_COMPLETE })) reject();
@@ -84,7 +122,7 @@ export function createAccountingResponsesSseParser(onEvent, { expectedModel, max
     if (data.length) {
       let frame; try { frame = JSON.parse(data.join('\n')); } catch { reject(); }
       inspect(frame);
-      terminal = [EVENT.TEXT_DONE, EVENT.PART_DONE, EVENT.ITEM_DONE, EVENT.COMPLETE].includes(frame.type);
+      terminal = [EVENT.TEXT_DONE, EVENT.PART_DONE, EVENT.SUMMARY_TEXT_DONE, EVENT.SUMMARY_DONE, EVENT.ITEM_DONE, EVENT.COMPLETE].includes(frame.type);
       done = frame.type === EVENT.COMPLETE;
     } else if (eventName !== null) reject();
     const chunk = encoder.encode(raw); raw = ''; line = ''; data = []; bytes = 0; eventName = null;

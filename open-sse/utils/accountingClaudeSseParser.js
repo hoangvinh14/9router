@@ -1,6 +1,7 @@
 import { createBufferedClaudeUsageObserver } from './accountingClaudeUsage.js';
 
-// Text-only live Messages framing reuses the raw Claude protocol validator.
+// Default text-only live Messages framing reuses the raw protocol validator.
+// Client tools require explicit boolean opt-in and bounded full JSON validation.
 // Existing event/chunk/terminal/ready byte bounds apply; the buffered whole-body
 // reader's total/event limits are not a live-stream total-output restriction.
 export function createAccountingClaudeSseParser(onEvent, { expectedModel, ...limits } = {}) {

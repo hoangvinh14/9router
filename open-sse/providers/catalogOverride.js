@@ -7,6 +7,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { DATA_DIR } from "@/lib/dataDir.js";
 
 export const CATALOG_FILE = path.join(DATA_DIR, "model-catalog.json");
@@ -21,6 +22,17 @@ export const CATALOG_VERSION = 2;
 const EMPTY = { models: {}, providers: {} };
 let cache = EMPTY;
 let cachedMtime = -1;
+// Internal queued-routing provenance; matching callback names/functions alone
+// must not turn an arbitrary source object into an installed catalog reader.
+const routingImages = new AsyncLocalStorage();
+// Internal server-only scope, supplied by the bounded queued authority reader.
+// Never installs a global cache or authorizes dispatch; existing freshness gates
+// still surround every awaited resolver step. Async contexts do not share images.
+export function runWithCatalogRoutingImage(image, resolve) {
+  return routingImages.run(image, resolve);
+}
+const installedSources = new WeakSet();
+export function isInstalledCatalogSource(source) { return installedSources.has(source); }
 
 // "zai-org/GLM-4.6V:free" -> "glm-4.6v"
 function baseId(model) {
@@ -30,6 +42,8 @@ function baseId(model) {
 }
 
 function load() {
+  const routingImage = routingImages.getStore();
+  if (routingImage !== undefined) return routingImage;
   let mtime;
   try {
     mtime = fs.statSync(CATALOG_FILE).mtimeMs;
@@ -78,5 +92,7 @@ export function invalidateCatalog() {
 // too, so it cannot import this file directly — the server pushes it in.
 export async function installCatalogSource() {
   const { setCatalogSource } = await import("./capabilities.js");
-  setCatalogSource({ getModalities: getCatalogModalities, getLimits: getCatalogLimits });
+  const source = { getModalities: getCatalogModalities, getLimits: getCatalogLimits };
+  installedSources.add(source);
+  setCatalogSource(source);
 }

@@ -1,4 +1,5 @@
 import { decimalToNanoUsd } from "../../lib/pricing/money.js";
+import { ACCOUNTING_CACHE_TIER_FIELDS, exactCacheWriteTiers } from '../../../open-sse/config/accountingCacheTiers.js';
 const USD = /^(0|[1-9]\d{0,6})(\.\d{1,9})?$/;
 export function budgetPolicyDraft(status) {
   return { weeklyLimitUsd: status.weekly.limitUsd, monthlyLimitUsd: status.monthly.limitUsd, expectedVersion: status.version };
@@ -21,8 +22,9 @@ export function attemptRecoveryDraft(attempt, { action, reason, evidence, costUs
   } else if (action === "exact_usage") {
     let usage; try { usage = JSON.parse(usageJson); } catch { throw new Error("Exact usage must be valid JSON"); }
     const fields = ["exact", "input", "output", "cacheRead", "cacheWrite", "reasoning", "reasoningIncludedInOutput"];
-    if (!usage || Array.isArray(usage) || Object.keys(usage).length !== fields.length || Object.keys(usage).some(key => !fields.includes(key)) || usage.exact !== true || typeof usage.reasoningIncludedInOutput !== "boolean" || fields.slice(1, 6).some(field => !Number.isSafeInteger(usage[field]) || usage[field] < 0)) throw new Error("Complete exact usage and inclusion provenance required");
-    if (usage.cacheRead + usage.cacheWrite > usage.input || usage.reasoningIncludedInOutput && usage.reasoning > usage.output) throw new Error("Invalid cache/reasoning subsets");
+    if (!usage || Array.isArray(usage) || !fields.every(key => Object.hasOwn(usage, key)) || Object.keys(usage).some(key => ![...fields, ...ACCOUNTING_CACHE_TIER_FIELDS].includes(key)) || usage.exact !== true || typeof usage.reasoningIncludedInOutput !== "boolean" || fields.slice(1, 6).some(field => !Number.isSafeInteger(usage[field]) || usage[field] < 0)) throw new Error("Complete exact usage and inclusion provenance required");
+    exactCacheWriteTiers(usage);
+    if (BigInt(usage.cacheRead) + BigInt(usage.cacheWrite) > BigInt(usage.input) || usage.reasoningIncludedInOutput && usage.reasoning > usage.output) throw new Error("Invalid cache/reasoning subsets");
     result.usage = usage;
   } else if (action !== "waive") throw new Error("Invalid recovery action");
   return result;

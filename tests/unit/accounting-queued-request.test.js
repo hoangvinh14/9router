@@ -3,10 +3,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
-let db, directory, createAccounting;
+let db, directory, createAccounting, previousCatalogSource;
 const old = process.env.DATA_DIR;
 const meta = { provider: 'fixture', model: 'fixture', endpoint: 'chat', connectionId: 'fixture-connection' };
 beforeEach(async () => {
+  previousCatalogSource = globalThis.__9rCatalogSource;
   directory = fs.mkdtempSync(path.join(os.tmpdir(), '9router-queued-request-')); process.env.DATA_DIR = directory; delete global._dbAdapter; vi.resetModules();
   db = await (await import('@/lib/db/driver.js')).getAdapter();
   await (await import('@/lib/db/index.js')).importDb({ apiKeys: [{ id: 'key-a', key: 'dummy-queued-key' }], settings: { requireApiKey: true },
@@ -18,9 +19,94 @@ beforeEach(async () => {
   createAccounting = options => import('@/lib/apiKeyBudget/requestAccounting.js').then(m => m.createRequestAccounting(new Request('http://localhost/v1/chat/completions', {
     headers: { Authorization: 'Bearer dummy-queued-key' }, signal: options?.signal }), { adapter: async () => db, queued: true }));
 });
-afterEach(() => { vi.restoreAllMocks(); db?.close(); delete global._dbAdapter; fs.rmSync(directory, { recursive: true, force: true }); if (old === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = old; });
+afterEach(() => { if (previousCatalogSource === undefined) delete globalThis.__9rCatalogSource;
+  else globalThis.__9rCatalogSource = previousCatalogSource;
+  vi.restoreAllMocks(); db?.close(); delete global._dbAdapter; fs.rmSync(directory, { recursive: true, force: true }); if (old === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = old; });
 
 describe('request-local queued caller/config authority candidate (not upstream transport proof)', () => {
+  const routingLeaf = async token => ({ id: token, kind: 'leaf', provider: 'fixture', model: 'fixture', evidence: {} });
+  it('captured routing material permits unchanged own queued intent ACK', async () => {
+    const context = await createAccounting();
+    expect((await context.captureRoutingGraph('fixture', routingLeaf)).count).toBe(1);
+    const attempt = await context.beforeAttempt(meta, true);
+    expect(attempt.requestId).toBe(context.requestId);
+    expect(db.get('SELECT state FROM apiKeyAccounting WHERE attemptId=?', [attempt.attemptId])).toEqual({ state: 'pending' });
+    await expect(context.captureRoutingGraph('fixture', routingLeaf)).rejects.toMatchObject({ code: 'api_key_accounting_unavailable' });
+  });
+  it('concrete target absent from captured graph refuses before intent even with unchanged DB', async () => {
+    const context = await createAccounting(); await context.captureRoutingGraph('fixture', routingLeaf);
+    await expect(context.beforeAttempt({ ...meta, model: 'not-captured' }, true)).rejects.toMatchObject({ code: 'api_key_accounting_unavailable' });
+    expect(db.all('SELECT * FROM apiKeyAccounting')).toHaveLength(0); expect(db.coverage.status('key-a').gaps).toHaveLength(0);
+  });
+  it.each(['combo', 'alias', 'provider-node'])('routing %s drift while queued refuses at dequeue with no intent/gap', async change => {
+    await (await import('@/lib/db/repos/combosRepo.js')).createCombo({ name: 'routing-combo', models: ['fixture'] });
+    await (await import('@/lib/db/repos/nodesRepo.js')).createProviderNode({ id: 'routing-node', type: 'openai-compatible', name: 'fixture node', prefix: 'fixture-node', baseUrl: 'http://fixture.invalid/chat' });
+    const context = await createAccounting(); await context.captureRoutingGraph('fixture', routingLeaf);
+    const work = context.beforeAttempt(meta, true);
+    // Synchronous edit after enqueue, before its microtask-owned transaction.
+    db.durableTransaction(() => {
+      if (change === 'combo') db.run('UPDATE combos SET models=? WHERE name=?', ['["new-fixture"]', 'routing-combo']);
+      if (change === 'alias') db.run("INSERT INTO kv(scope,key,value) VALUES('modelAliases','routing-alias','\"fixture/new\"')");
+      if (change === 'provider-node') db.run('UPDATE providerNodes SET data=? WHERE id=?', ['{"prefix":"changed"}', 'routing-node']);
+    });
+    await expect(work).rejects.toMatchObject({ code: 'api_key_accounting_unavailable' });
+    expect(db.all('SELECT * FROM apiKeyAccounting')).toHaveLength(0); expect(db.coverage.status('key-a').gaps).toHaveLength(0);
+  });
+  it('installed catalog edit after enqueue refuses at dequeue without intent or gap', async () => {
+    const catalog = await import('../../open-sse/providers/catalogOverride.js');
+    fs.writeFileSync(catalog.CATALOG_FILE, JSON.stringify({ models: {}, providers: {} }));
+    await catalog.installCatalogSource();
+    const context = await createAccounting(); await context.captureRoutingGraph('fixture', routingLeaf);
+    const work = context.beforeAttempt(meta, true);
+    fs.writeFileSync(catalog.CATALOG_FILE, JSON.stringify({ models: { 'fixture:fixture': { vision: true } }, providers: {} }));
+    await expect(work).rejects.toMatchObject({ code: 'api_key_accounting_unavailable' });
+    expect(db.all('SELECT * FROM apiKeyAccounting')).toHaveLength(0);
+    expect(db.coverage.status('key-a').gaps).toHaveLength(0);
+  });
+  it('capacity policy edit after enqueue refuses at dequeue without intent or gap', async () => {
+    const settings = await import('@/lib/db/repos/settingsRepo.js');
+    await settings.updateSettings({ capacityAdapter: { vision: { enabled: true, models: ['openai/vision-model'] } } });
+    const { createAccountingRoutingResolver } = await import('../../src/sse/services/accountingRoutingResolver.js');
+    const original = { model: 'fixture/fixture', stream: false, messages: [{ role: 'user', content: 'original text' }] };
+    const context = await createAccounting();
+    await context.captureRoutingGraph(original.model, createAccountingRoutingResolver(original));
+    const work = context.beforeAttempt(meta, true);
+    // The member is queued but has not begun its microtask-owned transaction.
+    db.durableTransaction(() => db.run('UPDATE settings SET data=? WHERE id=1', [JSON.stringify({ requireApiKey: true,
+      capacityAdapter: { vision: { enabled: false, models: ['openai/vision-model'] } } })]));
+    await expect(work).rejects.toMatchObject({ code: 'api_key_accounting_unavailable' });
+    expect(db.all('SELECT * FROM apiKeyAccounting')).toHaveLength(0);
+    expect(db.coverage.status('key-a').gaps).toHaveLength(0);
+  });
+  it('capacity drift after admission preserves original money and blocks fresh successor', async () => {
+    const settings = await import('@/lib/db/repos/settingsRepo.js');
+    await settings.updateSettings({ capacityAdapter: { vision: { enabled: true, models: ['openai/vision-model'] } } });
+    const { createAccountingRoutingResolver } = await import('../../src/sse/services/accountingRoutingResolver.js');
+    const original = { model: 'fixture/fixture', stream: false, messages: [{ role: 'user', content: 'original text' }] };
+    const context = await createAccounting();
+    await context.captureRoutingGraph(original.model, createAccountingRoutingResolver(original));
+    const attempt = await context.beforeAttempt(meta, true);
+    expect(db.get('SELECT state FROM apiKeyAccounting WHERE attemptId=?', [attempt.attemptId]).state).toBe('pending');
+    await settings.updateSettings({ capacityAdapter: { vision: { enabled: true, models: ['openai/another-vision-model'] } } });
+    db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='fixture'",
+      [JSON.stringify({ fixture: { input: '9', output: '9' } })]));
+    const terminal = await context.completeAttempt(attempt, { usage: { exact: true, input: 1000000, output: 0,
+      cacheRead: 0, cacheWrite: 0, reasoning: 0, reasoningIncludedInOutput: true } });
+    expect(terminal).toMatchObject({ state: 'settled', costNanoUsd: '1000000000' });
+    await expect(context.beforeAttempt(meta, true)).rejects.toMatchObject({ code: 'api_key_accounting_unavailable' });
+    expect(db.all('SELECT attemptId,state,costNanoUsd FROM apiKeyAccounting')).toEqual([
+      { attemptId: attempt.attemptId, state: 'settled', costNanoUsd: 1000000000 } ]);
+    expect(db.coverage.status('key-a').gaps).toHaveLength(0);
+  });
+  it('routing drift after admission retains original completion but refuses fresh successor', async () => {
+    const context = await createAccounting(); await context.captureRoutingGraph('fixture', routingLeaf);
+    const attempt = await context.beforeAttempt(meta, true);
+    db.durableTransaction(() => db.run("INSERT INTO kv(scope,key,value) VALUES('modelAliases','new-alias','\"fixture/new\"')"));
+    expect(await context.completeAttempt(attempt, { usage: { exact: true, input: 1000000, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0, reasoningIncludedInOutput: true } }))
+      .toMatchObject({ state: 'settled', costNanoUsd: '1000000000' });
+    await expect(context.beforeAttempt(meta, true)).rejects.toMatchObject({ code: 'api_key_accounting_unavailable' });
+    expect(db.all('SELECT * FROM apiKeyAccounting')).toHaveLength(1);
+  });
   it('opt-in request path batches intents and returns only after own ACK', async () => {
     const first = await createAccounting(), second = await createAccounting(), durable = vi.spyOn(db, 'durableTransaction');
     const a = first.beforeAttempt(meta, true), b = second.beforeAttempt(meta, true);

@@ -68,6 +68,39 @@ for (const engine of ['node:sqlite', 'sql.js']) describe(`unhealthy app entry ${
     poison(); const value = body(); if (kind === 'alias') value.model = 'gpt-fixture'; if (kind === 'combo') value.model = 'combo-fixture'; if (kind === 'tools') value.tools = [{ type: 'web_search' }]; if (kind === 'implicit-stream') delete value.stream;
     const response = await handle(request(value, kind === 'lookalike-route' ? '/v1/responses/lookalike' : '/v1/responses')); expect(response.status).toBe(503); expect(seams.core).not.toHaveBeenCalled(); untouched(); expect(db.coverage.status().gaps).toEqual([]);
   });
+  it('healthy entry returns null without inspecting programmable body', async () => {
+    const { handleUnhealthyChatEntry } = await import('@/lib/apiKeyBudget/unhealthyChatEntry.js');
+    let reads = 0; const value = { get model() { reads++; return 'openai/fixture-model'; } };
+    const core = vi.fn();
+    expect(await handleUnhealthyChatEntry(request(), value, core)).toBeNull();
+    expect(reads).toBe(0); expect(core).not.toHaveBeenCalled(); untouched();
+    expect(db.coverage.status().gaps).toEqual([]);
+  });
+  it.each(['getter', 'nested-getter', 'proxy', 'oversized', 'cycle', 'prototype', 'nonenumerable', 'symbol'])('direct unhealthy entry bounds original body before programmable cloning: %s', async kind => {
+    poison();
+    const { handleUnhealthyChatEntry } = await import('@/lib/apiKeyBudget/unhealthyChatEntry.js');
+    const core = vi.fn(async () => ({ response: Response.json({ fixture: true }) }));
+    const accepted = await handleUnhealthyChatEntry(request(), body(), core);
+    expect(accepted.status).toBe(200); expect(core).toHaveBeenCalledTimes(1);
+    expect(db.coverage.status().gaps).toEqual([]); core.mockClear();
+    let reads = 0; const value = body();
+    if (kind === 'getter') Object.defineProperty(value, 'input', { enumerable: true,
+      get() { reads++; return 'fixture'; } });
+    if (kind === 'nested-getter') value.input = [{ role: 'user', content: [{ type: 'input_text',
+      get text() { reads++; return 'fixture'; } }] }];
+    if (kind === 'oversized') value.input = 'x'.repeat(262145);
+    if (kind === 'cycle') value.input = value;
+    if (kind === 'prototype') Object.setPrototypeOf(value, { fixture: true });
+    if (kind === 'nonenumerable') Object.defineProperty(value, 'fixture', { value: true });
+    if (kind === 'symbol') value[Symbol('fixture')] = true;
+    const hostile = kind === 'proxy' ? new Proxy(value, { get(target, key, receiver) {
+      reads++; return Reflect.get(target, key, receiver);
+    } }) : value;
+    await expect(handleUnhealthyChatEntry(request(), hostile, core))
+      .rejects.toMatchObject({ code: 'api_key_accounting_unavailable' });
+    expect(reads).toBe(0); expect(core).not.toHaveBeenCalled(); untouched();
+    expect(db.coverage.status().gaps).toEqual([]);
+  });
   it('fresh per-POST selection failure after entry does not reuse earlier credentials or latch', async () => {
     poison(); const prove = db.provePersistedSelection.bind(db);
     seams.core.mockImplementation(async args => { vi.spyOn(db, 'provePersistedSelection').mockImplementation(() => { throw new Error('fresh selection lost'); }); args.accounting.beforeAttempt({ provider: 'openai', model: 'fixture-model', connectionId: 'entry-connection', endpoint: 'chat' }, true); return { success: true, response: Response.json({ incorrect: true }) }; });

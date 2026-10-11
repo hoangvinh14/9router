@@ -1,0 +1,7 @@
+// Structural ConnectRPC framing only; flags/trailers do not prove token usage.
+export const CURSOR_ACCOUNTING_FRAME_HEADER_BYTES = 5;
+export const CURSOR_ACCOUNTING_FRAME_MAX_BYTES = 1024 * 1024;
+export const CURSOR_ACCOUNTING_FRAME_MAX_CHUNK_BYTES = 2 * 1024 * 1024;
+export const CURSOR_ACCOUNTING_FRAME_MAX_INFLATED_BYTES = 1024 * 1024;
+export const CURSOR_ACCOUNTING_FRAME_INITIAL_BYTES = 4096;
+export const CURSOR_ACCOUNTING_FRAME_FLAG = Object.freeze({ BODY: 0, GZIP: 1, TRAILER: 2, GZIP_TRAILER: 3 });

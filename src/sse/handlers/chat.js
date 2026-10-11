@@ -10,6 +10,7 @@ import {
 import { handleAntigravityQuotaError, clearAntigravityStrikes } from "../services/antigravityQuota.js";
 import { getSettings } from "@/lib/localDb";
 import { getModelInfo, getComboModels } from "../services/model.js";
+import { createAccountingRoutingResolver } from '../services/accountingRoutingResolver.js';
 import { handleChatCore } from "open-sse/handlers/chatCore.js";
 import { DEFAULT_HEADROOM_URL } from "@/lib/headroom/detect";
 import { getTransform as getPxpipeTransform } from "@/lib/pxpipe/loader.js";
@@ -30,10 +31,12 @@ import { isAccountedOpenaiChatProvider } from 'open-sse/config/accountedChatProv
 import { ACCOUNTED_ANTHROPIC_GATEWAY_PATHS } from 'open-sse/config/accountedAnthropicCandidate.js';
 import { ACCOUNTED_CODEX_GATEWAY_PATHS, supportsCodexRequest } from 'open-sse/config/accountedCodexCandidate.js';
 import { getGeminiOriginal, supportsGeminiRequest, ACCOUNTED_GEMINI_MODEL } from 'open-sse/config/accountedGeminiCandidate.js';
-import { MAX_ACCOUNTED_COMBO_DEPTH } from 'open-sse/config/apiKeyBudgetConstants.js';
+import { MAX_ACCOUNTED_COMBO_DEPTH, BUDGET_ERROR } from 'open-sse/config/apiKeyBudgetConstants.js';
+import { validatePersistedGlobalProxy } from 'open-sse/config/accountedProxyAuthority.js';
+import { snapshotAccountingGroup } from '@/lib/db/accountingGroupPayload.js';
 import { createRequestAccounting } from "@/lib/apiKeyBudget/requestAccounting.js";
 import { handleUnhealthyChatEntry } from "@/lib/apiKeyBudget/unhealthyChatEntry.js";
-import { isApiKeyBudgetError, budgetErrorResponse } from "@/lib/apiKeyBudget/errors.js";
+import { ApiKeyBudgetError, isApiKeyBudgetError, budgetErrorResponse } from "@/lib/apiKeyBudget/errors.js";
 
 /**
  * Handle chat completion request
@@ -125,10 +128,18 @@ async function handleChatRequest(request, clientRawRequest = null) {
   const bypassResponse = handleBypassRequest(body, modelStr, userAgent, !!settings.ccFilterNaming);
   if (bypassResponse) return bypassResponse.response || bypassResponse;
 
+  // Internal queued-only preflight. Default synchronous/OFF and unhealthy
+  // independent proof owners remain unchanged; nested refusal stays until its
+  // actual expansion/terminal integration is verified.
+  if (accounting?.requiresPreparedBaseWire) {
+    await accounting.captureRoutingGraph(modelStr, createAccountingRoutingResolver(body));
+    accounting.assertRoutingCurrent();
+  }
   const requiredCapabilities = detectRequiredCapabilities(body);
 
   // Check if model is a combo (has multiple models with fallback)
   const comboModels = await getComboModels(modelStr);
+  accounting?.assertRoutingCurrent?.();
   if (comboModels) {
     // Check for combo-specific strategy first, fallback to global
     const comboStrategies = settings.comboStrategies || {};
@@ -210,7 +221,7 @@ async function handleChatRequest(request, clientRawRequest = null) {
  */
 async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null, requestedModel = null, accounting = null, signalOverride = null, comboPath = []) {
   const requestSignal = signalOverride || request?.signal;
-  if (accounting) { requestSignal?.throwIfAborted(); accounting.gate(); }
+  if (accounting) { requestSignal?.throwIfAborted(); accounting.gate(); accounting.assertRoutingCurrent?.(); }
   const modelInfo = await awaitAbortableWork(() => getModelInfo(modelStr), accounting ? requestSignal : null);
 
   // If provider is null, this might be a combo name - check and handle
@@ -227,9 +238,14 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       const comboStrategies = chatSettings.comboStrategies || {};
       const comboSpecificStrategy = comboStrategies[modelStr]?.fallbackStrategy;
       const comboStrategy = comboSpecificStrategy || chatSettings.comboStrategy || "fallback";
-      // Nested fusion needs a separate bounded fan-out contract. Depth alone
-      // does not bound parallel work; keep this branch closed until certified.
-      accounting?.assertSupported(comboStrategy !== "fusion");
+      accounting?.assertRoutingCurrent?.();
+      // Only request-local queued preflight with current persisted material may
+      // enter the narrow nested text slice. Legacy/pinned or uncaptured owners
+      // retain the explicit refusal; depth alone is never dispatch permission.
+      if (accounting && comboStrategy === 'fusion') {
+        if (typeof accounting.assertNestedFusionSupported !== 'function') accounting.assertSupported(false);
+        accounting.assertNestedFusionSupported(comboId);
+      }
       const requiredCapabilities = detectRequiredCapabilities(body);
       const augmentedModels = augmentModelsWithCapacityAdapter(comboModels, requiredCapabilities, chatSettings);
       const adapterAdded = augmentedModels.filter((m) => !comboModels.includes(m));
@@ -311,7 +327,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
   let lastHeaders = null;
 
   while (true) {
-    if (accounting) { requestSignal?.throwIfAborted(); accounting.gate(); }
+    if (accounting) { requestSignal?.throwIfAborted(); accounting.gate(); accounting.assertRoutingCurrent?.(); }
     const credentials = await awaitAbortableWork(() => getProviderCredentials(provider, excludeConnectionIds, model, { requestedModel: requestedModel || model }), accounting ? requestSignal : null);
 
     // All accounts unavailable
@@ -346,6 +362,19 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
 
     // Use shared chatCore
     const chatSettings = await getSettings();
+    let persistedGlobalProxy;
+    if (accounting?.requiresPreparedBaseWire) {
+      try {
+        const saved = snapshotAccountingGroup([{ type: 'queued-app-settings', value: chatSettings }])[0].value;
+        if (saved.outboundProxyEnabled !== undefined && typeof saved.outboundProxyEnabled !== 'boolean') throw new Error('Invalid saved proxy policy');
+        if (saved.outboundProxyEnabled === true) persistedGlobalProxy = validatePersistedGlobalProxy({
+          url: saved.outboundProxyUrl, noProxy: saved.outboundNoProxy ?? '' });
+        accounting.assertRoutingCurrent();
+      } catch (error) {
+        if (requestSignal?.aborted) throw requestSignal.reason;
+        throw isApiKeyBudgetError(error) ? error : new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE, { requestId: accounting.requestId });
+      }
+    }
     const providerThinking = (chatSettings.providerThinking || {})[provider] || null;
     let sourceFormatOverride = null;
     if (request?.url) {
@@ -354,6 +383,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     }
     const result = await handleChatCore({
       accounting,
+      ...(persistedGlobalProxy === undefined ? {} : { persistedGlobalProxy }),
       signal: requestSignal,
       body: { ...body, model: `${provider}/${model}` },
       modelInfo: { provider, model },
@@ -401,7 +431,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     if (result.success) return result.response;
     // Failed billable attempt is terminal before control-plane mutations or
     // another account selection. Local refusal never creates provider cooldown.
-    if (accounting) { requestSignal?.throwIfAborted(); accounting.gate(); }
+    if (accounting) { requestSignal?.throwIfAborted(); accounting.gate(); accounting.assertRoutingCurrent?.(); }
 
     // Antigravity 409/429: refresh live quota to get exact resetAt before locking
     let quotaResetMs = null;

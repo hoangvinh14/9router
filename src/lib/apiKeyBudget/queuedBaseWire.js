@@ -1,5 +1,17 @@
 import { isDeepStrictEqual } from 'node:util';
 import { snapshotAccountingGroup } from '../db/accountingGroupPayload.js';
+import { validateQueuedCodexWire } from './queuedCodexWire.js';
+import { validateQueuedGrokCliWire } from './queuedGrokCliWire.js';
+import { validateQueuedGithubResponsesWire } from './queuedGithubResponsesWire.js';
+import { validateQueuedGithubMessagesWire } from './queuedGithubMessagesWire.js';
+import { validateQueuedGithubChatMessagesWire } from './queuedGithubChatMessagesWire.js';
+import { validateQueuedResponsesWire } from './queuedResponsesWire.js';
+import { validateQueuedEmbeddingsWire } from './queuedEmbeddingsWire.js';
+import { validateQueuedGeminiEmbeddingWire, QUEUED_GEMINI_EMBEDDING_PROTOCOL } from './queuedGeminiEmbeddingWire.js';
+import { validateQueuedGeminiWire } from './queuedGeminiWire.js';
+import { validateQueuedAnthropicWire } from './queuedAnthropicWire.js';
+import { validateQueuedCommandCodeWire } from './queuedCommandCodeWire.js';
+import { validateQueuedKiroWire } from './queuedKiroWire.js';
 import { validateQueuedSelectedPoolWire } from './queuedPoolWire.js';
 import { validateQueuedSavedProxyWire } from './queuedSavedProxyWire.js';
 import { validateAccountingProxyEnvironment } from '../../../open-sse/config/accountedProxyEnvironment.js';
@@ -14,6 +26,20 @@ const record = value => value && typeof value === 'object' && !Array.isArray(val
 // Wire material is already detached before admission. Never persist/log secrets.
 export function validateQueuedBaseWire(authority, value) {
   const wire = snapshotAccountingGroup([{ type: 'wire', value }])[0].value;
+  if (wire?.protocol === QUEUED_GEMINI_EMBEDDING_PROTOCOL) return validateQueuedGeminiEmbeddingWire(authority, wire);
+  if (wire?.protocol === 'native-embeddings') return validateQueuedEmbeddingsWire(authority, wire);
+  if (authority?.provider === 'codex') return validateQueuedCodexWire(authority, wire);
+  if (authority?.provider === 'grok-cli') return validateQueuedGrokCliWire(authority, wire);
+  if (authority?.provider === 'commandcode') return validateQueuedCommandCodeWire(authority, wire);
+  if (authority?.provider === 'kiro') return validateQueuedKiroWire(authority, wire);
+  if (authority?.provider === 'github') {
+    if (wire?.protocol === 'chat-github-messages') return validateQueuedGithubChatMessagesWire(authority, wire);
+    return wire?.protocol === 'native-github-messages'
+      ? validateQueuedGithubMessagesWire(authority, wire) : validateQueuedGithubResponsesWire(authority, wire);
+  }
+  if (wire?.protocol === 'native-responses') return validateQueuedResponsesWire(authority, wire);
+  if (authority?.provider === 'gemini') return validateQueuedGeminiWire(authority, wire);
+  if (['anthropic', 'claude'].includes(authority?.provider)) return validateQueuedAnthropicWire(authority, wire);
   if (!['openai', 'deepseek'].includes(authority.provider) || !authority.connection ||
       !record(wire) || !record(wire.headers) || !record(wire.credentials) || typeof wire.stream !== 'boolean' ||
       typeof wire.url !== 'string' || !wire.url || Object.keys(wire).some(key => !['url', 'headers', 'credentials', 'providerOverrides', 'proxyOptions', 'proxyEnvironment', 'runtimeTransport', 'baseTransport', 'urlIndex', 'stream'].includes(key))) unavailable();

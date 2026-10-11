@@ -1,7 +1,8 @@
 import { validateRate } from "../../lib/pricing/money.js";
 import { getModelType } from "../../../open-sse/config/providerModels.js";
 
-export const PRICING_FIELDS = ["input", "output", "cached", "reasoning", "cache_creation"];
+import { REFERENCE_RATE_FIELDS } from '../../../open-sse/config/accountingCacheTiers.js';
+export const PRICING_FIELDS = REFERENCE_RATE_FIELDS;
 function displayRate(value) {
   if (value === undefined || value === null) return '';
   const text = String(value);
@@ -30,7 +31,8 @@ function comparable(value) {
   try { return validateRate(value); } catch { return value; }
 }
 // Complete model replacements ONLY for changed rows. Blank optional fields mean
-// documented input/output fallback, not zero; required fields never fabricate it.
+// documented input/output fallback, except 1h writes which remain unavailable.
+// Required fields never fabricate zero.
 export function changedPricingModels(baseline, draft) {
   const changed = Object.create(null);
   for (const [provider, models] of Object.entries(draft)) {

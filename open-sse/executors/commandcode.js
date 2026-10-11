@@ -1,8 +1,13 @@
 import { randomUUID } from "crypto";
+import { types } from 'node:util';
+import { ACCOUNTED_COMMANDCODE_CHAT_RETRY_MODE } from '../config/accountedCommandCodeChatRetry.js';
+import { executeAccountedCommandCodeChatRetry } from './accountedCommandCodeChatRetry.js';
 import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
 import { commandCodeToOpenAIResponse } from "../translator/response/commandcode-to-openai.js";
 import { SSE_DONE } from "../utils/sseConstants.js";
+import { ACCOUNTED_COMMANDCODE_MODE } from '../config/accountedCommandCodeCandidate.js';
+import { executeAccountedCommandCodeCandidate } from './accountedCommandCode.js';
 
 /**
  * CommandCodeExecutor — talks to https://api.commandcode.ai/alpha/generate
@@ -40,6 +45,12 @@ export class CommandCodeExecutor extends BaseExecutor {
   }
 
   async execute(opts) {
+    // Descriptor-only opt-in selection before any programmable option reads.
+    if (types.isProxy(opts)) throw new Error('Accounting CommandCode Chat retry unavailable');
+    const mode = Object.getOwnPropertyDescriptor(opts, 'accountingMode');
+    if (mode && !Object.hasOwn(mode, 'value')) throw new Error('Accounting CommandCode Chat retry unavailable');
+    if (mode?.value === ACCOUNTED_COMMANDCODE_CHAT_RETRY_MODE) return executeAccountedCommandCodeChatRetry(this, opts);
+    if (opts.accounting && opts.accountingMode === ACCOUNTED_COMMANDCODE_MODE) return executeAccountedCommandCodeCandidate(this, opts);
     const maxRetries = 2;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       const result = await super.execute(opts);

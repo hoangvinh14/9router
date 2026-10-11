@@ -215,6 +215,137 @@ describe('opt-in queued actual Base POST seam (mock transport, not socket/other-
     await expect(executor().execute(args(accounting, ctrl.signal))).rejects.toBe(false);
     expect(network).not.toHaveBeenCalled(); expect(db.all('SELECT * FROM apiKeyAccounting')).toHaveLength(0);
   });
+  it.each(['deliver', 'lost-delivery', 'abort'])('queued retry waits for predecessor own completion ACK delivery: %s', async mode => {
+    const ctrl = new AbortController(), context = await createAccounting('a', ctrl.signal);
+    let enter, release, completed = 0, admissions = 0;
+    const entered = new Promise(resolve => { enter = resolve; });
+    const held = new Promise(resolve => { release = resolve; });
+    const lost = new Error('Fixture lost predecessor completion handle');
+    const accounting = { ...context,
+      async beforeAttempt(...input) { admissions++; return context.beforeAttempt(...input); },
+      async completeAttempt(...input) {
+        const result = await context.completeAttempt(...input);
+        completed++;
+        if (completed === 1) {
+          enter(); await held;
+          if (mode === 'lost-delivery') throw lost;
+        }
+        return result;
+      }
+    };
+    const ex = executor(); ex.config.retry[429] = { attempts: 1, delayMs: 0 };
+    ex.computeRetryDelay = vi.fn(() => 0);
+    network.mockImplementation(async () => {
+      expect(db.all("SELECT state FROM apiKeyAccounting WHERE state='pending'")).toHaveLength(1);
+      if (network.mock.calls.length === 1) return Response.json({ error: { message: 'fixture rate response' },
+        usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 } }, { status: 429 });
+      expect(completed).toBe(1);
+      expect(db.all("SELECT state FROM apiKeyAccounting WHERE state='settled'")).toHaveLength(1);
+      return response();
+    });
+    let finished = false;
+    // Observe failure immediately, avoiding an unhandled rejection while holding delivery.
+    const work = ex.execute(args(accounting, ctrl.signal)).then(value => ({ value }), error => ({ error })).then(result => { finished = true; return result; });
+    await entered;
+    expect(network).toHaveBeenCalledTimes(1); expect(admissions).toBe(1); expect(completed).toBe(1);
+    expect(db.all('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual([{ state: 'settled', costNanoUsd: 200000 }]);
+    expect(ex.computeRetryDelay).not.toHaveBeenCalled(); expect(finished).toBe(false);
+    if (mode === 'abort') ctrl.abort(false);
+    release(); const result = await work;
+    if (mode === 'deliver') {
+      expect(result.error).toBeUndefined(); expect(result.value.response.ok).toBe(true);
+      expect(network).toHaveBeenCalledTimes(2); expect(admissions).toBe(2); expect(completed).toBe(2);
+      expect(ex.computeRetryDelay).toHaveBeenCalledTimes(1);
+      const rows = db.all('SELECT attemptId,requestId,state,costNanoUsd FROM apiKeyAccounting');
+      expect(rows).toHaveLength(2); expect(new Set(rows.map(row => row.attemptId)).size).toBe(2);
+      expect(new Set(rows.map(row => row.requestId)).size).toBe(1);
+      expect(rows.map(row => [row.state, row.costNanoUsd])).toEqual([['settled', 200000], ['settled', 200000]]);
+    } else {
+      expect(result.error).toBe(mode === 'abort' ? false : lost);
+      expect(network).toHaveBeenCalledTimes(1); expect(admissions).toBe(1); expect(completed).toBe(1);
+      expect(ex.computeRetryDelay).not.toHaveBeenCalled();
+      expect(db.all('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual([{ state: 'settled', costNanoUsd: 200000 }]);
+    }
+  });
+  it.each(['deliver', 'lost-delivery', 'abort'])('queued retry waits for successor own intent ACK delivery: %s', async mode => {
+    const ctrl = new AbortController(), context = await createAccounting('a', ctrl.signal);
+    let enter, release, completed = 0, admissions = 0;
+    const entered = new Promise(resolve => { enter = resolve; });
+    const held = new Promise(resolve => { release = resolve; });
+    const lost = new Error('Fixture lost successor intent handle');
+    const accounting = { ...context,
+      async beforeAttempt(...input) {
+        admissions++; const attempt = await context.beforeAttempt(...input);
+        if (admissions === 2) { enter(); await held; if (mode === 'lost-delivery') throw lost; }
+        return attempt;
+      },
+      async completeAttempt(...input) { const terminal = await context.completeAttempt(...input); completed++; return terminal; }
+    };
+    const ex = executor(); ex.config.retry[429] = { attempts: 1, delayMs: 0 };
+    ex.computeRetryDelay = vi.fn(() => 0);
+    network.mockImplementation(async () => {
+      expect(db.all("SELECT state FROM apiKeyAccounting WHERE state='pending'")).toHaveLength(1);
+      if (network.mock.calls.length === 1) return Response.json({ error: { message: 'fixture rate response' },
+        usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 } }, { status: 429 });
+      expect(completed).toBe(1); return response();
+    });
+    let finished = false;
+    const work = ex.execute(args(accounting, ctrl.signal)).then(value => ({ value }), error => ({ error })).then(result => { finished = true; return result; });
+    await entered;
+    expect(network).toHaveBeenCalledTimes(1); expect(admissions).toBe(2); expect(completed).toBe(1);
+    expect(ex.computeRetryDelay).toHaveBeenCalledTimes(1); expect(finished).toBe(false);
+    const installed = db.all('SELECT attemptId,requestId,state,costNanoUsd FROM apiKeyAccounting');
+    expect(installed).toHaveLength(2); expect(new Set(installed.map(row => row.attemptId)).size).toBe(2);
+    expect(new Set(installed.map(row => row.requestId)).size).toBe(1);
+    expect(installed.filter(row => row.state === 'settled').map(row => row.costNanoUsd)).toEqual([200000]);
+    expect(installed.filter(row => row.state === 'pending').map(row => row.costNanoUsd)).toEqual([null]);
+    if (mode === 'abort') ctrl.abort(false);
+    release(); const result = await work;
+    if (mode === 'deliver') {
+      expect(result.error).toBeUndefined(); expect(result.value.response.ok).toBe(true);
+      expect(network).toHaveBeenCalledTimes(2); expect(completed).toBe(2);
+      expect(db.all('SELECT state,costNanoUsd FROM apiKeyAccounting').map(row => [row.state, row.costNanoUsd])).toEqual([['settled', 200000], ['settled', 200000]]);
+    } else {
+      expect(result.error).toBe(mode === 'abort' ? false : lost);
+      expect(network).toHaveBeenCalledTimes(1); expect(admissions).toBe(2);
+      expect(completed).toBe(mode === 'abort' ? 2 : 1);
+      expect(db.all("SELECT state,costNanoUsd FROM apiKeyAccounting WHERE state='settled'")).toEqual([{ state: 'settled', costNanoUsd: 200000 }]);
+      if (mode === 'lost-delivery') {
+        // Installed row is not a delivered dispatch handle; no reconstruction or replay.
+        expect(db.all("SELECT state,costNanoUsd FROM apiKeyAccounting WHERE state='pending'")).toEqual([{ state: 'pending', costNanoUsd: null }]);
+      } else {
+        expect(db.all("SELECT state,costNanoUsd FROM apiKeyAccounting WHERE state='not_dispatched'")).toEqual([{ state: 'not_dispatched', costNanoUsd: null }]);
+      }
+    }
+  });
+  it.each(['credentials', 'disabled'])('retry revalidates fresh connection authority after predecessor ACK: %s', async mode => {
+    const context = await createAccounting(); let admissions = 0, completed = 0;
+    const accounting = { ...context,
+      async beforeAttempt(...input) { admissions++; return context.beforeAttempt(...input); },
+      async completeAttempt(...input) {
+        const result = await context.completeAttempt(...input); completed++;
+        expect(db.all('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual([{ state: 'settled', costNanoUsd: 200000 }]);
+        // The predecessor is genuinely settled and its own ACK will be delivered.
+        // Fresh successor authority must not reuse the first generation's proof.
+        db.durableTransaction(() => {
+          if (mode === 'disabled') db.run("UPDATE providerConnections SET isActive=0 WHERE id='c'");
+          else db.run("UPDATE providerConnections SET data=? WHERE id='c'", [JSON.stringify({ apiKey: 'dummy-rotated-after-predecessor' })]);
+        });
+        return result;
+      }
+    };
+    const ex = executor(); ex.config.retry[429] = { attempts: 1, delayMs: 0 };
+    ex.computeRetryDelay = vi.fn(() => 0);
+    network.mockImplementation(async () => {
+      expect(db.get('SELECT state FROM apiKeyAccounting').state).toBe('pending');
+      return Response.json({ error: { message: 'fixture retry' }, usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 } }, { status: 429 });
+    });
+    await expect(ex.execute(args(accounting))).rejects.toMatchObject({ code: 'api_key_accounting_unavailable' });
+    expect(network).toHaveBeenCalledTimes(1); expect(completed).toBe(1); expect(admissions).toBe(2);
+    expect(ex.computeRetryDelay).toHaveBeenCalledTimes(1);
+    expect(db.all('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual([{ state: 'settled', costNanoUsd: 200000 }]);
+    expect(db.coverage.status('a').gaps).toHaveLength(0);
+  });
   it('held queued settlement ACK cannot release successful native response', async () => {
     const context = await createAccounting(); let enter, release;
     const entered = new Promise(resolve => { enter = resolve; }), held = new Promise(resolve => { release = resolve; });

@@ -4,6 +4,9 @@ import { getAccountingWriteCoordinator } from './accountingWriteCoordinator.js';
 import { snapshotAccountingGroup } from '../db/accountingGroupPayload.js';
 import { captureQueuedRequestAuthoritySync } from './queuedRequestAuthority.js';
 import { validateQueuedBaseWire } from './queuedBaseWire.js';
+import { QUEUED_GEMINI_EMBEDDING_PROTOCOL } from './queuedGeminiEmbeddingWire.js';
+import { captureGeminiEmbeddingSelectionSync } from './geminiEmbeddingSelection.js';
+import { assertPersistedRoutingMaterialCurrent } from './persistedRoutingGraph.js';
 import { getAdapter } from "../db/driver.js";
 import { getPolicySync, putPolicySync, sumSpendSync, countStatesSync, insertAttemptSync, finalizeAttemptSync, getAttemptSync, resolveAttemptSync } from "../db/repos/apiKeyAccountingRepo.js";
 import { resolveReferencePriceSync } from "../pricing/referenceResolver.js";
@@ -14,6 +17,8 @@ import { ApiKeyBudgetError } from "./errors.js";
 import { isAccountedOpenaiChatProvider } from '../../../open-sse/config/accountedChatProviders.js';
 import { validateAccountingUsageEvidence } from '../../../open-sse/utils/accountingUsageEvidence.js';
 import { projectAccountingUsageSync } from "../db/repos/usageRepo.js";
+import { ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE, anthropicRequestHasCache1h } from '../../../open-sse/config/accountedAnthropicCandidate.js';
+import { ACCOUNTED_CLAUDE_OAUTH_MODE } from '../../../open-sse/config/accountedClaudeOauth.js';
 
 // Internal operation capabilities survive HMR with the owned adapter identity.
 // Queue payload holds an opaque ID plus bounded retained equality/evidence data,
@@ -162,7 +167,7 @@ export async function createBudgetContext(apiKeyId, { adapter = getAdapter, cloc
     if (!original || original.requestId !== requestId || original.apiKeyId !== apiKeyId) fail(BUDGET_ERROR.CONFLICT);
     let cost = null;
     if (!notDispatched && usage && original.priceSnapshot) {
-      try { cost = costFromExactUsage(usage, original.priceSnapshot.rates); } catch { /* unknown is unresolved, never estimated zero */ }
+      try { cost = costFromExactUsage(usage, original.priceSnapshot.rates, { requireCacheTiers: original.priceSnapshot.usageSemantics?.cacheWriteTiers === 'observed_5m_1h' }); } catch { /* unknown is unresolved, never estimated zero */ }
     }
     // Retain the original durable terminal time on duplicate or late retries,
     // not the closure's current clock; restart does not manufacture a conflict.
@@ -196,7 +201,7 @@ export async function createBudgetContext(apiKeyId, { adapter = getAdapter, cloc
     return getAccountingWriteCoordinator(db).enqueue({ type: 'service', operationId, retained }, { signal })
       .finally(() => operations.delete(operationId));
   }
-  async function beginAttemptQueued(meta, { signal = null, requestAuthority = null, preparedWire = null } = {}) {
+  async function beginAttemptQueued(meta, { signal = null, requestAuthority = null, preparedWire = null, routingMaterial = null } = {}) {
     if (signal?.aborted) throw signal.reason;
     // Capture immutable monetary authority, NOT permission to dispatch after wait.
     const detached = snapshotAccountingGroup([{ type: 'insert', input: meta }])[0];
@@ -204,6 +209,24 @@ export async function createBudgetContext(apiKeyId, { adapter = getAdapter, cloc
     const { provider, model, endpoint = 'chat', connectionId = null } = detached.input;
     const authority = requestAuthority === null ? null : snapshotAccountingGroup([{ type: 'authority', value: requestAuthority }])[0].value;
     const wire = preparedWire === null ? null : validateQueuedBaseWire(authority, preparedWire);
+    const routing = routingMaterial === null ? null : snapshotAccountingGroup([{ type: 'routing-material', value: routingMaterial }])[0].value;
+    let needsCache1hRate = false;
+    try {
+      needsCache1hRate = wire?.protocol === 'native-anthropic' && [ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE, ACCOUNTED_CLAUDE_OAUTH_MODE].includes(wire.anthropicTransport.mode) &&
+        anthropicRequestHasCache1h(JSON.parse(wire.anthropicTransport.serializedBody));
+    } catch { fail(BUDGET_ERROR.UNAVAILABLE); }
+    const oauthProtocols = { claude: ['native-anthropic'], codex: ['native-codex'], 'grok-cli': ['native-grok-cli'], github: ['native-github-responses', 'native-github-messages', 'chat-github-messages'], commandcode: ['native-commandcode'], kiro: ['native-kiro'] };
+    if (Object.hasOwn(oauthProtocols, provider) && (!oauthProtocols[provider].includes(wire?.protocol) || endpoint !== 'chat' ||
+        authority?.provider !== provider || authority.model !== model || authority.connection?.id !== connectionId)) fail(BUDGET_ERROR.UNAVAILABLE);
+    const geminiEmbedding = wire?.protocol === QUEUED_GEMINI_EMBEDDING_PROTOCOL;
+    const embeddingProtocol = wire?.protocol === 'native-embeddings' || geminiEmbedding;
+    if (embeddingProtocol && endpoint !== 'embeddings' || endpoint === 'embeddings' && wire !== null && !embeddingProtocol ||
+        provider === 'gemini' && endpoint === 'embeddings' && (!geminiEmbedding || authority?.provider !== provider ||
+          authority.model !== model || authority.connection?.id !== connectionId)) fail(BUDGET_ERROR.UNAVAILABLE);
+    let preparedSelection = null;
+    if (geminiEmbedding) {
+      try { preparedSelection = captureGeminiEmbeddingSelectionSync(db, authority); } catch { fail(BUDGET_ERROR.UNAVAILABLE); }
+    }
     coverage();
     // The narrow poisoned-unlimited proof+sidecar owner stays synchronous and
     // separate. No queued DB transaction can substitute for its independent ACK.
@@ -214,18 +237,23 @@ export async function createBudgetContext(apiKeyId, { adapter = getAdapter, cloc
     let preparedPrice;
     try { preparedPrice = resolveReferencePriceSync(db, provider, model, endpoint); }
     catch { fail(BUDGET_ERROR.UNAVAILABLE); }
-    if (preparedStatus.budgeted && preparedPrice.status !== 'priced') fail(BUDGET_ERROR.PRICING);
+    if (preparedStatus.budgeted && preparedPrice.status !== 'priced' || needsCache1hRate && preparedPrice.snapshot?.rates.cache_creation_1h === undefined) fail(BUDGET_ERROR.PRICING);
     const binding = db.get('SELECT fingerprint,retiredAt FROM apiKeyBindings WHERE apiKeyId=?', [apiKeyId]);
     let admittedInput = null, budgeted = preparedStatus.budgeted;
     try {
       const result = await enqueueOperation(() => {
         if (signal?.aborted) throw signal.reason;
         const status = gate(); budgeted = status.budgeted;
+        if (routing !== null) {
+          try { assertPersistedRoutingMaterialCurrent(db, routing, gate); }
+          catch { fail(BUDGET_ERROR.UNAVAILABLE); }
+        }
         if (authority !== null) {
           try {
             const fresh = captureQueuedRequestAuthoritySync(db, { credential: authority.credential, apiKeyId, provider, model, connectionId });
             if (!isDeepStrictEqual(fresh, authority)) fail(BUDGET_ERROR.UNAVAILABLE);
             if (wire !== null) validateQueuedBaseWire(fresh, wire);
+            if (geminiEmbedding && !isDeepStrictEqual(captureGeminiEmbeddingSelectionSync(db, fresh), preparedSelection)) fail(BUDGET_ERROR.UNAVAILABLE);
           } catch { fail(BUDGET_ERROR.UNAVAILABLE); }
         }
         if (status.exempt || status.ledgerStartedAt !== preparedStatus.ledgerStartedAt ||
@@ -234,12 +262,13 @@ export async function createBudgetContext(apiKeyId, { adapter = getAdapter, cloc
         try { price = resolveReferencePriceSync(db, provider, model, endpoint); }
         catch { fail(BUDGET_ERROR.UNAVAILABLE); }
         if (!isDeepStrictEqual(price, preparedPrice)) fail(BUDGET_ERROR.UNAVAILABLE);
-        if (status.budgeted && price.status !== 'priced') fail(BUDGET_ERROR.PRICING);
+        if (status.budgeted && price.status !== 'priced' || needsCache1hRate && price.snapshot?.rates.cache_creation_1h === undefined) fail(BUDGET_ERROR.PRICING);
         if (coverage().generation !== status.coverage.generation) fail(BUDGET_ERROR.UNAVAILABLE);
         admittedInput = { attemptId: randomUUID(), requestId, apiKeyId, ownerInstanceId: db.ownerInstanceId,
-          startedAt: status.now.toISOString(), provider, model, endpoint, connectionId, priceSnapshot: price.snapshot || null };
+          startedAt: status.now.toISOString(), provider, model, endpoint, connectionId,
+          priceSnapshot: needsCache1hRate ? { ...price.snapshot, usageSemantics: { cacheWriteTiers: 'observed_5m_1h' } } : price.snapshot || null };
         return { type: 'insert', input: admittedInput };
-      }, { meta: detached.input, price: preparedPrice, binding, ledgerStartedAt: preparedStatus.ledgerStartedAt, authority, wire }, signal);
+      }, { meta: detached.input, price: preparedPrice, binding, ledgerStartedAt: preparedStatus.ledgerStartedAt, authority, wire, routing, preparedSelection }, signal);
       const attempt = Object.freeze(result); attempts.set(attempt.attemptId, attempt); return attempt;
     } catch (error) {
       // Member authority refusal/cancel cannot become an unlimited recording
@@ -271,7 +300,7 @@ export async function createBudgetContext(apiKeyId, { adapter = getAdapter, cloc
         if (!original || original.requestId !== requestId || original.apiKeyId !== apiKeyId) fail(BUDGET_ERROR.CONFLICT);
         let cost = null;
         if (!notDispatched && usage && original.priceSnapshot) {
-          try { cost = costFromExactUsage(usage, original.priceSnapshot.rates); } catch { /* unresolved, never estimated */ }
+          try { cost = costFromExactUsage(usage, original.priceSnapshot.rates, { requireCacheTiers: original.priceSnapshot.usageSemantics?.cacheWriteTiers === 'observed_5m_1h' }); } catch { /* unresolved, never estimated */ }
         }
         let evidence = null;
         if (usageEvidence !== null) {

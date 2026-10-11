@@ -705,12 +705,15 @@ describe("Kiro terminal integrity recovery", () => {
   });
 
   it("surfaces retry HTTP failures as SSE after heartbeat commits headers", async () => {
-    fetchMock
-      .mockResolvedValueOnce(response([]))
-      .mockResolvedValueOnce(new Response("unauthorized", {
+    fetchMock.mockResolvedValueOnce(response([]));
+    // A 401 advances across all registered auth surfaces. Each needs its own
+    // consumable response; an exhausted mock creates unrelated network retries.
+    for (let index = 0; index < new KiroExecutor().getFallbackCount(); index++) {
+      fetchMock.mockResolvedValueOnce(new Response("unauthorized", {
         status: 401,
         statusText: "Unauthorized"
       }));
+    }
 
     const result = await execute();
     const body = await result.response.text();
@@ -718,21 +721,30 @@ describe("Kiro terminal integrity recovery", () => {
     expect(result.response.status).toBe(200);
     expect(body).toContain("kiro_integrity_retry_upstream_error");
     expect(body).toContain("unauthorized");
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock.mock.calls.map(([url]) => new URL(url).hostname)).toEqual([
+      "q.us-east-1.amazonaws.com",
+      "q.us-east-1.amazonaws.com",
+      "codewhisperer.us-east-1.amazonaws.com",
+      "runtime.us-east-1.kiro.dev"
+    ]);
   });
 
   it("bounds the retry HTTP error body", async () => {
-    fetchMock
-      .mockResolvedValueOnce(response([]))
-      .mockResolvedValueOnce(new Response(`error-start-${"x".repeat(10_000)}-error-tail`, {
+    fetchMock.mockResolvedValueOnce(response([]));
+    for (let index = 0; index < new KiroExecutor().getFallbackCount(); index++) {
+      fetchMock.mockResolvedValueOnce(new Response(`error-start-${"x".repeat(10_000)}-error-tail`, {
         status: 401,
         statusText: "Unauthorized"
       }));
+    }
 
     const body = await (await execute()).response.text();
 
     expect(body).toContain("error-start-");
     expect(body).not.toContain("error-tail");
     expect(body.length).toBeLessThan(5000);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
   it("propagates cancellation while validation is waiting for EOF", async () => {

@@ -25,6 +25,20 @@ describe('original Base registry evidence at single POST dispatch (mock dispatch
     expect(response.ok).toBe(true); expect(fixture.create).toHaveBeenCalledTimes(1); expect(nativeFetch).toHaveBeenCalledTimes(1);
     expect(nativeFetch.mock.calls[0][1]).toMatchObject({ method: 'POST', redirect: 'error' });
   });
+  it('owned routing gate is checked at entry and after dispatcher acquisition before native POST', async () => {
+    const routingGate = vi.fn();
+    expect((await fetchProxy('http://dummy-upstream.invalid/chat', options(), saved(), { singlePost: true, baseTransport: original, routingGate })).ok).toBe(true);
+    expect(routingGate).toHaveBeenCalledTimes(2); expect(nativeFetch).toHaveBeenCalledTimes(1);
+  });
+  it.each(['entry', 'dispatcher'])('owned routing gate refusal at %s leaves zero native POST or replay', async mode => {
+    let current = mode !== 'entry';
+    const refusal = new Error('Fixture owned routing authority stale');
+    const routingGate = vi.fn(() => { if (!current) throw refusal; });
+    fixture.create.mockImplementation(() => { current = false; });
+    await expect(fetchProxy('http://dummy-upstream.invalid/chat', options(), saved(), { singlePost: true, baseTransport: original, routingGate })).rejects.toBe(refusal);
+    expect(fixture.create).toHaveBeenCalledTimes(mode === 'entry' ? 0 : 1);
+    expect(routingGate).toHaveBeenCalledTimes(mode === 'entry' ? 1 : 2); expect(nativeFetch).not.toHaveBeenCalled();
+  });
   it('caller mutation during dispatcher acquisition cannot change detached original evidence', async () => {
     fixture.create.mockImplementation(() => { original.baseTransport.baseUrl = 'http://dummy-changed.invalid/chat'; original.provider = 'deepseek'; });
     expect((await fetchProxy('http://dummy-upstream.invalid/chat', options(), saved(), { singlePost: true, baseTransport: original })).ok).toBe(true);

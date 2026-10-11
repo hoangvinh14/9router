@@ -4,6 +4,23 @@ import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
 import { validatePersistedGlobalProxy, resolvePersistedPoolProxy, shouldBypassByNoProxy } from '../config/accountedProxyAuthority.js';
 import { validateAccountingProxyEnvironment } from '../config/accountedProxyEnvironment.js';
 import { validateAccountingBaseDispatch } from '../config/accountedBaseDispatch.js';
+import { validateUnhealthyChatOptions } from '../config/accountedUnhealthyChatDispatch.js';
+import { validateUnhealthyEmbeddingsOptions } from '../config/accountedUnhealthyEmbeddingsDispatch.js';
+import { validateGeminiEmbeddingOptions } from '../config/accountedGeminiEmbeddingDispatch.js';
+import { validateAccountingCodexPost } from '../config/accountedCodexDispatch.js';
+import { validateAccountingGrokCliPost } from '../config/accountedGrokCliDispatch.js';
+import { validateAccountingGithubResponsesPost } from '../config/accountedGithubResponsesDispatch.js';
+import { validateAccountingGithubMessagesPost } from '../config/accountedGithubMessagesDispatch.js';
+import { validateAccountingGithubChatMessagesPost } from '../config/accountedGithubChatMessagesDispatch.js';
+import { validateAccountingResponsesPost } from '../config/accountedResponsesDispatch.js';
+import { validateAccountingGeminiPost } from '../config/accountedGeminiDispatch.js';
+import { validateAccountingAnthropicPost } from '../config/accountedAnthropicDispatch.js';
+import { validateAccountingEmbeddingsPost } from '../config/accountedEmbeddingsDispatch.js';
+import { validateAccountingCommandCodePost } from '../config/accountedCommandCodeDispatch.js';
+import { validateAccountingCommandCodeChatOptions } from '../config/accountedCommandCodeChatDispatch.js';
+import { validateAccountingKiroPost } from '../config/accountedKiroDispatch.js';
+import { validateAccountingKiroRepairOptions } from '../config/accountedKiroRepairDispatch.js';
+import { isDeepStrictEqual } from 'node:util';
 
 // Module re-evaluation may see our previously published policy wrapper rather
 // than the captured transport. Only unwrap wrappers registered by this module;
@@ -329,7 +346,19 @@ async function createBypassRequest(parsedUrl, realIP, options) {
 }
 
 export async function proxyAwareFetch(url, options = {}, proxyOptions = null, contract = null) {
+  const unhealthyChatTransport = contract?.singlePost === true && Object.hasOwn(contract, 'unhealthyChatTransport')
+    ? validateUnhealthyChatOptions(contract.unhealthyChatTransport, url, options, proxyOptions) : null;
+  const unhealthyEmbeddingsTransport = contract?.singlePost === true && Object.hasOwn(contract, 'unhealthyEmbeddingsTransport')
+    ? validateUnhealthyEmbeddingsOptions(contract.unhealthyEmbeddingsTransport, url, options, proxyOptions) : null;
+  const geminiEmbeddingTransport = contract?.singlePost === true && Object.hasOwn(contract, 'geminiEmbeddingTransport')
+    ? validateGeminiEmbeddingOptions(contract.geminiEmbeddingTransport, url, options, proxyOptions) : null;
   const targetUrl = typeof url === "string" ? url : url.toString();
+  // The chat owner binds selected proxy data before even the strict pool guard
+  // reads it. Other contracts retain their existing behavior.
+  const commandCodeChatTransport = contract?.singlePost === true && Object.hasOwn(contract, 'commandCodeChatTransport')
+    ? validateAccountingCommandCodeChatOptions(contract.commandCodeChatTransport, targetUrl, options, proxyOptions) : null;
+  const kiroRepairTransport = contract?.singlePost === true && Object.hasOwn(contract, 'kiroRepairTransport')
+    ? validateAccountingKiroRepairOptions(contract.kiroRepairTransport, targetUrl, options, proxyOptions) : null;
 
   // A required saved pool that is unavailable cannot be replaced by legacy,
   // environment/global proxy, relay or DNS-bypass transport. Check before any
@@ -343,20 +372,43 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null, co
   // opt-in path deliberately avoids relay, MITM/TLS fallback and direct retry.
   // Dispatcher acquisition precedes exactly one captured native fetch call.
   if (contract?.singlePost === true) {
+    // Internal request-owned synchronous check only. Capture once across the
+    // dispatcher await; never replace it from a mutated caller contract.
+    const routingGate = Object.hasOwn(contract, 'routingGate') ? contract.routingGate : null;
+    if (Object.hasOwn(contract, 'routingGate') && typeof routingGate !== 'function') throw new Error('Accounting routing dispatch gate unavailable');
+    const checkRouting = () => {
+      if (routingGate && routingGate() !== undefined) throw new Error('Accounting routing dispatch gate unavailable');
+    };
+    checkRouting();
     if (Object.hasOwn(contract, 'proxyEnvironment')) validateAccountingProxyEnvironment(contract.proxyEnvironment);
     const baseTransport = Object.hasOwn(contract, 'baseTransport') ? validateAccountingBaseDispatch(contract.baseTransport, targetUrl) : null;
+    const codexTransport = Object.hasOwn(contract, 'codexTransport') ? validateAccountingCodexPost(contract.codexTransport, targetUrl, options) : null;
+    const grokCliTransport = Object.hasOwn(contract, 'grokCliTransport') ? validateAccountingGrokCliPost(contract.grokCliTransport, targetUrl, options) : null;
+    const githubResponsesTransport = Object.hasOwn(contract, 'githubResponsesTransport') ? validateAccountingGithubResponsesPost(contract.githubResponsesTransport, targetUrl, options) : null;
+    const githubMessagesTransport = Object.hasOwn(contract, 'githubMessagesTransport') ? validateAccountingGithubMessagesPost(contract.githubMessagesTransport, targetUrl, options) : null;
+    const githubChatMessagesTransport = Object.hasOwn(contract, 'githubChatMessagesTransport') ? validateAccountingGithubChatMessagesPost(contract.githubChatMessagesTransport, targetUrl, options) : null;
+    const responsesTransport = Object.hasOwn(contract, 'responsesTransport') ? validateAccountingResponsesPost(contract.responsesTransport, targetUrl, options) : null;
+    const geminiTransport = Object.hasOwn(contract, 'geminiTransport') ? validateAccountingGeminiPost(contract.geminiTransport, targetUrl, options) : null;
+    const anthropicTransport = Object.hasOwn(contract, 'anthropicTransport') ? validateAccountingAnthropicPost(contract.anthropicTransport, targetUrl, options) : null;
+    const embeddingsTransport = Object.hasOwn(contract, 'embeddingsTransport') ? validateAccountingEmbeddingsPost(contract.embeddingsTransport, targetUrl, options) : null;
+    const commandCodeTransport = Object.hasOwn(contract, 'commandCodeTransport') ? validateAccountingCommandCodePost(contract.commandCodeTransport, targetUrl, options) : null;
+    const kiroTransport = Object.hasOwn(contract, 'kiroTransport') ? validateAccountingKiroPost(contract.kiroTransport, targetUrl, options) : null;
     if (normalizeString(proxyOptions?.vercelRelayUrl)) throw new Error('Accounting single-POST relay unsupported');
     if (options.method !== 'POST' || options.redirect !== 'error') throw new Error('Accounting single-POST request policy required');
     // Independently persisted saved authority overrides the mutable environment
     // even when its NO_PROXY deliberately resolves to direct. Validate before
     // connection precedence, so malformed authority never silently falls back.
-    const persisted = proxyOptions && Object.hasOwn(proxyOptions, 'persistedGlobalProxy')
+    // Only a validated internal unhealthy image gives null the meaning of an
+    // explicitly disabled saved policy. Other contracts retain strict validation.
+    const savedDisabled = [unhealthyChatTransport, unhealthyEmbeddingsTransport].some(image =>
+      image && Object.hasOwn(image.proxyOptions || {}, 'persistedGlobalProxy') && image.proxyOptions.persistedGlobalProxy === null);
+    const persisted = proxyOptions && Object.hasOwn(proxyOptions, 'persistedGlobalProxy') && !savedDisabled
       ? validatePersistedGlobalProxy(proxyOptions.persistedGlobalProxy) : null;
     const hasPool = proxyOptions && Object.hasOwn(proxyOptions, 'persistedPoolProxy');
     const connectionProxyUrl = hasPool ? null : resolveConnectionProxyUrl(targetUrl, proxyOptions);
     const globalProxyUrl = persisted
       ? (shouldBypassByNoProxy(targetUrl, persisted.noProxy) ? null : persisted.url)
-      : hasPool ? null : normalizeProxyUrl(getEnvProxyUrl(targetUrl));
+      : hasPool || savedDisabled ? null : normalizeProxyUrl(getEnvProxyUrl(targetUrl));
     const proxyUrl = hasPool
       ? resolvePersistedPoolProxy(targetUrl, proxyOptions.persistedPoolProxy, persisted || undefined)
       : connectionProxyUrl || globalProxyUrl;
@@ -368,6 +420,26 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null, co
     // again immediately before the one native POST, never re-resolve/replay.
     if (Object.hasOwn(contract, 'proxyEnvironment')) validateAccountingProxyEnvironment(contract.proxyEnvironment);
     if (baseTransport) validateAccountingBaseDispatch(baseTransport, targetUrl);
+    if (codexTransport) validateAccountingCodexPost(codexTransport, targetUrl, options);
+    if (grokCliTransport) validateAccountingGrokCliPost(grokCliTransport, targetUrl, options);
+    if (githubResponsesTransport) validateAccountingGithubResponsesPost(githubResponsesTransport, targetUrl, options);
+    if (githubMessagesTransport) validateAccountingGithubMessagesPost(githubMessagesTransport, targetUrl, options);
+    if (githubChatMessagesTransport) validateAccountingGithubChatMessagesPost(githubChatMessagesTransport, targetUrl, options);
+    if (responsesTransport) validateAccountingResponsesPost(responsesTransport, targetUrl, options);
+    if (geminiTransport) validateAccountingGeminiPost(geminiTransport, targetUrl, options);
+    if (anthropicTransport) validateAccountingAnthropicPost(anthropicTransport, targetUrl, options);
+    if (embeddingsTransport) validateAccountingEmbeddingsPost(embeddingsTransport, targetUrl, options);
+    if (commandCodeTransport) validateAccountingCommandCodePost(commandCodeTransport, targetUrl, options);
+    if (unhealthyChatTransport) validateUnhealthyChatOptions(unhealthyChatTransport, targetUrl, options, proxyOptions);
+    if (unhealthyEmbeddingsTransport) validateUnhealthyEmbeddingsOptions(unhealthyEmbeddingsTransport, targetUrl, options, proxyOptions);
+    if (geminiEmbeddingTransport) validateGeminiEmbeddingOptions(geminiEmbeddingTransport, targetUrl, options, proxyOptions);
+    if (commandCodeChatTransport) validateAccountingCommandCodeChatOptions(commandCodeChatTransport, targetUrl, options, proxyOptions);
+    if (kiroTransport) validateAccountingKiroPost(kiroTransport, targetUrl, options);
+    if (kiroRepairTransport) {
+      const current = validateAccountingKiroRepairOptions(contract.kiroRepairTransport, targetUrl, options, proxyOptions);
+      if (!isDeepStrictEqual(current, kiroRepairTransport)) throw new Error('Accounting Kiro repair transport changed');
+    }
+    checkRouting();
     options.signal?.throwIfAborted();
     return originalFetch(url, dispatcher ? { ...options, dispatcher } : options);
   }

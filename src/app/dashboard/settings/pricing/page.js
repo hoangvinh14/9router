@@ -167,9 +167,10 @@ export default function PricingSettingsPage() {
           <ul className="list-disc list-inside ml-4 space-y-1">
             <li><strong>Input:</strong> Standard prompt tokens</li>
             <li><strong>Output:</strong> Completion/response tokens</li>
-            <li><strong>Cached:</strong> Cached input tokens (typically 50% of input rate)</li>
+            <li><strong>Cached:</strong> Cached input tokens (explicit reference rate, otherwise input fallback)</li>
             <li><strong>Reasoning:</strong> Special reasoning/thinking tokens (fallback to output rate)</li>
-            <li><strong>Cache Creation:</strong> Tokens used to create cache entries (fallback to input rate)</li>
+            <li><strong>Cache Creation / 5m:</strong> Cache-write tokens (fallback to input rate)</li>
+            <li><strong>Cache Creation 1h:</strong> Observed 1-hour writes require their own explicit reference rate; blank is unavailable, not a multiplier or 5m fallback.</li>
           </ul>
           <p>
             <strong>Custom Pricing:</strong> You can override default pricing for specific models.

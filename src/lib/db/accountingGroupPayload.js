@@ -24,14 +24,17 @@ export function snapshotAccountingGroup(commands) {
     if (active.has(value)) fail();
     const array = Array.isArray(value);
     if (Object.getPrototypeOf(value) !== (array ? Array.prototype : Object.prototype) && !(Object.getPrototypeOf(value) === null && !array)) fail();
-    const descriptors = Object.getOwnPropertyDescriptors(value);
-    if (Reflect.ownKeys(descriptors).some(key => typeof key !== 'string')) fail();
-    const keys = Object.keys(descriptors).filter(key => !(array && key === 'length'));
+    // Proxy/prototype guards above ensure descriptor traversal cannot invoke
+    // user traps. Keep the whole key inventory, without allocating a second
+    // descriptor map for every nested object; accessors still fail unread.
+    const ownKeys = Reflect.ownKeys(value);
+    if (ownKeys.some(key => typeof key !== 'string')) fail();
+    const keys = ownKeys.filter(key => !(array && key === 'length'));
     if (keys.length > MAX_NODES || array && keys.length !== value.length) fail();
     active.add(value);
     const result = array ? [] : {};
     for (const key of keys) {
-      const descriptor = descriptors[key];
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
       if (!Object.hasOwn(descriptor, 'value') || !descriptor.enumerable) fail();
       if (['__proto__', 'constructor', 'prototype'].includes(key) || array && !/^(0|[1-9]\d*)$/.test(key)) fail();
       charge(Buffer.byteLength(key, 'utf8') + 4);

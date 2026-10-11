@@ -48,7 +48,7 @@ export default function PricingCoverage({ refreshRevision = 0 }) {
               <td className="p-2">{row.endpoint}</td>
               <td className="p-2">{row.source || "None"}{row.virtual ? " (virtual mapping)" : ""}</td>
               <td className="p-2 whitespace-nowrap">{row.rates ? `${row.rates.input} / ${row.rates.output}` : "Unavailable"}</td>
-              <td className="p-2">{row.rates ? `Read ${row.rates.cached ?? "input fallback"}; write ${row.rates.cache_creation ?? "input fallback"}; reasoning ${row.rates.reasoning ?? "output fallback"}` : "Unknown"}</td>
+              <td className="p-2">{row.rates ? `Read ${row.rates.cached ?? "input fallback"}; write/5m ${row.rates.cache_creation ?? "input fallback"}; write/1h ${row.rates.cache_creation_1h ?? "unavailable"}; reasoning ${row.rates.reasoning ?? "output fallback"}` : "Unknown"}</td>
               <td className="p-2">{row.status === "priced" ? "Reference available" : row.reason}</td>
             </tr>)}</tbody>
           </table>

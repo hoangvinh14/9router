@@ -29,3 +29,10 @@ export const CLAUDE_ACCOUNTING_BLOCK_FIELDS = Object.freeze({
 });
 // Bound observations as well as bytes; not a concurrency/dispatch work limit.
 export const CLAUDE_ACCOUNTING_MAX_EVENTS = 16_384;
+// Live client-tool JSON is retained only for its open block, not the message.
+export const CLAUDE_ACCOUNTING_TOOL_INPUT_MAX_BYTES = 20 * 1024 * 1024;
+// Retain only an open signature's byte count, not thinking text or a transcript.
+export const CLAUDE_ACCOUNTING_SIGNATURE_MAX_BYTES = 128 * 1024;
+export const CLAUDE_ACCOUNTING_THINKING_TYPES = Object.freeze(['enabled', 'disabled', 'adaptive']);
+export const CLAUDE_ACCOUNTING_THINKING_DISPLAYS = Object.freeze(['summarized', 'omitted']);
+export const CLAUDE_ACCOUNTING_EFFORTS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']);

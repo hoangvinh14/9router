@@ -1,4 +1,7 @@
 import { BaseExecutor } from "./base.js";
+import { types } from 'node:util';
+import { ACCOUNTED_KIRO_ELLIPSIS_MODE } from '../config/accountedKiroEllipsisRepair.js';
+import { executeAccountedKiroEllipsisRepairCandidate } from './accountedKiroEllipsisRepair.js';
 import { PROVIDERS } from "../config/providers.js";
 import {
   KIRO_CODEWHISPERER_TARGET,
@@ -10,12 +13,14 @@ import { refreshKiroToken } from "../services/tokenRefresh.js";
 import { SSE_DONE, SSE_HEADERS } from "../utils/sseConstants.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { STREAM_FIRST_CHUNK_TIMEOUT_MS } from "../config/runtimeConfig.js";
+import { EVENTSTREAM_MAX_MESSAGE_BYTES, EVENTSTREAM_MAX_HEADERS_BYTES } from "../config/kiroEventStream.js";
+import { crc32, parseEventFrame } from "../utils/kiroEventStreamFrame.js";
+import { ACCOUNTED_KIRO_MODE } from "../config/accountedKiroDispatch.js";
+import { executeAccountedKiroCandidate } from "./accountedKiro.js";
 
 const KIRO_REPAIR_BUFFER_MAX_BYTES = 8 * 1024 * 1024;
 const KIRO_REPAIR_HEARTBEAT_MS = 10_000;
 const KIRO_SHORT_FINAL_MAX_CHARS = 800;
-const EVENTSTREAM_MAX_MESSAGE_BYTES = 24 * 1024 * 1024;
-const EVENTSTREAM_MAX_HEADERS_BYTES = 128 * 1024;
 const KIRO_EVENT_TYPES = new Set([
   "assistantResponseEvent",
   "reasoningContentEvent",
@@ -30,13 +35,6 @@ const KIRO_EVENT_TYPES = new Set([
 ]);
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
-const CRC32_TABLE = Uint32Array.from({ length: 256 }, (_, index) => {
-  let value = index;
-  for (let bit = 0; bit < 8; bit++) {
-    value = (value >>> 1) ^ ((value & 1) ? 0xedb88320 : 0);
-  }
-  return value >>> 0;
-});
 
 const REPAIR_INSTRUCTIONS = Object.freeze({
   tool: "Retry the previous response because its Kiro tool_call wrapper was malformed. If you use the wrapper tool named tool_call, its input must contain a non-empty name and an arguments field.",
@@ -54,12 +52,6 @@ const CHINESE_RESULT_CLAUSE = /(?:[。！？]\s*\S|(?:版本|狀態|回應|結�
 const USER_WAIT = /(?:請(?:你|先)|你(?:先|需要|可以|提供|確認|批准|允許)|等待(?:你|使用者)|等你|核准|同意|授權|\b(?:after|when|once)\s+you\b|\byour\s+(?:approval|confirmation|permission|input)\b|\bwait(?:ing)?\s+for\s+you\b|\bplease\s+(?:approve|confirm|provide|send)\b)/iu;
 const COMPLETED_FINAL = /(?:已(?:經)?完成|完成(?:了|驗證|確認)|修復完成|確認無誤|驗證(?:完成|通過)|測試(?:均)?通過|結論|總結|\b(?:done|completed|fixed|verified|confirmed|passed|in conclusion|summary)\b|\b(?:is|are) complete\b)/iu;
 const RESULT_EVIDENCE = /(?:顯示|發現|因此|成功|失敗|正常|無錯誤|沒有錯誤|\b(?:found|shows?|showed|because|therefore|succeeded|failed|healthy|green|no errors?)\b)/iu;
-
-function crc32(bytes) {
-  let crc = 0xffffffff;
-  for (const byte of bytes) crc = CRC32_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
-  return (crc ^ 0xffffffff) >>> 0;
-}
 
 function envPositiveInt(name, fallback) {
   const parsed = Number.parseInt(process.env?.[name] || "", 10);
@@ -232,7 +224,7 @@ export class KiroExecutor extends BaseExecutor {
     super("kiro", PROVIDERS.kiro);
   }
 
-  buildHeaders(credentials, stream = true, url = "") {
+  buildHeaders(credentials, _stream = true, url = "") {
     const headers = {
       ...this.config.headers,
       "Amz-Sdk-Request": "attempt=1; max=3",
@@ -298,7 +290,7 @@ export class KiroExecutor extends BaseExecutor {
    */
   getOrderedBaseUrls(credentials) {
     const baseUrls = this.getBaseUrls();
-    const authMethod = credentials?.providerSpecificData?.authMethod;
+    const _authMethod = credentials?.providerSpecificData?.authMethod;
     // IAM Identity Center (idc) tokens are AWS SSO access tokens — the same
     // family as external_idp/api_key. The kiro.dev gateway rejects them with
     // 403 "bearer token invalid", so they must hit the CodeWhisperer
@@ -327,7 +319,7 @@ export class KiroExecutor extends BaseExecutor {
       : [...amazon, ...others];
   }
 
-  buildUrl(model, stream, urlIndex = 0, credentials = null) {
+  buildUrl(_model, _stream, urlIndex = 0, credentials = null) {
     const baseUrls = this.getOrderedBaseUrls(credentials);
     const url = baseUrls[urlIndex] || baseUrls[0] || this.config.baseUrl;
     return url;
@@ -341,7 +333,7 @@ export class KiroExecutor extends BaseExecutor {
       || (hasFallback && KIRO_ENDPOINT_FALLBACK_STATUSES.has(status));
   }
 
-  transformRequest(model, body, stream, credentials) {
+  transformRequest(_model, body, _stream, _credentials) {
     return body;
   }
 
@@ -362,6 +354,11 @@ export class KiroExecutor extends BaseExecutor {
    * classify the status, and trigger account fallback/cooldown.
    */
   async execute(args) {
+    if (types.isProxy(args)) throw new Error('Accounting Kiro ellipsis owner unavailable');
+    const mode = args && typeof args === 'object' ? Object.getOwnPropertyDescriptor(args, 'accountingMode') : null;
+    if (mode && !Object.hasOwn(mode, 'value')) throw new Error('Accounting Kiro ellipsis owner unavailable');
+    if (mode?.value === ACCOUNTED_KIRO_ELLIPSIS_MODE) return executeAccountedKiroEllipsisRepairCandidate(this, args);
+    if (args.accounting && args.accountingMode === ACCOUNTED_KIRO_MODE) return executeAccountedKiroCandidate(this, args);
     const result = await super.execute(args);
     if (result?.response?.ok) this.attachIntegrityGate(result, args);
     return result;
@@ -1206,96 +1203,6 @@ export class KiroExecutor extends BaseExecutor {
       log?.error?.("TOKEN", `Kiro refresh error: ${error.message}`);
       return null;
     }
-  }
-}
-
-/**
- * Parse AWS EventStream frame
- */
-
-function parseEventFrame(data) {
-  if (!(data instanceof Uint8Array) || data.byteLength < 16) {
-    throw new Error("AWS EventStream frame is shorter than 16 bytes");
-  }
-  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-  const totalLength = view.getUint32(0, false);
-  const headersLength = view.getUint32(4, false);
-  if (totalLength !== data.byteLength) {
-    throw new Error("AWS EventStream frame length does not match its prelude");
-  }
-  if (totalLength > EVENTSTREAM_MAX_MESSAGE_BYTES ||
-      headersLength > EVENTSTREAM_MAX_HEADERS_BYTES ||
-      headersLength > totalLength - 16) {
-    throw new Error("AWS EventStream frame bounds are invalid");
-  }
-  if (view.getUint32(8, false) !== crc32(data.subarray(0, 8))) {
-    throw new Error("AWS EventStream prelude CRC mismatch");
-  }
-  if (view.getUint32(totalLength - 4, false) !== crc32(data.subarray(0, totalLength - 4))) {
-    throw new Error("AWS EventStream message CRC mismatch");
-  }
-
-  const headers = Object.create(null);
-  const names = new Set();
-  let offset = 12;
-  const headerEnd = offset + headersLength;
-  const requireBytes = (count) => {
-    if (offset + count > headerEnd) {
-      throw new Error("AWS EventStream header exceeds its declared bounds");
-    }
-  };
-
-  while (offset < headerEnd) {
-    requireBytes(1);
-    const nameLength = data[offset++];
-    requireBytes(nameLength + 1);
-    const name = decoder.decode(data.subarray(offset, offset + nameLength));
-    offset += nameLength;
-    if (names.has(name)) throw new Error(`AWS EventStream contains duplicate header: ${name}`);
-    names.add(name);
-    const type = data[offset++];
-
-    if (type === 0 || type === 1) {
-      headers[name] = type === 0;
-    } else if (type === 2) {
-      requireBytes(1);
-      headers[name] = view.getInt8(offset);
-      offset += 1;
-    } else if (type === 3) {
-      requireBytes(2);
-      headers[name] = view.getInt16(offset, false);
-      offset += 2;
-    } else if (type === 4) {
-      requireBytes(4);
-      headers[name] = view.getInt32(offset, false);
-      offset += 4;
-    } else if (type === 5 || type === 8) {
-      requireBytes(8);
-      offset += 8;
-    } else if (type === 6 || type === 7) {
-      requireBytes(2);
-      const valueLength = view.getUint16(offset, false);
-      offset += 2;
-      requireBytes(valueLength);
-      const bytes = data.subarray(offset, offset + valueLength);
-      headers[name] = type === 7 ? decoder.decode(bytes) : bytes;
-      offset += valueLength;
-    } else if (type === 9) {
-      requireBytes(16);
-      offset += 16;
-    } else {
-      throw new Error(`AWS EventStream header ${name} has unknown type ${type}`);
-    }
-  }
-
-  const payloadBytes = data.subarray(headerEnd, totalLength - 4);
-  if (payloadBytes.byteLength === 0) return { headers, payload: null };
-  const payloadText = decoder.decode(payloadBytes);
-  if (!payloadText.trim()) return { headers, payload: null };
-  try {
-    return { headers, payload: JSON.parse(payloadText) };
-  } catch (error) {
-    throw new Error(`AWS EventStream payload is not valid JSON (${error.message})`);
   }
 }
 

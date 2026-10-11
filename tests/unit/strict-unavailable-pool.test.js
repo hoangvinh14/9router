@@ -12,6 +12,26 @@ describe('required unavailable strict pool cannot downgrade to other proxy autho
     const { resolveConnectionProxyConfig } = await import('@/lib/network/connectionProxy.js');
     expect(await resolveConnectionProxyConfig(legacy)).toMatchObject({ proxyPoolId: 'fixture-pool', strictProxy: true, proxyPoolUnavailable: true, connectionProxyEnabled: false, connectionProxyUrl: '' });
   });
+  it.each(['row-url', 'row-no-proxy', 'legacy-url'])('normalization failure %s cannot erase already selected pool intent', async fault => {
+    const { resolveConnectionProxyConfig } = await import('@/lib/network/connectionProxy.js');
+    pool.mockResolvedValue(row('active', true));
+    expect(await resolveConnectionProxyConfig(legacy)).toMatchObject({ source: 'pool', proxyPoolId: 'fixture-pool', strictProxy: true, connectionProxyEnabled: true });
+    // Plain JSON can disable both ordinary coercion methods without getters or
+    // executable code. This is not a programmable-input sandbox assertion.
+    const invalidString = JSON.parse('{"toString":0,"valueOf":0}');
+    const saved = row('active', true);
+    const input = { ...legacy };
+    if (fault === 'row-url') saved.proxyUrl = invalidString;
+    else if (fault === 'row-no-proxy') saved.noProxy = invalidString;
+    else input.connectionProxyUrl = invalidString;
+    pool.mockResolvedValue(saved);
+    const logger = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const denied = await resolveConnectionProxyConfig(input);
+      expect(denied).toMatchObject({ proxyPoolId: 'fixture-pool', strictProxy: true, proxyPoolUnavailable: true, connectionProxyEnabled: false, connectionProxyUrl: '', connectionNoProxy: '' });
+      expect(logger.mock.calls.every(call => call.every(value => typeof value === 'string'))).toBe(true);
+    } finally { logger.mockRestore(); }
+  });
   it.each(['inactive', 'empty'])('resolver %s nonstrict pool keeps existing legacy fallback', async mode => {
     pool.mockResolvedValue(row(mode, false));
     const { resolveConnectionProxyConfig } = await import('@/lib/network/connectionProxy.js');

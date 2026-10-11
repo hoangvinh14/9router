@@ -6,7 +6,7 @@ import { getAdapter } from "../db/driver.js";
 import { BUDGET_SCOPE } from "../../../open-sse/config/apiKeyBudgetConstants.js";
 import { pricingMemoView } from './snapshotMemo.js';
 
-const RATE_FIELDS = ["input", "output", "cached", "reasoning", "cache_creation"];
+import { REFERENCE_RATE_FIELDS as RATE_FIELDS } from '../../../open-sse/config/accountingCacheTiers.js';
 function own(object, key) { return object && Object.hasOwn(object, key) ? object[key] : undefined; }
 export function completeReferenceRates(input, endpoint = "chat") {
   if (!BUDGET_SCOPE.includes(endpoint) || !input || typeof input !== "object" || Array.isArray(input) || ![Object.prototype, null].includes(Object.getPrototypeOf(input))) throw new Error("Invalid complete reference rates");
@@ -67,6 +67,8 @@ function resolveUncachedReferencePrice(db, provider, model, endpoint) {
       cached: rates.cached === undefined ? "input_rate" : "explicit",
       cache_creation: rates.cache_creation === undefined ? "input_rate" : "explicit",
       reasoning: rates.reasoning === undefined ? "output_rate" : "explicit",
+      // Preserve legacy snapshot shape when this distinct rate is absent.
+      ...(rates.cache_creation_1h === undefined ? {} : { cache_creation_1h: "explicit" }),
     },
   };
   const revision = createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");

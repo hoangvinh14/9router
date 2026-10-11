@@ -71,6 +71,118 @@ for (const engine of ['node:sqlite', 'sql.js']) describe(`unhealthy real-core Re
     if (kind === 'sse') expect(await response.text()).toBe(wire()); else expect(await response.json()).toEqual(message());
     expect(latch).toHaveBeenCalledWith('key-a', 'unrecorded_attempt_terminal'); expect(seams.network).toHaveBeenCalledTimes(1); expect(get).not.toHaveBeenCalled(); expect(all).not.toHaveBeenCalled(); untouched(); expect(db.health().healthy).toBe(false);
   });
+  it.each(['/v1/chat/completions', '/api/v1/chat/completions'])('canonical text Chat %s requires independently proved own gap ACK and strict sole POST', async route => {
+    poison(); const get = vi.spyOn(db, 'get'), all = vi.spyOn(db, 'all'), latch = vi.spyOn(db.coverage, 'latchGap');
+    const original = { model: 'openai/fixture-model', stream: false,
+      messages: [{ role: 'user', content: 'fixture Chat original' }] };
+    const reply = { id: 'chat-fixture', object: 'chat.completion', model: 'fixture-model',
+      choices: [{ index: 0, message: { role: 'assistant', content: 'fixture Chat' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120 } };
+    seams.network.mockImplementation((url, init, _proxy, contract) => {
+      expect(latch).toHaveBeenCalledWith('key-a', 'unhealthy_unlimited_admission');
+      expect(db.coverage.status().gaps).toHaveLength(1);
+      expect(url).toBe('https://api.openai.com/v1/chat/completions');
+      expect(init.method).toBe('POST'); expect(init.redirect).toBe('error');
+      expect(contract).toMatchObject({ singlePost: true });
+      expect(new Headers(init.headers).get('authorization')).toBe('Bearer upstream-dummy');
+      expect(JSON.parse(init.body)).toEqual({ ...original, model: 'fixture-model' });
+      return Response.json(reply);
+    });
+    const response = await handle(request(original, route));
+    expect(response.status).toBe(200); expect((await response.json()).choices[0].message.content).toBe('fixture Chat');
+    expect(latch).toHaveBeenCalledWith('key-a', 'unrecorded_attempt_terminal');
+    expect(seams.network).toHaveBeenCalledTimes(1); expect(get).not.toHaveBeenCalled(); expect(all).not.toHaveBeenCalled();
+    expect(db.health().healthy).toBe(false); untouched();
+  });
+  it.each([200, 401])('internal independently proved Chat core opt-in status %s preserves original and never refreshes', async status => {
+    poison(); const get = vi.spyOn(db, 'get'), all = vi.spyOn(db, 'all'), latch = vi.spyOn(db.coverage, 'latchGap');
+    const original = { model: 'openai/fixture-model', stream: false, messages: [{ role: 'user', content: 'fixture core original' }] };
+    const reply = { id: 'fixture-core-chat', object: 'chat.completion', model: 'fixture-model',
+      choices: [{ index: 0, message: { role: 'assistant', content: 'fixture core Chat' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120 } };
+    const { createRequestAccounting } = await import('@/lib/apiKeyBudget/requestAccounting.js');
+    const context = await createRequestAccounting(request(original, '/v1/chat/completions'), { adapter: async () => db,
+      persistedTarget: { provider: 'openai', model: 'fixture-model', connectionId: 'entry-connection' }, persistedSelection: true });
+    const accounting = Object.freeze({ ...context, requiresUnhealthyChatWire: true });
+    seams.network.mockImplementation((url, init, proxy, contract) => {
+      expect(latch).toHaveBeenCalledWith('key-a', 'unhealthy_unlimited_admission');
+      expect(url).toBe('https://api.openai.com/v1/chat/completions'); expect(init.redirect).toBe('error');
+      expect(JSON.parse(init.body)).toEqual({ ...original, model: 'fixture-model' });
+      expect(contract).toMatchObject({ singlePost: true }); expect(contract.unhealthyChatTransport.body).toEqual({ ...original, model: 'fixture-model' });
+      expect(proxy.persistedGlobalProxy).toBeNull();
+      return status === 200 ? Response.json(reply) : new Response('fixture denied', { status });
+    });
+    const { handleChatCore } = await import('../../open-sse/handlers/chatCore.js');
+    const { FORMATS } = await import('../../open-sse/translator/formats.js');
+    const result = await handleChatCore({ body: original, modelInfo: { provider: 'openai', model: 'fixture-model' },
+      credentials: { authType: 'apikey', apiKey: 'upstream-dummy', connectionId: 'entry-connection', providerSpecificData: {} },
+      accounting, connectionId: 'entry-connection', persistedGlobalProxy: null, sourceFormatOverride: FORMATS.OPENAI,
+      signal: new AbortController().signal, clientRawRequest: { endpoint: '/v1/chat/completions', body: original, headers: {} } });
+    expect(result.response.status).toBe(status);
+    if (status === 200) expect((await result.response.json()).choices[0].message.content).toBe('fixture core Chat');
+    expect(seams.network).toHaveBeenCalledTimes(1); expect(latch).toHaveBeenCalledWith('key-a', 'unrecorded_attempt_terminal');
+    expect(get).not.toHaveBeenCalled(); expect(all).not.toHaveBeenCalled(); untouched(); expect(db.health().healthy).toBe(false);
+  });
+  it.each(['extra-field', 'unsupported-credential', 'fresh-proof', 'lost-admission', 'lost-terminal'])('internal Chat core refuses %s without duplicate POST or borrowed gap ACK', async mode => {
+    poison(); const get = vi.spyOn(db, 'get'), all = vi.spyOn(db, 'all');
+    const original = { model: 'openai/fixture-model', stream: false, messages: [{ role: 'user', content: 'fixture refusal original' }] };
+    const { createRequestAccounting } = await import('@/lib/apiKeyBudget/requestAccounting.js');
+    const context = await createRequestAccounting(request(original, '/v1/chat/completions'), { adapter: async () => db,
+      persistedTarget: { provider: 'openai', model: 'fixture-model', connectionId: 'entry-connection' }, persistedSelection: true });
+    const accounting = Object.freeze({ ...context, requiresUnhealthyChatWire: true });
+    const credentials = { authType: 'apikey', apiKey: 'upstream-dummy', connectionId: 'entry-connection', providerSpecificData: {} };
+    if (mode === 'extra-field') original.temperature = 0;
+    if (mode === 'unsupported-credential') credentials.providerSpecificData.baseUrl = 'https://fixture.invalid';
+    if (mode === 'fresh-proof') vi.spyOn(db, 'provePersistedSelection').mockImplementation(() => { throw new Error('Fixture fresh Chat proof unavailable'); });
+    if (mode.startsWith('lost-')) {
+      const latch = db.coverage.latchGap.bind(db.coverage);
+      vi.spyOn(db.coverage, 'latchGap').mockImplementation((key, reason) => {
+        latch(key, reason);
+        if (mode === 'lost-admission' || reason === 'unrecorded_attempt_terminal') throw new Error('Fixture lost own Chat gap ACK');
+      });
+    }
+    seams.network.mockResolvedValue(Response.json({ id: 'fixture-chat-refusal', object: 'chat.completion', model: 'fixture-model',
+      choices: [{ message: { role: 'assistant', content: 'fixture Chat' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120 } }));
+    const { handleChatCore } = await import('../../open-sse/handlers/chatCore.js');
+    const { FORMATS } = await import('../../open-sse/translator/formats.js');
+    const observed = await handleChatCore({ body: original, modelInfo: { provider: 'openai', model: 'fixture-model' }, credentials,
+      accounting, connectionId: 'entry-connection', persistedGlobalProxy: null, sourceFormatOverride: FORMATS.OPENAI,
+      signal: new AbortController().signal }).then(value => ({ value }), error => ({ error }));
+    expect(observed.error).toBeTruthy(); expect(observed.value).toBeUndefined();
+    expect(seams.network).toHaveBeenCalledTimes(mode === 'lost-terminal' ? 1 : 0);
+    expect(db.coverage.status().gaps).toHaveLength(mode.startsWith('lost-') ? 1 : 0);
+    expect(get).not.toHaveBeenCalled(); expect(all).not.toHaveBeenCalled(); untouched(); expect(db.health().healthy).toBe(false);
+  });
+  it.each(['extra-field', 'credential-url', 'saved-proxy', 'lost-admission', 'lost-terminal', 'post-admission-drift'])('canonical Chat app entry %s refuses without RAM fallback or a successor', async mode => {
+    const original = { model: 'openai/fixture-model', stream: false, messages: [{ role: 'user', content: 'fixture app original' }] };
+    if (mode === 'credential-url') db.durableTransaction(() => db.run('UPDATE providerConnections SET data=? WHERE id=?',
+      [JSON.stringify({ apiKey: 'upstream-dummy', providerSpecificData: { baseUrl: 'https://fixture.invalid' } }), 'entry-connection']));
+    if (mode === 'saved-proxy') db.durableTransaction(() => db.run('UPDATE settings SET data=?',
+      [JSON.stringify({ outboundProxyEnabled: true, outboundProxyUrl: 'socks5://fixture.invalid:3210' })]));
+    poison(); const get = vi.spyOn(db, 'get'), all = vi.spyOn(db, 'all');
+    if (mode === 'extra-field') original.temperature = 0;
+    const latch = db.coverage.latchGap.bind(db.coverage); let changed = false;
+    if (mode === 'post-admission-drift') {
+      const prove = db.provePersistedSelection.bind(db);
+      vi.spyOn(db, 'provePersistedSelection').mockImplementation((...args) => {
+        const proof = prove(...args); return changed ? { ...proof, settings: { ...proof.settings, fallbackStrategy: 'round-robin' } } : proof;
+      });
+    }
+    vi.spyOn(db.coverage, 'latchGap').mockImplementation((key, reason) => {
+      const result = latch(key, reason);
+      if (mode === 'post-admission-drift' && reason === 'unhealthy_unlimited_admission') changed = true;
+      if (mode === 'lost-admission' || mode === 'lost-terminal' && reason === 'unrecorded_attempt_terminal') throw new Error('Fixture lost own app Chat gap ACK');
+      return result;
+    });
+    seams.network.mockResolvedValue(Response.json({ id: 'fixture-app-chat', object: 'chat.completion', model: 'fixture-model',
+      choices: [{ message: { role: 'assistant', content: 'fixture app Chat' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120 } }));
+    const response = await handle(request(original, '/v1/chat/completions'));
+    expect(response.status).toBe(503); expect(seams.network).toHaveBeenCalledTimes(mode === 'lost-terminal' ? 1 : 0);
+    expect(db.coverage.status().gaps).toHaveLength(['lost-admission', 'lost-terminal', 'post-admission-drift'].includes(mode) ? 1 : 0);
+    expect(get).not.toHaveBeenCalled(); expect(all).not.toHaveBeenCalled(); untouched(); expect(db.health().healthy).toBe(false);
+  });
   it('held EOF withholds completed while gap exists and forwards only genuine deltas', async () => {
     poison(); let upstream;
     seams.network.mockImplementation(() => new Response(new ReadableStream({ start(c) { upstream = c; c.enqueue(new TextEncoder().encode(wire())); } }), { headers: { 'content-type': 'text/event-stream' } }));

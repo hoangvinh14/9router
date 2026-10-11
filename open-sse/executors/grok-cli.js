@@ -15,6 +15,8 @@ import {
 import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
 import { getConsistentMachineId } from "../shared/machineId.js";
+import { ACCOUNTED_GROK_CLI_MODE } from '../config/accountedGrokCliCandidate.js';
+import { executeAccountedResponsesCandidate } from './accountedResponses.js';
 
 // Server-generated item id prefixes that /responses cannot resolve when store=false
 const SERVER_ID_PATTERN = /^(rs|fc|resp|msg)_/;
@@ -526,6 +528,10 @@ export class GrokCliExecutor extends BaseExecutor {
   }
 
   async execute(args) {
+    if (args.accounting && args.accountingMode === ACCOUNTED_GROK_CLI_MODE) {
+      args.signal?.throwIfAborted();
+      return executeAccountedResponsesCandidate(this, args, { resolveSession: resolveGrokCliSessionId, resolveTurn: resolveGrokCliTurnIdx });
+    }
     // Lazy-resolve stable agent id once per process if connection has none
     if (!this._agentId && !args.credentials?.providerSpecificData?.deviceId) {
       try {

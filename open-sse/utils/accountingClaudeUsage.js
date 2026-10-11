@@ -4,7 +4,7 @@ import { FORMATS } from '../translator/formats.js';
 import { CLAUDE_BLOCK } from '../translator/schema/blocks.js';
 import { CLAUDE_STOP } from '../translator/schema/finishReasons.js';
 import { ROLE } from '../translator/schema/roles.js';
-import { CLAUDE_ACCOUNTING_EVENT as EVENT, CLAUDE_ACCOUNTING_USAGE_FIELDS, CLAUDE_ACCOUNTING_MAX_EVENTS, CLAUDE_ACCOUNTING_MESSAGE_TYPE, CLAUDE_ACCOUNTING_EVENT_FIELDS, CLAUDE_ACCOUNTING_MESSAGE_DELTA_FIELDS, CLAUDE_ACCOUNTING_BLOCK_DELTAS, CLAUDE_ACCOUNTING_MESSAGE_FIELDS, CLAUDE_ACCOUNTING_BLOCK_FIELDS } from '../config/accountingClaudeSchema.js';
+import { CLAUDE_ACCOUNTING_EVENT as EVENT, CLAUDE_ACCOUNTING_USAGE_FIELDS, CLAUDE_ACCOUNTING_MAX_EVENTS, CLAUDE_ACCOUNTING_MESSAGE_TYPE, CLAUDE_ACCOUNTING_EVENT_FIELDS, CLAUDE_ACCOUNTING_MESSAGE_DELTA_FIELDS, CLAUDE_ACCOUNTING_BLOCK_DELTAS, CLAUDE_ACCOUNTING_MESSAGE_FIELDS, CLAUDE_ACCOUNTING_BLOCK_FIELDS, CLAUDE_ACCOUNTING_TOOL_INPUT_MAX_BYTES, CLAUDE_ACCOUNTING_SIGNATURE_MAX_BYTES } from '../config/accountingClaudeSchema.js';
 import { ACCOUNTING_SSE_EVENT_MAX_BYTES, ACCOUNTING_SSE_CHUNK_MAX_BYTES } from '../config/accountingStreamLimits.js';
 import { ACCOUNTING_JSON_MAX_BYTES } from '../config/accountingBodyLimits.js';
 
@@ -19,9 +19,13 @@ function equal(a, b) {
 
 // Sole raw reader composition. A stop frame alone is never EOF, and read
 // failure/abort/deadline cannot flush authority or a captured native message.
-export async function readBufferedClaudeAccounting(response, signal, { expectedModel = null, captureMessage = false } = {}) {
-  if (!response.ok || !response.headers.get('content-type')?.toLowerCase().includes('text/event-stream')) throw new Error('Unsupported raw Claude accounting response');
-  const observer = createBufferedClaudeUsageObserver({ expectedModel, captureMessage });
+export async function readBufferedClaudeAccounting(response, signal, { expectedModel = null, captureMessage = false, allowFailedHttp = false, allowCache1h = false, requireCacheTiers = false, allowThinking = false } = {}) {
+  // Status and observed billable usage are independent facts. Only an explicit
+  // owner opt-in permits failed HTTP; it never relaxes raw schema/stop/EOF or
+  // grants success authorization. Default consumers retain success-only reads.
+  if (typeof allowFailedHttp !== 'boolean' || !response.ok && !allowFailedHttp ||
+      !response.headers.get('content-type')?.toLowerCase().includes('text/event-stream')) throw new Error('Unsupported raw Claude accounting response');
+  const observer = createBufferedClaudeUsageObserver({ expectedModel, captureMessage, allowCache1h, requireCacheTiers, allowThinking });
   const text = await readAccountingText(response, signal, { onChunk: chunk => observer.push(chunk) });
   const result = { text, usage: observer.finish() };
   if (captureMessage) result.message = observer.message();
@@ -33,21 +37,28 @@ export async function readBufferedClaudeAccounting(response, signal, { expectedM
 // The caller must use the bounded/deadlined raw reader, not an unbounded read loop.
 export function createBufferedClaudeUsageObserver({ maxEventBytes = ACCOUNTING_SSE_EVENT_MAX_BYTES,
   maxTotalBytes = ACCOUNTING_JSON_MAX_BYTES, maxChunkBytes = ACCOUNTING_SSE_CHUNK_MAX_BYTES,
-  maxEvents = CLAUDE_ACCOUNTING_MAX_EVENTS, expectedModel = null, captureMessage = false, onEvent = null } = {}) {
-  if (![maxEventBytes, maxTotalBytes, maxChunkBytes, maxEvents].every(value => Number.isSafeInteger(value) && value > 0) ||
+  maxEvents = CLAUDE_ACCOUNTING_MAX_EVENTS, expectedModel = null, captureMessage = false, onEvent = null,
+  allowClientTools = false, maxToolInputBytes = CLAUDE_ACCOUNTING_TOOL_INPUT_MAX_BYTES, allowCache1h = false, requireCacheTiers = false,
+  allowThinking = false, maxThinkingSignatureBytes = CLAUDE_ACCOUNTING_SIGNATURE_MAX_BYTES } = {}) {
+  if (typeof allowCache1h !== 'boolean' || typeof requireCacheTiers !== 'boolean' || requireCacheTiers && !allowCache1h ||
+      typeof allowClientTools !== 'boolean' || allowClientTools && onEvent === null || typeof allowThinking !== 'boolean' ||
+      ![maxEventBytes, maxTotalBytes, maxChunkBytes, maxEvents, maxToolInputBytes, maxThinkingSignatureBytes].every(value => Number.isSafeInteger(value) && value > 0) ||
       expectedModel !== null && (typeof expectedModel !== 'string' || !expectedModel) || typeof captureMessage !== 'boolean' || onEvent !== null && (typeof onEvent !== 'function' || captureMessage || expectedModel === null)) throw new Error('Invalid Claude accounting limits');
   const decoder = new TextDecoder('utf-8', { fatal: true });
   let total = 0, eventBytes = 0, events = 0, line = '', data = [], eventName = null, cr = false, raw = '';
   const encoder = new TextEncoder();
   let started = false, stopped = false, ended = false, invalid = false, usage = null, hadDelta = false, stopReason = null;
   let nextIndex = 0, openBlock = null, blockType = null;
-  let message = null, capturedBlock = null, partialInput = '';
+  let message = null, capturedBlock = null, partialInput = '', toolInputBytes = 0;
+  const liveTool = () => onEvent && allowClientTools && blockType === CLAUDE_BLOCK.TOOL_USE;
+  const strictThinking = () => allowThinking && blockType === CLAUDE_BLOCK.THINKING;
+  let signatureBytes = 0, signatureStarted = false;
   const content = [];
   const reject = () => { throw new Error('Invalid raw Claude accounting stream'); };
   function inspectUsage(raw) {
     if (!object(raw) || Object.keys(raw).some(key => !CLAUDE_ACCOUNTING_USAGE_FIELDS.includes(key))) reject();
     // Unlike legacy normalization, this candidate requires observed tool counters.
-    if (!Object.hasOwn(raw, 'server_tool_use') || !normalizeExactUsage(raw, FORMATS.CLAUDE)) reject();
+    if (!Object.hasOwn(raw, 'server_tool_use') || !normalizeExactUsage(raw, FORMATS.CLAUDE, 'chat', { allowCache1h, requireCacheTiers })) reject();
   }
   function inspect(frame) {
     if (!object(frame) || frame.type !== eventName || stopped || frame.error) reject();
@@ -96,10 +107,23 @@ export function createBufferedClaudeUsageObserver({ maxEventBytes = ACCOUNTING_S
     if (frame.type === EVENT.BLOCK_START) {
       if (openBlock !== null || frame.index !== nextIndex || !object(frame.content_block) ||
           ![CLAUDE_BLOCK.TEXT, CLAUDE_BLOCK.THINKING, CLAUDE_BLOCK.REDACTED_THINKING, CLAUDE_BLOCK.TOOL_USE].includes(frame.content_block.type)) reject();
-      if (onEvent && (frame.content_block.type !== CLAUDE_BLOCK.TEXT || typeof frame.content_block.text !== 'string' ||
-          Object.keys(frame.content_block).some(key => !CLAUDE_ACCOUNTING_BLOCK_FIELDS[CLAUDE_BLOCK.TEXT].includes(key)))) reject();
+      if (onEvent && frame.content_block.type !== CLAUDE_BLOCK.TEXT &&
+          !(allowClientTools && frame.content_block.type === CLAUDE_BLOCK.TOOL_USE) &&
+          !(allowThinking && [CLAUDE_BLOCK.THINKING, CLAUDE_BLOCK.REDACTED_THINKING].includes(frame.content_block.type))) reject();
+      if (onEvent || allowThinking) validateBlock(frame.content_block);
       blockType = frame.content_block.type; openBlock = frame.index;
       if (captureMessage) captureBlock(frame.content_block);
+      if (strictThinking()) {
+        signatureBytes = encoder.encode(frame.content_block.signature || '').byteLength;
+        signatureStarted = signatureBytes > 0;
+        if (signatureBytes > maxThinkingSignatureBytes) reject();
+      }
+      if (liveTool()) {
+        // Anthropic streams client-tool input as JSON fragments from an empty
+        // initial object. Never silently replace a prepopulated start object.
+        if (Object.keys(frame.content_block.input).length) reject();
+        partialInput = ''; toolInputBytes = 0;
+      }
       return;
     }
     if (frame.type === EVENT.BLOCK_DELTA) {
@@ -108,6 +132,18 @@ export function createBufferedClaudeUsageObserver({ maxEventBytes = ACCOUNTING_S
       if (!Object.hasOwn(types, frame.delta.type)) reject();
       const field = types[frame.delta.type];
       if (typeof frame.delta[field] !== 'string' || Object.keys(frame.delta).some(key => key !== 'type' && key !== field)) reject();
+      if (strictThinking()) {
+        if (field === 'signature') {
+          signatureStarted = true;
+          signatureBytes += encoder.encode(frame.delta[field]).byteLength;
+          if (signatureBytes > maxThinkingSignatureBytes) reject();
+        } else if (signatureStarted) reject();
+      }
+      if (liveTool()) {
+        toolInputBytes += encoder.encode(frame.delta[field]).byteLength;
+        if (toolInputBytes > maxToolInputBytes) reject();
+        partialInput += frame.delta[field];
+      }
       if (captureMessage) {
         if (blockType === CLAUDE_BLOCK.TOOL_USE) partialInput += frame.delta[field];
         else capturedBlock[field] = (capturedBlock[field] || '') + frame.delta[field];
@@ -116,6 +152,15 @@ export function createBufferedClaudeUsageObserver({ maxEventBytes = ACCOUNTING_S
     }
     if (frame.type === EVENT.BLOCK_STOP) {
       if (openBlock === null || frame.index !== openBlock) reject();
+      if (strictThinking() && !signatureBytes) reject();
+      if (liveTool()) {
+        if (partialInput) {
+          let input;
+          try { input = JSON.parse(partialInput); } catch { reject(); }
+          if (!object(input)) reject();
+        }
+        partialInput = ''; toolInputBytes = 0;
+      }
       if (captureMessage) {
         if (blockType === CLAUDE_BLOCK.TOOL_USE && partialInput) {
           let input;
@@ -133,13 +178,16 @@ export function createBufferedClaudeUsageObserver({ maxEventBytes = ACCOUNTING_S
     message = { id: raw.id, type: raw.type, role: raw.role, model: raw.model,
       content, stop_reason: null, stop_sequence: null, usage: null };
   }
-  function captureBlock(raw) {
+  function validateBlock(raw) {
     const fields = CLAUDE_ACCOUNTING_BLOCK_FIELDS[raw.type];
     if (Object.keys(raw).some(key => !fields.includes(key))) reject();
     if (raw.type === CLAUDE_BLOCK.TEXT && typeof raw.text !== 'string' ||
         raw.type === CLAUDE_BLOCK.THINKING && (typeof raw.thinking !== 'string' || raw.signature !== undefined && typeof raw.signature !== 'string') ||
         raw.type === CLAUDE_BLOCK.REDACTED_THINKING && typeof raw.data !== 'string' ||
         raw.type === CLAUDE_BLOCK.TOOL_USE && (typeof raw.id !== 'string' || !raw.id || typeof raw.name !== 'string' || !raw.name || !object(raw.input))) reject();
+  }
+  function captureBlock(raw) {
+    validateBlock(raw);
     capturedBlock = structuredClone(raw); partialInput = '';
   }
   function dispatch() {
@@ -213,7 +261,7 @@ export function createBufferedClaudeUsageObserver({ maxEventBytes = ACCOUNTING_S
         if (cr) { cr = false; endLine(); }
         if (line) endLine();
         if (data.length || eventName !== null || raw) dispatch();
-        return stopped ? normalizeExactUsage(usage, FORMATS.CLAUDE) : null;
+        return stopped ? normalizeExactUsage(usage, FORMATS.CLAUDE, 'chat', { allowCache1h, requireCacheTiers }) : null;
       } catch (error) { invalid = true; throw error; }
     },
   };

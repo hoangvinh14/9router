@@ -26,6 +26,26 @@ describe('accounting group plain-data security boundary', () => {
     class Commands extends Array {}
     expect(() => snapshotAccountingGroup(new Commands({ type: 'insert', input: {} }))).toThrow();
   });
+  it('retains shared siblings as separate frozen copies, null prototypes and invalid-member isolation', () => {
+    const shared = { value: 'dummy' }, nullRecord = Object.assign(Object.create(null), { value: 'dummy-null' });
+    const result = snapshotAccountingGroup([{ a: shared, b: shared, nullRecord }, { input: undefined }, { input: NaN }, { input: Infinity }, { valid: true }]);
+    expect(result).toEqual([{ a: { value: 'dummy' }, b: { value: 'dummy' }, nullRecord: { value: 'dummy-null' } },
+      { type: 'invalid' }, { type: 'invalid' }, { type: 'invalid' }, { valid: true }]);
+    expect(result[0].a).not.toBe(result[0].b); expect(Object.isFrozen(result[0].nullRecord)).toBe(true);
+  });
+  it.each(['hole', 'hidden', 'symbol', 'extra-array', 'forbidden-key', 'too-many-members', 'too-many-nodes', 'too-many-bytes', 'too-deep'])('retains complete structural refusal for %s', mode => {
+    let commands = [{ input: ['dummy'] }];
+    if (mode === 'hole') commands[0].input = [1, , 2];
+    if (mode === 'hidden') Object.defineProperty(commands[0].input, '0', { value: 'dummy', enumerable: false });
+    if (mode === 'symbol') commands[0].input[Symbol('dummy')] = 1;
+    if (mode === 'extra-array') commands[0].input.extra = 'dummy';
+    if (mode === 'forbidden-key') commands[0].input = { constructor: 'dummy' };
+    if (mode === 'too-many-members') commands = Array.from({ length: 33 }, () => ({ input: 'dummy' }));
+    if (mode === 'too-many-nodes') commands[0].input = Array.from({ length: 10001 }, () => 1);
+    if (mode === 'too-many-bytes') commands[0].input = 'x'.repeat(262145);
+    if (mode === 'too-deep') { let value = 'dummy'; for (let i = 0; i < 17; i++) value = { nested: value }; commands[0].input = value; }
+    expect(() => snapshotAccountingGroup(commands)).toThrow('Accounting group payload unavailable');
+  });
   it('never invokes getters/toJSON/functions and rejects cyclic/forbidden object material', () => {
     const callback = vi.fn(() => 'not data');
     const accessor = {}; Object.defineProperty(accessor, 'input', { enumerable: true, get: callback });

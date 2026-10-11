@@ -12,6 +12,11 @@ import { stripUnsupportedParams } from "../translator/concerns/paramSupport.js";
 import { SSE_DONE } from "../utils/sseConstants.js";
 import { ANTHROPIC_API_VERSION } from "../providers/shared.js";
 import crypto from "crypto";
+import { ACCOUNTED_GITHUB_RESPONSES_MODE } from '../config/accountedGithubResponsesCandidate.js';
+import { executeAccountedResponsesCandidate } from './accountedResponses.js';
+import { ACCOUNTED_GITHUB_MESSAGES_MODE } from '../config/accountedGithubMessagesCandidate.js';
+import { ACCOUNTED_GITHUB_CHAT_MESSAGES_MODE } from '../config/accountedGithubChatMessagesCandidate.js';
+import { executeAccountedGithubMessagesCandidate } from './accountedGithubMessages.js';
 
 export class GithubExecutor extends BaseExecutor {
   constructor() {
@@ -29,7 +34,7 @@ export class GithubExecutor extends BaseExecutor {
     return /claude/i.test(model || "");
   }
 
-  buildUrl(model, stream, urlIndex = 0) {
+  buildUrl() {
     return this.config.baseUrl;
   }
 
@@ -95,7 +100,7 @@ export class GithubExecutor extends BaseExecutor {
     return /gpt-5|o[134]-/i.test(model);
   }
 
-  transformRequest(model, body, stream, credentials) {
+  transformRequest(model, body) {
     const transformed = { ...body };
     if (this.requiresMaxCompletionTokens(model) && transformed.max_tokens !== undefined) {
       transformed.max_completion_tokens = transformed.max_tokens;
@@ -121,6 +126,22 @@ export class GithubExecutor extends BaseExecutor {
   }
 
   async execute(options) {
+    if (options.accounting && options.accountingMode === ACCOUNTED_GITHUB_CHAT_MESSAGES_MODE) {
+      options.signal?.throwIfAborted();
+      const result = await executeAccountedGithubMessagesCandidate(this, options, (body, credentials) =>
+        translateRequest(FORMATS.OPENAI, FORMATS.CLAUDE, options.model, body, true, credentials, 'github'));
+      if (!result.response.ok) return result;
+      try { return { ...result, response: this.convertMessagesResponse(result.response, options.model, true) }; }
+      catch (error) { await result.response.body?.cancel(error); throw error; }
+    }
+    if (options.accounting && options.accountingMode === ACCOUNTED_GITHUB_MESSAGES_MODE) {
+      options.signal?.throwIfAborted();
+      return executeAccountedGithubMessagesCandidate(this, options);
+    }
+    if (options.accounting && options.accountingMode === ACCOUNTED_GITHUB_RESPONSES_MODE) {
+      options.signal?.throwIfAborted();
+      return executeAccountedResponsesCandidate(this, options);
+    }
     const { model, log } = options;
 
     // Claude models: route to Copilot's Anthropic-native /v1/messages shim — the only
@@ -278,6 +299,12 @@ export class GithubExecutor extends BaseExecutor {
       return { response, url, headers, transformedBody };
     }
 
+    return { response: this.convertMessagesResponse(response, model, stream, toolNameMap), url, headers, transformedBody };
+  }
+
+  // Internal accounting path supplies only raw bytes already gated by its own
+  // Claude parser/terminal ACK. Conversion never supplies accounting evidence.
+  convertMessagesResponse(response, model, stream, toolNameMap = null) {
     const state = initState(FORMATS.CLAUDE);
     state.model = model;
     if (toolNameMap) state.toolNameMap = toolNameMap;
@@ -324,20 +351,14 @@ export class GithubExecutor extends BaseExecutor {
     });
 
     if (!response.body) {
-      return { response: new Response("", { status: response.status, headers: response.headers }), url, headers, transformedBody };
+      return new Response("", { status: response.status, headers: response.headers });
     }
     const convertedStream = response.body.pipeThrough(transformStream);
-
-    return {
-      response: new Response(convertedStream, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers
-      }),
-      url,
-      headers,
-      transformedBody
-    };
+    return new Response(convertedStream, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers
+    });
   }
 
   async refreshCopilotToken(githubAccessToken, log, proxyOptions = null) {

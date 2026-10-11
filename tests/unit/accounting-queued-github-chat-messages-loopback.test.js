@@ -1,0 +1,134 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import http from 'node:http';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { GithubExecutor } from 'open-sse/executors/github.js';
+const fixture = vi.hoisted(() => ({ url: null }));
+// Only both candidate+registry replacements grant this exact owned HTTP route.
+// No production customURL/TLS/refresh exception; real nativefetch/proxy/database.
+vi.mock('../../open-sse/config/accountedGithubMessagesCandidate.js', async importOriginal => {
+  const original = await importOriginal(); return { ...original, get ACCOUNTED_GITHUB_MESSAGES_URL() { return fixture.url; } };
+});
+vi.mock('../../open-sse/config/providers.js', async importOriginal => {
+  const original = await importOriginal(); return { ...original, PROVIDERS: { ...original.PROVIDERS, get github() { return { ...original.PROVIDERS.github, messagesUrl: fixture.url }; } } };
+});
+let directory, db, server, requests, failure, responder, createAccounting;
+const old = process.env.DATA_DIR, model = 'claude-sonnet-4.6';
+const specific = () => ({ copilotToken: 'dummy-copilot-token' });
+const requestBody = () => ({ model, messages: [{ role: 'user', content: 'fixture' }], max_tokens: 100, stream: true });
+const event = (type, payload = {}) => `event: ${type}\ndata: ${JSON.stringify({ type, ...payload })}\n\n`;
+const wire = () => event('message_start', { message: { type: 'message', id: 'msg_fixture', role: 'assistant', model, content: [],
+  usage: { input_tokens: 50, output_tokens: 0, cache_read_input_tokens: 40, cache_creation_input_tokens: 10,
+    cache_creation: { ephemeral_5m_input_tokens: 10, ephemeral_1h_input_tokens: 0 }, server_tool_use: { web_search_requests: 0 } } } }) +
+  event('content_block_start', { index: 0, content_block: { type: 'text', text: '' } }) +
+  event('content_block_delta', { index: 0, delta: { type: 'text_delta', text: 'fixture output' } }) + event('content_block_stop', { index: 0 }) +
+  event('message_delta', { delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 20 } }) + event('message_stop');
+const options = accounting => ({ model, body: requestBody(), stream: true, connectionId: 'c', accountingMode: 'chat-github-messages-sse', accounting,
+  credentials: { accessToken: 'dummy-github-oauth', copilotToken: 'dummy-copilot-token', connectionId: 'c', providerSpecificData: specific() },
+  proxyOptions: { persistedGlobalProxy: { url: 'http://127.0.0.1:1', noProxy: '127.0.0.1' } } });
+beforeEach(async () => {
+  vi.resetModules(); directory = fs.mkdtempSync(path.join(os.tmpdir(), '9router-native-github-chat-messages-')); process.env.DATA_DIR = directory; delete global._dbAdapter;
+  db = await (await import('@/lib/db/driver.js')).getAdapter();
+  await (await import('@/lib/db/index.js')).importDb({ apiKeys: [{ id: 'a', key: 'dummy-key-a' }],
+    settings: { requireApiKey: true, outboundProxyEnabled: true, outboundProxyUrl: 'http://127.0.0.1:1', outboundNoProxy: '127.0.0.1' },
+    providerConnections: [{ id: 'c', provider: 'github', authType: 'oauth', accessToken: 'dummy-github-oauth', providerSpecificData: specific() }] });
+  db.durableTransaction(() => {
+    db.run("INSERT INTO _meta(key,value) VALUES('ledgerStartedAt','2026-10-03T00:00:00.000Z')");
+    db.run("INSERT INTO kv(scope,key,value) VALUES('pricing','github',?)", [JSON.stringify({ [model]: { input: '1', output: '2', cached: '0.1', cache_creation: '1.25' } })]);
+  });
+  requests = []; failure = null;
+  responder = (_request, response) => { response.writeHead(200, { 'content-type': 'text/event-stream' }); response.end(wire()); };
+  server = http.createServer(async (request, response) => {
+    try {
+      const chunks = []; for await (const chunk of request) chunks.push(chunk);
+      requests.push({ method: request.method, url: request.url, body: JSON.parse(Buffer.concat(chunks).toString()), headers: request.headers,
+        row: db.get('SELECT requestId,state FROM apiKeyAccounting') });
+      await responder(request, response);
+    } catch (error) { failure = error; response.writeHead(500, { 'content-type': 'application/json' }); response.end(JSON.stringify({ error: 'fixture failed' })); }
+  });
+  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
+  fixture.url = `http://127.0.0.1:${server.address().port}/github/chat-messages`;
+  createAccounting = () => import('@/lib/apiKeyBudget/requestAccounting.js').then(({ createRequestAccounting }) => createRequestAccounting(
+    new Request('http://localhost/v1/chat/completions', { headers: { Authorization: 'Bearer dummy-key-a' } }), { adapter: async () => db, queued: true }));
+});
+afterEach(async () => {
+  server?.closeAllConnections(); if (server?.listening) await new Promise(resolve => server.close(resolve));
+  vi.restoreAllMocks(); db?.close(); delete global._dbAdapter; fs.rmSync(directory, { recursive: true, force: true });
+  if (old === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = old;
+});
+const rows = () => db.all('SELECT state,costNanoUsd FROM apiKeyAccounting');
+describe('owned HTTP Chat→GitHub Messages (narrow conversion, not TLS/refresh/general models approval)', { timeout: 20000 }, () => {
+  it('actual converted wire uses original Copilot fingerprint and pending/original106500 price', async () => {
+    const context = await createAccounting(), args = options(context); let expectedHeaders, expectedBody;
+    const accounting = { ...context, beforeAttempt(meta, supported, original) {
+      expect(original.protocol).toBe('chat-github-messages'); expect(Reflect.set(original.headers, 'authorization', 'Bearer changed')).toBe(false);
+      expect(JSON.parse(original.githubChatMessagesTransport.originalSerializedBody)).toEqual(requestBody());
+      expectedHeaders = original.headers; expectedBody = JSON.parse(original.githubChatMessagesTransport.serializedBody);
+      expect(expectedBody.messages).toEqual([{ role: 'user', content: [{ type: 'text', text: 'fixture' }] }]);
+      expect(expectedBody.system.at(-1).cache_control).toEqual({ type: 'ephemeral', ttl: '1h' });
+      const work = context.beforeAttempt(meta, supported, original);
+      args.credentials.accessToken = 'changed'; args.credentials.copilotToken = args.credentials.providerSpecificData.copilotToken = 'changed'; args.body.messages[0].content = 'changed'; return work;
+    } };
+    responder = (_request, response) => {
+      db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='github'", [JSON.stringify({ [model]: { input: '9', output: '9', cached: '9', cache_creation: '9' } })]));
+      response.writeHead(200, { 'content-type': 'text/event-stream' }); response.end(wire());
+    };
+    const executor = new GithubExecutor(), refresh = vi.spyOn(executor, 'refreshCredentials').mockImplementation(() => { throw new Error('Fixture disallows refresh'); });
+    const legacy = vi.spyOn(executor, 'executeWithMessagesEndpoint').mockImplementation(() => { throw new Error('Fixture denies unowned conversion'); });
+    const result = await executor.execute({ ...args, accounting }), converted = await result.response.text();
+    expect(converted).toContain('fixture output'); expect(converted).toContain('"finish_reason":"stop"'); expect(converted).not.toContain('event: message_stop');
+    expect(failure).toBeNull(); expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({ method: 'POST', url: '/github/chat-messages', body: expectedBody, headers: expectedHeaders, row: { requestId: context.requestId, state: 'pending' } });
+    expect(requests[0].headers.authorization).toBe('Bearer dummy-copilot-token'); expect(requests[0].headers['x-request-id']).toMatch(/^[a-f0-9-]{36}$/);
+    expect(rows()).toEqual([{ state: 'settled', costNanoUsd: 106500 }]); expect(db.coverage.status('a').gaps).toHaveLength(0);
+    expect(refresh).not.toHaveBeenCalled(); expect(legacy).not.toHaveBeenCalled();
+  });
+  it('converted finish/usage and EOF wait raw owner ACK after actual consumer delta', async () => {
+    const context = await createAccounting(); let enter, release, deltaRead;
+    const entered = new Promise(resolve => { enter = resolve; }), held = new Promise(resolve => { release = resolve; }), delta = new Promise(resolve => { deltaRead = resolve; });
+    const accounting = { ...context, async completeAttempt(attempt, completion) { enter(); await held; return context.completeAttempt(attempt, completion); } };
+    const result = await new GithubExecutor().execute(options(accounting)); let delivered = '', ended = false;
+    const consume = (async () => { const reader = result.response.body.getReader(), decoder = new TextDecoder();
+      try { for (;;) { const chunk = await reader.read(); if (chunk.done) break; delivered += decoder.decode(chunk.value, { stream: true }); if (delivered.includes('fixture output')) deltaRead(); } delivered += decoder.decode(); ended = true; }
+      finally { reader.releaseLock(); }
+    })();
+    try {
+      await entered; await delta; expect(ended).toBe(false); expect(delivered).toContain('fixture output');
+      expect(delivered).not.toContain('"finish_reason":"stop"'); expect(delivered).not.toContain('"usage":'); expect(delivered).not.toContain('[DONE]');
+      expect(requests).toHaveLength(1); expect(rows()).toEqual([{ state: 'pending', costNanoUsd: null }]);
+    } finally { release(); await consume; }
+    const chunks = delivered.split('\n').filter(line => line.startsWith('data: ')).map(line => JSON.parse(line.slice(6)));
+    const terminal = chunks.filter(chunk => chunk.choices?.[0]?.finish_reason === 'stop');
+    expect(ended).toBe(true); expect(terminal).toHaveLength(1); expect(terminal[0].usage).toMatchObject({ prompt_tokens: 100, completion_tokens: 20, total_tokens: 120 });
+    expect(delivered).not.toContain('[DONE]'); expect(failure).toBeNull(); expect(rows()).toEqual([{ state: 'settled', costNanoUsd: 106500 }]);
+  });
+  it('missing raw message_stop rejects converted delivery then separately awaits unresolved ACK', async () => {
+    const context = await createAccounting(); let acknowledged;
+    const ack = new Promise(resolve => { acknowledged = resolve; });
+    const accounting = { ...context, async completeAttempt(attempt, completion) { const result = await context.completeAttempt(attempt, completion); acknowledged(); return result; } };
+    responder = (_request, response) => { response.writeHead(200, { 'content-type': 'text/event-stream' }); response.end(wire().split('event: message_stop')[0]); };
+    const result = await new GithubExecutor().execute(options(accounting));
+    await expect(result.response.text()).rejects.toThrow('Gateway accounting stream unavailable'); await ack;
+    expect(failure).toBeNull(); expect(requests).toHaveLength(1); expect(rows()).toEqual([{ state: 'unresolved', costNanoUsd: null }]); expect(db.coverage.status('a').gaps).toHaveLength(0);
+  });
+  it.each(['accessToken', 'copilotToken'])('persisted %s drift at dequeue refuses zero socket POST/intent/gap', async kind => {
+    const context = await createAccounting(), executor = new GithubExecutor();
+    const refresh = vi.spyOn(executor, 'refreshCredentials').mockImplementation(() => { throw new Error('Fixture disallows refresh'); });
+    const accounting = { ...context, beforeAttempt(meta, supported, original) {
+      expect(original.protocol).toBe('chat-github-messages'); const work = context.beforeAttempt(meta, supported, original);
+      db.durableTransaction(() => {
+        const data = JSON.parse(db.get('SELECT data FROM providerConnections WHERE id=?', ['c']).data);
+        if (kind === 'accessToken') data.accessToken = 'dummy-new'; else data.providerSpecificData.copilotToken = 'dummy-new';
+        db.run('UPDATE providerConnections SET data=? WHERE id=?', [JSON.stringify(data), 'c']);
+      }); return work;
+    } };
+    await expect(executor.execute(options(accounting))).rejects.toMatchObject({ code: 'api_key_accounting_unavailable' });
+    expect(requests).toHaveLength(0); expect(db.all('SELECT * FROM apiKeyAccounting')).toHaveLength(0); expect(db.coverage.status('a').gaps).toHaveLength(0); expect(refresh).not.toHaveBeenCalled();
+  });
+  it('307 refuses converted path replay with one POST and sole unresolved ACK', async () => {
+    responder = (_request, response) => { response.writeHead(307, { location: fixture.url }); response.end(); };
+    await expect(new GithubExecutor().execute(options(await createAccounting()))).rejects.toThrow();
+    expect(failure).toBeNull(); expect(requests).toHaveLength(1); expect(rows()).toEqual([{ state: 'unresolved', costNanoUsd: null }]); expect(db.coverage.status('a').gaps).toHaveLength(0);
+  });
+});

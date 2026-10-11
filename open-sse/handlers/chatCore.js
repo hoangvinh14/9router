@@ -30,7 +30,8 @@ import { compressMessages, formatRtkLog } from "../rtk/index.js";
 import { compressWithHeadroom, formatHeadroomLog, formatHeadroomSizeLog, isHeadroomPhantomSavings } from "../rtk/headroom.js";
 import { compressWithPxpipe } from "../rtk/pxpipe.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
-import { isAccountedOpenaiChatProvider } from '../config/accountedChatProviders.js';
+import { isAccountedOpenaiChatProvider, supportsUnhealthyChatRequest } from '../config/accountedChatProviders.js';
+import { snapshotAccountingPreparedData } from '../config/accountedBaseDispatch.js';
 import { ACCOUNTED_ANTHROPIC_CANDIDATE_MODE, ACCOUNTED_ANTHROPIC_LIVE_MODE, supportsAnthropicLiveRequest } from '../config/accountedAnthropicCandidate.js';
 import { ACCOUNTED_RESPONSES_MODE, ACCOUNTED_RESPONSES_SSE_MODE, supportsResponsesRequest } from '../config/accountedResponsesCandidate.js';
 import { ACCOUNTED_CODEX_SSE_MODE, supportsCodexRequest } from '../config/accountedCodexCandidate.js';
@@ -69,6 +70,34 @@ export function stripContinuityFields(body) {
 
 export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, providerOverrides, accounting = null, signal = null, persistedGlobalProxy = undefined, persistedPoolProxy = undefined }) {
   const { provider, model } = modelInfo;
+  // Explicit internal unhealthy owner only. Validate the complete original
+  // before bypass/normalization/savers can erase unsupported fields. Text-only
+  // requests need no format translation; preserve exactly the gateway model swap.
+  if (accounting?.requiresUnhealthyChatWire === true) {
+    accounting.gate();
+    const original = snapshotAccountingPreparedData({ body, credentials,
+      providerOverrides: providerOverrides ?? null,
+      persistedGlobalProxy: persistedGlobalProxy ?? null, persistedPoolProxy: persistedPoolProxy ?? null });
+    accounting.assertSupported(provider === 'openai' && sourceFormatOverride === FORMATS.OPENAI &&
+      persistedGlobalProxy !== undefined && original.body &&
+      [model, `${provider}/${model}`].includes(original.body.model) &&
+      supportsUnhealthyChatRequest({ ...original.body, model }, model) &&
+      !headroomEnabled && !pxpipeEnabled && !cavemanEnabled && !ponytailEnabled &&
+      (!providerThinking?.mode || providerThinking.mode === 'auto'));
+    const pool = original.persistedPoolProxy;
+    const proxyOptions = { connectionProxyEnabled: !!pool, connectionProxyUrl: pool ? pool.url : '',
+      connectionNoProxy: pool ? pool.noProxy : '', strictProxy: pool ? pool.strictProxy : false,
+      proxyPoolUnavailable: false, proxyPoolId: pool ? pool.id : null, vercelRelayUrl: '',
+      persistedGlobalProxy: original.persistedGlobalProxy, ...(pool ? { persistedPoolProxy: pool } : {}) };
+    const result = await getExecutor(provider).execute({ model, body: { ...original.body, model }, stream: false,
+      credentials: original.credentials, signal, accounting, connectionId, log, proxyOptions,
+      providerOverrides: original.providerOverrides });
+    // Owner already owns completion and terminal authority. Never meter again,
+    // refresh OAuth, rebuild a successor or normalize raw failures into success.
+    accounting.assertSupported(result.accountingOwned === true);
+    signal?.throwIfAborted();
+    return { success: result.response.ok, response: result.response };
+  }
   const requestStartTime = Date.now();
   // Stable per-session color so all lines of one CLI conversation share a tag
   const sessionSeed = (() => {

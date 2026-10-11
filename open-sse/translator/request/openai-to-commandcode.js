@@ -16,6 +16,7 @@ import { randomUUID } from "crypto";
 import { ROLE, OPENAI_BLOCK, CLAUDE_BLOCK } from "../schema/index.js";
 import { DEFAULT_MAX_TOKENS } from "../../config/runtimeConfig.js";
 import { parseDataUri, encodeDataUri } from "../concerns/image.js";
+import { captureAccountingCommandCodeRuntime } from '../../config/accountedCommandCodeRuntime.js';
 
 function flattenText(content) {
   if (content == null) return "";
@@ -182,7 +183,10 @@ function convertTools(tools) {
   return result.length ? result : undefined;
 }
 
-export function openaiToCommandCodeRequest(model, body, stream /* , credentials */) {
+export function openaiToCommandCodeRequest(model, body, stream, _credentials, retainedRuntime) {
+  // Internal explicit runtime only. Reject malformed input before conversion;
+  // omission preserves the legacy ambient behavior and its existing callers.
+  const runtime = retainedRuntime === undefined ? null : captureAccountingCommandCodeRuntime(retainedRuntime);
   const { messages, system } = convertMessages(body.messages);
   const params = {
     model,
@@ -198,15 +202,15 @@ export function openaiToCommandCodeRequest(model, body, stream /* , credentials 
   if (tools) params.tools = tools;
   if (body.top_p != null) params.top_p = body.top_p;
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = runtime ? runtime.date : new Date().toISOString().slice(0, 10);
 
   return {
     threadId: randomUUID(),
     memory: "",
     config: {
-      workingDir: process.cwd(),
+      workingDir: runtime ? runtime.workingDir : process.cwd(),
       date: today,
-      environment: process.platform,
+      environment: runtime ? runtime.environment : process.platform,
       structure: [],
       isGitRepo: false,
       currentBranch: "",

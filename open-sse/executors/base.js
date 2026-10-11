@@ -7,7 +7,8 @@ import { ANTHROPIC_API_VERSION, OPENAI_COMPAT_BASE, ANTHROPIC_COMPAT_BASE } from
 import { resolveOpenAICompatibleApiType } from "../services/provider.js";
 import { executeAccountedBase } from "./accountedBase.js";
 import { executeAccountedAnthropicCandidate } from "./accountedAnthropic.js";
-import { ACCOUNTED_ANTHROPIC_CANDIDATE_MODE, ACCOUNTED_ANTHROPIC_LIVE_MODE } from "../config/accountedAnthropicCandidate.js";
+import { ACCOUNTED_ANTHROPIC_MODES } from "../config/accountedAnthropicCandidate.js";
+import { ACCOUNTED_CLAUDE_OAUTH_MODE } from '../config/accountedClaudeOauth.js';
 import { executeAccountedResponsesCandidate } from './accountedResponses.js';
 import { ACCOUNTED_RESPONSES_MODE, ACCOUNTED_RESPONSES_SSE_MODE } from '../config/accountedResponsesCandidate.js';
 import { executeAccountedGeminiCandidate } from './accountedGemini.js';
@@ -144,7 +145,7 @@ export class BaseExecutor {
     signal?.throwIfAborted();
     // Explicit internal candidate entry only. App eligibility remains separate;
     // do not strip registry beta semantics or fall through on local rejection.
-    if (accounting && [ACCOUNTED_ANTHROPIC_CANDIDATE_MODE, ACCOUNTED_ANTHROPIC_LIVE_MODE].includes(accountingMode)) {
+    if (accounting && (ACCOUNTED_ANTHROPIC_MODES.includes(accountingMode) || accountingMode === ACCOUNTED_CLAUDE_OAUTH_MODE)) {
       return executeAccountedAnthropicCandidate(this, { model, body, stream, credentials, signal, log, proxyOptions, providerOverrides, accounting, connectionId, accountingMode });
     }
     if (accounting && [ACCOUNTED_RESPONSES_MODE, ACCOUNTED_RESPONSES_SSE_MODE].includes(accountingMode)) {
