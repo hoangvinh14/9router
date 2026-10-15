@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createAccountingClaudeSseParser } from 'open-sse/utils/accountingClaudeSseParser.js';
 import { supportsClaudeOauthOriginal, prepareAccountingClaudeOauthBody } from 'open-sse/config/accountedClaudeOauth.js';
 import { supportsAnthropicLiveRequest } from 'open-sse/config/accountedAnthropicCandidate.js';
+import { prepareClaudeRequest } from 'open-sse/translator/formats/claude.js';
 const enc = new TextEncoder();
 const event = (type, value = {}) => `event: ${type}\ndata: ${JSON.stringify({ type, ...value })}\n\n`;
 const usage = { input_tokens: 50, output_tokens: 0, cache_read_input_tokens: 40, cache_creation_input_tokens: 10, cache_creation: { ephemeral_5m_input_tokens: 5, ephemeral_1h_input_tokens: 5 }, server_tool_use: { web_search_requests: 0 } };
@@ -58,6 +59,40 @@ describe('explicit queued OAuth thinking original and raw evidence, not server-t
     const prepared = prepareAccountingClaudeOauthBody(original, 'sk-ant-oat-dummy');
     expect(prepared.thinking).toEqual(original.thinking); expect(prepared.output_config).toEqual(original.output_config);
     expect(prepared.messages[1].content[0]).toEqual(original.messages[1].content[0]);
+  });
+  it.each(['with-text', 'only-redacted', 'tool-loop'])('original opaque redacted history %s survives queued production transform with no invented signature', mode => {
+    const original = request();
+    original.messages[1].content = [{ type: 'redacted_thinking', data: 'opaque-original🙂' }, ...(mode === 'only-redacted' ? [] : [{ type: 'text', text: 'answer' }])];
+    if (mode === 'tool-loop') {
+      original.tools = [{ name: 'lookup', input_schema: { type: 'object' } }];
+      original.messages[1].content.push({ type: 'tool_use', id: 'use', name: 'lookup', input: {} });
+      original.messages[2].content = [{ type: 'tool_result', tool_use_id: 'use', is_error: true, content: 'original error' }];
+    }
+    expect(supportsAnthropicLiveRequest(original, original.model, true, true)).toBe(false);
+    expect(supportsClaudeOauthOriginal(original, original.model)).toBe(true);
+    const prepared = prepareAccountingClaudeOauthBody(original, 'sk-ant-oat-dummy');
+    expect(prepared.messages[1].content[0]).toEqual(original.messages[1].content[0]);
+    expect(prepared.messages[1].content.some(block => block.type === 'thinking')).toBe(false);
+  });
+  it('ordinary transform retains legacy cleanup; accounting preservation is explicit and Claude-only', () => {
+    const original = request(); original.messages[1].content[0] = { type: 'redacted_thinking', data: 'opaque-original' };
+    for (const flag of [undefined, false, 'true']) {
+      const body = prepareClaudeRequest(structuredClone(original), 'claude', 'sk-ant-oat-dummy', null, null, 'fixture-session', flag);
+      expect(body.messages[1].content.some(block => block.type === 'redacted_thinking')).toBe(false);
+    }
+    const preserved = prepareClaudeRequest(structuredClone(original), 'claude', 'sk-ant-oat-dummy', null, null, 'fixture-session', true);
+    expect(preserved.messages[1].content[0]).toEqual(original.messages[1].content[0]);
+    const compatible = prepareClaudeRequest(structuredClone(original), 'anthropic-compatible-fixture', null, null, null, null, true);
+    expect(compatible.messages[1].content[0]).not.toEqual(original.messages[1].content[0]);
+  });
+  it.each(['signature', 'empty', 'unknown', 'wrong-role', 'after-text'])('invalid redacted original %s remains refused without normalization', mode => {
+    const original = request(), block = { type: 'redacted_thinking', data: 'opaque' }; original.messages[1].content[0] = block;
+    if (mode === 'signature') block.signature = 'EgAB';
+    if (mode === 'empty') block.data = '';
+    if (mode === 'unknown') block.hidden = true;
+    if (mode === 'wrong-role') original.messages[1].role = 'user';
+    if (mode === 'after-text') original.messages[1].content.reverse();
+    expect(supportsClaudeOauthOriginal(original, original.model)).toBe(false);
   });
   it.each(['foreign-signature', 'budget-range', 'unknown-thinking', 'unknown-output', 'erased-budget'])('original %s cannot be normalized into support', mode => {
     const original = request();

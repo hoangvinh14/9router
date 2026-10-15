@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest';
+import { retainKeyBindings } from '@/lib/db/helpers/apiKeyBindings.js';
+import { getAccountingWriteCoordinator } from '@/lib/apiKeyBudget/accountingWriteCoordinator.js';
 
 const network = vi.hoisted(() => vi.fn());
 vi.mock('open-sse/utils/proxyFetch.js', () => ({ proxyAwareFetch: (...args) => network(...args) }));
@@ -16,18 +18,25 @@ beforeEach(async () => {
   network.mockReset(); vi.resetModules(); directory = fs.mkdtempSync(path.join(os.tmpdir(), '9router-queued-responses-'));
   process.env.DATA_DIR = directory; delete global._dbAdapter;
   db = await (await import('@/lib/db/driver.js')).getAdapter();
-  await (await import('@/lib/db/index.js')).importDb({ apiKeys: [{ id: 'a', key: 'dummy-key-a' }], settings: { requireApiKey: true },
-    providerConnections: [{ id: 'c', provider: 'openai', authType: 'apikey', apiKey: 'dummy-provider' }] });
+  // Responses wire/settlement fixture, not config import/restore acceptance.
+  // Preserve the real driver, durable transactions and protected key binding.
+  const timestamp = '2026-10-03T00:00:00.000Z';
+  const keys = [{ id: 'a', key: 'dummy-key-a', createdAt: timestamp }];
   db.durableTransaction(() => {
-    db.run("INSERT INTO _meta(key,value) VALUES('ledgerStartedAt','2026-10-03T00:00:00.000Z')");
+    if (db.get('SELECT id FROM apiKeys') || db.get('SELECT id FROM providerConnections') || db.get("SELECT value FROM _meta WHERE key='ledgerStartedAt'")) throw new Error('Responses fixture requires fresh disposable DB');
+    db.run('INSERT INTO apiKeys(id,key,isActive,createdAt) VALUES(?,?,1,?)', ['a', 'dummy-key-a', timestamp]);
+    retainKeyBindings(db, db.coverage, keys);
+    db.run('INSERT INTO settings(id,data) VALUES(1,?)', [JSON.stringify({ requireApiKey: true })]);
+    db.run('INSERT INTO providerConnections(id,provider,authType,isActive,data,createdAt,updatedAt) VALUES(?,?,?,?,?,?,?)', ['c', 'openai', 'apikey', 1, JSON.stringify({ apiKey: 'dummy-provider' }), timestamp, timestamp]);
+    db.run("INSERT INTO _meta(key,value) VALUES('ledgerStartedAt',?)", [timestamp]);
     db.run("INSERT INTO kv(scope,key,value) VALUES('pricing','openai',?)", [JSON.stringify({ 'fixture-responses': { input: '1', output: '2', cached: '0.1', reasoning: '2' } })]);
   });
   ({ DefaultExecutor } = await import('open-sse/executors/default.js'));
   createAccounting = () => import('@/lib/apiKeyBudget/requestAccounting.js').then(({ createRequestAccounting }) => createRequestAccounting(
     new Request('http://localhost/v1/responses', { headers: { Authorization: 'Bearer dummy-key-a' } }), { adapter: async () => db, queued: true }));
 });
-afterEach(() => {
-  vi.restoreAllMocks(); db?.close(); delete global._dbAdapter; fs.rmSync(directory, { recursive: true, force: true });
+afterEach(async () => {
+  vi.restoreAllMocks(); if (db) await getAccountingWriteCoordinator(db).stop(); db?.close(); delete global._dbAdapter; fs.rmSync(directory, { recursive: true, force: true });
   if (old === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = old;
 });
 describe('queued API-key Responses prepared owner (mock POST, not OAuth/general Responses acceptance)', { timeout: 20000 }, () => {

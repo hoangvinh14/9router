@@ -1,3 +1,5 @@
+import { ACCOUNTED_ANTHROPIC_DYNAMIC_MODE } from './accountingClaudeDynamicModes.js';
+import { supportsClaudeDynamicOriginal } from './accountingClaudeDynamicOriginal.js';
 import { FORMATS } from '../translator/formats.js';
 import { CLAUDE_BLOCK } from '../translator/schema/blocks.js';
 import { ROLE } from '../translator/schema/roles.js';
@@ -7,6 +9,10 @@ import anthropicRegistry from '../providers/registry/anthropic.js';
 import { CLAUDE_ACCOUNTING_THINKING_TYPES, CLAUDE_ACCOUNTING_THINKING_DISPLAYS, CLAUDE_ACCOUNTING_EFFORTS } from './accountingClaudeSchema.js';
 import { isValidClaudeSignature } from '../utils/claudeSignature.js';
 import { supportsClaudeInlineMedia } from './accountingClaudeMedia.js';
+import { captureClaudeCitationDocuments, supportsClaudeDocumentCitation } from './accountingClaudeCitations.js';
+import { supportsClaudeSearchResult, captureClaudeSearchResults, supportsClaudeSearchCitation } from './accountingClaudeSearchResults.js';
+import { supportsClaudeServerFetchTool, createClaudeServerFetchAuthority, CLAUDE_ACCOUNTING_SERVER_FETCH_NAME } from './accountingClaudeServerFetch.js';
+import { supportsClaudeServerSearchTool, createClaudeServerSearchAuthority, CLAUDE_ACCOUNTING_SERVER_SEARCH_NAME } from './accountingClaudeServerSearch.js';
 
 // Unconnected standard API-key candidate, not application provider approval.
 export const ACCOUNTED_ANTHROPIC_GATEWAY_PATHS = Object.freeze(['/v1/messages', '/api/v1/messages']);
@@ -19,8 +25,8 @@ export const ACCOUNTED_ANTHROPIC_LIVE_MODE = 'native-claude-sse';
 // Independent queued-only opt-in; ordinary app/synchronous mode stays standard.
 export const ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE = 'native-claude-beta-sse';
 export const ACCOUNTED_ANTHROPIC_BETA_FLAGS = new Headers(anthropicRegistry.transport.headers).get('anthropic-beta');
-export const ACCOUNTED_ANTHROPIC_MODES = Object.freeze([ACCOUNTED_ANTHROPIC_CANDIDATE_MODE, ACCOUNTED_ANTHROPIC_LIVE_MODE, ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE]);
-export const isAnthropicLiveMode = mode => [ACCOUNTED_ANTHROPIC_LIVE_MODE, ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE].includes(mode);
+export const ACCOUNTED_ANTHROPIC_MODES = Object.freeze([ACCOUNTED_ANTHROPIC_CANDIDATE_MODE, ACCOUNTED_ANTHROPIC_LIVE_MODE, ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE, ACCOUNTED_ANTHROPIC_DYNAMIC_MODE]);
+export const isAnthropicLiveMode = mode => [ACCOUNTED_ANTHROPIC_LIVE_MODE, ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE, ACCOUNTED_ANTHROPIC_DYNAMIC_MODE].includes(mode);
 export const ACCOUNTED_ANTHROPIC_LIVE_FIELDS = ACCOUNTED_ANTHROPIC_REQUEST_FIELDS;
 export const ACCOUNTED_ANTHROPIC_TOOL_FIELDS = Object.freeze(['name', 'description', 'input_schema', 'cache_control']);
 export const ACCOUNTED_ANTHROPIC_TOOL_CHOICE_TYPES = Object.freeze(['auto', 'any', 'tool', 'none']);
@@ -62,9 +68,14 @@ const TOOL_HISTORY_RESULT_FIELDS = Object.freeze(['type', 'tool_use_id', 'conten
 // Native client tools only. Match each assistant use to exactly one result in
 // the immediately following user turn; results precede that turn's text. No
 // normalization, content erasure, usage inference or current-tool-name rewrite.
-function supportedMessages(messages, textBlock, allowClientTools, allowCache1h, allowThinking, allowInlineMedia) {
+function supportedMessages(messages, textBlock, allowClientTools, allowCache1h, allowThinking, allowInlineMedia, allowCitations, allowUrlMedia, allowSearchResults, allowServerSearch, allowServerFetch, tools) {
   if (!Array.isArray(messages)) return false;
-  const issued = new Set(); let pending = new Set();
+  const issued = new Set(), documents = [], searchResults = []; let pending = new Set();
+  const hasServerSearch = allowServerSearch && Array.isArray(tools) && tools.some(tool => tool?.name === CLAUDE_ACCOUNTING_SERVER_SEARCH_NAME);
+  const serverSearch = hasServerSearch ? createClaudeServerSearchAuthority(tools, issued) : null;
+  const hasServerFetch = allowServerFetch && Array.isArray(tools) && tools.some(tool => tool?.name === CLAUDE_ACCOUNTING_SERVER_FETCH_NAME);
+  const serverFetch = hasServerFetch ? createClaudeServerFetchAuthority(tools, issued, documents) : null;
+  if (hasServerSearch && !serverSearch || hasServerFetch && !serverFetch) return false;
   for (const message of messages) {
     if (!object(message) || Object.keys(message).some(key => !['role', 'content'].includes(key)) ||
         ![ROLE.USER, ROLE.ASSISTANT].includes(message.role)) return false;
@@ -73,8 +84,19 @@ function supportedMessages(messages, textBlock, allowClientTools, allowCache1h, 
     const next = new Set(); let textSeen = false;
     for (const block of message.content) {
       if (textBlock(block)) { if (pending.size) return false; textSeen = true; continue; }
-      if (allowInlineMedia && supportsClaudeInlineMedia(block) && supportedCache(block, allowCache1h)) {
+      if (allowCitations && object(block) && block.type === CLAUDE_BLOCK.TEXT && Object.hasOwn(block, 'citations')) {
+        if (message.role !== ROLE.ASSISTANT || pending.size || typeof block.text !== 'string' ||
+            Object.keys(block).some(key => !['type', 'text', 'citations'].includes(key)) || !Array.isArray(block.citations) ||
+            !block.citations.every(value => supportsClaudeDocumentCitation(value, documents) || allowSearchResults && supportsClaudeSearchCitation(value, searchResults) || serverSearch?.supportsCitation(value))) return false;
+        textSeen = true; continue;
+      }
+      if (allowSearchResults && supportsClaudeSearchResult(block) && supportedCache(block, allowCache1h)) {
         if (message.role !== ROLE.USER || pending.size) return false;
+        searchResults.push(...captureClaudeSearchResults({ messages: [{ content: [block] }] })); textSeen = true; continue;
+      }
+      if (allowInlineMedia && supportsClaudeInlineMedia(block, { allowCitations, allowUrlMedia }) && supportedCache(block, allowCache1h)) {
+        if (message.role !== ROLE.USER || pending.size) return false;
+        if (block.type === CLAUDE_BLOCK.DOCUMENT) documents.push(...captureClaudeCitationDocuments({ messages: [{ content: [block] }] }));
         textSeen = true; continue;
       }
       if (allowThinking && object(block) && block.type === CLAUDE_BLOCK.THINKING) {
@@ -82,6 +104,17 @@ function supportedMessages(messages, textBlock, allowClientTools, allowCache1h, 
             Object.keys(block).some(key => !['type', 'thinking', 'signature'].includes(key)) ||
             typeof block.thinking !== 'string' || typeof block.signature !== 'string' || !isValidClaudeSignature(block.signature)) return false;
         continue;
+      }
+      if (allowThinking && object(block) && block.type === CLAUDE_BLOCK.REDACTED_THINKING) {
+        if (message.role !== ROLE.ASSISTANT || textSeen || next.size ||
+            Object.keys(block).some(key => !['type', 'data'].includes(key)) || typeof block.data !== 'string' || !block.data) return false;
+        continue;
+      }
+      if (object(block) && [CLAUDE_BLOCK.SERVER_TOOL_USE, CLAUDE_BLOCK.WEB_SEARCH_TOOL_RESULT, CLAUDE_BLOCK.WEB_FETCH_TOOL_RESULT].includes(block.type)) {
+        const owner = block.type === CLAUDE_BLOCK.WEB_FETCH_TOOL_RESULT || block.type === CLAUDE_BLOCK.SERVER_TOOL_USE && block.name === CLAUDE_ACCOUNTING_SERVER_FETCH_NAME ? serverFetch : serverSearch;
+        if (!owner || message.role !== ROLE.ASSISTANT || pending.size ||
+            !(block.type === CLAUDE_BLOCK.SERVER_TOOL_USE ? owner.acceptCall(block) : owner.acceptResult(block))) return false;
+        textSeen = true; continue;
       }
       if (!allowClientTools || !object(block) || !supportedCache(block, allowCache1h)) return false;
       if (block.type === CLAUDE_BLOCK.TOOL_USE) {
@@ -93,7 +126,11 @@ function supportedMessages(messages, textBlock, allowClientTools, allowCache1h, 
         if (message.role !== ROLE.USER || textSeen || Object.keys(block).some(key => !TOOL_HISTORY_RESULT_FIELDS.includes(key)) ||
             typeof block.tool_use_id !== 'string' || !pending.delete(block.tool_use_id) ||
             block.is_error !== undefined && typeof block.is_error !== 'boolean' ||
-            !(typeof block.content === 'string' || Array.isArray(block.content) && block.content.every(child => (textBlock(child) || allowInlineMedia && supportsClaudeInlineMedia(child, { allowDocument: false }) && supportedCache(child, allowCache1h)) && child.cache_control?.ttl !== '1h'))) return false;
+            !(typeof block.content === 'string' || Array.isArray(block.content) && (
+              allowSearchResults && block.content.some(child => child?.type === CLAUDE_BLOCK.SEARCH_RESULT)
+                ? block.content.every(child => supportsClaudeSearchResult(child) && supportedCache(child, allowCache1h) && child.cache_control?.ttl !== '1h')
+                : block.content.every(child => (textBlock(child) || allowInlineMedia && supportsClaudeInlineMedia(child, { allowDocument: false, allowUrlMedia }) && supportedCache(child, allowCache1h)) && child.cache_control?.ttl !== '1h')))) return false;
+        if (allowSearchResults && Array.isArray(block.content)) searchResults.push(...(captureClaudeSearchResults({ messages: [{ content: [block] }] }) || []));
       } else return false;
     }
     if (pending.size) return false;
@@ -105,9 +142,13 @@ function supportedMessages(messages, textBlock, allowClientTools, allowCache1h, 
 // explicit queued candidate may opt into declared tools and text-result history.
 // Prepared-data bounds reject programmable/non-JSON/oversize history before any
 // traversal; strict dispatch still binds the entire original and actual wire.
-export function supportsAnthropicLiveRequest(body, model, allowClientTools = false, allowCache1h = false, allowThinking = false, allowInlineMedia = false) {
-  if (typeof allowClientTools !== 'boolean' || typeof allowCache1h !== 'boolean' || typeof allowThinking !== 'boolean' || typeof allowInlineMedia !== 'boolean') return false;
-  if (allowClientTools || allowCache1h || allowThinking || allowInlineMedia) { try { body = snapshotAccountingPreparedData(body); } catch { return false; } }
+export function supportsAnthropicLiveRequest(body, model, allowClientTools = false, allowCache1h = false, allowThinking = false, allowInlineMedia = false, allowCitations = false, allowUrlMedia = false, allowSearchResults = false, allowServerSearch = false, allowServerFetch = false) {
+  if (typeof allowServerFetch !== 'boolean' || allowServerFetch && (!allowClientTools || !allowCitations || !allowInlineMedia) || typeof allowServerSearch !== 'boolean' || allowServerSearch && (!allowClientTools || !allowCitations) || typeof allowClientTools !== 'boolean' || typeof allowCache1h !== 'boolean' || typeof allowThinking !== 'boolean' || typeof allowInlineMedia !== 'boolean' || typeof allowCitations !== 'boolean' || typeof allowUrlMedia !== 'boolean' || typeof allowSearchResults !== 'boolean' || allowSearchResults && !allowCitations) return false;
+  if (allowClientTools || allowCache1h || allowThinking || allowInlineMedia || allowCitations || allowUrlMedia || allowSearchResults) { try { body = snapshotAccountingPreparedData(body); } catch { return false; } }
+  const documents = allowCitations && object(body) ? captureClaudeCitationDocuments(body) : null;
+  const searchResults = allowSearchResults && object(body) ? captureClaudeSearchResults(body) : null;
+  if (searchResults?.some(result => result.enabled) && searchResults.some(result => !result.enabled)) return false;
+  if (documents?.some(document => document.enabled) && documents.some(document => !document.enabled)) return false;
   const textBlock = block => object(block) && block.type === CLAUDE_BLOCK.TEXT && typeof block.text === 'string' &&
     Object.keys(block).every(key => ['type', 'text', 'cache_control'].includes(key)) && supportedCache(block, allowCache1h);
   return object(body) && body.model === model && body.stream === true &&
@@ -115,10 +156,12 @@ export function supportsAnthropicLiveRequest(body, model, allowClientTools = fal
     Object.keys(body).every(key => ACCOUNTED_ANTHROPIC_LIVE_FIELDS.includes(key) || allowThinking && ['thinking', 'output_config'].includes(key)) &&
     (allowThinking ? supportedThinking(body) : body.thinking === undefined && body.output_config === undefined) &&
     Number.isSafeInteger(body.max_tokens) && body.max_tokens > 0 &&
-    supportedMessages(body.messages, textBlock, allowClientTools, allowCache1h, allowThinking, allowInlineMedia) && supportedRequestCache(body, allowCache1h) &&
+    supportedMessages(body.messages, textBlock, allowClientTools, allowCache1h, allowThinking, allowInlineMedia, allowCitations, allowUrlMedia, allowSearchResults, allowServerSearch, allowServerFetch, body.tools) && supportedRequestCache(body, allowCache1h) &&
     (body.system === undefined || typeof body.system === 'string' || Array.isArray(body.system) && body.system.every(textBlock)) &&
     (body.stop_sequences === undefined || Array.isArray(body.stop_sequences) && body.stop_sequences.every(value => typeof value === 'string')) &&
-    (body.tools === undefined || Array.isArray(body.tools) && body.tools.every(tool => object(tool) &&
+    (body.tools === undefined || Array.isArray(body.tools) && body.tools.every(tool =>
+      (allowServerSearch && supportsClaudeServerSearchTool(tool) || allowServerFetch && supportsClaudeServerFetchTool(tool)) ? supportedCache(tool, allowCache1h) : object(tool) &&
+      !(allowServerSearch && tool.name === CLAUDE_ACCOUNTING_SERVER_SEARCH_NAME || allowServerFetch && tool.name === CLAUDE_ACCOUNTING_SERVER_FETCH_NAME) &&
       Object.keys(tool).every(key => ACCOUNTED_ANTHROPIC_TOOL_FIELDS.includes(key)) &&
       typeof tool.name === 'string' && !!tool.name && object(tool.input_schema) &&
       (tool.description === undefined || typeof tool.description === 'string') && supportedCache(tool, allowCache1h))) &&
@@ -141,14 +184,16 @@ export const ACCOUNTED_ANTHROPIC_HEADER_FIELDS = Object.freeze(['content-type', 
 export const ACCOUNTED_ANTHROPIC_BETA_HEADER_FIELDS = Object.freeze([...ACCOUNTED_ANTHROPIC_HEADER_FIELDS, 'anthropic-beta']);
 export function supportsAnthropicAccountingHeaders(headers, mode) {
   if (!ACCOUNTED_ANTHROPIC_MODES.includes(mode)) return false;
-  const normalized = new Headers(headers), beta = mode === ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE;
+  const normalized = new Headers(headers), beta = [ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE, ACCOUNTED_ANTHROPIC_DYNAMIC_MODE].includes(mode);
   return [...normalized.keys()].every(key => (beta ? ACCOUNTED_ANTHROPIC_BETA_HEADER_FIELDS : ACCOUNTED_ANTHROPIC_HEADER_FIELDS).includes(key)) &&
     normalized.get('anthropic-beta') === (beta ? ACCOUNTED_ANTHROPIC_BETA_FLAGS : null) &&
     normalized.get('anthropic-version') === ANTHROPIC_API_VERSION && normalized.get('content-type') === 'application/json' &&
     (!beta || normalized.get('accept') === 'text/event-stream');
 }
 export function supportsAnthropicCandidate(executor, options, url, body, headers) {
-  const live = isAnthropicLiveMode(options.accountingMode), beta = options.accountingMode === ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE;
+  const live = isAnthropicLiveMode(options.accountingMode), dynamic = options.accountingMode === ACCOUNTED_ANTHROPIC_DYNAMIC_MODE;
+  const beta = dynamic || options.accountingMode === ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE;
+  const queuedBeta = beta && options.accounting?.requiresPreparedBaseWire === true;
   if (beta && (options.accounting?.requiresPreparedBaseWire !== true || options.credentials?.rawHeaders?.['anthropic-beta'] !== undefined ||
       new Headers(executor.config?.headers).get('anthropic-beta') !== ACCOUNTED_ANTHROPIC_BETA_FLAGS)) return false;
   if (executor.provider !== 'anthropic' || executor.config?.format !== FORMATS.CLAUDE || url !== ACCOUNTED_ANTHROPIC_CANDIDATE_URL ||
@@ -157,12 +202,13 @@ export function supportsAnthropicCandidate(executor, options, url, body, headers
       options.credentials.apiKey.startsWith(ANTHROPIC_OAUTH_TOKEN_PREFIX) || options.credentials?.accessToken ||
       !ACCOUNTED_ANTHROPIC_MODES.includes(options.accountingMode) || options.stream !== true ||
       options.body?.stream !== live || body?.stream !== true ||
-      live && (!supportsAnthropicLiveRequest(options.body, options.model, options.accounting?.requiresPreparedBaseWire === true, beta) || !supportsAnthropicLiveRequest(body, options.model, options.accounting?.requiresPreparedBaseWire === true, beta)) ||
+      dynamic && (!supportsClaudeDynamicOriginal(options.body, options.model) || !supportsClaudeDynamicOriginal(body, options.model)) ||
+      live && !dynamic && (!supportsAnthropicLiveRequest(options.body, options.model, options.accounting?.requiresPreparedBaseWire === true, beta, queuedBeta, queuedBeta, queuedBeta, queuedBeta, queuedBeta, queuedBeta, queuedBeta) || !supportsAnthropicLiveRequest(body, options.model, options.accounting?.requiresPreparedBaseWire === true, beta, queuedBeta, queuedBeta, queuedBeta, queuedBeta, queuedBeta, queuedBeta, queuedBeta)) ||
       !body || typeof body !== 'object' || Array.isArray(body) || body.model !== options.model ||
-      Object.keys(body).some(key => !ACCOUNTED_ANTHROPIC_REQUEST_FIELDS.includes(key)) ||
+      Object.keys(body).some(key => !ACCOUNTED_ANTHROPIC_REQUEST_FIELDS.includes(key) && !(queuedBeta && ['thinking', 'output_config'].includes(key))) ||
       !supportedRequestCache(body, beta) || !supportedRequestCache(options.body, beta)) return false;
-  if (body.tools !== undefined && (!Array.isArray(body.tools) || body.tools.some(tool => !tool || typeof tool !== 'object' || Array.isArray(tool) ||
-      tool.type !== undefined && tool.type !== CLAUDE_BLOCK.TOOL_USE || typeof tool.name !== 'string' || !object(tool.input_schema)))) return false;
+  if (!dynamic && body.tools !== undefined && (!Array.isArray(body.tools) || body.tools.some(tool => !tool || typeof tool !== 'object' || Array.isArray(tool) ||
+      !(queuedBeta && (supportsClaudeServerSearchTool(tool) || supportsClaudeServerFetchTool(tool))) && (tool.type !== undefined && tool.type !== CLAUDE_BLOCK.TOOL_USE || typeof tool.name !== 'string' || !object(tool.input_schema))))) return false;
   const normalized = new Headers(headers);
   return supportsAnthropicAccountingHeaders(normalized, options.accountingMode) && normalized.get('x-api-key') === options.credentials.apiKey;
 }

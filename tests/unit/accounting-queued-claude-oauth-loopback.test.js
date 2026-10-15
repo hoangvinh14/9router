@@ -4,6 +4,8 @@ import path from 'node:path';
 import http from 'node:http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DefaultExecutor } from 'open-sse/executors/default.js';
+import { dynamicTools, dynamicWire, dynamicPausedHistory } from './fixtures/accounting-dynamic-wire.js';
+import { fetchTool, fetchWire, fetchHistory } from './fixtures/accounting-fetch-wire.js';
 import { selectAnthropicBeta } from 'open-sse/providers/shared.js';
 const fixture = vi.hoisted(() => ({ url: null }));
 vi.mock('../../open-sse/config/providers.js', async importOriginal => {
@@ -36,7 +38,7 @@ const options = (accounting, credentials = { accessToken: 'sk-ant-oat-dummy' }) 
     messages: [{ role: 'assistant', content: [{ type: 'tool_use', id: 'use1', name: 'lookup', input: { q: 'original' } }] },
       { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'use1', is_error: true, content: 'original error' }] }] },
   proxyOptions: { persistedGlobalProxy: { url: 'http://127.0.0.1:1', noProxy: '127.0.0.1' } } });
-let db, directory, server, requests, refreshRequests, responder, refreshResponder, createAccounting;
+let db, directory, server, requests, refreshRequests, responder, refreshResponder, createAccounting, failure;
 const previous = process.env.DATA_DIR;
 beforeEach(async () => {
   vi.resetModules(); directory = fs.mkdtempSync(path.join(os.tmpdir(), '9router-claude-oauth-native-'));
@@ -50,18 +52,21 @@ beforeEach(async () => {
     db.run("INSERT INTO _meta(key,value) VALUES('ledgerStartedAt','2026-10-03T00:00:00.000Z')");
     db.run("INSERT INTO kv(scope,key,value) VALUES('pricing','claude',?)", [JSON.stringify({ 'fixture-oauth': rates })]);
   });
-  requests = []; refreshRequests = [];
+  requests = []; refreshRequests = []; failure = null;
   refreshResponder = (_request, response) => { response.writeHead(200, { 'content-type': 'application/json' }); response.end(JSON.stringify({ access_token: 'sk-ant-oat-refreshed', refresh_token: 'dummy-rotated', expires_in: 3600 })); };
   responder = (_request, response) => { response.writeHead(200, { 'content-type': 'text/event-stream' }); response.end(wire()); };
   server = http.createServer(async (request, response) => {
-    const chunks = []; for await (const chunk of request) chunks.push(chunk);
-    if (request.url === '/v1/messages/oauth/token') {
-      refreshRequests.push({ body: JSON.parse(Buffer.concat(chunks).toString()), rows: db.all('SELECT state,costNanoUsd FROM apiKeyAccounting') });
-      await refreshResponder(request, response); return;
-    }
-    requests.push({ url: request.url, body: JSON.parse(Buffer.concat(chunks).toString()), headers: request.headers,
-      row: db.get('SELECT requestId,state FROM apiKeyAccounting ORDER BY rowid DESC LIMIT 1') });
-    await responder(request, response);
+    try {
+      const chunks = []; for await (const chunk of request) chunks.push(chunk);
+      if (request.url === '/v1/messages/oauth/token') {
+        refreshRequests.push({ body: JSON.parse(Buffer.concat(chunks).toString()), rows: db.all('SELECT state,costNanoUsd FROM apiKeyAccounting') });
+        await refreshResponder(request, response); return;
+      }
+      const pending = db.get('SELECT requestId,state,priceSnapshotJson FROM apiKeyAccounting ORDER BY rowid DESC LIMIT 1');
+      requests.push({ url: request.url, body: JSON.parse(Buffer.concat(chunks).toString()), headers: request.headers,
+        row: pending && { requestId: pending.requestId, state: pending.state }, priceSnapshotJson: pending?.priceSnapshotJson });
+      await responder(request, response);
+    } catch (error) { failure = error; response.writeHead(500); response.end('fixture error'); }
   });
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
   fixture.url = `http://127.0.0.1:${server.address().port}/v1/messages`;
@@ -75,6 +80,252 @@ afterEach(async () => {
 });
 const row = () => db.get('SELECT state,costNanoUsd,priceSnapshotJson,usageJson FROM apiKeyAccounting');
 describe('queued Claude OAuth original/actual wire authority (owned HTTP only)', { timeout: 20000 }, () => {
+  it.each(['success', 'failed-http', 'combined-fetch', 'missing-code', 'lost-ack'])('dynamic OAuth %s preserves deterministic original code/search/raw authority/price/own ACK', async mode => {
+    const context = await createAccounting(); let enter, release;
+    const entered = new Promise(resolve => { enter = resolve; }), held = new Promise(resolve => { release = resolve; });
+    const accounting = { ...context, completeAttempt: vi.fn(async (...input) => {
+      const terminal = await context.completeAttempt(...input); enter(); if (['success', 'failed-http', 'combined-fetch'].includes(mode)) await held;
+      if (mode === 'lost-ack') throw new Error('fixture dynamic OAuth ACK lost'); return terminal;
+    }) };
+    const args = options(accounting); args.accountingMode = 'native-claude-oauth-dynamic-sse'; args.body.tools.unshift(...dynamicTools());
+    if (mode === 'combined-fetch') args.body.tools.unshift({ type: 'web_fetch_20260318', name: 'web_fetch', citations: { enabled: true } });
+    const original = structuredClone(args.body);
+    db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': { ...rates, web_search_per_1000: '10' } })]));
+    const raw = dynamicWire('fixture-oauth', { cacheTiers: true, omit: mode === 'missing-code', fetch: mode === 'combined-fetch' });
+    responder = (_request, response) => {
+      db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': { ...rates, web_search_per_1000: '200' } })]));
+      response.writeHead(mode === 'failed-http' ? 429 : 200, { 'content-type': 'text/event-stream' }); response.end(raw);
+    };
+    let ended = false; const consume = new DefaultExecutor('claude').execute(args).then(result => result.response.text()); consume.then(() => { ended = true; }, () => { ended = true; });
+    if (['success', 'failed-http', 'combined-fetch'].includes(mode)) {
+      try { await Promise.race([entered, consume.then(() => { throw new Error('ended before own ACK'); })]); expect(ended).toBe(false); } finally { release(); }
+      if (mode === 'failed-http') expect(await consume).not.toContain('private opaque'); else expect(await consume).toBe(raw);
+    } else { await expect(consume).rejects.toThrow('Gateway accounting stream unavailable'); await entered; }
+    expect(requests).toHaveLength(1); expect(refreshRequests).toHaveLength(0); expect(requests[0].row.state).toBe('pending');
+    expect(requests[0].body.tools.find(tool => tool.name === 'web_search')).toEqual(dynamicTools()[0]);
+    expect(JSON.parse(requests[0].priceSnapshotJson).usageSemantics).toMatchObject({ cacheWriteTiers: 'observed_5m_1h', codeServerToolUses: 'observed_claude_included_code_token_only', serverToolUses: 'observed_claude_server_tool_use' });
+    expect(row()).toMatchObject({ state: mode === 'missing-code' ? 'unresolved' : 'settled', costNanoUsd: mode === 'missing-code' ? null : 20120250 });
+    if (mode !== 'missing-code') expect(JSON.parse(row().usageJson).codeToolUses).toEqual({ codeExecutionRequests: 3 });
+    expect(JSON.stringify(row())).not.toMatch(/private|example.com|sk-ant-oat|dummy-refresh/); expect(args.body).toEqual(original); expect(accounting.completeAttempt).toHaveBeenCalledTimes(1); expect(failure).toBeNull();
+  });
+  it.each(['delivered-ack', 'lost-predecessor-ack', 'missing-successor-rate'])('dynamic OAuth refresh %s requires own predecessor ACK and fresh independent price/count/intent', async mode => {
+    const context = await createAccounting(); let enter, release;
+    const entered = new Promise(resolve => { enter = resolve; }), held = new Promise(resolve => { release = resolve; });
+    const priced = { ...rates, web_search_per_1000: '10' };
+    db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': priced })]));
+    const completeAttempt = vi.fn(async (...input) => { const terminal = await context.completeAttempt(...input);
+      if (completeAttempt.mock.calls.length === 1) { enter(); if (mode === 'lost-predecessor-ack') throw new Error('fixture dynamic predecessor ACK lost'); await held; } return terminal;
+    });
+    const accounting = { ...context, completeAttempt, completeClaudeOauthRefresh(...input) {
+      const next = context.completeClaudeOauthRefresh(...input);
+      db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': mode === 'missing-successor-rate' ? rates : { ...priced, web_search_per_1000: '20' } })])); return next;
+    } };
+    const args = options(accounting); args.accountingMode = 'native-claude-oauth-dynamic-sse'; args.body.tools.unshift(...dynamicTools()); const original = structuredClone(args.body);
+    const first = dynamicWire('fixture-oauth', { cacheTiers: true }), second = dynamicWire('fixture-oauth', { cacheTiers: true, codeCount: 1, searchCount: 1 });
+    responder = (_request, response) => { response.writeHead(requests.length === 1 ? 401 : 200, { 'content-type': 'text/event-stream' }); response.end(requests.length === 1 ? first : second); };
+    const work = new DefaultExecutor('claude').execute(args);
+    if (mode === 'lost-predecessor-ack') await expect(work).rejects.toThrow();
+    else {
+      // Attach the rejection expectation before releasing the held predecessor.
+      const observed = mode === 'missing-successor-rate' ? expect(work).rejects.toMatchObject({ code: 'model_pricing_unavailable' }) : null;
+      try { await Promise.race([entered, work.then(() => { throw new Error('refresh before predecessor ACK'); })]); expect(refreshRequests).toHaveLength(0); expect(requests).toHaveLength(1); } finally { release(); }
+      if (observed) await observed; else expect(await (await work).response.text()).toBe(second);
+    }
+    const success = mode === 'delivered-ack', rows = db.all('SELECT attemptId,requestId,state,costNanoUsd,usageJson,priceSnapshotJson FROM apiKeyAccounting ORDER BY rowid');
+    expect(rows.map(value => value.costNanoUsd)).toEqual(success ? [20120250, 20120250] : [20120250]);
+    expect(rows.every(value => value.state === 'settled' && value.requestId === context.requestId && JSON.parse(value.priceSnapshotJson).usageSemantics.codeServerToolUses === 'observed_claude_included_code_token_only')).toBe(true);
+    expect(rows.map(value => JSON.parse(value.usageJson).codeToolUses.codeExecutionRequests)).toEqual(success ? [3, 1] : [3]);
+    expect(rows.map(value => JSON.parse(value.usageJson).toolUses.webSearchRequests)).toEqual(success ? [2, 1] : [2]);
+    expect(new Set(rows.map(value => value.attemptId)).size).toBe(rows.length); expect(completeAttempt).toHaveBeenCalledTimes(rows.length);
+    expect(requests).toHaveLength(success ? 2 : 1); expect(refreshRequests).toHaveLength(mode === 'lost-predecessor-ack' ? 0 : 1);
+    if (success) { expect(requests[1].headers.authorization).toBe('Bearer sk-ant-oat-refreshed'); expect(requests[1].body.tools).toEqual(requests[0].body.tools); expect(JSON.parse(requests[1].priceSnapshotJson).rates.web_search_per_1000).toBe('20'); }
+    expect(args.body).toEqual(original); expect(failure).toBeNull();
+  });
+  it('dynamic OAuth pending code history survives deterministic transform and owns resumed graph without decoys', async () => {
+    const args = options(await createAccounting()); args.accountingMode = 'native-claude-oauth-dynamic-sse'; args.body.tools.unshift(...dynamicTools());
+    args.body.messages.push({ role: 'assistant', content: dynamicPausedHistory('fixture-oauth') }, { role: 'user', content: 'Continue private work' });
+    const original = structuredClone(args.body), raw = dynamicWire('fixture-oauth', { cacheTiers: true, resume: true, prefix: 'successor' });
+    db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': { ...rates, web_search_per_1000: '10' } })]));
+    responder = (_request, response) => { response.writeHead(200, { 'content-type': 'text/event-stream' }); response.end(raw); };
+    expect(await (await new DefaultExecutor('claude').execute(args)).response.text()).toBe(raw); expect(requests[0].body.messages[2]).toEqual(original.messages[2]);
+    expect(row()).toMatchObject({ state: 'settled', costNanoUsd: 20120250 }); expect(JSON.parse(row().usageJson).codeToolUses).toEqual({ codeExecutionRequests: 3 });
+    expect(args.body).toEqual(original); expect(requests).toHaveLength(1); expect(refreshRequests).toHaveLength(0); expect(failure).toBeNull();
+  });
+  it.each(['success', 'failed-http', 'combined-search', 'missing-counter', 'lost-ack'])('direct fetch OAuth %s preserves deterministic source/citation and generated cache/token/required counters/own ACK', async mode => {
+    const context = await createAccounting(); let enter, release;
+    const entered = new Promise(resolve => { enter = resolve; }), held = new Promise(resolve => { release = resolve; });
+    const accounting = { ...context, completeAttempt: vi.fn(async (...args) => {
+      const terminal = await context.completeAttempt(...args); enter();
+      if (['success', 'failed-http', 'combined-search'].includes(mode)) await held;
+      if (mode === 'lost-ack') throw new Error('fixture fetch OAuth ACK lost'); return terminal;
+    }) };
+    const args = options(accounting); args.body.tools.unshift(fetchTool());
+    if (mode === 'combined-search') args.body.tools.unshift({ type: 'web_search_20250305', name: 'web_search' });
+    args.body.messages[1].content.push({ type: 'text', text: 'Read https://example.com/article' }); const original = structuredClone(args.body);
+    db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': { ...rates, ...(mode === 'combined-search' ? { web_search_per_1000: '10' } : {}) } })]));
+    const raw = fetchWire('fixture-oauth', { omit: mode === 'missing-counter', search: mode === 'combined-search', cacheTiers: true });
+    responder = (_request, response) => {
+      db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': { ...rates, input: '9', output: '9', web_search_per_1000: '200' } })]));
+      response.writeHead(mode === 'failed-http' ? 429 : 200, { 'content-type': 'text/event-stream' }); response.end(raw);
+    };
+    const execution = new DefaultExecutor('claude').execute(args); let finished = false;
+    const consume = execution.then(result => result.response.text()); consume.then(() => { finished = true; }, () => { finished = true; });
+    if (['success', 'failed-http', 'combined-search'].includes(mode)) {
+      try { await Promise.race([entered, consume.then(() => { throw new Error('ended before own ACK'); })]); expect(finished).toBe(false); }
+      finally { release(); }
+      if (mode === 'failed-http') expect(await consume).not.toContain('private fetched corpus'); else expect(await consume).toBe(raw);
+    } else { await expect(consume).rejects.toThrow('Gateway accounting stream unavailable'); await entered; }
+    expect(requests).toHaveLength(1); expect(refreshRequests).toHaveLength(0); expect(requests[0].row.state).toBe('pending');
+    expect(requests[0].body.tools.find(tool => tool.name === 'web_fetch')).toEqual(fetchTool());
+    expect(args.body).toEqual(original); expect(requests[0].body.messages[1].content.at(-1).text).toBe('Read https://example.com/article');
+    const result = row(); expect(result).toMatchObject({ state: mode === 'missing-counter' ? 'unresolved' : 'settled', costNanoUsd: mode === 'missing-counter' ? null : mode === 'combined-search' ? 20120250 : 120250 });
+    expect(JSON.parse(result.priceSnapshotJson).usageSemantics).toMatchObject({ cacheWriteTiers: 'observed_5m_1h', nonBillableServerToolUses: 'observed_claude_web_fetch_token_only' });
+    if (mode !== 'missing-counter') expect(JSON.parse(result.usageJson).nonBillableToolUses).toEqual({ webFetchRequests: 3 });
+    expect(JSON.stringify(result)).not.toMatch(/private|example.com|sk-ant-oat|dummy-refresh/); expect(accounting.completeAttempt).toHaveBeenCalledTimes(1); expect(failure).toBeNull();
+  });
+  it('fetch-only original history survives OAuth cache/cloak and authorizes only preceding document indices', async () => {
+    const context = await createAccounting(), args = options(context); args.body.tools.unshift(fetchTool());
+    args.body.messages.push({ role: 'assistant', content: fetchHistory('srvtoolu_fetch_history') }, { role: 'user', content: 'Read https://example.com/article' });
+    const original = structuredClone(args.body), raw = fetchWire('fixture-oauth', { cacheTiers: true, documentIndex: 1 });
+    responder = (_request, response) => { response.writeHead(200, { 'content-type': 'text/event-stream' }); response.end(raw); };
+    expect(await (await new DefaultExecutor('claude').execute(args)).response.text()).toBe(raw);
+    expect(requests[0].body.messages[2]).toEqual(original.messages[2]); expect(args.body).toEqual(original); expect(row()).toMatchObject({ state: 'settled', costNanoUsd: 120250 });
+    expect(JSON.parse(row().usageJson).nonBillableToolUses).toEqual({ webFetchRequests: 3 }); expect(failure).toBeNull();
+  });
+  it.each(['delivered-ack', 'lost-predecessor-ack'])('fetch OAuth refresh %s requires predecessor own ACK and independent successor price/count', async mode => {
+    const context = await createAccounting(); let enter, release;
+    const entered = new Promise(resolve => { enter = resolve; }), held = new Promise(resolve => { release = resolve; });
+    const completeAttempt = vi.fn(async (...input) => { const terminal = await context.completeAttempt(...input);
+      if (completeAttempt.mock.calls.length === 1) { enter(); if (mode === 'lost-predecessor-ack') throw new Error('fixture fetch predecessor ACK lost'); await held; } return terminal;
+    });
+    const accounting = { ...context, completeAttempt, completeClaudeOauthRefresh(...input) {
+      const next = context.completeClaudeOauthRefresh(...input);
+      db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': { ...rates, input: '2' } })])); return next;
+    } };
+    const args = options(accounting); args.body.tools.unshift(fetchTool());
+    const first = fetchWire('fixture-oauth', { cacheTiers: true }), second = fetchWire('fixture-oauth', { cacheTiers: true, count: 1 });
+    responder = (_request, response) => { response.writeHead(requests.length === 1 ? 401 : 200, { 'content-type': 'text/event-stream' }); response.end(requests.length === 1 ? first : second); };
+    const work = new DefaultExecutor('claude').execute(args);
+    if (mode === 'lost-predecessor-ack') await expect(work).rejects.toThrow();
+    else {
+      try { await Promise.race([entered, work.then(() => { throw new Error('refresh before own predecessor ACK'); })]); expect(refreshRequests).toHaveLength(0); expect(requests).toHaveLength(1); } finally { release(); }
+      expect(await (await work).response.text()).toBe(second);
+    }
+    const rows = db.all('SELECT attemptId,requestId,state,costNanoUsd,usageJson,priceSnapshotJson FROM apiKeyAccounting ORDER BY rowid');
+    expect(rows.map(value => value.costNanoUsd)).toEqual(mode === 'lost-predecessor-ack' ? [120250] : [120250, 180250]);
+    expect(rows.every(value => value.state === 'settled' && value.requestId === context.requestId && JSON.parse(value.priceSnapshotJson).usageSemantics.nonBillableServerToolUses === 'observed_claude_web_fetch_token_only')).toBe(true);
+    expect(rows.map(value => JSON.parse(value.usageJson).nonBillableToolUses.webFetchRequests)).toEqual(mode === 'lost-predecessor-ack' ? [3] : [3, 1]);
+    expect(new Set(rows.map(value => value.attemptId)).size).toBe(rows.length); expect(refreshRequests).toHaveLength(mode === 'lost-predecessor-ack' ? 0 : 1); expect(completeAttempt).toHaveBeenCalledTimes(rows.length); expect(failure).toBeNull();
+  });
+  it.each(['success', 'failed-http', 'missing-counter', 'lost-ack', 'mixed-client', 'decoy-client'])('paid direct search OAuth %s preserves original server history, deterministic wire and required original price/ACK', async mode => {
+    const context = await createAccounting(); let enter, release;
+    const entered = new Promise(resolve => { enter = resolve; }), held = new Promise(resolve => { release = resolve; });
+    const accounting = { ...context, completeAttempt: vi.fn(async (...input) => {
+      const terminal = await context.completeAttempt(...input); enter();
+      if (mode === 'success' || mode === 'failed-http') await held;
+      if (mode === 'lost-ack') throw new Error('fixture paid OAuth lost ACK'); return terminal;
+    }) };
+    const args = options(accounting), search = { type: 'web_search_20250305', name: 'web_search', max_uses: 2 };
+    args.body.tools.unshift(search);
+    args.body.messages.unshift({ role: 'user', content: 'prior private search' }, { role: 'assistant', content: [
+      { type: 'server_tool_use', id: 'srvtoolu_prior', name: 'web_search', input: { query: 'prior private query' } },
+      { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_prior', content: [] }, { type: 'text', text: 'prior answer' },
+    ] }, { role: 'user', content: 'next request' });
+    const original = structuredClone(args.body), priced = { ...rates, web_search_per_1000: '10' };
+    db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': priced })]));
+    let raw = wire().replace(',"server_tool_use":{"web_search_requests":0}', '').replace('event: message_delta',
+      event('content_block_start', { index: 0, content_block: { type: 'server_tool_use', id: 'srvtoolu_current', name: 'web_search', input: {} } }) +
+      event('content_block_delta', { index: 0, delta: { type: 'input_json_delta', partial_json: '{"query":"current private query"}' } }) + event('content_block_stop', { index: 0 }) +
+      event('content_block_start', { index: 1, content_block: { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_current', content: [] } }) + event('content_block_stop', { index: 1 }) + 'event: message_delta')
+      .replace('"usage":{"output_tokens":20}', `"usage":{"output_tokens":20${mode === 'missing-counter' ? '' : ',"server_tool_use":{"web_search_requests":2}'}}`);
+    if (mode === 'mixed-client' || mode === 'decoy-client') raw = raw.replace('event: message_delta',
+      event('content_block_start', { index: 2, content_block: { type: 'tool_use', id: 'client_current', name: mode === 'mixed-client' ? 'lookup_ide' : 'Task', input: {} } }) +
+      event('content_block_delta', { index: 2, delta: { type: 'input_json_delta', partial_json: '{"q":"client value"}' } }) + event('content_block_stop', { index: 2 }) + 'event: message_delta').replace('"stop_reason":"end_turn"', '"stop_reason":"tool_use"');
+    responder = (_request, response) => {
+      db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': { ...priced, web_search_per_1000: '200' } })]));
+      response.writeHead(mode === 'failed-http' ? 429 : 200, { 'content-type': 'text/event-stream' }); response.end(raw);
+    };
+    const execution = new DefaultExecutor('claude').execute(args); let finished = false;
+    const consume = execution.then(result => result.response.text()); consume.then(() => { finished = true; }, () => { finished = true; });
+    if (mode === 'success' || mode === 'failed-http') {
+      // Observe admission/parse rejection as well as sink entry; never turn a
+      // preintent refusal into a20s fixture timeout waiting for a foreign sink.
+      try { await Promise.race([entered, consume.then(() => { throw new Error('terminal ended before held ACK'); })]); expect(finished).toBe(false); expect(row()).toMatchObject({ state: 'settled', costNanoUsd: 20110250 }); }
+      finally { release(); }
+      if (mode === 'success') expect(await consume).toBe(raw); else expect(await consume).not.toContain('current private query');
+    } else if (mode === 'mixed-client') {
+      const output = await consume; await entered;
+      expect(output).toContain('"name":"lookup"'); expect(output).not.toContain('"name":"lookup_ide"');
+      expect(row()).toMatchObject({ state: 'settled', costNanoUsd: 20110250 });
+    } else {
+      await expect(consume).rejects.toThrow('Gateway accounting stream unavailable'); await entered;
+      const unknown = mode === 'missing-counter' || mode === 'decoy-client';
+      expect(row()).toMatchObject({ state: unknown ? 'unresolved' : 'settled', costNanoUsd: unknown ? null : 20110250 });
+    }
+    expect(args.body).toEqual(original); expect(requests).toHaveLength(1); expect(refreshRequests).toHaveLength(0);
+    expect(requests[0].row).toEqual({ requestId: context.requestId, state: 'pending' });
+    expect(requests[0].body.tools.find(tool => tool.name === 'web_search')).toEqual(search);
+    expect(requests[0].body.messages[1].content.slice(0, 2)).toEqual(original.messages[1].content.slice(0, 2));
+    expect(JSON.parse(row().priceSnapshotJson)).toMatchObject({ rates: priced, rateUnits: { web_search_per_1000: 'USD/1000 uses' }, usageSemantics: { cacheWriteTiers: 'observed_5m_1h', serverToolUses: 'observed_claude_server_tool_use' } });
+    expect(JSON.stringify(row())).not.toMatch(/private|query|sk-ant-oat|dummy-refresh/); expect(accounting.completeAttempt).toHaveBeenCalledTimes(1); expect(failure).toBeNull();
+  });
+  it.each(['delivered', 'lost-predecessor-ack', 'missing-successor-rate'])('paid OAuth refresh %s owns independent intent, original rate and required counters', async mode => {
+    const context = await createAccounting(); let enter, release;
+    const entered = new Promise(resolve => { enter = resolve; }), held = new Promise(resolve => { release = resolve; });
+    const completeAttempt = vi.fn(async (...input) => {
+      const terminal = await context.completeAttempt(...input);
+      if (completeAttempt.mock.calls.length === 1) { enter(); await held; if (mode === 'lost-predecessor-ack') throw new Error('fixture predecessor ACK missing'); }
+      return terminal;
+    });
+    const args = options({ ...context, completeAttempt });
+    args.body.tools.unshift({ type: 'web_search_20250305', name: 'web_search' });
+    db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': { ...rates, web_search_per_1000: '10' } })]));
+    const predecessor = wire().replace('"web_search_requests":0', '"web_search_requests":2'), successor = wire().replace('"web_search_requests":0', '"web_search_requests":1');
+    responder = (_request, response) => { response.writeHead(requests.length === 1 ? 401 : 200, { 'content-type': 'text/event-stream' }); response.end(requests.length === 1 ? predecessor : successor); };
+    refreshResponder = (_request, response) => {
+      db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': { ...rates, ...(mode === 'missing-successor-rate' ? {} : { web_search_per_1000: '20' }) } })]));
+      response.writeHead(200, { 'content-type': 'application/json' }); response.end(JSON.stringify({ access_token: 'sk-ant-oat-refreshed', refresh_token: 'dummy-rotated', expires_in: 3600 }));
+    };
+    const execution = new DefaultExecutor('claude').execute(args);
+    try {
+      await Promise.race([entered, execution.then(() => { throw new Error('returned before predecessor ACK'); })]);
+      expect(refreshRequests).toHaveLength(0); expect(requests).toHaveLength(1); expect(row()).toMatchObject({ state: 'settled', costNanoUsd: 20110250 });
+    } finally { release(); }
+    if (mode === 'delivered') {
+      const result = await execution; expect(await result.response.text()).toBe(successor);
+      expect(requests).toHaveLength(2); expect(refreshRequests).toHaveLength(1); expect(completeAttempt).toHaveBeenCalledTimes(2);
+      expect(refreshRequests[0].rows).toEqual([{ state: 'settled', costNanoUsd: 20110250 }]);
+      const attempts = db.all('SELECT attemptId,costNanoUsd,priceSnapshotJson,usageJson FROM apiKeyAccounting ORDER BY rowid');
+      expect(attempts[1].attemptId).not.toBe(attempts[0].attemptId);
+      expect(attempts.map(attempt => attempt.costNanoUsd)).toEqual([20110250, 20110250]);
+      expect(attempts.map(attempt => JSON.parse(attempt.priceSnapshotJson).rates.web_search_per_1000)).toEqual(['10', '20']);
+      expect(attempts.map(attempt => JSON.parse(attempt.usageJson).toolUses.webSearchRequests)).toEqual([2, 1]);
+      expect(requests[1].headers.authorization).toBe('Bearer sk-ant-oat-refreshed');
+    } else {
+      await expect(execution).rejects.toThrow(); expect(requests).toHaveLength(1);
+      expect(refreshRequests).toHaveLength(mode === 'lost-predecessor-ack' ? 0 : 1);
+      expect(db.all('SELECT * FROM apiKeyAccounting')).toHaveLength(1); expect(completeAttempt).toHaveBeenCalledTimes(1);
+    }
+    expect(failure).toBeNull();
+  });
+  it('paid OAuth server-only original history is retained without generated cache on server blocks', async () => {
+    const args = options(await createAccounting()); args.body.tools.unshift({ type: 'web_search_20250305', name: 'web_search' });
+    args.body.messages.unshift({ role: 'user', content: 'prior request' }, { role: 'assistant', content: [
+      { type: 'server_tool_use', id: 'srvtoolu_history', name: 'web_search', input: { query: 'history query' } },
+      { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_history', content: [] },
+    ] }, { role: 'user', content: 'next request' });
+    const original = structuredClone(args.body);
+    db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': { ...rates, web_search_per_1000: '10' } })]));
+    const result = await new DefaultExecutor('claude').execute(args); expect(await result.response.text()).toBe(wire());
+    expect(requests[0].body.messages[1]).toEqual(original.messages[1]); expect(args.body).toEqual(original);
+    expect(row()).toMatchObject({ state: 'settled', costNanoUsd: 110250 });
+    expect(JSON.parse(row().usageJson).toolUses).toEqual({ webSearchRequests: 0 });
+  });
+  it('paid OAuth missing explicit per-use rate refuses before intent, POST or refresh even with generated 1h rate present', async () => {
+    const args = options(await createAccounting()); args.body.tools.unshift({ type: 'web_search_20250305', name: 'web_search' });
+    await expect(new DefaultExecutor('claude').execute(args)).rejects.toMatchObject({ code: 'model_pricing_unavailable' });
+    expect(requests).toHaveLength(0); expect(refreshRequests).toHaveLength(0); expect(db.all('SELECT * FROM apiKeyAccounting')).toHaveLength(0);
+  });
   it('preserves original history, generated 1h, cloaking and production OAuth URL/headers with original price', async () => {
     const context = await createAccounting(), args = options(context), original = structuredClone(args.body);
     responder = (_request, response) => { db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': { ...rates, cache_creation_1h: '9' } })])); response.writeHead(200, { 'content-type': 'text/event-stream' }); response.end(wire()); };
@@ -93,6 +344,191 @@ describe('queued Claude OAuth original/actual wire authority (owned HTTP only)',
     expect(JSON.parse(request.body.metadata.user_id).session_id).toBe(request.headers['x-claude-code-session-id']);
     expect(row()).toMatchObject({ state: 'settled', costNanoUsd: 110250 });
     expect(JSON.parse(row().priceSnapshotJson)).toMatchObject({ rates, usageSemantics: { cacheWriteTiers: 'observed_5m_1h' } });
+  });
+  it.each(['success', 'failed-http'])('documented OAuth initial cumulative usage with absent conditional tools: %s', async mode => {
+    const context = await createAccounting(); let enter, release;
+    const entered = new Promise(resolve => { enter = resolve; }), held = new Promise(resolve => { release = resolve; });
+    const accounting = { ...context, async completeAttempt(...input) { const result = await context.completeAttempt(...input); enter(); await held; return result; } };
+    const args = options(accounting);
+    const raw = wire().replace('"output_tokens":0', '"output_tokens":2').replace(',"server_tool_use":{"web_search_requests":0}', '');
+    responder = (_request, response) => { response.writeHead(mode === 'failed-http' ? 429 : 200, { 'content-type': 'text/event-stream' }); response.end(raw); };
+    const work = new DefaultExecutor('claude').execute(args); let finished = false;
+    const consume = work.then(result => result.response.text()); consume.then(() => { finished = true; }, () => { finished = true; });
+    try { await entered; expect(finished).toBe(false); expect(row()).toMatchObject({ state: 'settled', costNanoUsd: 110250 }); }
+    finally { release(); }
+    if (mode === 'success') expect(await consume).toBe(raw);
+    else { expect((await work).response.status).toBe(429); expect(await consume).not.toContain('msg_oauth'); }
+    expect(requests).toHaveLength(1); expect(refreshRequests).toHaveLength(0); expect(JSON.parse(row().usageJson)).toMatchObject({ output: 20 });
+    expect(failure).toBeNull();
+  });
+  it.each(['text-success', 'pdf-success', 'custom-success', 'text-failed-http', 'pdf-failed-http', 'custom-failed-http', 'foreign-index', 'missing-stop', 'lost-ack', 'custom-url-success', 'custom-url-failed-http', 'custom-url-missing-stop', 'custom-url-lost-ack'])('OAuth inline document citations %s retain original/raw/terminal authority', async rawMode => {
+    const url = rawMode.startsWith('custom-url-'), mode = url ? rawMode.slice('custom-url-'.length) : rawMode;
+    const context = await createAccounting(); let enter, persisted, release;
+    const entered = new Promise(resolve => { enter = resolve; }), durable = new Promise(resolve => { persisted = resolve; }), held = new Promise(resolve => { release = resolve; });
+    const accounting = { ...context, completeAttempt: vi.fn(async (...input) => {
+      enter(); const result = await context.completeAttempt(...input); persisted(); await held;
+      if (mode === 'lost-ack') throw new Error('fixture citation ACK lost');
+      return result;
+    }) };
+    const args = options(accounting), pdf = mode.startsWith('pdf'), custom = url || mode.startsWith('custom');
+    const document = { type: 'document', source: custom ? { type: 'content', content: [{ type: 'text', text: 'original citation document' }, { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'aW5saW5l' } }] } : pdf ? { type: 'base64', media_type: 'application/pdf', data: 'aW5saW5l' } : { type: 'text', media_type: 'text/plain', data: 'original citation document' }, title: 'citation title', context: 'citation context', citations: { enabled: true } };
+    if (url) document.source.content[1].source = { type: 'url', url: 'https://media.example.invalid/custom%20source.png?version=1' };
+    args.body.messages[1].content.push(document); const original = structuredClone(args.body);
+    const citation = { type: custom ? 'content_block_location' : pdf ? 'page_location' : 'char_location', document_index: mode === 'foreign-index' ? 1 : 0, document_title: 'citation title', cited_text: 'original citation', file_id: null,
+      ...(custom ? { start_block_index: 0, end_block_index: 1 } : pdf ? { start_page_number: 1, end_page_number: 2 } : { start_char_index: 0, end_char_index: 8 }) };
+    const content = event('content_block_start', { index: 0, content_block: { type: 'text', text: '', citations: [] } }) +
+      event('content_block_delta', { index: 0, delta: { type: 'text_delta', text: 'cited answer' } }) + event('content_block_delta', { index: 0, delta: { type: 'citations_delta', citation } }) + event('content_block_stop', { index: 0 });
+    const raw = wire(mode === 'missing-stop' ? 'missing-stop' : undefined).replace('event: message_delta', content + 'event: message_delta');
+    responder = (_request, response) => {
+      db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': { ...rates, input: '99' } })]));
+      response.writeHead(mode.endsWith('failed-http') ? 429 : 200, { 'content-type': 'text/event-stream' }); response.end(raw);
+    };
+    const work = new DefaultExecutor('claude').execute(args); let finished = false, captured = '';
+    const consume = work.then(async result => {
+      const reader = result.response.body.getReader(), decoder = new TextDecoder();
+      while (true) { const chunk = await reader.read(); if (chunk.done) break; captured += decoder.decode(chunk.value, { stream: true }); }
+      return captured;
+    });
+    consume.then(() => { finished = true; }, () => { finished = true; });
+    const reached = await Promise.race([entered.then(() => true), consume.then(() => false, () => false)]);
+    try {
+      expect(reached).toBe(true); await durable;
+      if (mode === 'foreign-index' || mode === 'missing-stop') {
+        // Local failure must not wait for foreign persistence acknowledgement.
+        // The original unresolved winner still writes, with no synthetic success.
+        await expect(consume).rejects.toThrow('Gateway accounting stream unavailable'); expect(finished).toBe(true);
+      } else expect(finished).toBe(false);
+      expect(captured).not.toContain('event: message_stop');
+      expect(row()).toMatchObject(mode === 'foreign-index' || mode === 'missing-stop' ? { state: 'unresolved', costNanoUsd: null } : { state: 'settled', costNanoUsd: 110250 });
+    } finally { release(); }
+    if (['foreign-index', 'missing-stop', 'lost-ack'].includes(mode)) {
+      await expect(consume).rejects.toThrow('Gateway accounting stream unavailable'); expect(captured).not.toContain('event: message_stop');
+    } else if (mode.endsWith('failed-http')) { expect((await work).response.status).toBe(429); expect(await consume).not.toContain('original citation'); }
+    else expect(await consume).toBe(raw);
+    expect(requests).toHaveLength(1); expect(refreshRequests).toHaveLength(0); expect(accounting.completeAttempt).toHaveBeenCalledTimes(1);
+    expect(requests[0].row).toEqual({ requestId: context.requestId, state: 'pending' });
+    const { cache_control: _cache, ...sent } = requests[0].body.messages[1].content[1]; expect(sent).toEqual(document);
+    expect(requests[0].body.messages[0].content[0].name).toBe('lookup_ide'); expect(args.body).toEqual(original);
+    expect(JSON.stringify(row())).not.toMatch(/original citation|citation title|citation context|media.example.invalid/); expect(failure).toBeNull();
+  });
+  it.each(['image-success', 'pdf-success', 'tool-image', 'pdf-failed-http', 'missing-stop', 'lost-ack', 'erased-source'])('OAuth URL reference %s retains original source and raw-only debit/own ACK', async mode => {
+    const context = await createAccounting(); let enter, persisted, release;
+    const entered = new Promise(resolve => { enter = resolve; }), durable = new Promise(resolve => { persisted = resolve; }), held = new Promise(resolve => { release = resolve; });
+    const accounting = { ...context, completeAttempt: vi.fn(async (...input) => { enter(); const result = await context.completeAttempt(...input); persisted(); await held;
+      if (mode === 'lost-ack') throw new Error('fixture URL ACK lost'); return result;
+    }) };
+    const args = options(accounting), image = mode.startsWith('image') || mode === 'tool-image';
+    const media = { type: image ? 'image' : 'document', source: { type: 'url', url: 'https://media.example.invalid/original%20asset?version=1' },
+      ...(!image ? { title: 'URL title', context: 'URL context', citations: { enabled: true } } : {}) };
+    if (mode === 'tool-image') args.body.messages[1].content[0].content = [{ type: 'text', text: 'original error' }, media];
+    else args.body.messages[1].content.push(media);
+    const original = structuredClone(args.body), executor = new DefaultExecutor('claude');
+    if (mode === 'erased-source') {
+      args.accounting = { ...accounting, beforeAttempt(meta, supported, value) {
+        const changed = structuredClone(value), body = JSON.parse(changed.anthropicTransport.serializedBody);
+        body.messages[1].content.pop(); changed.anthropicTransport.serializedBody = JSON.stringify(body);
+        return context.beforeAttempt(meta, supported, changed);
+      } };
+      await expect(executor.execute(args)).rejects.toThrow(); expect(requests).toHaveLength(0); expect(db.all('SELECT * FROM apiKeyAccounting')).toHaveLength(0); return;
+    }
+    const content = image ? '' : event('content_block_start', { index: 0, content_block: { type: 'text', text: '', citations: [] } }) +
+      event('content_block_delta', { index: 0, delta: { type: 'citations_delta', citation: { type: 'page_location', document_index: 0, document_title: 'URL title', cited_text: 'URL cited text', start_page_number: 1, end_page_number: 2 } } }) + event('content_block_stop', { index: 0 });
+    const raw = wire(mode === 'missing-stop' ? 'missing-stop' : undefined).replace('event: message_delta', content + 'event: message_delta');
+    responder = (_request, response) => {
+      db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': { ...rates, input: '99' } })]));
+      response.writeHead(mode === 'pdf-failed-http' ? 429 : 200, { 'content-type': 'text/event-stream' }); response.end(raw);
+    };
+    const work = executor.execute(args); let finished = false, captured = '';
+    const consume = work.then(async result => {
+      const reader = result.response.body.getReader(), decoder = new TextDecoder();
+      while (true) { const chunk = await reader.read(); if (chunk.done) break; captured += decoder.decode(chunk.value, { stream: true }); }
+      return captured;
+    });
+    consume.then(() => { finished = true; }, () => { finished = true; });
+    const reached = await Promise.race([entered.then(() => true), consume.then(() => false, () => false)]);
+    try {
+      expect(reached).toBe(true); await durable;
+      if (mode === 'missing-stop') { await expect(consume).rejects.toThrow('Gateway accounting stream unavailable'); expect(finished).toBe(true); }
+      else expect(finished).toBe(false);
+      expect(captured).not.toContain('event: message_stop');
+      expect(row()).toMatchObject(mode === 'missing-stop' ? { state: 'unresolved', costNanoUsd: null } : { state: 'settled', costNanoUsd: 110250 });
+    } finally { release(); }
+    if (['missing-stop', 'lost-ack'].includes(mode)) { await expect(consume).rejects.toThrow('Gateway accounting stream unavailable'); expect(captured).not.toContain('event: message_stop'); }
+    else if (mode === 'pdf-failed-http') { expect((await work).response.status).toBe(429); expect(await consume).not.toContain('URL cited text'); }
+    else expect(await consume).toBe(raw);
+    expect(requests).toHaveLength(1); expect(refreshRequests).toHaveLength(0); expect(accounting.completeAttempt).toHaveBeenCalledTimes(1);
+    expect(requests[0].row).toEqual({ requestId: context.requestId, state: 'pending' }); expect(args.body).toEqual(original);
+    if (mode === 'tool-image') expect(requests[0].body.messages[1].content[0]).toMatchObject({ is_error: true, content: original.messages[1].content[0].content });
+    else { const { cache_control: _cache, ...sent } = requests[0].body.messages[1].content[1]; expect(sent).toEqual(media); }
+    expect(requests[0].body.messages[0].content[0].name).toBe('lookup_ide');
+    expect(JSON.stringify(row())).not.toMatch(/media.example.invalid|URL title|URL context|URL cited text/); expect(failure).toBeNull();
+  });
+  it.each(['success', 'failed-http', 'missing-stop', 'lost-ack', 'erased-source'])('OAuth client RAG %s preserves original tool source and raw-only settlement', async mode => {
+    const context = await createAccounting(); let enter, persisted, release;
+    const entered = new Promise(resolve => { enter = resolve; }), durable = new Promise(resolve => { persisted = resolve; }), held = new Promise(resolve => { release = resolve; });
+    const accounting = { ...context, completeAttempt: vi.fn(async (...input) => { enter(); const result = await context.completeAttempt(...input); persisted(); await held;
+      if (mode === 'lost-ack') throw new Error('fixture RAG ACK lost'); return result;
+    }) };
+    const args = options(accounting), source = { type: 'search_result', source: 'kb://original/item', title: 'RAG title', content: [{ type: 'text', text: 'original RAG chunk' }], citations: { enabled: true } };
+    args.body.messages[1].content[0].content = [source]; const original = structuredClone(args.body);
+    if (mode === 'erased-source') {
+      args.accounting = { ...accounting, beforeAttempt(meta, supported, value) {
+        const changed = structuredClone(value), body = JSON.parse(changed.anthropicTransport.serializedBody);
+        body.messages[1].content[0].content[0].source = 'kb://foreign/item'; changed.anthropicTransport.serializedBody = JSON.stringify(body);
+        return context.beforeAttempt(meta, supported, changed);
+      } };
+      await expect(new DefaultExecutor('claude').execute(args)).rejects.toThrow(); expect(requests).toHaveLength(0); expect(db.all('SELECT * FROM apiKeyAccounting')).toHaveLength(0); return;
+    }
+    const citation = { type: 'search_result_location', source: source.source, title: source.title, cited_text: 'original RAG chunk', search_result_index: 0, start_block_index: 0, end_block_index: 1 };
+    const raw = wire(mode === 'missing-stop' ? 'missing-stop' : undefined).replace('event: message_delta', event('content_block_start', { index: 0, content_block: { type: 'text', text: '', citations: [] } }) +
+      event('content_block_delta', { index: 0, delta: { type: 'citations_delta', citation } }) + event('content_block_stop', { index: 0 }) + 'event: message_delta');
+    responder = (_request, response) => {
+      db.durableTransaction(() => db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key='claude'", [JSON.stringify({ 'fixture-oauth': { ...rates, input: '99' } })]));
+      response.writeHead(mode === 'failed-http' ? 429 : 200, { 'content-type': 'text/event-stream' }); response.end(raw);
+    };
+    const work = new DefaultExecutor('claude').execute(args); let finished = false, captured = '';
+    const consume = work.then(async result => { const reader = result.response.body.getReader(), decoder = new TextDecoder();
+      while (true) { const chunk = await reader.read(); if (chunk.done) break; captured += decoder.decode(chunk.value, { stream: true }); } return captured;
+    });
+    consume.then(() => { finished = true; }, () => { finished = true; });
+    const reached = await Promise.race([entered.then(() => true), consume.then(() => false, () => false)]);
+    try { expect(reached).toBe(true); await durable;
+      if (mode === 'missing-stop') { await expect(consume).rejects.toThrow('Gateway accounting stream unavailable'); expect(finished).toBe(true); }
+      else expect(finished).toBe(false);
+      expect(captured).not.toContain('event: message_stop');
+      expect(row()).toMatchObject(mode === 'missing-stop' ? { state: 'unresolved', costNanoUsd: null } : { state: 'settled', costNanoUsd: 110250 });
+    } finally { release(); }
+    if (['missing-stop', 'lost-ack'].includes(mode)) await expect(consume).rejects.toThrow('Gateway accounting stream unavailable');
+    else if (mode === 'failed-http') { expect((await work).response.status).toBe(429); expect(await consume).not.toContain('original RAG chunk'); }
+    else expect(await consume).toBe(raw);
+    expect(requests).toHaveLength(1); expect(refreshRequests).toHaveLength(0); expect(accounting.completeAttempt).toHaveBeenCalledTimes(1);
+    expect(requests[0].row).toEqual({ requestId: context.requestId, state: 'pending' }); expect(args.body).toEqual(original);
+    expect(requests[0].body.messages[1].content[0]).toMatchObject({ is_error: true, content: [source] }); expect(requests[0].body.messages[0].content[0].name).toBe('lookup_ide');
+    expect(JSON.stringify(row())).not.toMatch(/kb:\/\/|RAG title|original RAG chunk/); expect(failure).toBeNull();
+  });
+  it.each(['delivered', 'erased-history'])('OAuth original citation history %s retains replay bytes and terminal authority', async mode => {
+    const context = await createAccounting(); let enter, release;
+    const entered = new Promise(resolve => { enter = resolve; }), held = new Promise(resolve => { release = resolve; });
+    const accounting = { ...context, completeAttempt: vi.fn(async (...input) => { const result = await context.completeAttempt(...input); enter(); await held; return result; }) };
+    const args = options(accounting), citation = { type: 'char_location', document_index: 0, document_title: 'replay title', cited_text: 'replay source', start_char_index: 0, end_char_index: 6 };
+    args.body.messages = [{ role: 'user', content: [{ type: 'document', source: { type: 'text', media_type: 'text/plain', data: 'replay source' }, title: 'replay title', citations: { enabled: true } }] },
+      { role: 'assistant', content: [{ type: 'text', text: 'replay answer', citations: [citation] }] }, { role: 'user', content: 'continue' }];
+    const original = structuredClone(args.body);
+    if (mode === 'erased-history') args.accounting = { ...accounting, beforeAttempt(meta, supported, value) {
+      const changed = structuredClone(value), body = JSON.parse(changed.anthropicTransport.serializedBody);
+      delete body.messages[1].content[0].citations; changed.anthropicTransport.serializedBody = JSON.stringify(body);
+      return context.beforeAttempt(meta, supported, changed);
+    } };
+    const work = new DefaultExecutor('claude').execute(args), consume = work.then(result => result.response.text());
+    consume.catch(() => {});
+    if (mode === 'erased-history') { await expect(consume).rejects.toThrow(); expect(requests).toHaveLength(0); expect(db.all('SELECT * FROM apiKeyAccounting')).toHaveLength(0); return; }
+    let finished = false; consume.then(() => { finished = true; }, () => { finished = true; });
+    const reached = await Promise.race([entered.then(() => true), consume.then(() => false, () => false)]);
+    try { expect(reached).toBe(true); expect(finished).toBe(false); expect(row()).toMatchObject({ state: 'settled', costNanoUsd: 110250 }); }
+    finally { release(); }
+    expect(await consume).toBe(wire()); expect(requests).toHaveLength(1); expect(refreshRequests).toHaveLength(0);
+    expect(requests[0].body.messages[1].content[0].citations).toEqual([citation]); expect(args.body).toEqual(original);
+    expect(accounting.completeAttempt).toHaveBeenCalledTimes(1); expect(JSON.stringify(row())).not.toMatch(/replay title|replay source|replay answer/); expect(failure).toBeNull();
   });
   it.each(['image', 'document', 'tool-image'])('native inline %s survives actual POST and holds own terminal ACK at original price', async mode => {
     const context = await createAccounting(); let enter, release;
@@ -143,6 +579,30 @@ describe('queued Claude OAuth original/actual wire authority (owned HTTP only)',
     expect(requests[0].body.thinking).toEqual(original.thinking); expect(requests[0].body.messages[0].content[0]).toEqual(original.messages[0].content[0]);
     expect(requests[0].headers['anthropic-beta']).toBe(selectAnthropicBeta('fixture-oauth', original));
     expect(requests[0].headers['anthropic-beta']).not.toContain('redact-thinking');
+  });
+  it.each(['delivered', 'terminal-drift', 'lost-ack'])('opaque original redacted history %s keeps actual bytes and own terminal authority', async mode => {
+    const context = await createAccounting(); let enter, release;
+    const entered = new Promise(resolve => { enter = resolve; }), held = new Promise(resolve => { release = resolve; });
+    const accounting = { ...context, async completeAttempt(...input) { const terminal = await context.completeAttempt(...input); enter(); await held;
+      if (mode === 'lost-ack') throw new Error('fixture lost ACK'); return terminal;
+    }, assertClaudeOauthTerminal(attempt, terminal) {
+      if (mode === 'terminal-drift') db.durableTransaction(() => db.run("UPDATE providerConnections SET data=? WHERE id='c'", [JSON.stringify({ accessToken: 'sk-ant-oat-rotated' })]));
+      return context.assertClaudeOauthTerminal(attempt, terminal);
+    } };
+    const args = options(accounting); args.body.thinking = { type: 'adaptive' };
+    args.body.messages[0].content.unshift({ type: 'redacted_thinking', data: 'opaque-original🙂' }); const original = structuredClone(args.body);
+    const raw = wire().replace('event: message_delta', event('content_block_start', { index: 0, content_block: { type: 'redacted_thinking', data: 'opaque-response' } }) +
+      event('content_block_stop', { index: 0 }) + 'event: message_delta');
+    responder = (_request, response) => { response.writeHead(200, { 'content-type': 'text/event-stream' }); response.end(raw); };
+    const result = await new DefaultExecutor('claude').execute(args); let finished = false;
+    const consume = result.response.text(); consume.then(() => { finished = true; }, () => { finished = true; });
+    try { await entered; expect(finished).toBe(false); expect(row()).toMatchObject({ state: 'settled', costNanoUsd: 110250 }); }
+    finally { release(); }
+    if (mode === 'delivered') expect(await consume).toBe(raw); else await expect(consume).rejects.toThrow('Gateway accounting stream unavailable');
+    expect(args.body).toEqual(original); expect(requests).toHaveLength(1); expect(refreshRequests).toHaveLength(0);
+    expect(requests[0].row).toEqual({ requestId: context.requestId, state: 'pending' });
+    expect(requests[0].body.messages[0].content[0]).toEqual(original.messages[0].content[0]);
+    expect(JSON.stringify(row())).not.toMatch(/opaque-original|opaque-response/);
   });
   it.each(['missing-signature', 'missing-stop'])('native thinking %s cannot authorize terminal/refresh', async mode => {
     responder = (_request, response) => { response.writeHead(200, { 'content-type': 'text/event-stream' }); response.end(thinkingWire(mode)); };

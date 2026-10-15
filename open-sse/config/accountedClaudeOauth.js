@@ -1,3 +1,7 @@
+import { ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE } from './accountingClaudeDynamicModes.js';
+import { supportsClaudeDynamicOriginal } from './accountingClaudeDynamicOriginal.js';
+import { CLAUDE_ACCOUNTING_CODE_NAME } from './accountingClaudeCodeRegime.js';
+import { CLAUDE_ACCOUNTING_CODE_SUBTOOLS } from './accountingClaudeToolGraph.js';
 import { isDeepStrictEqual } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { PROVIDERS } from './providers.js';
@@ -10,6 +14,9 @@ import { selectAnthropicBeta, ANTHROPIC_API_VERSION, CLAUDE_CLI_VERSION } from '
 import { CLAUDE_BLOCK, ROLE } from '../translator/schema/index.js';
 import { getCapabilitiesForModel } from '../providers/capabilities.js';
 import { DEFAULT_MAX_TOKENS } from './runtimeConfig.js';
+import { CLAUDE_ACCOUNTING_SERVER_FETCH_NAME } from './accountingClaudeServerFetch.js';
+import { CLAUDE_ACCOUNTING_SERVER_SEARCH_NAME } from './accountingClaudeServerSearch.js';
+import { captureClaudeSearchResults } from './accountingClaudeSearchResults.js';
 
 export const ACCOUNTED_CLAUDE_OAUTH_MODE = 'native-claude-oauth-sse';
 const unavailable = () => { throw new Error('Accounting Claude OAuth transport unavailable'); };
@@ -21,13 +28,15 @@ export function claudeOauthToken(credentials) {
   if (credentials.apiKey && credentials.accessToken && credentials.apiKey !== credentials.accessToken) unavailable();
   return token;
 }
-export function supportsClaudeOauthOriginal(body, model) {
-  if (!supportsAnthropicLiveRequest(body, model, true, true, true, true)) return false;
+export function supportsClaudeOauthOriginal(body, model, allowDynamic = false) {
+  if (typeof allowDynamic !== 'boolean' || !(allowDynamic ? supportsClaudeDynamicOriginal(body, model) : supportsAnthropicLiveRequest(body, model, true, true, true, true, true, true, true, true, true))) return false;
   const caps = getCapabilitiesForModel('claude', model);
   if (body.max_tokens > (caps.maxOutput || DEFAULT_MAX_TOKENS) || caps.thinkingOffType && body.thinking?.type === 'disabled' ||
       caps.forcedToolChoice === false && ['any', 'tool'].includes(body.tool_choice?.type)) return false;
   // Normalization cannot erase requested content to obtain accounting support.
-  // Server tools/URL media/citations and redacted history remain separate F obligations.
+  // Direct search has original/actual/raw/per-use owners. Other server tools
+  // and files remain separate F obligations.
+  // URL media is forwarded verbatim only; no local retrieval/type inference.
   if (Array.isArray(body.system) && body.system.some(b => !b.text.trim())) return false;
   let previous = null;
   for (const message of body.messages) {
@@ -43,9 +52,9 @@ export function supportsClaudeOauthOriginal(body, model) {
   }
   return true;
 }
-export function prepareAccountingClaudeOauthBody(original, token, sessionId = randomUUID()) {
-  if (!supportsClaudeOauthOriginal(original, original?.model)) unavailable();
-  const prepared = prepareClaudeRequest(structuredClone(original), 'claude', token, null, null, sessionId);
+export function prepareAccountingClaudeOauthBody(original, token, sessionId = randomUUID(), allowDynamic = false) {
+  if (!supportsClaudeOauthOriginal(original, original?.model, allowDynamic)) unavailable();
+  const prepared = prepareClaudeRequest(structuredClone(original), 'claude', token, null, null, sessionId, true, true, true, true, allowDynamic);
   const thinkingHistory = body => body.messages.map(message => Array.isArray(message.content)
     ? message.content.filter(block => [CLAUDE_BLOCK.THINKING, CLAUDE_BLOCK.REDACTED_THINKING].includes(block.type)) : []);
   if (!isDeepStrictEqual(prepared.thinking, original.thinking) || !isDeepStrictEqual(prepared.output_config, original.output_config) ||
@@ -59,7 +68,39 @@ export function prepareAccountingClaudeOauthBody(original, token, sessionId = ra
   }) : []);
   if (!isDeepStrictEqual(inlineHistory(prepared), inlineHistory(original))) unavailable();
   const cloaked = cloakClaudeTools(prepared).body;
-  return snapshotAccountingPreparedData(anchorClaudeCache(cloaked));
+  const anchored = anchorClaudeCache(cloaked, true, true, true, allowDynamic);
+  const serverHistory = body => body.messages.map(message => Array.isArray(message.content)
+    ? message.content.filter(block => [CLAUDE_BLOCK.SERVER_TOOL_USE, CLAUDE_BLOCK.WEB_SEARCH_TOOL_RESULT, CLAUDE_BLOCK.WEB_FETCH_TOOL_RESULT, ...(allowDynamic ? Object.values(CLAUDE_ACCOUNTING_CODE_SUBTOOLS) : [])].includes(block.type)) : []);
+  const serverTools = body => (body.tools || []).filter(tool => [CLAUDE_ACCOUNTING_SERVER_SEARCH_NAME, CLAUDE_ACCOUNTING_SERVER_FETCH_NAME, ...(allowDynamic ? [CLAUDE_ACCOUNTING_CODE_NAME] : [])].includes(tool.name)).map(tool => {
+    const { cache_control: _cache, ...definition } = tool; return definition;
+  });
+  if (!isDeepStrictEqual(serverHistory(anchored), serverHistory(original)) ||
+      !isDeepStrictEqual(serverTools(anchored), serverTools(original))) unavailable();
+  const citationHistory = body => body.messages.map(message => Array.isArray(message.content)
+    ? message.content.filter(block => Object.hasOwn(block, 'citations') && block.type === CLAUDE_BLOCK.TEXT) : []);
+  if (!isDeepStrictEqual(citationHistory(anchored), citationHistory(original)) ||
+      !isDeepStrictEqual(captureClaudeSearchResults(anchored), captureClaudeSearchResults(original))) unavailable();
+  return snapshotAccountingPreparedData(anchored);
+}
+// Build the raw declared-name owner from validated original deterministic
+// client renaming, never from decoy declarations. This is not a POST body.
+export function claudeOauthServerSearchOwner(original) {
+  return claudeOauthServerToolOwner(original, CLAUDE_ACCOUNTING_SERVER_SEARCH_NAME);
+}
+export function claudeOauthServerFetchOwner(original) {
+  return claudeOauthServerToolOwner(original, CLAUDE_ACCOUNTING_SERVER_FETCH_NAME);
+}
+export function claudeOauthDynamicOwner(original) {
+  return claudeOauthServerToolOwner(original, null, true);
+}
+function claudeOauthServerToolOwner(original, toolName, allowDynamic = false) {
+  original = snapshotAccountingPreparedData(original);
+  if (!supportsClaudeOauthOriginal(original, original.model, allowDynamic)) unavailable();
+  if (!allowDynamic && !original.tools?.some(tool => tool.name === toolName)) return null;
+  const cloaked = cloakClaudeTools(structuredClone(original)).body;
+  const owner = { ...original, tools: cloaked.tools.slice(0, original.tools.length), messages: cloaked.messages };
+  if (!(allowDynamic ? supportsClaudeDynamicOriginal(owner, original.model) : supportsAnthropicLiveRequest(owner, original.model, true, true, true, true, true, true, true, true, true))) unavailable();
+  return snapshotAccountingPreparedData(owner);
 }
 // The only nondeterministic field is the three-hex client build discriminator.
 // Validate its full billing grammar/cch/version, then compare every other byte
@@ -76,7 +117,7 @@ export function validateAccountingClaudeOauthDispatch(value, url) {
   const evidence = snapshotAccountingPreparedData(value);
   const fields = ['model', 'mode', 'baseTransport', 'serializedBody', 'originalSerializedBody', 'credentials'];
   if (!evidence || Array.isArray(evidence) || Object.keys(evidence).length !== fields.length || fields.some(key => !Object.hasOwn(evidence, key)) ||
-      evidence.mode !== ACCOUNTED_CLAUDE_OAUTH_MODE || typeof evidence.model !== 'string' ||
+      ![ACCOUNTED_CLAUDE_OAUTH_MODE, ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE].includes(evidence.mode) || typeof evidence.model !== 'string' ||
       !isDeepStrictEqual(evidence.baseTransport, captureAccountingBaseTransport(PROVIDERS.claude)) ||
       url !== `${evidence.baseTransport.baseUrl}${evidence.baseTransport.urlSuffix || ''}`) unavailable();
   const credentials = evidence.credentials;
@@ -84,11 +125,12 @@ export function validateAccountingClaudeOauthDispatch(value, url) {
   const token = claudeOauthToken(credentials);
   let original, body;
   try { original = JSON.parse(evidence.originalSerializedBody); body = JSON.parse(evidence.serializedBody); } catch { unavailable(); }
-  if (!supportsClaudeOauthOriginal(original, evidence.model)) unavailable();
+  const dynamic = evidence.mode === ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE;
+  if (!supportsClaudeOauthOriginal(original, evidence.model, dynamic)) unavailable();
   let sessionId;
   try { sessionId = JSON.parse(body.metadata.user_id).session_id; } catch { unavailable(); }
   if (typeof sessionId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)) unavailable();
-  const expected = prepareAccountingClaudeOauthBody(original, token, sessionId);
+  const expected = prepareAccountingClaudeOauthBody(original, token, sessionId, dynamic);
   if (!isDeepStrictEqual(stableBilling(body), stableBilling(expected))) unavailable();
   return evidence;
 }

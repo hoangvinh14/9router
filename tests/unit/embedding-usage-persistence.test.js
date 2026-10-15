@@ -19,6 +19,11 @@ vi.mock("../../src/sse/services/auth.js", () => ({
 vi.mock("@/lib/localDb", () => ({ getSettings: async () => ({ requireApiKey: false }) }));
 // This suite verifies OFF-path legacy analytics, not active ledger ownership.
 vi.mock("@/lib/apiKeyBudget/requestAccounting.js", () => ({ createRequestAccounting: async () => null }));
+// Legacy analytics only: keep active/persisted-entry owners out of this seam.
+// Fail loudly if any accidental real-adapter acquisition escapes these mocks.
+vi.mock("@/lib/apiKeyBudget/unhealthyChatEntry.js", () => ({ handleUnhealthyEmbeddingsEntry: async () => null }));
+vi.mock("@/lib/apiKeyBudget/geminiEmbeddingEntry.js", () => ({ handleHealthyGeminiEmbeddingEntry: async () => null }));
+vi.mock("@/lib/db/driver.js", () => ({ getAdapter: () => { throw new Error("Legacy analytics fixture must not acquire a real DB"); } }));
 vi.mock("../../src/sse/services/model.js", () => ({
   getModelInfo: async () => ({ provider: "openai", model: "text-embedding-3-small" }),
 }));

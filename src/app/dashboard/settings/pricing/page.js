@@ -154,12 +154,11 @@ export default function PricingSettingsPage() {
         <h2 className="text-xl font-semibold mb-4">How Pricing Works</h2>
         <div className="space-y-3 text-sm text-text-muted">
           <p>
-            <strong>Cost Calculation:</strong> Costs are calculated based on token usage and pricing rates.
-            Reference cost applies USD-per-million rates to exact usage components. Cached input subsets are subtracted from ordinary input; included reasoning is not charged twice. Unknown usage is not zero.
+            <strong>Cost Calculation:</strong> Reference cost applies USD-per-million token rates and explicit per-use embedded tool rates to exact observed components, rounded once per attempt. Cached input subsets are subtracted from ordinary input; included reasoning is not charged twice. Unknown usage is not zero. A configured rate alone does not enable accounting support.
           </p>
           <p>
-            <strong>Pricing Format:</strong> All rates are in <strong>dollars per million tokens</strong> ($/1M tokens).
-            Example: An input rate of 2.50 means $2.50 per 1,000,000 input tokens.
+            <strong>Pricing Format:</strong> Token rates use <strong>dollars per million tokens</strong> ($/1M tokens); embedded web-search rates use <strong>dollars per 1,000 observed uses</strong>.
+            Example: An input rate of 2.50 means $2.50 per 1,000,000 input tokens. Tool rates are separate explicit overrides, not token-rate fallbacks or inferred catalog fees.
           </p>
           <p>
             <strong>Token Types:</strong>
@@ -171,6 +170,11 @@ export default function PricingSettingsPage() {
             <li><strong>Reasoning:</strong> Special reasoning/thinking tokens (fallback to output rate)</li>
             <li><strong>Cache Creation / 5m:</strong> Cache-write tokens (fallback to input rate)</li>
             <li><strong>Cache Creation 1h:</strong> Observed 1-hour writes require their own explicit reference rate; blank is unavailable, not a multiplier or 5m fallback.</li>
+            <li><strong>Image/document input:</strong> Independent explicit USD/1M input and cached rates for each observed modality. Blank is unavailable; no flat-rate equality or cached fallback is assumed, even for observed zero categories. Reference fields alone do not certify raw usage or enable accounting. Standalone image/audio/video endpoints remain outside budget metering.</li>
+            <li><strong>Audio input:</strong> Observed AUDIO prompt and cached tokens use independent explicit USD/1M reference rates. Missing rates stay unavailable; duration, bytes and text-rate equality do not establish cost. Output audio and Live API support require separate protocol authority.</li>
+            <li><strong>Video input:</strong> Explicit VIDEO input and cached token references use USD/1M tokens, independently of IMAGE frames and AUDIO. Every original-allowed category needs its own rates even if unobserved or zero. Duration, FPS, frame counts and bytes never establish usage or cost. Output video, processing tools and remote resources need separate protocol authority.</li>
+            <li><strong>Processing tool-prompt:</strong> Observed loaded TEXT, IMAGE, DOCUMENT, AUDIO and VIDEO tool-prompt tokens need independent explicit USD/1M reference rates. These are separate from initial input/cache, thoughts/output and per-call hosted fees. Blank is unavailable, even for zero quantities; initial-input rates are never reused automatically. Counts or costs cannot be inferred from calls, bytes, duration, FPS or processing modes. Reference fields alone do not certify protocol/model support, resources or exact terminal usage.</li>
+            <li><strong>Embedded Web Search:</strong> Explicit USD/1,000 uses; blank is unavailable, never free. Paid-server protocol support must be verified independently. Standalone search/fetch endpoints remain outside budget metering.</li>
           </ul>
           <p>
             <strong>Custom Pricing:</strong> You can override default pricing for specific models.

@@ -32,7 +32,8 @@ export async function getPricingCoverage({ limit = 50, offset = 0, revision = nu
   const rows = inventory.map(item => {
     const result = resolveReferencePriceSync(view, item.provider, item.model, item.endpoint);
     return result.status === "priced" ? { ...item, status: "priced", source: result.snapshot.source, virtual: result.snapshot.virtual,
-      rates: result.snapshot.rates, fallbackSemantics: result.snapshot.fallbackSemantics, mapping: result.snapshot.mapping,
+      rates: result.snapshot.rates, ...(result.snapshot.rateUnits ? { rateUnits: result.snapshot.rateUnits } : {}),
+      fallbackSemantics: result.snapshot.fallbackSemantics, mapping: result.snapshot.mapping,
       catalogRevision: result.snapshot.catalogRevision, syncedAt: result.snapshot.syncedAt, snapshotRevision: result.snapshot.revision }
       : { ...item, status: "unavailable", reason: result.reason };
   });

@@ -1,7 +1,6 @@
 // Claude helper functions for translator
 import { DEFAULT_THINKING_CLAUDE_SIGNATURE } from "../../config/defaultThinkingSignature.js";
 import { ROLE, CLAUDE_BLOCK } from "../schema/index.js";
-import { adjustMaxTokens } from "./maxTokens.js";
 import { applyCloaking } from "../../utils/claudeCloaking.js";
 import { resolveSessionId } from "../../utils/sessionManager.js";
 import { isValidClaudeSignature } from "../../utils/claudeSignature.js";
@@ -350,12 +349,17 @@ export function ensureTrailingUserTurn(messages, originalLastRole) {
 
 // Put a 5m breakpoint on the last cache-eligible block of a message.
 // thinking/redacted_thinking blocks do not accept cache_control.
-function markLastCacheableBlock(msg) {
+const ACCOUNTING_CODE_RESULTS = [CLAUDE_BLOCK.CODE_EXECUTION_TOOL_RESULT, CLAUDE_BLOCK.BASH_CODE_EXECUTION_TOOL_RESULT, CLAUDE_BLOCK.TEXT_EDITOR_CODE_EXECUTION_TOOL_RESULT];
+function markLastCacheableBlock(msg, preserveAccountingCitations = false, preserveAccountingServerSearch = false, preserveAccountingServerFetch = false, preserveAccountingCode = false) {
   if (!Array.isArray(msg?.content)) return false;
   for (let i = msg.content.length - 1; i >= 0; i--) {
     const block = msg.content[i];
     if (typeof block !== "object" || block === null) continue;
-    if (block.type === CLAUDE_BLOCK.THINKING || block.type === CLAUDE_BLOCK.REDACTED_THINKING) continue;
+    if (block.type === CLAUDE_BLOCK.THINKING || block.type === CLAUDE_BLOCK.REDACTED_THINKING ||
+        preserveAccountingCitations === true && block.type === CLAUDE_BLOCK.TEXT && Object.hasOwn(block, 'citations') ||
+        preserveAccountingServerSearch === true && [CLAUDE_BLOCK.SERVER_TOOL_USE, CLAUDE_BLOCK.WEB_SEARCH_TOOL_RESULT].includes(block.type) ||
+        preserveAccountingServerFetch === true && [CLAUDE_BLOCK.SERVER_TOOL_USE, CLAUDE_BLOCK.WEB_FETCH_TOOL_RESULT].includes(block.type) ||
+        preserveAccountingCode === true && [CLAUDE_BLOCK.SERVER_TOOL_USE, ...ACCOUNTING_CODE_RESULTS].includes(block.type)) continue;
     block.cache_control = { ...CACHE_CONTROL_5M };
     return true;
   }
@@ -382,7 +386,7 @@ function markFinalToolResults(body) {
 // The client's own markers point at pre-normalization offsets, so they are dropped.
 // Must run LAST, after every step that can reshape system/tools/messages
 // (normalize, tool dedupe, token savers) — otherwise the anchor drifts off the tail.
-export function anchorClaudeCache(body) {
+export function anchorClaudeCache(body, preserveAccountingCitations = false, preserveAccountingServerSearch = false, preserveAccountingServerFetch = false, preserveAccountingCode = false) {
   if (!body || typeof body !== "object") return body;
   if (Array.isArray(body.messages)) {
     for (const msg of body.messages) normalizeMessageContent(msg);
@@ -436,14 +440,14 @@ export function anchorClaudeCache(body) {
       // Prefer the last assistant turn: it ends a completed exchange, so the
       // prefix up to it stays byte-stable across the following requests.
       if (anchored || msg.role !== ROLE.ASSISTANT) continue;
-      anchored = markLastCacheableBlock(msg);
+      anchored = markLastCacheableBlock(msg, preserveAccountingCitations, preserveAccountingServerSearch, preserveAccountingServerFetch, preserveAccountingCode);
     }
 
     // First turn of a conversation has no assistant yet — anchor the final
     // message instead, so the opening prompt is cached rather than paid twice.
     if (!anchored) {
       for (let i = body.messages.length - 1; i >= 0 && !anchored; i--) {
-        anchored = markLastCacheableBlock(body.messages[i]);
+        anchored = markLastCacheableBlock(body.messages[i], preserveAccountingCitations, preserveAccountingServerSearch, preserveAccountingServerFetch, preserveAccountingCode);
       }
     }
 
@@ -482,7 +486,15 @@ export function hoistToolResultImages(body) {
   return touched ? { ...body, messages } : body;
 }
 
-export function prepareClaudeRequest(body, provider = null, apiKey = null, connectionId = null, rawHeaders = null, sessionId = null) {
+export function prepareClaudeRequest(body, provider = null, apiKey = null, connectionId = null, rawHeaders = null, sessionId = null, preserveAccountingRedactedHistory = false, preserveAccountingCitations = false, preserveAccountingServerSearch = false, preserveAccountingServerFetch = false, preserveAccountingCode = false) {
+  // Internal accounting opt-in only: retain opaque redacted data, never mint a
+  // signature/placeholder or erase a turn. The caller separately validates the
+  // entire original schema and compares thinking history after this transform.
+  const retainRedacted = preserveAccountingRedactedHistory === true && provider === 'claude';
+  const retainCitations = preserveAccountingCitations === true && provider === 'claude';
+  const retainServerSearch = preserveAccountingServerSearch === true && provider === 'claude';
+  const retainServerFetch = preserveAccountingServerFetch === true && provider === 'claude';
+  const retainCode = preserveAccountingCode === true && provider === 'claude';
   // quirk: MiniMax's Claude-compatible endpoint rejects Anthropic's output_config (400 invalid params)
   if (PROVIDERS[provider]?.quirks?.dropOutputConfig) {
     delete body.output_config;
@@ -557,7 +569,12 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
 
       // Keep final assistant even if empty, otherwise check valid content
       const isFinalAssistant = i === len - 1 && msg.role === "assistant";
-      if (isFinalAssistant || hasValidContent(msg)) {
+      if (isFinalAssistant || hasValidContent(msg) || retainCitations && msg.role === ROLE.USER &&
+          Array.isArray(msg.content) && msg.content.some(block => block.type === CLAUDE_BLOCK.SEARCH_RESULT) || retainRedacted && msg.role === ROLE.ASSISTANT &&
+          Array.isArray(msg.content) && msg.content.some(block => block.type === CLAUDE_BLOCK.REDACTED_THINKING) || retainServerSearch && msg.role === ROLE.ASSISTANT &&
+          Array.isArray(msg.content) && msg.content.some(block => [CLAUDE_BLOCK.SERVER_TOOL_USE, CLAUDE_BLOCK.WEB_SEARCH_TOOL_RESULT].includes(block.type)) || retainServerFetch && msg.role === ROLE.ASSISTANT &&
+          Array.isArray(msg.content) && msg.content.some(block => [CLAUDE_BLOCK.SERVER_TOOL_USE, CLAUDE_BLOCK.WEB_FETCH_TOOL_RESULT].includes(block.type)) || retainCode && msg.role === ROLE.ASSISTANT &&
+          Array.isArray(msg.content) && msg.content.some(block => [CLAUDE_BLOCK.SERVER_TOOL_USE, ...ACCOUNTING_CODE_RESULTS].includes(block.type))) {
         filtered.push(msg);
       }
     }
@@ -593,7 +610,11 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
         if (!lastAssistantProcessed && msg.content.length > 0) {
           for (let j = msg.content.length - 1; j >= 0; j--) {
             const block = msg.content[j];
-            if (block.type !== CLAUDE_BLOCK.THINKING && block.type !== CLAUDE_BLOCK.REDACTED_THINKING) {
+            if (block.type !== CLAUDE_BLOCK.THINKING && block.type !== CLAUDE_BLOCK.REDACTED_THINKING &&
+                !(retainCitations && block.type === CLAUDE_BLOCK.TEXT && Object.hasOwn(block, 'citations')) &&
+                !(retainServerSearch && [CLAUDE_BLOCK.SERVER_TOOL_USE, CLAUDE_BLOCK.WEB_SEARCH_TOOL_RESULT].includes(block.type)) &&
+                !(retainServerFetch && [CLAUDE_BLOCK.SERVER_TOOL_USE, CLAUDE_BLOCK.WEB_FETCH_TOOL_RESULT].includes(block.type)) &&
+                !(retainCode && [CLAUDE_BLOCK.SERVER_TOOL_USE, ...ACCOUNTING_CODE_RESULTS].includes(block.type))) {
               block.cache_control = { type: "ephemeral" };
               break;
             }
@@ -616,7 +637,7 @@ export function prepareClaudeRequest(body, provider = null, apiKey = null, conne
             const isThinking = block.type === CLAUDE_BLOCK.THINKING || block.type === CLAUDE_BLOCK.REDACTED_THINKING;
             if (isThinking) {
               if (isClaudeNative) {
-                if (isValidClaudeSignature(block.signature)) {
+                if (isValidClaudeSignature(block.signature) || retainRedacted && block.type === CLAUDE_BLOCK.REDACTED_THINKING) {
                   hasKeptThinking = true;
                   kept.push(block);
                 }

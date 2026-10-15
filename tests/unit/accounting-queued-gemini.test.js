@@ -2,9 +2,14 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest';
+import { seedGeminiAccountingFixture } from './fixtures/accounting-gemini-db.js';
 
 const network = vi.hoisted(() => vi.fn());
 vi.mock('open-sse/utils/proxyFetch.js', () => ({ proxyAwareFetch: (...args) => network(...args) }));
+vi.mock('../../src/lib/db/engineAcquisition.js', async importOriginal => {
+  const original = await importOriginal();
+  return process.env.ACCOUNTING_TEST_SQLJS === '1' ? { ...original, initializeAvailableAdapter: async () => null } : original;
+});
 let db, directory, createAccounting, DefaultExecutor;
 const old = process.env.DATA_DIR;
 const message = { modelVersion: 'fixture-gemini', candidates: [{ index: 0, finishReason: 'STOP', content: { role: 'model', parts: [{ text: 'answer' }] } }],
@@ -12,16 +17,17 @@ const message = { modelVersion: 'fixture-gemini', candidates: [{ index: 0, finis
 const options = accounting => ({ model: 'fixture-gemini', body: { model: 'fixture-gemini', stream: false, contents: [{ role: 'user', parts: [{ text: 'fixture' }] }] }, stream: false,
   credentials: { apiKey: 'dummy-provider' }, connectionId: 'c', accountingMode: 'native-gemini-json', accounting, proxyOptions: null });
 beforeEach(async () => {
+  const started = performance.now();
+  const stage = name => { if (process.env.ACCOUNTING_TEST_SETUP_TRACE === '1') console.info('Gemini mock cold setup', name, Math.round(performance.now() - started)); };
+  stage('start');
   network.mockReset(); vi.resetModules(); directory = fs.mkdtempSync(path.join(os.tmpdir(), '9router-queued-gemini-'));
   process.env.DATA_DIR = directory; delete global._dbAdapter;
-  db = await (await import('@/lib/db/driver.js')).getAdapter();
-  await (await import('@/lib/db/index.js')).importDb({ apiKeys: [{ id: 'a', key: 'dummy-key-a' }], settings: { requireApiKey: true },
-    providerConnections: [{ id: 'c', provider: 'gemini', authType: 'apikey', apiKey: 'dummy-provider' }] });
-  db.durableTransaction(() => {
-    db.run("INSERT INTO _meta(key,value) VALUES('ledgerStartedAt','2026-10-03T00:00:00.000Z')");
-    db.run("INSERT INTO kv(scope,key,value) VALUES('pricing','gemini',?)", [JSON.stringify({ 'fixture-gemini': { input: '1', output: '2', cached: '0.1' } })]);
-  });
-  ({ DefaultExecutor } = await import('open-sse/executors/default.js'));
+  stage('disposable-directory');
+  db = await (await import('@/lib/db/driver.js')).getAdapter(); stage('adapter-acquired');
+  if (process.env.ACCOUNTING_TEST_SQLJS === '1') expect(db.driver).toBe('sql.js');
+  seedGeminiAccountingFixture(db);
+  stage('fixture-priced');
+  ({ DefaultExecutor } = await import('open-sse/executors/default.js')); stage('executor-imported');
   createAccounting = () => import('@/lib/apiKeyBudget/requestAccounting.js').then(({ createRequestAccounting }) => createRequestAccounting(
     new Request('http://localhost/v1beta/models/gemini/fixture-gemini:generateContent', { headers: { Authorization: 'Bearer dummy-key-a' } }), { adapter: async () => db, queued: true }));
 });

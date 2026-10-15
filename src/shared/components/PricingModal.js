@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useId, useRef } from "react";
 import { pricingDraft, submitPricingDraft, PRICING_FIELDS } from "../utils/pricingDraft.js";
+import { ACCOUNTING_GEMINI_MODALITY_RATE_FIELDS } from '../../../open-sse/config/accountingGeminiModalityRates.js';
+import { ACCOUNTING_GEMINI_PROCESSING_RATES, ACCOUNTING_GEMINI_PROCESSING_RATE_FIELDS } from '../../../open-sse/config/accountingGeminiProcessingRates.js';
 
 export default function PricingModal({ isOpen, onClose, onSave }) {
   const titleId = useId();
@@ -137,8 +139,8 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
               <div className="bg-surface-2 border border-border rounded-lg p-3 text-sm">
                 <p className="font-medium mb-1">Pricing Rates Format</p>
                 <p className="text-text-muted">
-                  All rates are in <strong>dollars per million tokens</strong> ($/1M tokens).
-                  These are virtual reference costs, not upstream invoices. Blank optional rates inherit input/output rates except 1h cache writes, which require an explicit reference rate. Explicit zero stays zero. Only edited model rows are saved.
+                  Token rates are in <strong>dollars per million tokens</strong> ($/1M tokens); embedded web-search rates use <strong>dollars per 1,000 observed uses</strong>.
+                  These are virtual reference costs, not upstream invoices. Blank optional token rates inherit input/output rates except 1h cache writes. Blank tool-use and image/document/audio/video input or cache rates remain unavailable, never free or inherited from flat token rates. Observed input modalities need independent explicit rates and cache rates, including observed zero categories; ordinary cached fallback does not apply to that owner. Explicit zero stays zero. Only edited model rows are saved. Setting a rate alone does not enable provider accounting support.
                 </p>
               </div>
 
@@ -171,6 +173,16 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
                             <th className="px-3 py-2 text-right">Reasoning</th>
                             <th className="px-3 py-2 text-right">Cache Creation / 5m</th>
                             <th className="px-3 py-2 text-right">Cache Creation 1h</th>
+                            <th className="px-3 py-2 text-right">Web Search ($/1,000 uses)</th>
+                            <th className="px-3 py-2 text-right">Image input ($/1M tokens)</th>
+                            <th className="px-3 py-2 text-right">Image cached ($/1M tokens)</th>
+                            <th className="px-3 py-2 text-right">Document input ($/1M tokens)</th>
+                            <th className="px-3 py-2 text-right">Document cached ($/1M tokens)</th>
+                            <th className="px-3 py-2 text-right">Audio input ($/1M tokens)</th>
+                            <th className="px-3 py-2 text-right">Audio cached ($/1M tokens)</th>
+                            <th className="px-3 py-2 text-right">Video input ($/1M tokens)</th>
+                            <th className="px-3 py-2 text-right">Video cached ($/1M tokens)</th>
+                            {ACCOUNTING_GEMINI_PROCESSING_RATES.map(({ modality, rate }) => <th key={rate} className="px-3 py-2 text-right">Processing tool {modality} ($/1M tokens)</th>)}
                             <th className="px-3 py-2 text-right">Override</th>
                           </tr>
                         </thead>
@@ -184,7 +196,7 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
                                     type="text"
                                     inputMode="decimal"
                                     aria-label={`${provider} ${model} ${field} rate`}
-                                    placeholder={field === "input" || field === "output" ? "Required" : "Inherit"}
+                                    placeholder={field === "input" || field === "output" ? "Required" : field === "cache_creation_1h" || field === "web_search_per_1000" || ACCOUNTING_GEMINI_MODALITY_RATE_FIELDS.includes(field) || ACCOUNTING_GEMINI_PROCESSING_RATE_FIELDS.includes(field) ? "Unavailable" : "Inherit"}
                                     disabled={saving}
                                     value={pricingData[provider][model][field] ?? ""}
                                     onChange={(e) => handlePricingChange(provider, model, field, e.target.value)}

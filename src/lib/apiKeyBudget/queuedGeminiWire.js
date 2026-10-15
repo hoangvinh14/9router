@@ -4,8 +4,19 @@ import { validateQueuedSavedProxyWire } from './queuedSavedProxyWire.js';
 import { validateQueuedSelectedPoolWire } from './queuedPoolWire.js';
 import { validateAccountingProxyEnvironment } from '../../../open-sse/config/accountedProxyEnvironment.js';
 import { validateAccountingGeminiDispatch } from '../../../open-sse/config/accountedGeminiDispatch.js';
+import { ACCOUNTED_GEMINI_OWNED_FILES_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_METADATA_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_RESOLUTION_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_COMBINED_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_AUDIO_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_AUDIO_VIDEO_SSE_MODE } from '../../../open-sse/config/accountingGeminiOwnedFilesModes.js';
 import { ACCOUNTED_GEMINI_SSE_MODE } from '../../../open-sse/config/accountedGeminiCandidate.js';
+import { ACCOUNTED_GEMINI_CLIENT_SSE_MODE } from '../../../open-sse/config/accountingGeminiClientModes.js';
 
+import { ACCOUNTED_GEMINI_INLINE_SSE_MODE } from '../../../open-sse/config/accountingGeminiInlineModes.js';
+import { ACCOUNTED_GEMINI_AUDIO_SSE_MODE } from '../../../open-sse/config/accountingGeminiAudioModes.js';
+import { ACCOUNTED_GEMINI_VIDEO_SSE_MODE } from '../../../open-sse/config/accountingGeminiVideoModes.js';
+import { ACCOUNTED_GEMINI_VIDEO_METADATA_SSE_MODE } from '../../../open-sse/config/accountingGeminiVideoMetadataModes.js';
+import { ACCOUNTED_GEMINI_VIDEO_RESOLUTION_SSE_MODE } from '../../../open-sse/config/accountingGeminiVideoResolutionModes.js';
+import { ACCOUNTED_GEMINI_INLINE_RESOLUTION_SSE_MODE } from '../../../open-sse/config/accountingGeminiInlineResolutionModes.js';
+import { ACCOUNTED_GEMINI_AUDIO_RESOLUTION_SSE_MODE } from '../../../open-sse/config/accountingGeminiAudioResolutionModes.js';
+import { ACCOUNTED_GEMINI_VIDEO_PROCESSING_SSE_MODE } from '../../../open-sse/config/accountingGeminiVideoProcessingModes.js';
+import { ACCOUNTED_GEMINI_PROCESSING_TOOLS_SSE_MODE } from '../../../open-sse/config/accountingGeminiProcessingToolsModes.js';
 const unavailable = () => { throw new Error('Queued Gemini wire unavailable'); };
 const record = value => value && typeof value === 'object' && !Array.isArray(value);
 // Original native text-only API-key Gemini wire, not a generic protocol escape.
@@ -26,7 +37,7 @@ export function validateQueuedGeminiWire(authority, value) {
   const expected = new Headers({ 'Content-Type': 'application/json', ...(dispatch.baseTransport.headers || {}), 'x-goog-api-key': connection.apiKey });
   // Match DefaultExecutor's original stream overlay before persisted overrides.
   // Missing/wrong stream Accept is not an equal prepared wire.
-  if (dispatch.mode === ACCOUNTED_GEMINI_SSE_MODE) expected.set('Accept', 'text/event-stream');
+  if ([ACCOUNTED_GEMINI_SSE_MODE, ACCOUNTED_GEMINI_CLIENT_SSE_MODE, ACCOUNTED_GEMINI_INLINE_SSE_MODE, ACCOUNTED_GEMINI_AUDIO_SSE_MODE, ACCOUNTED_GEMINI_VIDEO_SSE_MODE, ACCOUNTED_GEMINI_VIDEO_METADATA_SSE_MODE, ACCOUNTED_GEMINI_VIDEO_RESOLUTION_SSE_MODE, ACCOUNTED_GEMINI_INLINE_RESOLUTION_SSE_MODE, ACCOUNTED_GEMINI_AUDIO_RESOLUTION_SSE_MODE, ACCOUNTED_GEMINI_VIDEO_PROCESSING_SSE_MODE, ACCOUNTED_GEMINI_PROCESSING_TOOLS_SSE_MODE, ACCOUNTED_GEMINI_OWNED_FILES_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_METADATA_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_RESOLUTION_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_COMBINED_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_AUDIO_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_AUDIO_VIDEO_SSE_MODE].includes(dispatch.mode)) expected.set('Accept', 'text/event-stream');
   if (overrides?.headers !== undefined) {
     if (!record(overrides.headers)) unavailable();
     const seen = new Set();

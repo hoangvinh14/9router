@@ -36,6 +36,38 @@ describe('fusion injected accounting authority', () => {
       lateReject(local); await pending; expect(judgeSignal.aborted).toBe(true); expect(single).toHaveBeenCalledTimes(4); expect(vi.getTimerCount()).toBe(0);
     } finally { vi.useRealTimers(); }
   });
+  it('nested held inner ACK may miss outer collector; later lost delivery stops the already-admitted single-answer regeneration', async () => {
+    vi.useFakeTimers();
+    try {
+      let rejectInner, innerSignal, regenerationSignal;
+      const local = new Error('late inner own ACK unavailable');
+      const accounting = { gate() {}, isLocalError: error => error === local };
+      const posts = [];
+      const dispatch = (_body, model, panel, signal) => {
+        if (model === 'nested') return handleFusionChat(setup({ models: ['inner-a', 'inner-b'], judgeModel: 'inner-judge',
+          handleSingleModel: dispatch, accounting, signal }));
+        posts.push({ panel, signal });
+        if (model === 'inner-judge') {
+          innerSignal = signal;
+          // Represent an installed terminal whose delivery is still held.
+          return new Promise((_resolve, reject) => { rejectInner = reject; });
+        }
+        if (!panel) { regenerationSignal = signal; return new Promise(() => {}); }
+        return Promise.resolve(reply(model));
+      };
+      const run = handleFusionChat(setup({ models: ['nested', 'peer'], handleSingleModel: dispatch, accounting }));
+      const observed = run.then(response => ({ response }), error => ({ error }));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(posts).toHaveLength(4); expect(rejectInner).toBeTypeOf('function');
+      expect(innerSignal.aborted).toBe(false); expect(regenerationSignal).toBeUndefined();
+      await vi.advanceTimersByTimeAsync(31);
+      expect(posts).toHaveLength(5); expect(posts.at(-1).panel).toBe(false);
+      expect(regenerationSignal.aborted).toBe(false); expect(innerSignal.aborted).toBe(false);
+      rejectInner(local); expect((await observed).error).toBe(local);
+      expect(regenerationSignal.aborted).toBe(true); expect(innerSignal.aborted).toBe(true);
+      expect(posts).toHaveLength(5); expect(vi.getTimerCount()).toBe(0);
+    } finally { vi.useRealTimers(); }
+  });
   it('normal grace never cancels live straggler when judge succeeds', async () => {
     vi.useFakeTimers();
     try {

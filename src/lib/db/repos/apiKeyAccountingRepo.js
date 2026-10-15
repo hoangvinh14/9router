@@ -2,7 +2,8 @@ import { isAccountedOpenaiChatProvider } from '../../../../open-sse/config/accou
 import { randomUUID } from "node:crypto";
 import { MAX_NANO_USD, ACCOUNTING_STATE as STATE } from "../../../../open-sse/config/apiKeyBudgetConstants.js";
 import { getAdapter } from "../driver.js";
-import { costFromExactUsage } from "../../pricing/money.js";
+import { costFromExactUsageSnapshot } from "../../pricing/money.js";
+import { validateEmbeddedRecoveryUsage } from '../../../../open-sse/config/accountingEmbeddedRecovery.js';
 import { ACCOUNTING_CACHE_TIER_FIELDS } from '../../../../open-sse/config/accountingCacheTiers.js';
 import { explicitPolicyFormat, validateExplicitPolicy } from "../explicitPolicy.js";
 import { validateAccountingUsageEvidence } from '../../../../open-sse/utils/accountingUsageEvidence.js';
@@ -151,8 +152,11 @@ export function resolveAttemptSync(db, attemptId, recovery) {
   if (recovery.action === "exact_usage") fields.push("usage");
   if (Object.keys(recovery).some(field => !fields.includes(field)) || !Number.isSafeInteger(recovery.expectedVersion) || recovery.expectedVersion < 0 || !actions.includes(recovery.action)) throw new Error("Invalid accounting recovery");
   if (recovery.action === "exact_usage") {
-    const usageFields = ["exact", "input", "output", "cacheRead", "cacheWrite", "reasoning", "reasoningIncludedInOutput", ...ACCOUNTING_CACHE_TIER_FIELDS];
+    const usageFields = ["exact", "input", "output", "cacheRead", "cacheWrite", "reasoning", "reasoningIncludedInOutput", ...ACCOUNTING_CACHE_TIER_FIELDS, 'toolUses', 'nonBillableToolUses', 'codeToolUses', 'inputModalities', 'processingToolPromptTokens', 'processingToolModalities', 'provenance'];
+    try { recovery = { ...recovery, usage: snapshotAccountingGroup([{ type: 'usage', value: recovery.usage }])[0].value }; }
+    catch { throw new Error('Invalid exact recovery usage'); }
     if (!recovery.usage || Object.keys(recovery.usage).some(field => !usageFields.includes(field))) throw new Error("Invalid exact recovery usage");
+    validateEmbeddedRecoveryUsage(recovery.usage);
   }
   const payload = canonical(recovery);
   return db.durableTransaction(() => {
@@ -167,7 +171,7 @@ export function resolveAttemptSync(db, attemptId, recovery) {
     if (recovery.action === "exact_usage") {
       const snapshot = readLedgerJson(row.priceSnapshotJson);
       if (!snapshot?.rates) throw new Error("Original price snapshot required for exact recovery");
-      cost = validateNanoUsd(costFromExactUsage(recovery.usage, snapshot.rates, { requireCacheTiers: snapshot.usageSemantics?.cacheWriteTiers === 'observed_5m_1h' }));
+      cost = validateNanoUsd(costFromExactUsageSnapshot(recovery.usage, snapshot));
     } else if (recovery.action === "cost_correction") cost = validateNanoUsd(recovery.costNanoUsd);
     if (cost === null) throw new Error("Recovery cost required");
     const state = recovery.action === "waive" ? STATE.WAIVED : STATE.SETTLED;

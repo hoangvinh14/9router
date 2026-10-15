@@ -3,12 +3,17 @@ import { getAdapter } from '../db/driver.js';
 import { extractGatewayCredential, resolveGatewayIdentity } from './identity.js';
 import { validateKeyBindings } from '../db/helpers/apiKeyBindings.js';
 import { createBudgetContext } from './service.js';
+import { assertGeminiOwnedFileBindingSync, assertGeminiOwnedFileVideoMetadataSync, assertGeminiOwnedFileVideoResolutionSync, assertGeminiOwnedFileClientToolsSync, assertGeminiOwnedFileInlineMediaSync, assertGeminiOwnedFileInlineAudioSync, assertGeminiOwnedFileInlineVideoSync } from './geminiOwnedFileAuthority.js';
+import { inspectGeminiOwnedFileUsageSync, createGeminiOwnedFileSseParserSync } from './geminiOwnedFileUsage.js';
+import { bindGeminiOwnedRequestOwner } from '../../../open-sse/config/accountingGeminiOwnedRequestOwner.js';
+import { isGeminiOwnedFilesMode, isGeminiOwnedVideoMetadataMode, isGeminiOwnedVideoResolutionMode, isGeminiOwnedVideoClientMode, isGeminiOwnedVideoClientInlineMode, isGeminiOwnedVideoClientInlineAudioMode, isGeminiOwnedVideoClientInlineAudioVideoMode } from '../../../open-sse/config/accountingGeminiOwnedFilesModes.js';
 import { captureQueuedRequestAuthoritySync } from './queuedRequestAuthority.js';
 import { validateQueuedBaseWire } from './queuedBaseWire.js';
 import { capturePersistedRoutingGraph, assertPersistedRoutingMaterialCurrent } from './persistedRoutingGraph.js';
 import { snapshotAccountingGroup } from '../db/accountingGroupPayload.js';
 import { isAccountedOpenaiChatProvider } from '../../../open-sse/config/accountedChatProviders.js';
 import { ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE, ANTHROPIC_OAUTH_TOKEN_PREFIX } from '../../../open-sse/config/accountedAnthropicCandidate.js';
+import { ACCOUNTED_ANTHROPIC_DYNAMIC_MODE, ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE } from '../../../open-sse/config/accountingClaudeDynamicModes.js';
 import { ACCOUNTED_CLAUDE_OAUTH_MODE } from '../../../open-sse/config/accountedClaudeOauth.js';
 import { ApiKeyBudgetError, isApiKeyBudgetError } from './errors.js';
 import { BUDGET_ERROR, ACCOUNTING_STATE as STATE } from '../../../open-sse/config/apiKeyBudgetConstants.js';
@@ -31,9 +36,18 @@ export function assertQueuedRequestAccountingOrigin(accounting, { db, credential
   }
 }
 
+// The registry's exported binder cannot mint authority from supplied controls.
+// Only this module can put an exact issued owner/control pair into the origin map.
+export function assertGeminiOwnedRequestControls(accounting, controls) {
+  const origin = requestAccountingOrigins.get(accounting);
+  if (!origin?.healthyQueued || !origin.ownedControls || origin.ownedControls !== controls) throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE);
+}
+
 // Request-local injection only; no activation, startup repair or cached policy.
 // OFF is an authoritative persisted absence, not a storage-error exemption.
-export async function createRequestAccounting(request, { adapter = getAdapter, persistedTarget = null, persistedSelection = false, queued = false } = {}) {
+export async function createRequestAccounting(request, { adapter = getAdapter, persistedTarget = null, persistedSelection = false, queued = false, ownedFileCapability = null } = {}) {
+  // Internal resource injection never widens the synchronous or poisoned owner.
+  if (ownedFileCapability !== null && queued !== true) throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE);
   // INTERNAL resolved target only. Selection is separately verified by the app;
   // caller/config proof alone must not grant routing/provider eligibility.
   let credential, target;
@@ -47,6 +61,7 @@ export async function createRequestAccounting(request, { adapter = getAdapter, p
   // Retained issued admission authority, not an ACK cache or spend buffer.
   // Only delivered service handles enter this request-local map.
   const failureAuthorities = new WeakMap();
+  const ownedAttempts = new WeakMap(), ownedTerminals = new WeakMap();
   const cancel = () => { if (signal?.aborted) throw signal.reason; };
   function prove() {
     const health = db.health();
@@ -72,6 +87,7 @@ export async function createRequestAccounting(request, { adapter = getAdapter, p
   let activated;
   try { activated = pinnedProof ? pinnedProof.ledgerStartedAt : db.get("SELECT value FROM _meta WHERE key='ledgerStartedAt'")?.value; }
   catch { throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE); }
+  if (ownedFileCapability !== null && (pinnedProof || identity.status !== 'active' || !activated)) throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE);
   if (identity.status !== 'active' || !activated) return null;
   const context = await createBudgetContext(identity.apiKeyId, { adapter: async () => db });
   function gate() {
@@ -90,6 +106,16 @@ export async function createRequestAccounting(request, { adapter = getAdapter, p
       cancel();
       return Object.freeze({ budgeted: false, ledgerStartedAt: fresh.ledgerStartedAt });
     } catch (error) {
+      if (signal?.aborted) throw signal.reason;
+      throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE, { requestId: context.requestId });
+    }
+  }
+  function parseRefreshConnection(retained) {
+    try {
+      const saved = JSON.parse(retained.authority.connection.data);
+      if (!saved || typeof saved !== 'object' || Array.isArray(saved)) throw new Error('Refresh connection unavailable');
+      return saved;
+    } catch {
       if (signal?.aborted) throw signal.reason;
       throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE, { requestId: context.requestId });
     }
@@ -122,6 +148,26 @@ export async function createRequestAccounting(request, { adapter = getAdapter, p
       }
     },
     gate,
+    captureGeminiOwnedFiles(meta, original) {
+      cancel(); gate(); assertRoutingCurrent();
+      try {
+        const candidate = snapshotAccountingGroup([{ type: 'owned-resource-target', value: meta }])[0].value;
+        if (!queued || pinnedProof || !ownedFileCapability || candidate?.provider !== 'gemini' || candidate.endpoint !== 'chat') throw new Error('Resource unavailable');
+        // Verify actual caller identity and connection before exposing inventory;
+        // private provenance alone cannot authorize a foreign gateway request.
+        captureQueuedRequestAuthoritySync(db, { credential, apiKeyId: identity.apiKeyId,
+          provider: candidate.provider, model: candidate.model, connectionId: candidate.connectionId ?? null });
+        const captured = assertGeminiOwnedFileBindingSync(db, ownedFileCapability, {
+          credential, apiKeyId: identity.apiKeyId, provider: candidate.provider,
+          model: candidate.model, connectionId: candidate.connectionId ?? null,
+        }, original);
+        cancel(); gate(); assertRoutingCurrent();
+        return captured;
+      } catch (error) {
+        if (signal?.aborted) throw signal.reason;
+        throw error instanceof ApiKeyBudgetError ? error : new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE, { requestId: context.requestId });
+      }
+    },
     assertRoutingCurrent,
     assertNestedFusionSupported(comboId) {
       cancel(); gate(); assertRoutingCurrent();
@@ -161,9 +207,28 @@ export async function createRequestAccounting(request, { adapter = getAdapter, p
           const authority = captureQueuedRequestAuthoritySync(db, { credential, apiKeyId: identity.apiKeyId,
             provider: meta.provider, model: meta.model, connectionId: meta.connectionId ?? null });
           const wire = isAccountedOpenaiChatProvider(meta.provider) || ['gemini', 'anthropic', 'claude', 'codex', 'grok-cli', 'github', 'commandcode', 'kiro'].includes(meta.provider) ? validateQueuedBaseWire(authority, preparedWire) : null;
-          const work = context.beginAttemptQueued(meta, { signal, requestAuthority: authority, preparedWire: wire, routingMaterial: routingProof?.material ?? null });
+          const ownedVideoMetadata = isGeminiOwnedVideoMetadataMode(wire?.geminiTransport?.mode);
+          const ownedVideoResolution = isGeminiOwnedVideoResolutionMode(wire?.geminiTransport?.mode);
+          const ownedMode = isGeminiOwnedFilesMode(wire?.geminiTransport?.mode) || ownedVideoMetadata || ownedVideoResolution;
+          if (ownedMode) {
+            issued.captureGeminiOwnedFiles(meta, wire.geminiTransport.originalBody);
+            if (assertGeminiOwnedFileVideoMetadataSync(db, ownedFileCapability, wire.geminiTransport.originalBody, meta.model) !== ownedVideoMetadata ||
+                assertGeminiOwnedFileVideoResolutionSync(db, ownedFileCapability, wire.geminiTransport.originalBody, meta.model) !== ownedVideoResolution ||
+            assertGeminiOwnedFileClientToolsSync(db, ownedFileCapability, wire.geminiTransport.originalBody, meta.model) !== isGeminiOwnedVideoClientMode(wire.geminiTransport.mode) ||
+                assertGeminiOwnedFileInlineMediaSync(db, ownedFileCapability, wire.geminiTransport.originalBody, meta.model) !== isGeminiOwnedVideoClientInlineMode(wire.geminiTransport.mode) ||
+                assertGeminiOwnedFileInlineAudioSync(db, ownedFileCapability, wire.geminiTransport.originalBody, meta.model) !== isGeminiOwnedVideoClientInlineAudioMode(wire.geminiTransport.mode) ||
+                assertGeminiOwnedFileInlineVideoSync(db, ownedFileCapability, wire.geminiTransport.originalBody, meta.model) !== isGeminiOwnedVideoClientInlineAudioVideoMode(wire.geminiTransport.mode)) throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE, { requestId: context.requestId });
+          }
+          else if (ownedFileCapability !== null) throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE, { requestId: context.requestId });
+          const work = context.beginAttemptQueued(meta, { signal, requestAuthority: authority, preparedWire: wire, routingMaterial: routingProof?.material ?? null,
+            ownedFileCapability: ownedMode ? ownedFileCapability : null });
           // Do not add a delivery yield to other provider owners. Captured
           // authority, never mutable caller meta, chooses this narrow retention.
+          if (ownedMode) return work.then(attempt => {
+            if (!attempt || attempt.unrecorded) throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE, { requestId: context.requestId });
+            ownedAttempts.set(attempt, { authority, wire });
+            return attempt;
+          });
           if (!['anthropic', 'claude'].includes(authority.provider)) return work;
           return work.then(attempt => {
             if (attempt && !attempt.unrecorded) failureAuthorities.set(attempt, { authority, wire });
@@ -218,10 +283,10 @@ export async function createRequestAccounting(request, { adapter = getAdapter, p
     prepareClaudeOauthRefresh(attempt, terminal) {
       issued.assertFailedTerminal(attempt, terminal); cancel(); gate();
       const retained = failureAuthorities.get(attempt);
-      if (!queued || attempt.provider !== 'claude' || retained?.wire?.anthropicTransport?.mode !== ACCOUNTED_CLAUDE_OAUTH_MODE) {
+      if (!queued || attempt.provider !== 'claude' || ![ACCOUNTED_CLAUDE_OAUTH_MODE, ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE].includes(retained?.wire?.anthropicTransport?.mode)) {
         throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE, { requestId: context.requestId });
       }
-      const saved = JSON.parse(retained.authority.connection.data);
+      const saved = parseRefreshConnection(retained);
       if (typeof saved.refreshToken !== 'string' || !saved.refreshToken || /[\r\n\u0000]/.test(saved.refreshToken)) {
         throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE, { requestId: context.requestId });
       }
@@ -240,7 +305,7 @@ export async function createRequestAccounting(request, { adapter = getAdapter, p
       const retained = failureAuthorities.get(attempt); let credentials;
       db.durableTransaction(() => {
         issued.prepareClaudeOauthRefresh(attempt, terminal);
-        const saved = JSON.parse(retained.authority.connection.data);
+        const saved = parseRefreshConnection(retained);
         const updated = { ...saved, refreshToken: refreshed.refreshToken, expiresIn: refreshed.expiresIn,
           expiresAt: new Date(Date.now() + refreshed.expiresIn * 1000).toISOString() };
         if (saved.apiKey) updated.apiKey = refreshed.accessToken;
@@ -255,7 +320,7 @@ export async function createRequestAccounting(request, { adapter = getAdapter, p
     },
     assertClaudeOauthTerminal(attempt, terminal) {
       const retained = attempt && failureAuthorities.get(attempt);
-      if (attempt?.provider !== 'claude' || retained?.wire?.anthropicTransport?.mode !== ACCOUNTED_CLAUDE_OAUTH_MODE) {
+      if (attempt?.provider !== 'claude' || ![ACCOUNTED_CLAUDE_OAUTH_MODE, ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE].includes(retained?.wire?.anthropicTransport?.mode)) {
         throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE, { requestId: context.requestId });
       }
       return issued.assertAnthropicBetaTerminal(attempt, terminal);
@@ -268,7 +333,7 @@ export async function createRequestAccounting(request, { adapter = getAdapter, p
         const observed = snapshotAccountingGroup([{ type: 'beta-terminal', value: terminal }])[0].value;
         const retained = attempt && failureAuthorities.get(attempt);
         if (!queued || !retained || !attempt || !['anthropic', 'claude'].includes(attempt.provider) || attempt.unrecorded ||
-            retained.wire?.anthropicTransport?.mode !== (attempt.provider === 'claude' ? ACCOUNTED_CLAUDE_OAUTH_MODE : ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE) ||
+            !(attempt.provider === 'claude' ? [ACCOUNTED_CLAUDE_OAUTH_MODE, ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE] : [ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE, ACCOUNTED_ANTHROPIC_DYNAMIC_MODE]).includes(retained.wire?.anthropicTransport?.mode) ||
             !observed || observed.state !== STATE.SETTLED || observed.outcome !== 'success' || observed.unrecorded ||
             observed.requestId !== context.requestId || observed.attemptId !== attempt.attemptId || observed.apiKeyId !== identity.apiKeyId ||
             observed.costNanoUsd === null || observed.costNanoUsd === undefined || !db.health().healthy) throw new Error('Terminal unavailable');
@@ -296,9 +361,80 @@ export async function createRequestAccounting(request, { adapter = getAdapter, p
       // results only originate after the service ACKs an independent gap latch.
       if (terminal.state === STATE.UNRESOLVED) gate();
     },
-    completeAttempt: queued && !pinnedProof ? context.completeAttemptQueued : context.completeAttempt,
+    completeAttempt: ownedFileCapability !== null ? async (attempt, completion) => {
+      if (!ownedAttempts.has(attempt)) throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE, { requestId: context.requestId });
+      const terminal = await context.completeAttemptQueued(attempt, completion);
+      // Installed row is not delivered ACK. Only the exact returned object may
+      // release a successful terminal, including after an over-limit debit.
+      if (terminal && typeof terminal === 'object') ownedTerminals.set(terminal, attempt);
+      return terminal;
+    } : queued && !pinnedProof ? context.completeAttemptQueued : context.completeAttempt,
   });
   requestAccountingOrigins.set(issued, Object.freeze({ db, credential, apiKeyId: identity.apiKeyId,
     healthySynchronous: !queued && !pinnedProof, healthyQueued: queued === true && !pinnedProof }));
+  if (ownedFileCapability !== null) {
+    function current(meta, original) {
+      cancel();
+      const fresh = captureQueuedRequestAuthoritySync(db, { credential, apiKeyId: identity.apiKeyId,
+        provider: meta.provider, model: meta.model, connectionId: meta.connectionId ?? null });
+      if (meta.provider !== 'gemini' || meta.endpoint !== 'chat') throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE);
+      const captured = assertGeminiOwnedFileBindingSync(db, ownedFileCapability, {
+        credential, apiKeyId: identity.apiKeyId, provider: meta.provider, model: meta.model, connectionId: meta.connectionId ?? null,
+      }, original);
+      cancel();
+      return { fresh, captured };
+    }
+    const ownedControls = Object.freeze({
+      capture: (meta, original) => issued.captureGeminiOwnedFiles(meta, original),
+      videoMetadata(meta, original) {
+        current(meta, original);
+        return assertGeminiOwnedFileVideoMetadataSync(db, ownedFileCapability, original, meta.model);
+      },
+      videoResolution(meta, original) {
+        current(meta, original);
+        return assertGeminiOwnedFileVideoResolutionSync(db, ownedFileCapability, original, meta.model);
+      },
+      clientTools(meta, original) {
+        current(meta, original);
+        return assertGeminiOwnedFileClientToolsSync(db, ownedFileCapability, original, meta.model);
+      },
+      inlineMedia(meta, original) {
+        current(meta, original);
+        return assertGeminiOwnedFileInlineMediaSync(db, ownedFileCapability, original, meta.model);
+      },
+      inlineAudio(meta, original) {
+        current(meta, original);
+        return assertGeminiOwnedFileInlineAudioSync(db, ownedFileCapability, original, meta.model);
+      },
+      inlineVideo(meta, original) {
+        current(meta, original);
+        return assertGeminiOwnedFileInlineVideoSync(db, ownedFileCapability, original, meta.model);
+      },
+      inspect(meta, original, message) {
+        current(meta, original);
+        const result = inspectGeminiOwnedFileUsageSync(db, ownedFileCapability, original, message, meta.model);
+        current(meta, original); return result;
+      },
+      parser(meta, original, onEvent) {
+        current(meta, original);
+        return createGeminiOwnedFileSseParserSync(db, ownedFileCapability, original, onEvent, meta.model);
+      },
+      terminal(meta, original, terminal) {
+        const attempt = terminal && ownedTerminals.get(terminal), retained = attempt && ownedAttempts.get(attempt);
+        if (!retained || terminal.state !== STATE.SETTLED || terminal.unrecorded || terminal.costNanoUsd === null || terminal.costNanoUsd === undefined ||
+            terminal.attemptId !== attempt.attemptId || terminal.requestId !== context.requestId || terminal.apiKeyId !== identity.apiKeyId) throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE);
+        const { fresh } = current(meta, original);
+        if (!isDeepStrictEqual(fresh, retained.authority)) throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE);
+        validateQueuedBaseWire(fresh, retained.wire);
+        const coverage = db.coverage.status(identity.apiKeyId);
+        if (coverage.maintenance || coverage.gaps.some(gap => !gap.resolvedAt)) throw new ApiKeyBudgetError(BUDGET_ERROR.UNAVAILABLE);
+        if (routingProof) assertPersistedRoutingMaterialCurrent(db, routingProof.material, cancel);
+        cancel();
+      },
+    });
+    const origin = requestAccountingOrigins.get(issued);
+    requestAccountingOrigins.set(issued, Object.freeze({ ...origin, ownedControls }));
+    await bindGeminiOwnedRequestOwner(issued, ownedControls);
+  }
   return issued;
 }

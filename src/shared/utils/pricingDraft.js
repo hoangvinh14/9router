@@ -1,8 +1,11 @@
-import { validateRate } from "../../lib/pricing/money.js";
+import { validateRate } from "../../lib/pricing/decimalMoney.js";
 import { getModelType } from "../../../open-sse/config/providerModels.js";
 
 import { REFERENCE_RATE_FIELDS } from '../../../open-sse/config/accountingCacheTiers.js';
-export const PRICING_FIELDS = REFERENCE_RATE_FIELDS;
+import { ACCOUNTING_EMBEDDED_RATE_FIELDS } from '../../../open-sse/config/accountingEmbeddedToolRates.js';
+import { ACCOUNTING_GEMINI_MODALITY_RATE_FIELDS } from '../../../open-sse/config/accountingGeminiModalityRates.js';
+import { ACCOUNTING_GEMINI_PROCESSING_RATE_FIELDS } from '../../../open-sse/config/accountingGeminiProcessingRates.js';
+export const PRICING_FIELDS = Object.freeze([...REFERENCE_RATE_FIELDS, ...ACCOUNTING_EMBEDDED_RATE_FIELDS, ...ACCOUNTING_GEMINI_MODALITY_RATE_FIELDS, ...ACCOUNTING_GEMINI_PROCESSING_RATE_FIELDS]);
 function displayRate(value) {
   if (value === undefined || value === null) return '';
   const text = String(value);
@@ -31,7 +34,9 @@ function comparable(value) {
   try { return validateRate(value); } catch { return value; }
 }
 // Complete model replacements ONLY for changed rows. Blank optional fields mean
-// documented input/output fallback, except 1h writes which remain unavailable.
+// documented input/output fallback, except 1h writes/tool uses/image/document/audio/video
+// modalities and processing tool-prompt tokens, which remain unavailable without
+// their independent explicit rates.
 // Required fields never fabricate zero.
 export function changedPricingModels(baseline, draft) {
   const changed = Object.create(null);
@@ -45,6 +50,7 @@ export function changedPricingModels(baseline, draft) {
         if (value === "") {
           if (field === "input" || field === "output" && getModelType(provider, model) !== "embedding") throw new Error(`${provider}/${model}: input and output rates are required`);
         } else {
+          if ([...ACCOUNTING_EMBEDDED_RATE_FIELDS, ...ACCOUNTING_GEMINI_MODALITY_RATE_FIELDS, ...ACCOUNTING_GEMINI_PROCESSING_RATE_FIELDS].includes(field) && getModelType(provider, model) === 'embedding') throw new Error(`${provider}/${model}: embedded tool, input modality and processing tool-prompt rates apply to chat only`);
           try { complete[field] = validateRate(value); }
           catch { throw new Error(`${provider}/${model}: ${field} requires a nonnegative decimal with at most nine decimal places`); }
         }

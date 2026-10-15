@@ -2,21 +2,38 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-let db, dir, ledger, service;
+import { seedRecoveryAccountingFixture } from './fixtures/accounting-recovery-db.js';
+let db, dir, ledger, service, setupWork;
 const originalDir = process.env.DATA_DIR;
 const exact = { exact: true, input: 1000000, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0, reasoningIncludedInOutput: true };
 const recovery = (version, extra = {}) => ({ action: "exact_usage", expectedVersion: version, operationId: "recovery", actor: "admin", reason: "Provider trace reviewed", evidence: "Exact token report", usage: exact, ...extra });
-beforeEach(async () => {
-  dir = fs.mkdtempSync(path.join(os.tmpdir(), "9router-recovery-")); process.env.DATA_DIR = dir; delete global._dbAdapter; vi.resetModules();
-  db = await (await import("@/lib/db/driver.js")).getAdapter();
-  await (await import("@/lib/db/index.js")).importDb({ apiKeys: [{ id: "key-a", key: "recovery-secret" }] });
-  ledger = await import("@/lib/db/repos/apiKeyAccountingRepo.js"); service = await import("@/lib/apiKeyBudget/service.js");
-  db.durableTransaction(() => {
-    db.run("INSERT INTO _meta(key,value) VALUES('ledgerStartedAt','2026-10-01T00:00:00.000Z')");
-    db.run("INSERT INTO kv(scope,key,value) VALUES('pricing','fixture',?)", [JSON.stringify({ fixture: { input: "1", output: "2" } })]);
-  });
+beforeEach(({ signal }) => {
+  db = null; ledger = null; service = null;
+  const ownedDir = fs.mkdtempSync(path.join(os.tmpdir(), "9router-recovery-"));
+  dir = ownedDir; process.env.DATA_DIR = ownedDir; delete global._dbAdapter; vi.resetModules();
+  setupWork = (async () => {
+    let ownedDb;
+    try {
+      signal.throwIfAborted();
+      const driver = await import("@/lib/db/driver.js"); signal.throwIfAborted();
+      ownedDb = await driver.getAdapter(); signal.throwIfAborted();
+      const ownedLedger = await import("@/lib/db/repos/apiKeyAccountingRepo.js"); signal.throwIfAborted();
+      const ownedService = await import("@/lib/apiKeyBudget/service.js"); signal.throwIfAborted();
+      seedRecoveryAccountingFixture(ownedDb, signal);
+      // No shared fixture read across awaits; publish only current complete setup.
+      db = ownedDb; ledger = ownedLedger; service = ownedService;
+    } catch (error) { ownedDb?.close(); throw error; }
+  })();
+  return setupWork;
 });
-afterEach(() => { vi.restoreAllMocks(); db?.close(); delete global._dbAdapter; fs.rmSync(dir, { recursive: true, force: true }); if (originalDir === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = originalDir; });
+afterEach(async () => {
+  // A timeout rejects Vitest's wrapper, not an ignored async hook. Drain this
+  // captured setup before teardown/reset can admit a successor fixture.
+  try { await setupWork; } catch { /* original setup failure already reported */ }
+  vi.restoreAllMocks(); db?.close(); delete global._dbAdapter;
+  fs.rmSync(dir, { recursive: true, force: true });
+  if (originalDir === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = originalDir;
+});
 async function unknown() {
   const c = await service.createBudgetContext("key-a", { adapter: async () => db, clock: () => "2026-10-03T00:00:00.000Z" });
   const attempt = c.beginAttempt({ provider: "fixture", model: "fixture" });

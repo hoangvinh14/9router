@@ -4,6 +4,8 @@ import path from 'node:path';
 import http from 'node:http';
 import net from 'node:net';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { retainKeyBindings } from '@/lib/db/helpers/apiKeyBindings.js';
+import { getAccountingWriteCoordinator } from '@/lib/apiKeyBudget/accountingWriteCoordinator.js';
 
 const registryFixture = vi.hoisted(() => ({ baseUrl: null }));
 const transportFixture = vi.hoisted(() => ({ dispatchers: [] }));
@@ -26,10 +28,17 @@ beforeEach(async () => {
   sockets = new Set(); tunnels = 0; posts = 0; trapHits = 0; failure = null; redirectResponse = false; onPost = null;
   const track = socket => { sockets.add(socket); socket.once('close', () => sockets.delete(socket)); socket.on('error', () => {}); };
   db = await (await import('@/lib/db/driver.js')).getAdapter();
-  await (await import('@/lib/db/index.js')).importDb({ apiKeys: [{ id: 'a', key: 'dummy-key' }], settings: { requireApiKey: true },
-    providerConnections: [{ id: 'c', provider: 'openai', authType: 'apikey', apiKey: 'dummy-provider' }] });
+  // Saved-proxy transport fixture only, not config import/restore acceptance.
+  // Real SQL durability and protected gateway-key bindings remain authoritative.
+  const timestamp = '2026-10-03T00:00:00.000Z';
+  const keys = [{ id: 'a', key: 'dummy-key', createdAt: timestamp }];
   db.durableTransaction(() => {
-    db.run("INSERT INTO _meta(key,value) VALUES('ledgerStartedAt','2026-10-03T00:00:00.000Z')");
+    if (db.get('SELECT id FROM apiKeys') || db.get('SELECT id FROM providerConnections') || db.get("SELECT value FROM _meta WHERE key='ledgerStartedAt'")) throw new Error('Saved proxy fixture requires fresh disposable DB');
+    db.run('INSERT INTO apiKeys(id,key,isActive,createdAt) VALUES(?,?,1,?)', ['a', 'dummy-key', timestamp]);
+    retainKeyBindings(db, db.coverage, keys);
+    db.run('INSERT INTO settings(id,data) VALUES(1,?)', [JSON.stringify({ requireApiKey: true })]);
+    db.run('INSERT INTO providerConnections(id,provider,authType,isActive,data,createdAt,updatedAt) VALUES(?,?,?,?,?,?,?)', ['c', 'openai', 'apikey', 1, JSON.stringify({ apiKey: 'dummy-provider' }), timestamp, timestamp]);
+    db.run("INSERT INTO _meta(key,value) VALUES('ledgerStartedAt',?)", [timestamp]);
     db.run("INSERT INTO kv(scope,key,value) VALUES('pricing','openai',?)", [JSON.stringify({ 'fixture-chat': { input: '1', output: '2' } })]);
   });
   upstream = http.createServer(async (request, response) => {
@@ -78,7 +87,7 @@ afterEach(async () => {
   transportFixture.dispatchers = [];
   for (const socket of sockets || []) socket.destroy();
   for (const server of [proxy, trapProxy, upstream]) { server?.closeAllConnections(); if (server?.listening) await new Promise(resolve => server.close(resolve)); }
-  vi.restoreAllMocks(); vi.unstubAllEnvs(); db?.close(); delete global._dbAdapter; fs.rmSync(directory, { recursive: true, force: true });
+  vi.restoreAllMocks(); vi.unstubAllEnvs(); if (db) await getAccountingWriteCoordinator(db).stop(); db?.close(); delete global._dbAdapter; fs.rmSync(directory, { recursive: true, force: true });
   if (previousData === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = previousData;
 });
 function save(mode, url, noProxy = '') {

@@ -6,11 +6,16 @@ import { getAdapter } from "../db/driver.js";
 import { BUDGET_SCOPE } from "../../../open-sse/config/apiKeyBudgetConstants.js";
 import { pricingMemoView } from './snapshotMemo.js';
 
-import { REFERENCE_RATE_FIELDS as RATE_FIELDS } from '../../../open-sse/config/accountingCacheTiers.js';
+import { REFERENCE_RATE_FIELDS } from '../../../open-sse/config/accountingCacheTiers.js';
+import { ACCOUNTING_EMBEDDED_RATE_FIELDS, ACCOUNTING_EMBEDDED_TOOL_RATES } from '../../../open-sse/config/accountingEmbeddedToolRates.js';
+import { ACCOUNTING_GEMINI_MODALITY_RATE_FIELDS, ACCOUNTING_GEMINI_MODALITY_RATES, ACCOUNTING_GEMINI_MODALITY_RATE_UNIT } from '../../../open-sse/config/accountingGeminiModalityRates.js';
+import { ACCOUNTING_GEMINI_PROCESSING_RATE_FIELDS, ACCOUNTING_GEMINI_PROCESSING_RATE_UNIT } from '../../../open-sse/config/accountingGeminiProcessingRates.js';
+const RATE_FIELDS = Object.freeze([...REFERENCE_RATE_FIELDS, ...ACCOUNTING_EMBEDDED_RATE_FIELDS, ...ACCOUNTING_GEMINI_MODALITY_RATE_FIELDS, ...ACCOUNTING_GEMINI_PROCESSING_RATE_FIELDS]);
 function own(object, key) { return object && Object.hasOwn(object, key) ? object[key] : undefined; }
 export function completeReferenceRates(input, endpoint = "chat") {
   if (!BUDGET_SCOPE.includes(endpoint) || !input || typeof input !== "object" || Array.isArray(input) || ![Object.prototype, null].includes(Object.getPrototypeOf(input))) throw new Error("Invalid complete reference rates");
-  if (Object.keys(input).some(field => !RATE_FIELDS.includes(field))) throw new Error("Unsupported reference rate fields");
+  if (Object.keys(input).some(field => !RATE_FIELDS.includes(field)) ||
+      endpoint === 'embeddings' && [...ACCOUNTING_EMBEDDED_RATE_FIELDS, ...ACCOUNTING_GEMINI_MODALITY_RATE_FIELDS, ...ACCOUNTING_GEMINI_PROCESSING_RATE_FIELDS].some(field => Object.hasOwn(input, field))) throw new Error("Unsupported reference rate fields");
   const rates = {};
   for (const [field, value] of Object.entries(input)) {
     if (typeof value === "number" && (!Number.isFinite(value) || value < 0)) throw new Error("Invalid legacy numeric reference rate");
@@ -58,8 +63,23 @@ function resolveUncachedReferencePrice(db, provider, model, endpoint) {
   let rates;
   try { rates = completeReferenceRates(selected, endpoint); }
   catch { return unavailable("invalid_complete_reference_rates"); }
+  const rateUnits = Object.fromEntries(ACCOUNTING_EMBEDDED_TOOL_RATES
+    .filter(({ rate }) => Object.hasOwn(rates, rate)).map(({ rate, unit }) => [rate, unit]));
+  // Additional reference fields do not create original usage authority. Retain
+  // units only for explicit fields; no input/cache equivalence is inferred.
+  if (ACCOUNTING_GEMINI_MODALITY_RATE_FIELDS.some(field => Object.hasOwn(rates, field))) {
+    for (const { input, cached } of ACCOUNTING_GEMINI_MODALITY_RATES) {
+      for (const key of [input, cached]) if (Object.hasOwn(rates, key)) rateUnits[key] = ACCOUNTING_GEMINI_MODALITY_RATE_UNIT;
+    }
+  }
+  for (const field of ACCOUNTING_GEMINI_PROCESSING_RATE_FIELDS) {
+    if (Object.hasOwn(rates, field)) rateUnits[field] = ACCOUNTING_GEMINI_PROCESSING_RATE_UNIT;
+  }
   const snapshot = {
     provider: id, model, endpoint, rates, source, virtual, currency: "USD", unit: "USD/1M tokens",
+    // Retain legacy shape/revision when only token rates exist. Explicit units
+    // for additional rate fields are hashed with the original price authority.
+    ...(Object.keys(rateUnits).length ? { rateUnits: Object.freeze(rateUnits) } : {}),
     mapping: mapping ? { provider: mapping.provider, model: mapping.model, revision: MAPPING_REVISION } : null,
     catalogRevision: source === "synced" ? catalog.revision : null,
     syncedAt: source === "synced" ? catalog.syncedAt : null,

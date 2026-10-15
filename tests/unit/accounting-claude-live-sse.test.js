@@ -49,6 +49,24 @@ describe('live text-only Claude raw observer/shared terminal candidate, not app 
     else expect(() => { observer.push(enc.encode(raw)); observer.finish(); }).toThrow();
     expect(observer.evidence()).toBeNull();
   });
+  it('documented nonzero initial output remains cumulative, never added twice', () => {
+    const raw = wire().replace('"output_tokens":0', '"output_tokens":2');
+    const observer = parser(() => {}); observer.push(enc.encode(raw));
+    expect(observer.finish()).toMatchObject({ exact: true, input: 100, output: 20 });
+  });
+  it('token-only original owner may explicitly admit absent server counters, default parser stays closed', () => {
+    const raw = wire().replace(',"server_tool_use":{"web_search_requests":0,"web_fetch_requests":0}', '');
+    expect(() => parser(() => {}).push(enc.encode(raw))).toThrow();
+    const observer = createAccountingClaudeSseParser(() => {}, { expectedModel: 'fixture-model', allowAbsentServerToolUsage: true });
+    observer.push(enc.encode(raw)); expect(observer.finish()).toMatchObject({ exact: true, input: 100, output: 20 });
+    expect(() => createAccountingClaudeSseParser(() => {}, { expectedModel: 'fixture-model', allowAbsentServerToolUsage: 'true' })).toThrow();
+  });
+  it.each(['decreasing-output', 'late-paid-tool', 'paid-block'])('valid token-only prefix then %s cannot grant exact usage', mode => {
+    const observer = createAccountingClaudeSseParser(() => {}, { expectedModel: 'fixture-model', allowAbsentServerToolUsage: true });
+    observer.push(enc.encode(start().replace('"output_tokens":0', '"output_tokens":2').replace(',"server_tool_use":{"web_search_requests":0,"web_fetch_requests":0}', '')));
+    const fault = mode === 'decreasing-output' ? delta().replace('"output_tokens":20', '"output_tokens":1') : mode === 'late-paid-tool' ? delta().replace('"output_tokens":20', '"output_tokens":20,"server_tool_use":{"web_search_requests":1}') : event('content_block_start', { index: 0, content_block: { type: 'server_tool_use', id: 'srvtoolu_fixture', name: 'web_search', input: {} } });
+    expect(() => observer.push(enc.encode(fault))).toThrow(); expect(observer.finish()).toBeNull();
+  });
   it('fatalUTF8/event/chunk bounds still fail closed', () => {
     expect(() => parser(() => {}).push(new Uint8Array([255]))).toThrow();
     for (const limits of [{ maxEventBytes: 16 }, { maxChunkBytes: 16 }]) expect(() => createAccountingClaudeSseParser(() => {}, { expectedModel: 'fixture-model', ...limits }).push(enc.encode(wire()))).toThrow();

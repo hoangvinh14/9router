@@ -6,6 +6,7 @@ import { validateAccountingProxyEnvironment } from '../../../open-sse/config/acc
 import { validateAccountingAnthropicDispatch, validateAccountingAnthropicPost } from '../../../open-sse/config/accountedAnthropicDispatch.js';
 import { ANTHROPIC_API_VERSION } from '../../../open-sse/providers/shared.js';
 import { ANTHROPIC_OAUTH_TOKEN_PREFIX } from '../../../open-sse/config/accountedAnthropicCandidate.js';
+import { ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE } from '../../../open-sse/config/accountingClaudeDynamicModes.js';
 import { ACCOUNTED_CLAUDE_OAUTH_MODE, claudeOauthAccountingHeaders } from '../../../open-sse/config/accountedClaudeOauth.js';
 
 const unavailable = () => { throw new Error('Queued Anthropic wire unavailable'); };
@@ -28,7 +29,7 @@ export function validateQueuedAnthropicWire(authority, value) {
   const overrides = settings.providerOverrides?.[authority.provider] ?? null;
   if (!isDeepStrictEqual(wire.providerOverrides, overrides)) unavailable();
   const dispatch = validateAccountingAnthropicDispatch(wire.anthropicTransport, wire.url);
-  if (dispatch.model !== authority.model || (dispatch.mode === ACCOUNTED_CLAUDE_OAUTH_MODE) !== oauth ||
+  if (dispatch.model !== authority.model || ([ACCOUNTED_CLAUDE_OAUTH_MODE, ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE].includes(dispatch.mode)) !== oauth ||
       oauth && (!isDeepStrictEqual(dispatch.credentials, wire.credentials) || overrides !== null)) unavailable();
   const expected = oauth ? claudeOauthAccountingHeaders(dispatch)
     : new Headers({ 'Content-Type': 'application/json', ...(dispatch.baseTransport.headers || {}), 'x-api-key': connection.apiKey, 'anthropic-version': ANTHROPIC_API_VERSION });

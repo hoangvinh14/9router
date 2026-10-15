@@ -1,6 +1,8 @@
 import { proxyAwareFetch } from '../utils/proxyFetch.js';
 import { readBufferedGeminiAccounting } from '../utils/accountingGeminiUsage.js';
-import { readAccountingText } from '../utils/readAccountingJson.js';
+import { readAccountingText, readAccountingJson } from '../utils/readAccountingJson.js';
+import { ACCOUNTED_GEMINI_OWNED_FILES_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_METADATA_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_RESOLUTION_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_COMBINED_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_AUDIO_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_AUDIO_VIDEO_SSE_MODE, isGeminiOwnedVideoClientInlineAudioVideoMode, isGeminiOwnedVideoClientInlineAudioMode, isGeminiOwnedVideoClientInlineMode, isGeminiOwnedVideoClientMode, isGeminiOwnedFilesMode, isGeminiOwnedVideoMetadataMode, isGeminiOwnedVideoResolutionMode } from '../config/accountingGeminiOwnedFilesModes.js';
+import { getGeminiOwnedRequestOwner } from '../config/accountingGeminiOwnedRequestOwner.js';
 import { supportsGeminiCandidate, ACCOUNTED_GEMINI_SSE_MODE } from '../config/accountedGeminiCandidate.js';
 import { createAccountingGeminiSseParser } from '../utils/accountingGeminiSseParser.js';
 import { createAccountedOpenaiStream } from '../utils/accountedOpenaiStream.js';
@@ -8,7 +10,19 @@ import { FETCH_CONNECT_TIMEOUT_MS } from '../config/runtimeConfig.js';
 import { captureAccountingBaseTransport } from '../config/accountedBaseTransport.js';
 import { captureAccountingProxyEnvironment } from '../config/accountedProxyEnvironment.js';
 import { snapshotAccountingPreparedData } from '../config/accountedBaseDispatch.js';
+import { isGeminiClientMode, ACCOUNTED_GEMINI_CLIENT_SSE_MODE } from '../config/accountingGeminiClientModes.js';
+import { ACCOUNTING_GEMINI_INLINE_VIDEO_MIME_TYPES } from '../config/accountingGeminiInlineMedia.js';
+import { ACCOUNTING_STATE } from '../config/apiKeyBudgetConstants.js';
 
+import { isGeminiInlineMode, ACCOUNTED_GEMINI_INLINE_SSE_MODE } from '../config/accountingGeminiInlineModes.js';
+import { ACCOUNTED_GEMINI_INLINE_RESOLUTION_SSE_MODE, isGeminiInlineResolutionMode } from '../config/accountingGeminiInlineResolutionModes.js';
+import { ACCOUNTED_GEMINI_AUDIO_RESOLUTION_SSE_MODE, isGeminiAudioResolutionMode } from '../config/accountingGeminiAudioResolutionModes.js';
+import { ACCOUNTED_GEMINI_VIDEO_PROCESSING_SSE_MODE, isGeminiVideoProcessingMode } from '../config/accountingGeminiVideoProcessingModes.js';
+import { ACCOUNTED_GEMINI_PROCESSING_TOOLS_SSE_MODE, isGeminiProcessingToolsMode } from '../config/accountingGeminiProcessingToolsModes.js';
+import { isGeminiAudioMode, ACCOUNTED_GEMINI_AUDIO_SSE_MODE } from '../config/accountingGeminiAudioModes.js';
+import { isGeminiVideoMode, ACCOUNTED_GEMINI_VIDEO_SSE_MODE } from '../config/accountingGeminiVideoModes.js';
+import { isGeminiVideoMetadataMode, ACCOUNTED_GEMINI_VIDEO_METADATA_SSE_MODE } from '../config/accountingGeminiVideoMetadataModes.js';
+import { isGeminiVideoResolutionMode, ACCOUNTED_GEMINI_VIDEO_RESOLUTION_SSE_MODE } from '../config/accountingGeminiVideoResolutionModes.js';
 function fetchOnce(invoke, signal) {
   signal.throwIfAborted();
   return new Promise((resolve, reject) => {
@@ -30,9 +44,44 @@ function fetchOnce(invoke, signal) {
 // POST/intent/sole bounded raw reader; no refresh, redirect or retry shortcut.
 export async function executeAccountedGeminiCandidate(executor, options) {
   const { model, accounting, signal, connectionId } = options;
+  const ownedVideoMetadata = isGeminiOwnedVideoMetadataMode(options.accountingMode);
+  const ownedVideoResolution = isGeminiOwnedVideoResolutionMode(options.accountingMode);
+  const ownedFiles = isGeminiOwnedFilesMode(options.accountingMode) || ownedVideoMetadata || ownedVideoResolution;
+  const ownedOwner = ownedFiles ? getGeminiOwnedRequestOwner(accounting) : null;
+  const ownedTarget = ownedFiles ? snapshotAccountingPreparedData({ provider: executor.provider, model, endpoint: 'chat', connectionId }) : null;
+  let retainedOriginal;
+  function assertOwnedCurrent() {
+    ownedOwner.capture(ownedTarget, retainedOriginal);
+    if (ownedOwner.videoMetadata(ownedTarget, retainedOriginal) !== ownedVideoMetadata || ownedOwner.videoResolution(ownedTarget, retainedOriginal) !== ownedVideoResolution || ownedOwner.clientTools(ownedTarget, retainedOriginal) !== isGeminiOwnedVideoClientMode(options.accountingMode) || ownedOwner.inlineMedia(ownedTarget, retainedOriginal) !== isGeminiOwnedVideoClientInlineMode(options.accountingMode) || ownedOwner.inlineAudio(ownedTarget, retainedOriginal) !== isGeminiOwnedVideoClientInlineAudioMode(options.accountingMode) || ownedOwner.inlineVideo(ownedTarget, retainedOriginal) !== isGeminiOwnedVideoClientInlineAudioVideoMode(options.accountingMode)) throw new Error('Owned Gemini request owner unavailable');
+  }
+  const processingTools = isGeminiProcessingToolsMode(options.accountingMode);
+  const processing = isGeminiVideoProcessingMode(options.accountingMode) || processingTools;
+  // Processing delivery requires this terminal's retained exact evidence
+  // authority to have settled. Generic unlimited unresolved success is not a
+  // processing grant, even after an ACK of the unresolved ledger row.
+  const terminalAccounting = ownedFiles || processing ? { ...accounting, async assertSuccessfulTerminal(terminal) {
+    if (!terminal || terminal.state !== ACCOUNTING_STATE.SETTLED || terminal.unrecorded || terminal.costNanoUsd === null || terminal.costNanoUsd === undefined) throw new Error('Gateway accounting stream unavailable');
+    if (ownedOwner) { assertOwnedCurrent(); ownedOwner.terminal(ownedTarget, retainedOriginal, terminal); }
+    return accounting.assertSuccessfulTerminal(terminal);
+  } } : accounting;
+  const audioResolution = isGeminiAudioResolutionMode(options.accountingMode);
+  const inlineResolution = isGeminiInlineResolutionMode(options.accountingMode);
+  let resolution = isGeminiVideoResolutionMode(options.accountingMode);
+  const metadata = isGeminiVideoMetadataMode(options.accountingMode);
+  const video = isGeminiVideoMode(options.accountingMode) || metadata || resolution || processing, audio = isGeminiAudioMode(options.accountingMode) || video || audioResolution, inline = isGeminiInlineMode(options.accountingMode) || audio || inlineResolution, originalRequired = ownedFiles || inline || isGeminiClientMode(options.accountingMode);
+  if (originalRequired) {
+    accounting.assertSupported(accounting.requiresPreparedBaseWire === true);
+    try {
+      // Capture original material before any programmable clone/introspection.
+      options = { ...options, body: snapshotAccountingPreparedData(options.body), credentials: snapshotAccountingPreparedData(options.credentials),
+        proxyOptions: options.proxyOptions == null ? null : snapshotAccountingPreparedData(options.proxyOptions),
+        providerOverrides: options.providerOverrides == null ? null : snapshotAccountingPreparedData(options.providerOverrides) };
+    } catch (error) { accounting.assertSupported(false); throw error; }
+  }
+  if (processing) resolution = Object.hasOwn(options.body.generationConfig || {}, 'mediaResolution') || options.body.contents?.some(content => content.parts?.some(part => Object.hasOwn(part, 'mediaResolution') && ACCOUNTING_GEMINI_INLINE_VIDEO_MIME_TYPES.includes(part.inlineData?.mimeType)));
   const credentials = structuredClone(options.credentials);
   const proxyOptions = options.proxyOptions ? structuredClone(options.proxyOptions) : null;
-  const live = options.accountingMode === ACCOUNTED_GEMINI_SSE_MODE;
+  const live = [ACCOUNTED_GEMINI_SSE_MODE, ACCOUNTED_GEMINI_CLIENT_SSE_MODE, ACCOUNTED_GEMINI_INLINE_SSE_MODE, ACCOUNTED_GEMINI_AUDIO_SSE_MODE, ACCOUNTED_GEMINI_VIDEO_SSE_MODE, ACCOUNTED_GEMINI_VIDEO_METADATA_SSE_MODE, ACCOUNTED_GEMINI_VIDEO_RESOLUTION_SSE_MODE, ACCOUNTED_GEMINI_INLINE_RESOLUTION_SSE_MODE, ACCOUNTED_GEMINI_AUDIO_RESOLUTION_SSE_MODE, ACCOUNTED_GEMINI_VIDEO_PROCESSING_SSE_MODE, ACCOUNTED_GEMINI_PROCESSING_TOOLS_SSE_MODE, ACCOUNTED_GEMINI_OWNED_FILES_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_METADATA_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_RESOLUTION_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_COMBINED_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_AUDIO_SSE_MODE, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_AUDIO_VIDEO_SSE_MODE].includes(options.accountingMode);
   const url = executor.buildUrl(model, live, 0, credentials);
   const { model: _model, stream: _stream, ...body } = structuredClone(options.body);
   const headers = new Headers({ ...executor.buildHeaders(credentials, live, url, model, body), ...(options.providerOverrides?.headers || {}) });
@@ -48,11 +97,25 @@ export async function executeAccountedGeminiCandidate(executor, options) {
     protocol: 'native-gemini', url, headers: Object.fromEntries(headers),
     credentials: { apiKey: credentials?.apiKey ?? null, accessToken: credentials?.accessToken ?? null },
     providerOverrides: options.providerOverrides ?? null, proxyOptions, proxyEnvironment: captureAccountingProxyEnvironment(),
-    geminiTransport: { model, mode: options.accountingMode, baseTransport: captureAccountingBaseTransport(executor.config), serializedBody: serialized },
+    geminiTransport: { model, mode: options.accountingMode, baseTransport: captureAccountingBaseTransport(executor.config), serializedBody: serialized,
+      ...(originalRequired ? { originalBody: body } : {}),
+      ...(ownedFiles ? { resources: ownedOwner.capture(ownedTarget, body).resources } : {}) },
   }) : null;
   const postHeaders = preparedWire ? preparedWire.headers : headers;
   const postProxy = preparedWire ? preparedWire.proxyOptions : proxyOptions;
   const postBody = preparedWire ? preparedWire.geminiTransport.serializedBody : serialized;
+  retainedOriginal = originalRequired ? preparedWire.geminiTransport.originalBody : null;
+  const clientToolsOriginal = isGeminiClientMode(options.accountingMode) || inline && Object.hasOwn(retainedOriginal, 'tools') ? retainedOriginal : null;
+  const inlineMediaOriginal = inline ? retainedOriginal : null;
+  const inlineAudioOriginal = audio ? retainedOriginal : null;
+  const inlineVideoOriginal = video ? retainedOriginal : null;
+  const videoMetadataOriginal = metadata || (resolution || processing) && retainedOriginal.contents.some(content => content.parts.some(part => Object.hasOwn(part, 'videoMetadata'))) ? retainedOriginal : null;
+  const videoResolutionOriginal = resolution ? retainedOriginal : null;
+  const inlineResolutionOriginal = inlineResolution ? retainedOriginal : null;
+  const audioResolutionOriginal = audioResolution ? retainedOriginal : null;
+  const videoProcessingOriginal = processing ? retainedOriginal : null;
+  const processingToolsOriginal = processingTools ? retainedOriginal : null;
+  const parserFactory = ownedFiles ? onEvent => ownedOwner.parser(ownedTarget, retainedOriginal, onEvent) : originalRequired ? (onEvent, limits) => createAccountingGeminiSseParser(onEvent, { ...limits, clientToolsOriginal, inlineMediaOriginal, inlineAudioOriginal, inlineVideoOriginal, videoMetadataOriginal, videoResolutionOriginal, inlineResolutionOriginal, audioResolutionOriginal, videoProcessingOriginal, processingToolsOriginal }) : createAccountingGeminiSseParser;
   const attempt = await (preparedWire
     ? accounting.beforeAttempt({ provider: executor.provider, model, endpoint: 'chat', connectionId }, true, preparedWire)
     : accounting.beforeAttempt({ provider: executor.provider, model, endpoint: 'chat', connectionId }, true));
@@ -67,7 +130,8 @@ export async function executeAccountedGeminiCandidate(executor, options) {
     response = await fetchOnce(() => {
       invoked = true;
       return proxyAwareFetch(url, { method: 'POST', headers: postHeaders, body: postBody, redirect: 'error', signal: merged }, postProxy,
-        preparedWire ? { singlePost: true, proxyEnvironment: preparedWire.proxyEnvironment, geminiTransport: preparedWire.geminiTransport } : { singlePost: true });
+        preparedWire ? { singlePost: true, proxyEnvironment: preparedWire.proxyEnvironment, geminiTransport: preparedWire.geminiTransport,
+          ...(ownedFiles ? { routingGate: assertOwnedCurrent } : {}) } : { singlePost: true });
     }, merged);
   } catch (error) { transportError = { error }; }
   finally { clearTimeout(timer); }
@@ -76,7 +140,7 @@ export async function executeAccountedGeminiCandidate(executor, options) {
     try {
       if (response.redirected || response.url && response.url !== url) throw new Error('Unexpected Gemini response destination');
       if (!response.body || response.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'text/event-stream') throw new Error('Unsupported raw Gemini SSE response');
-      ownedBody = createAccountedOpenaiStream(response, { accounting, attempt, signal, parserFactory: createAccountingGeminiSseParser, expectedModel: model });
+      ownedBody = createAccountedOpenaiStream(response, { accounting: terminalAccounting, attempt, signal, parserFactory, expectedModel: model });
     } catch (error) { transportError = { error }; }
     // Transfer once to the existing sole stream terminal owner. Caller delivery
     // or response construction cannot start a second settlement/JSON fallback.
@@ -91,7 +155,8 @@ export async function executeAccountedGeminiCandidate(executor, options) {
     try {
       if (response.redirected || response.url && response.url !== url) throw new Error('Unexpected Gemini response destination');
       if (response.ok) {
-        const inspected = await readBufferedGeminiAccounting(response, signal, { expectedModel: model });
+        if (ownedFiles && response.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') throw new Error('Unsupported raw Gemini accounting response');
+        const inspected = ownedFiles ? ownedOwner.inspect(ownedTarget, retainedOriginal, await readAccountingJson(response, signal)) : await readBufferedGeminiAccounting(response, signal, { expectedModel: model, clientToolsOriginal, inlineMediaOriginal, inlineAudioOriginal, inlineVideoOriginal, videoMetadataOriginal, videoResolutionOriginal, inlineResolutionOriginal, audioResolutionOriginal, videoProcessingOriginal, processingToolsOriginal });
         usage = inspected.usage; message = inspected.message;
       } else text = await readAccountingText(response, signal);
     } catch (error) { transportError = { error }; }
@@ -107,7 +172,7 @@ export async function executeAccountedGeminiCandidate(executor, options) {
   const terminal = await accounting.completeAttempt(attempt, completion);
   signal?.throwIfAborted();
   if (transportError || !response.ok) accounting.gate();
-  else { await accounting.assertSuccessfulTerminal(terminal); signal?.throwIfAborted(); }
+  else { await terminalAccounting.assertSuccessfulTerminal(terminal); signal?.throwIfAborted(); }
   if (transportError) throw transportError.error;
   const replay = message ? Response.json(message, { headers: { 'Cache-Control': 'no-store' } }) :
     new Response(text, { status: response.status, statusText: response.statusText, headers: response.headers });

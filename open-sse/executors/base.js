@@ -8,11 +8,23 @@ import { resolveOpenAICompatibleApiType } from "../services/provider.js";
 import { executeAccountedBase } from "./accountedBase.js";
 import { executeAccountedAnthropicCandidate } from "./accountedAnthropic.js";
 import { ACCOUNTED_ANTHROPIC_MODES } from "../config/accountedAnthropicCandidate.js";
+import { ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE } from '../config/accountingClaudeDynamicModes.js';
 import { ACCOUNTED_CLAUDE_OAUTH_MODE } from '../config/accountedClaudeOauth.js';
 import { executeAccountedResponsesCandidate } from './accountedResponses.js';
 import { ACCOUNTED_RESPONSES_MODE, ACCOUNTED_RESPONSES_SSE_MODE } from '../config/accountedResponsesCandidate.js';
 import { executeAccountedGeminiCandidate } from './accountedGemini.js';
 import { ACCOUNTED_GEMINI_MODE, ACCOUNTED_GEMINI_SSE_MODE } from '../config/accountedGeminiCandidate.js';
+import { ACCOUNTED_GEMINI_CLIENT_MODES } from '../config/accountingGeminiClientModes.js';
+import { ACCOUNTED_GEMINI_INLINE_MODES } from '../config/accountingGeminiInlineModes.js';
+import { ACCOUNTED_GEMINI_AUDIO_MODES } from '../config/accountingGeminiAudioModes.js';
+import { ACCOUNTED_GEMINI_OWNED_FILES_MODES, ACCOUNTED_GEMINI_OWNED_VIDEO_METADATA_MODES, ACCOUNTED_GEMINI_OWNED_VIDEO_RESOLUTION_MODES, ACCOUNTED_GEMINI_OWNED_VIDEO_COMBINED_MODES, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_MODES, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_MODES, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_AUDIO_MODES, ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_AUDIO_VIDEO_MODES } from '../config/accountingGeminiOwnedFilesModes.js';
+import { ACCOUNTED_GEMINI_VIDEO_MODES } from '../config/accountingGeminiVideoModes.js';
+import { ACCOUNTED_GEMINI_VIDEO_METADATA_MODES } from '../config/accountingGeminiVideoMetadataModes.js';
+import { ACCOUNTED_GEMINI_VIDEO_RESOLUTION_MODES } from '../config/accountingGeminiVideoResolutionModes.js';
+import { ACCOUNTED_GEMINI_INLINE_RESOLUTION_MODES } from '../config/accountingGeminiInlineResolutionModes.js';
+import { ACCOUNTED_GEMINI_AUDIO_RESOLUTION_MODES } from '../config/accountingGeminiAudioResolutionModes.js';
+import { ACCOUNTED_GEMINI_VIDEO_PROCESSING_MODES } from '../config/accountingGeminiVideoProcessingModes.js';
+import { ACCOUNTED_GEMINI_PROCESSING_TOOLS_MODES } from '../config/accountingGeminiProcessingToolsModes.js';
 
 // Retry backoff belongs to the caller lifecycle, not the connect timeout.
 // Ordinary timers work across Node/Bun and remain controllable in tests.
@@ -145,13 +157,13 @@ export class BaseExecutor {
     signal?.throwIfAborted();
     // Explicit internal candidate entry only. App eligibility remains separate;
     // do not strip registry beta semantics or fall through on local rejection.
-    if (accounting && (ACCOUNTED_ANTHROPIC_MODES.includes(accountingMode) || accountingMode === ACCOUNTED_CLAUDE_OAUTH_MODE)) {
+    if (accounting && (ACCOUNTED_ANTHROPIC_MODES.includes(accountingMode) || [ACCOUNTED_CLAUDE_OAUTH_MODE, ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE].includes(accountingMode))) {
       return executeAccountedAnthropicCandidate(this, { model, body, stream, credentials, signal, log, proxyOptions, providerOverrides, accounting, connectionId, accountingMode });
     }
     if (accounting && [ACCOUNTED_RESPONSES_MODE, ACCOUNTED_RESPONSES_SSE_MODE].includes(accountingMode)) {
       return executeAccountedResponsesCandidate(this, { model, body, stream, credentials, signal, log, proxyOptions, providerOverrides, accounting, connectionId, accountingMode });
     }
-    if (accounting && [ACCOUNTED_GEMINI_MODE, ACCOUNTED_GEMINI_SSE_MODE].includes(accountingMode)) {
+    if (accounting && [ACCOUNTED_GEMINI_MODE, ACCOUNTED_GEMINI_SSE_MODE, ...ACCOUNTED_GEMINI_CLIENT_MODES, ...ACCOUNTED_GEMINI_INLINE_MODES, ...ACCOUNTED_GEMINI_AUDIO_MODES, ...ACCOUNTED_GEMINI_VIDEO_MODES, ...ACCOUNTED_GEMINI_VIDEO_METADATA_MODES, ...ACCOUNTED_GEMINI_VIDEO_RESOLUTION_MODES, ...ACCOUNTED_GEMINI_INLINE_RESOLUTION_MODES, ...ACCOUNTED_GEMINI_AUDIO_RESOLUTION_MODES, ...ACCOUNTED_GEMINI_VIDEO_PROCESSING_MODES, ...ACCOUNTED_GEMINI_PROCESSING_TOOLS_MODES, ...ACCOUNTED_GEMINI_OWNED_FILES_MODES, ...ACCOUNTED_GEMINI_OWNED_VIDEO_METADATA_MODES, ...ACCOUNTED_GEMINI_OWNED_VIDEO_RESOLUTION_MODES, ...ACCOUNTED_GEMINI_OWNED_VIDEO_COMBINED_MODES, ...ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_MODES, ...ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_MODES, ...ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_AUDIO_MODES, ...ACCOUNTED_GEMINI_OWNED_VIDEO_CLIENT_INLINE_AUDIO_VIDEO_MODES].includes(accountingMode)) {
       return executeAccountedGeminiCandidate(this, { model, body, stream, credentials, signal, log, proxyOptions, providerOverrides, accounting, connectionId, accountingMode });
     }
     const fallbackCount = this.getFallbackCount();

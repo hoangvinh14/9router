@@ -16,6 +16,7 @@ export const CLAUDE_BLOCK = {
   TEXT: "text",
   IMAGE: "image",
   DOCUMENT: "document",
+  SEARCH_RESULT: "search_result",
   TOOL_USE: "tool_use",
   TOOL_RESULT: "tool_result",
   CONTAINER_UPLOAD: "container_upload",
@@ -23,6 +24,10 @@ export const CLAUDE_BLOCK = {
   REDACTED_THINKING: "redacted_thinking",
   SERVER_TOOL_USE: "server_tool_use",
   WEB_SEARCH_TOOL_RESULT: "web_search_tool_result",
+  WEB_FETCH_TOOL_RESULT: "web_fetch_tool_result",
+  CODE_EXECUTION_TOOL_RESULT: "code_execution_tool_result",
+  BASH_CODE_EXECUTION_TOOL_RESULT: "bash_code_execution_tool_result",
+  TEXT_EDITOR_CODE_EXECUTION_TOOL_RESULT: "text_editor_code_execution_tool_result",
 };
 
 // OpenAI Responses API item types.

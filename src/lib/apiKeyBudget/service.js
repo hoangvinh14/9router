@@ -1,3 +1,6 @@
+import { isGeminiOwnedFilesMode, isGeminiOwnedVideoMetadataMode, isGeminiOwnedVideoResolutionMode, isGeminiOwnedVideoClientMode, isGeminiOwnedVideoClientInlineMode, isGeminiOwnedVideoClientInlineAudioMode, isGeminiOwnedVideoClientInlineAudioVideoMode } from '../../../open-sse/config/accountingGeminiOwnedFilesModes.js';
+import { assertGeminiOwnedFileBindingSync, assertGeminiOwnedFileVideoMetadataSync, assertGeminiOwnedFileVideoResolutionSync, assertGeminiOwnedFileClientToolsSync, assertGeminiOwnedFileInlineMediaSync, assertGeminiOwnedFileInlineAudioSync, assertGeminiOwnedFileInlineVideoSync } from './geminiOwnedFileAuthority.js';
+import { captureGeminiOwnedFilePriceSync } from './geminiOwnedFilePricing.js';
 import { randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from 'node:util';
 import { getAccountingWriteCoordinator } from './accountingWriteCoordinator.js';
@@ -10,15 +13,35 @@ import { assertPersistedRoutingMaterialCurrent } from './persistedRoutingGraph.j
 import { getAdapter } from "../db/driver.js";
 import { getPolicySync, putPolicySync, sumSpendSync, countStatesSync, insertAttemptSync, finalizeAttemptSync, getAttemptSync, resolveAttemptSync } from "../db/repos/apiKeyAccountingRepo.js";
 import { resolveReferencePriceSync } from "../pricing/referenceResolver.js";
-import { costFromExactUsage, decimalToNanoUsd } from "../pricing/money.js";
+import { costFromExactUsageSnapshot, decimalToNanoUsd } from "../pricing/money.js";
 import { BUDGET_ERROR, BUDGET_SCOPE, ACCOUNTING_STATE as STATE } from "../../../open-sse/config/apiKeyBudgetConstants.js";
 import { budgetWindows } from "./windows.js";
 import { ApiKeyBudgetError } from "./errors.js";
 import { isAccountedOpenaiChatProvider } from '../../../open-sse/config/accountedChatProviders.js';
 import { validateAccountingUsageEvidence } from '../../../open-sse/utils/accountingUsageEvidence.js';
 import { projectAccountingUsageSync } from "../db/repos/usageRepo.js";
+import { ACCOUNTED_ANTHROPIC_DYNAMIC_MODE, ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE, isClaudeDynamicMode } from '../../../open-sse/config/accountingClaudeDynamicModes.js';
+import { supportsClaudeDynamicOriginal } from '../../../open-sse/config/accountingClaudeDynamicOriginal.js';
 import { ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE, anthropicRequestHasCache1h } from '../../../open-sse/config/accountedAnthropicCandidate.js';
+import { CLAUDE_ACCOUNTING_SERVER_FETCH_NAME } from '../../../open-sse/config/accountingClaudeServerFetch.js';
+import { CLAUDE_ACCOUNTING_SERVER_SEARCH_NAME } from '../../../open-sse/config/accountingClaudeServerSearch.js';
+import { ACCOUNTING_CODE_PROVENANCE, ACCOUNTING_WEB_FETCH_PROVENANCE, ACCOUNTING_EMBEDDED_TOOL_PROVENANCE, ACCOUNTING_EMBEDDED_TOOL_RATES } from '../../../open-sse/config/accountingEmbeddedToolRates.js';
 import { ACCOUNTED_CLAUDE_OAUTH_MODE } from '../../../open-sse/config/accountedClaudeOauth.js';
+import { isGeminiClientMode } from '../../../open-sse/config/accountingGeminiClientModes.js';
+import { isGeminiInlineMode } from '../../../open-sse/config/accountingGeminiInlineModes.js';
+import { isGeminiAudioMode } from '../../../open-sse/config/accountingGeminiAudioModes.js';
+import { isGeminiVideoMode } from '../../../open-sse/config/accountingGeminiVideoModes.js';
+import { isGeminiVideoMetadataMode } from '../../../open-sse/config/accountingGeminiVideoMetadataModes.js';
+import { isGeminiVideoResolutionMode } from '../../../open-sse/config/accountingGeminiVideoResolutionModes.js';
+import { isGeminiInlineResolutionMode } from '../../../open-sse/config/accountingGeminiInlineResolutionModes.js';
+import { isGeminiAudioResolutionMode } from '../../../open-sse/config/accountingGeminiAudioResolutionModes.js';
+import { isGeminiVideoProcessingMode } from '../../../open-sse/config/accountingGeminiVideoProcessingModes.js';
+import { isGeminiProcessingToolsMode } from '../../../open-sse/config/accountingGeminiProcessingToolsModes.js';
+import { ACCOUNTING_GEMINI_PROCESSING_MODALITY_PROVENANCE, ACCOUNTING_GEMINI_PROCESSING_RATES, ACCOUNTING_GEMINI_PROCESSING_RATE_UNIT } from '../../../open-sse/config/accountingGeminiProcessingRates.js';
+import { ACCOUNTING_GEMINI_PROCESSING_ZERO_PROVENANCE } from '../../../open-sse/config/accountingGeminiProcessingEvidence.js';
+import { ACCOUNTING_GEMINI_INLINE_VIDEO_MIME_TYPES } from '../../../open-sse/config/accountingGeminiInlineMedia.js';
+import { createGeminiInputModalityAuthority } from '../../../open-sse/config/accountingGeminiInputModalities.js';
+import { ACCOUNTING_GEMINI_MODALITY_PROVENANCE, ACCOUNTING_GEMINI_MODALITY_RATE_UNIT, ACCOUNTING_GEMINI_MODALITY_RATES } from '../../../open-sse/config/accountingGeminiModalityRates.js';
 
 // Internal operation capabilities survive HMR with the owned adapter identity.
 // Queue payload holds an opaque ID plus bounded retained equality/evidence data,
@@ -167,7 +190,7 @@ export async function createBudgetContext(apiKeyId, { adapter = getAdapter, cloc
     if (!original || original.requestId !== requestId || original.apiKeyId !== apiKeyId) fail(BUDGET_ERROR.CONFLICT);
     let cost = null;
     if (!notDispatched && usage && original.priceSnapshot) {
-      try { cost = costFromExactUsage(usage, original.priceSnapshot.rates, { requireCacheTiers: original.priceSnapshot.usageSemantics?.cacheWriteTiers === 'observed_5m_1h' }); } catch { /* unknown is unresolved, never estimated zero */ }
+      try { cost = costFromExactUsageSnapshot(usage, original.priceSnapshot); } catch { /* unknown is unresolved, never estimated zero */ }
     }
     // Retain the original durable terminal time on duplicate or late retries,
     // not the closure's current clock; restart does not manufacture a conflict.
@@ -201,7 +224,7 @@ export async function createBudgetContext(apiKeyId, { adapter = getAdapter, cloc
     return getAccountingWriteCoordinator(db).enqueue({ type: 'service', operationId, retained }, { signal })
       .finally(() => operations.delete(operationId));
   }
-  async function beginAttemptQueued(meta, { signal = null, requestAuthority = null, preparedWire = null, routingMaterial = null } = {}) {
+  async function beginAttemptQueued(meta, { signal = null, requestAuthority = null, preparedWire = null, routingMaterial = null, ownedFileCapability = null } = {}) {
     if (signal?.aborted) throw signal.reason;
     // Capture immutable monetary authority, NOT permission to dispatch after wait.
     const detached = snapshotAccountingGroup([{ type: 'insert', input: meta }])[0];
@@ -210,10 +233,60 @@ export async function createBudgetContext(apiKeyId, { adapter = getAdapter, cloc
     const authority = requestAuthority === null ? null : snapshotAccountingGroup([{ type: 'authority', value: requestAuthority }])[0].value;
     const wire = preparedWire === null ? null : validateQueuedBaseWire(authority, preparedWire);
     const routing = routingMaterial === null ? null : snapshotAccountingGroup([{ type: 'routing-material', value: routingMaterial }])[0].value;
-    let needsCache1hRate = false;
+    const needsGeminiOwnedVideoMetadata = wire?.protocol === 'native-gemini' && isGeminiOwnedVideoMetadataMode(wire.geminiTransport.mode);
+    const needsGeminiOwnedVideoResolution = wire?.protocol === 'native-gemini' && isGeminiOwnedVideoResolutionMode(wire.geminiTransport.mode);
+    const needsGeminiOwnedPrice = wire?.protocol === 'native-gemini' && (isGeminiOwnedFilesMode(wire.geminiTransport.mode) || needsGeminiOwnedVideoMetadata || needsGeminiOwnedVideoResolution);
+    if (needsGeminiOwnedPrice && (provider !== 'gemini' || endpoint !== 'chat')) fail(BUDGET_ERROR.UNAVAILABLE);
+    if (!needsGeminiOwnedPrice && ownedFileCapability !== null) fail(BUDGET_ERROR.UNAVAILABLE);
+    const checkOwnedResource = () => {
+      if (!needsGeminiOwnedPrice) return;
+      if (!authority || authority.apiKeyId !== apiKeyId || authority.provider !== provider || authority.model !== model || authority.connectionId !== connectionId) fail(BUDGET_ERROR.UNAVAILABLE);
+      try {
+        const bound = assertGeminiOwnedFileBindingSync(db, ownedFileCapability, { credential: authority.credential, apiKeyId, provider, model, connectionId }, wire.geminiTransport.originalBody);
+        if (!isDeepStrictEqual(bound.resources, wire.geminiTransport.resources) ||
+            assertGeminiOwnedFileVideoMetadataSync(db, ownedFileCapability, wire.geminiTransport.originalBody, model) !== needsGeminiOwnedVideoMetadata ||
+            assertGeminiOwnedFileVideoResolutionSync(db, ownedFileCapability, wire.geminiTransport.originalBody, model) !== needsGeminiOwnedVideoResolution ||
+            assertGeminiOwnedFileClientToolsSync(db, ownedFileCapability, wire.geminiTransport.originalBody, model) !== isGeminiOwnedVideoClientMode(wire.geminiTransport.mode) ||
+            assertGeminiOwnedFileInlineMediaSync(db, ownedFileCapability, wire.geminiTransport.originalBody, model) !== isGeminiOwnedVideoClientInlineMode(wire.geminiTransport.mode) ||
+            assertGeminiOwnedFileInlineAudioSync(db, ownedFileCapability, wire.geminiTransport.originalBody, model) !== isGeminiOwnedVideoClientInlineAudioMode(wire.geminiTransport.mode) ||
+            assertGeminiOwnedFileInlineVideoSync(db, ownedFileCapability, wire.geminiTransport.originalBody, model) !== isGeminiOwnedVideoClientInlineAudioVideoMode(wire.geminiTransport.mode)) fail(BUDGET_ERROR.UNAVAILABLE);
+      } catch { fail(BUDGET_ERROR.UNAVAILABLE); }
+    };
+    checkOwnedResource();
+    const needsGeminiClientPrice = provider === 'gemini' && endpoint === 'chat' && wire?.protocol === 'native-gemini' && isGeminiClientMode(wire.geminiTransport.mode);
+    const needsGeminiProcessingTools = provider === 'gemini' && endpoint === 'chat' && wire?.protocol === 'native-gemini' && isGeminiProcessingToolsMode(wire.geminiTransport.mode);
+    const needsGeminiProcessingEvidence = provider === 'gemini' && endpoint === 'chat' && wire?.protocol === 'native-gemini' && (isGeminiVideoProcessingMode(wire.geminiTransport.mode) || needsGeminiProcessingTools);
+    const needsGeminiInlinePrice = provider === 'gemini' && endpoint === 'chat' && wire?.protocol === 'native-gemini' && (isGeminiInlineMode(wire.geminiTransport.mode) || isGeminiAudioMode(wire.geminiTransport.mode) || isGeminiVideoMode(wire.geminiTransport.mode) || isGeminiVideoMetadataMode(wire.geminiTransport.mode) || isGeminiVideoResolutionMode(wire.geminiTransport.mode) || isGeminiInlineResolutionMode(wire.geminiTransport.mode) || isGeminiAudioResolutionMode(wire.geminiTransport.mode) || needsGeminiProcessingEvidence);
+    let inputModalities = null;
+    if (needsGeminiInlinePrice) {
+      try {
+        const original = wire.geminiTransport.originalBody, resolution = isGeminiVideoResolutionMode(wire.geminiTransport.mode) || needsGeminiProcessingEvidence && (Object.hasOwn(original.generationConfig || {}, 'mediaResolution') || original.contents.some(content => content.parts.some(part => Object.hasOwn(part, 'mediaResolution') && ACCOUNTING_GEMINI_INLINE_VIDEO_MIME_TYPES.includes(part.inlineData?.mimeType))));
+        const metadata = isGeminiVideoMetadataMode(wire.geminiTransport.mode) || (resolution || needsGeminiProcessingEvidence) && original.contents.some(content => content.parts.some(part => Object.hasOwn(part, 'videoMetadata')));
+        const video = isGeminiVideoMode(wire.geminiTransport.mode) || metadata || resolution || needsGeminiProcessingEvidence;
+        const processingTrace = needsGeminiProcessingTools && original.contents.some(content => content.parts.some(part => Object.hasOwn(part, 'toolCall') || Object.hasOwn(part, 'toolResponse')));
+        inputModalities = createGeminiInputModalityAuthority(original, Object.hasOwn(original, 'tools') ? original : null, true, isGeminiAudioMode(wire.geminiTransport.mode) || video || isGeminiAudioResolutionMode(wire.geminiTransport.mode), video, metadata, resolution, isGeminiInlineResolutionMode(wire.geminiTransport.mode), isGeminiAudioResolutionMode(wire.geminiTransport.mode), needsGeminiProcessingEvidence, processingTrace).allowedInputModalities;
+      }
+      catch { fail(BUDGET_ERROR.UNAVAILABLE); }
+    }
+    const hasGeminiInlinePrice = price => price.status === 'priced' && inputModalities.every(modality => {
+      const fields = ACCOUNTING_GEMINI_MODALITY_RATES.find(item => item.modality === modality);
+      const initial = [fields.input, fields.cached].every(key => Object.hasOwn(price.snapshot.rates, key) && price.snapshot.rateUnits?.[key] === ACCOUNTING_GEMINI_MODALITY_RATE_UNIT);
+      if (!needsGeminiProcessingTools) return initial;
+      const processing = ACCOUNTING_GEMINI_PROCESSING_RATES.find(item => item.modality === modality);
+      return initial && processing && Object.hasOwn(price.snapshot.rates, processing.rate) && price.snapshot.rateUnits?.[processing.rate] === ACCOUNTING_GEMINI_PROCESSING_RATE_UNIT;
+    });
+    let needsCache1hRate = false, needsServerSearchRate = false, needsServerFetchUsage = false, needsCodeUsage = false;
     try {
-      needsCache1hRate = wire?.protocol === 'native-anthropic' && [ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE, ACCOUNTED_CLAUDE_OAUTH_MODE].includes(wire.anthropicTransport.mode) &&
+      needsCache1hRate = wire?.protocol === 'native-anthropic' && [ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE, ACCOUNTED_CLAUDE_OAUTH_MODE, ACCOUNTED_ANTHROPIC_DYNAMIC_MODE, ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE].includes(wire.anthropicTransport.mode) &&
         anthropicRequestHasCache1h(JSON.parse(wire.anthropicTransport.serializedBody));
+      needsServerSearchRate = ['anthropic', 'claude'].includes(provider) && endpoint === 'chat' && wire?.protocol === 'native-anthropic' &&
+        (provider === 'claude' ? [ACCOUNTED_CLAUDE_OAUTH_MODE, ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE] : [ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE, ACCOUNTED_ANTHROPIC_DYNAMIC_MODE]).includes(wire.anthropicTransport.mode) &&
+        JSON.parse(wire.anthropicTransport.originalSerializedBody).tools?.some(tool => tool.name === CLAUDE_ACCOUNTING_SERVER_SEARCH_NAME) === true;
+      needsServerFetchUsage = ['anthropic', 'claude'].includes(provider) && endpoint === 'chat' && wire?.protocol === 'native-anthropic' &&
+        (provider === 'claude' ? [ACCOUNTED_CLAUDE_OAUTH_MODE, ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE] : [ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE, ACCOUNTED_ANTHROPIC_DYNAMIC_MODE]).includes(wire.anthropicTransport.mode) &&
+        JSON.parse(wire.anthropicTransport.originalSerializedBody).tools?.some(tool => tool.name === CLAUDE_ACCOUNTING_SERVER_FETCH_NAME) === true;
+      needsCodeUsage = wire?.protocol === 'native-anthropic' && isClaudeDynamicMode(wire.anthropicTransport.mode);
+      if (needsCodeUsage && !supportsClaudeDynamicOriginal(JSON.parse(wire.anthropicTransport.originalSerializedBody), model)) fail(BUDGET_ERROR.UNAVAILABLE);
     } catch { fail(BUDGET_ERROR.UNAVAILABLE); }
     const oauthProtocols = { claude: ['native-anthropic'], codex: ['native-codex'], 'grok-cli': ['native-grok-cli'], github: ['native-github-responses', 'native-github-messages', 'chat-github-messages'], commandcode: ['native-commandcode'], kiro: ['native-kiro'] };
     if (Object.hasOwn(oauthProtocols, provider) && (!oauthProtocols[provider].includes(wire?.protocol) || endpoint !== 'chat' ||
@@ -230,14 +303,28 @@ export async function createBudgetContext(apiKeyId, { adapter = getAdapter, cloc
     coverage();
     // The narrow poisoned-unlimited proof+sidecar owner stays synchronous and
     // separate. No queued DB transaction can substitute for its independent ACK.
-    if (!db.health().healthy) return beginAttempt({ provider, model, endpoint, connectionId });
+    // Poisoned/unrecorded unlimited admission cannot establish paid-search
+    // original price/count authority. Refuse rather than downgrade this slice.
+    if (!db.health().healthy) {
+      if (needsServerSearchRate || needsServerFetchUsage || needsCodeUsage || needsGeminiClientPrice || needsGeminiInlinePrice || needsGeminiOwnedPrice) fail(BUDGET_ERROR.UNAVAILABLE);
+      return beginAttempt({ provider, model, endpoint, connectionId });
+    }
     const preparedStatus = gate();
     if (preparedStatus.exempt) return null;
     if (!BUDGET_SCOPE.includes(endpoint)) fail(BUDGET_ERROR.UNSUPPORTED);
     let preparedPrice;
     try { preparedPrice = resolveReferencePriceSync(db, provider, model, endpoint); }
     catch { fail(BUDGET_ERROR.UNAVAILABLE); }
-    if (preparedStatus.budgeted && preparedPrice.status !== 'priced' || needsCache1hRate && preparedPrice.snapshot?.rates.cache_creation_1h === undefined) fail(BUDGET_ERROR.PRICING);
+    let preparedOwnedPrice = null;
+    if (needsGeminiOwnedPrice) {
+      try { preparedOwnedPrice = captureGeminiOwnedFilePriceSync(db, ownedFileCapability, wire.geminiTransport.originalBody, model); }
+      catch { fail(BUDGET_ERROR.PRICING); }
+      checkOwnedResource();
+    }
+    const hasServerSearchRate = price => price.status === 'priced' && ACCOUNTING_EMBEDDED_TOOL_RATES.every(({ rate, unit }) =>
+      Object.hasOwn(price.snapshot?.rates || {}, rate) && price.snapshot.rateUnits?.[rate] === unit);
+    if (preparedStatus.budgeted && preparedPrice.status !== 'priced' || needsCache1hRate && preparedPrice.snapshot?.rates.cache_creation_1h === undefined ||
+        needsServerSearchRate && !hasServerSearchRate(preparedPrice) || (needsServerFetchUsage || needsCodeUsage || needsGeminiClientPrice) && preparedPrice.status !== 'priced' || needsGeminiInlinePrice && !hasGeminiInlinePrice(preparedPrice)) fail(BUDGET_ERROR.PRICING);
     const binding = db.get('SELECT fingerprint,retiredAt FROM apiKeyBindings WHERE apiKeyId=?', [apiKeyId]);
     let admittedInput = null, budgeted = preparedStatus.budgeted;
     try {
@@ -256,26 +343,43 @@ export async function createBudgetContext(apiKeyId, { adapter = getAdapter, cloc
             if (geminiEmbedding && !isDeepStrictEqual(captureGeminiEmbeddingSelectionSync(db, fresh), preparedSelection)) fail(BUDGET_ERROR.UNAVAILABLE);
           } catch { fail(BUDGET_ERROR.UNAVAILABLE); }
         }
+        checkOwnedResource();
         if (status.exempt || status.ledgerStartedAt !== preparedStatus.ledgerStartedAt ||
             !isDeepStrictEqual(db.get('SELECT fingerprint,retiredAt FROM apiKeyBindings WHERE apiKeyId=?', [apiKeyId]), binding)) fail(BUDGET_ERROR.UNAVAILABLE);
         let price;
         try { price = resolveReferencePriceSync(db, provider, model, endpoint); }
         catch { fail(BUDGET_ERROR.UNAVAILABLE); }
         if (!isDeepStrictEqual(price, preparedPrice)) fail(BUDGET_ERROR.UNAVAILABLE);
-        if (status.budgeted && price.status !== 'priced' || needsCache1hRate && price.snapshot?.rates.cache_creation_1h === undefined) fail(BUDGET_ERROR.PRICING);
+        if (status.budgeted && price.status !== 'priced' || needsCache1hRate && price.snapshot?.rates.cache_creation_1h === undefined ||
+            needsServerSearchRate && !hasServerSearchRate(price) || (needsServerFetchUsage || needsCodeUsage || needsGeminiClientPrice) && price.status !== 'priced' || needsGeminiInlinePrice && !hasGeminiInlinePrice(price)) fail(BUDGET_ERROR.PRICING);
+        let ownedPrice = null;
+        if (needsGeminiOwnedPrice) {
+          try { ownedPrice = captureGeminiOwnedFilePriceSync(db, ownedFileCapability, wire.geminiTransport.originalBody, model); }
+          catch { fail(BUDGET_ERROR.PRICING); }
+          if (!isDeepStrictEqual(ownedPrice, preparedOwnedPrice)) fail(BUDGET_ERROR.UNAVAILABLE);
+          checkOwnedResource();
+        }
         if (coverage().generation !== status.coverage.generation) fail(BUDGET_ERROR.UNAVAILABLE);
         admittedInput = { attemptId: randomUUID(), requestId, apiKeyId, ownerInstanceId: db.ownerInstanceId,
           startedAt: status.now.toISOString(), provider, model, endpoint, connectionId,
-          priceSnapshot: needsCache1hRate ? { ...price.snapshot, usageSemantics: { cacheWriteTiers: 'observed_5m_1h' } } : price.snapshot || null };
+          priceSnapshot: needsGeminiOwnedPrice ? ownedPrice.snapshot : needsCache1hRate || needsServerSearchRate || needsServerFetchUsage || needsCodeUsage || needsGeminiInlinePrice ? { ...price.snapshot, usageSemantics: {
+            ...(needsCache1hRate ? { cacheWriteTiers: 'observed_5m_1h' } : {}),
+            ...(needsServerSearchRate ? { serverToolUses: ACCOUNTING_EMBEDDED_TOOL_PROVENANCE } : {}),
+            ...(needsServerFetchUsage ? { nonBillableServerToolUses: ACCOUNTING_WEB_FETCH_PROVENANCE } : {}),
+            ...(needsCodeUsage ? { codeServerToolUses: ACCOUNTING_CODE_PROVENANCE } : {}),
+            ...(needsGeminiInlinePrice ? { inputModalities: ACCOUNTING_GEMINI_MODALITY_PROVENANCE, allowedInputModalities: inputModalities } : {}),
+            ...(needsGeminiProcessingEvidence ? { videoProcessingToolPrompt: needsGeminiProcessingTools ? ACCOUNTING_GEMINI_PROCESSING_MODALITY_PROVENANCE : ACCOUNTING_GEMINI_PROCESSING_ZERO_PROVENANCE } : {}),
+            ...(needsGeminiProcessingTools ? { allowedProcessingToolModalities: [...inputModalities] } : {}),
+          } } : price.snapshot || null };
         return { type: 'insert', input: admittedInput };
-      }, { meta: detached.input, price: preparedPrice, binding, ledgerStartedAt: preparedStatus.ledgerStartedAt, authority, wire, routing, preparedSelection }, signal);
+      }, { meta: detached.input, price: preparedPrice, binding, ledgerStartedAt: preparedStatus.ledgerStartedAt, authority, wire, routing, preparedSelection, ...(preparedOwnedPrice ? { ownedPrice: preparedOwnedPrice } : {}) }, signal);
       const attempt = Object.freeze(result); attempts.set(attempt.attemptId, attempt); return attempt;
     } catch (error) {
       // Member authority refusal/cancel cannot become an unlimited recording
       // exception. Only a prepared mutation whose durable ACK failed may latch.
       if (error instanceof ApiKeyBudgetError) throw error;
       if (!admittedInput && signal?.aborted) throw signal.reason;
-      if (!admittedInput || budgeted) fail(BUDGET_ERROR.UNAVAILABLE);
+      if (!admittedInput || budgeted || needsGeminiInlinePrice || needsGeminiOwnedPrice) fail(BUDGET_ERROR.UNAVAILABLE);
       latch('intent_recording_failed');
       const attempt = Object.freeze({ ...admittedInput, unrecorded: true }); attempts.set(attempt.attemptId, attempt); return attempt;
     }
@@ -300,7 +404,7 @@ export async function createBudgetContext(apiKeyId, { adapter = getAdapter, cloc
         if (!original || original.requestId !== requestId || original.apiKeyId !== apiKeyId) fail(BUDGET_ERROR.CONFLICT);
         let cost = null;
         if (!notDispatched && usage && original.priceSnapshot) {
-          try { cost = costFromExactUsage(usage, original.priceSnapshot.rates, { requireCacheTiers: original.priceSnapshot.usageSemantics?.cacheWriteTiers === 'observed_5m_1h' }); } catch { /* unresolved, never estimated */ }
+          try { cost = costFromExactUsageSnapshot(usage, original.priceSnapshot); } catch { /* unresolved, never estimated */ }
         }
         let evidence = null;
         if (usageEvidence !== null) {

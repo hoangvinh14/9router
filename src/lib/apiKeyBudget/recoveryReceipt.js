@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
-import { costFromExactUsage, nanoUsdToDecimal } from "../pricing/money.js";
+import { costFromExactUsageSnapshot, nanoUsdToDecimal } from "../pricing/money.js";
 function unavailable() { throw Object.assign(new Error("api_key_accounting_unavailable"), { status: 503, code: "api_key_accounting_unavailable" }); }
 // Receipt comes from the committed operation audit, never a request echo or a
 // mutable latest attempt projection. Call only after DB acknowledgement and,
@@ -15,7 +15,7 @@ export function recoveryReceiptSync(db, apiKeyId, target, operation) {
       if (audit.attemptId !== target.id || audit.gapId !== null || audit.action !== operation.action || !Number.isSafeInteger(before.resolutionVersion) || before.resolutionVersion !== operation.expectedVersion) unavailable();
       let cost = "0";
       if (audit.action === "cost_correction") cost = operation.costNanoUsd;
-      else if (audit.action === "exact_usage") cost = costFromExactUsage(after.usage, before.priceSnapshot.rates);
+      else if (audit.action === "exact_usage") cost = costFromExactUsageSnapshot(after.usage, before.priceSnapshot);
       return { version: 1, operationId: audit.operationId, apiKeyId: audit.apiKeyId, kind: "attempt", targetId: audit.attemptId, action: audit.action,
         resolutionVersion: before.resolutionVersion + 1, state: audit.action === "waive" ? "waived" : "settled", costUsd: nanoUsdToDecimal(String(cost)) };
     }

@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
+import { ACCOUNTING_GEMINI_MODALITY_RATES } from '../../../open-sse/config/accountingGeminiModalityRates.js';
+import { ACCOUNTING_GEMINI_PROCESSING_RATES } from '../../../open-sse/config/accountingGeminiProcessingRates.js';
 
 export default function PricingCoverage({ refreshRevision = 0 }) {
   const [open, setOpen] = useState(false);
@@ -41,14 +43,17 @@ export default function PricingCoverage({ refreshRevision = 0 }) {
         <p className="text-sm">All registry references: <strong>{report.counts.total}</strong>; priced: <strong>{report.counts.priced}</strong>; unavailable: <strong>{report.counts.unavailable}</strong>. Counts cover the complete registry, not only this page.</p>
         <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Pricing coverage columns; scroll horizontally">
           <table className="w-full text-sm text-left">
-            <caption className="text-left text-text-muted pb-2">USD per million tokens — effective precedence and optional-rate fallback</caption>
-            <thead><tr>{["Provider / model", "Endpoint", "Source", "Input / output", "Cache / reasoning", "Availability"].map(label => <th key={label} scope="col" className="p-2 border-b border-border-subtle">{label}</th>)}</tr></thead>
+            <caption className="text-left text-text-muted pb-2">Token rates: USD per million tokens; embedded search: USD per 1,000 uses. Image/document/audio/video input and cached rates are independent explicit token references; blank means unavailable, not flat-rate fallback. Loaded processing tool-prompt rates are separate USD/1M token references, not initial-input fallbacks or per-call fees. Pricing availability does not certify tool or modality usage.</caption>
+            <thead><tr>{["Provider / model", "Endpoint", "Source", "Input / output", "Cache / reasoning", "Embedded search", "Image / document / audio / video input and cache", "Processing tool-prompt tokens", "Availability"].map(label => <th key={label} scope="col" className="p-2 border-b border-border-subtle">{label}</th>)}</tr></thead>
             <tbody>{report.rows.map(row => <tr key={JSON.stringify([row.provider, row.model, row.endpoint])}>
               <th scope="row" className="p-2 border-b border-border-subtle font-normal break-all">{row.provider} / {row.model}</th>
               <td className="p-2">{row.endpoint}</td>
               <td className="p-2">{row.source || "None"}{row.virtual ? " (virtual mapping)" : ""}</td>
               <td className="p-2 whitespace-nowrap">{row.rates ? `${row.rates.input} / ${row.rates.output}` : "Unavailable"}</td>
               <td className="p-2">{row.rates ? `Read ${row.rates.cached ?? "input fallback"}; write/5m ${row.rates.cache_creation ?? "input fallback"}; write/1h ${row.rates.cache_creation_1h ?? "unavailable"}; reasoning ${row.rates.reasoning ?? "output fallback"}` : "Unknown"}</td>
+              <td className="p-2">{row.rates?.web_search_per_1000 !== undefined ? `${row.rates.web_search_per_1000} ${row.rateUnits?.web_search_per_1000 || "(unit unavailable)"}` : "Unavailable; no token fallback"}</td>
+              <td className="p-2">{ACCOUNTING_GEMINI_MODALITY_RATES.filter(item => item.modality !== 'TEXT').map(({ modality, input, cached }) => <div key={modality}>{modality}: {[input, cached].map(field => <span key={field} className="block">{field}: {row.rates?.[field] !== undefined ? `${row.rates[field]} ${row.rateUnits?.[field] || '(unit unavailable)'}` : 'Unavailable; no modality fallback'}</span>)}</div>)}</td>
+              <td className="p-2">{ACCOUNTING_GEMINI_PROCESSING_RATES.map(({ modality, rate }) => <div key={rate}>{modality}: {row.rates?.[rate] !== undefined ? `${row.rates[rate]} ${row.rateUnits?.[rate] || '(unit unavailable)'}` : 'Unavailable; no processing fallback'}</div>)}</td>
               <td className="p-2">{row.status === "priced" ? "Reference available" : row.reason}</td>
             </tr>)}</tbody>
           </table>

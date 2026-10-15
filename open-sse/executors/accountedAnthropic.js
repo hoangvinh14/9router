@@ -14,7 +14,13 @@ import { DEFAULT_ERROR_MESSAGES } from '../config/errorConfig.js';
 import { upstreamResponseHeaders } from '../utils/upstreamHeaders.js';
 import { PROVIDER_OAUTH } from '../config/providers.js';
 import { readAccountingJson } from '../utils/readAccountingJson.js';
-import { ACCOUNTED_CLAUDE_OAUTH_MODE, claudeOauthToken, supportsClaudeOauthOriginal, prepareAccountingClaudeOauthBody, validateAccountingClaudeOauthPost } from '../config/accountedClaudeOauth.js';
+import { captureClaudeCitationDocuments } from '../config/accountingClaudeCitations.js';
+import { CLAUDE_ACCOUNTING_SERVER_FETCH_NAME } from '../config/accountingClaudeServerFetch.js';
+import { CLAUDE_ACCOUNTING_SERVER_SEARCH_NAME } from '../config/accountingClaudeServerSearch.js';
+import { captureClaudeSearchResults } from '../config/accountingClaudeSearchResults.js';
+import { ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE, isClaudeDynamicMode } from '../config/accountingClaudeDynamicModes.js';
+import { supportsClaudeDynamicOriginal } from '../config/accountingClaudeDynamicOriginal.js';
+import { ACCOUNTED_CLAUDE_OAUTH_MODE, claudeOauthDynamicOwner, claudeOauthToken, supportsClaudeOauthOriginal, claudeOauthServerSearchOwner, claudeOauthServerFetchOwner, prepareAccountingClaudeOauthBody, validateAccountingClaudeOauthPost } from '../config/accountedClaudeOauth.js';
 
 // Cancellation may win locally while foreign fetch continues; observe late
 // outcomes and dispose an unhanded response without awaiting foreign cleanup.
@@ -36,8 +42,8 @@ function fetchOnce(invoke, signal) {
   });
 }
 
-// Standard API-key Messages candidate, buffered or explicit text-only live.
-// Beta/OAuth transports remain independently denied; one owner per actual POST.
+// Explicit queued beta/OAuth retain complete original and actual request
+// authority; ordinary modes stay narrow. One terminal owner per actual POST.
 async function refreshAccountedClaudeOauth(credentials, proxyOptions, proxyEnvironment, signal, timeoutMs, authorityGate) {
   const grant = PROVIDER_OAUTH.claude;
   const url = grant?.tokenUrl;
@@ -61,22 +67,24 @@ export async function executeAccountedAnthropicCandidate(executor, options) {
   const { model, accounting, signal, connectionId } = options;
   // Guard plain bounded material before cloning/serialization can invoke getters
   // or let toJSON erase original work. Never admit a caller-shaped transform.
-  const oauthInput = options.accountingMode === ACCOUNTED_CLAUDE_OAUTH_MODE;
-  const credentials = oauthInput ? structuredClone(snapshotAccountingPreparedData(options.credentials)) : structuredClone(options.credentials);
-  const originalBody = oauthInput ? structuredClone(snapshotAccountingPreparedData(options.body)) : structuredClone(options.body);
-  const proxyOptions = options.proxyOptions ? structuredClone(oauthInput ? snapshotAccountingPreparedData(options.proxyOptions) : options.proxyOptions) : null;
-  const oauth = options.accountingMode === ACCOUNTED_CLAUDE_OAUTH_MODE;
+  const dynamic = isClaudeDynamicMode(options.accountingMode);
+  const guardedInput = accounting.requiresPreparedBaseWire === true || [ACCOUNTED_CLAUDE_OAUTH_MODE, ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE].includes(options.accountingMode);
+  const credentials = structuredClone(guardedInput ? snapshotAccountingPreparedData(options.credentials) : options.credentials);
+  const originalBody = structuredClone(guardedInput ? snapshotAccountingPreparedData(options.body) : options.body);
+  const proxyOptions = options.proxyOptions ? structuredClone(guardedInput ? snapshotAccountingPreparedData(options.proxyOptions) : options.proxyOptions) : null;
+  const oauth = [ACCOUNTED_CLAUDE_OAUTH_MODE, ACCOUNTED_CLAUDE_OAUTH_DYNAMIC_MODE].includes(options.accountingMode);
   const live = oauth || isAnthropicLiveMode(options.accountingMode);
   const allowClientTools = accounting.requiresPreparedBaseWire === true;
-  const beta = oauth || options.accountingMode === ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE;
+  const beta = dynamic || oauth || options.accountingMode === ACCOUNTED_ANTHROPIC_BETA_LIVE_MODE;
+  if (dynamic) accounting.assertSupported(allowClientTools);
   if (oauth) accounting.assertSupported(allowClientTools && executor.provider === 'claude' && options.stream === true &&
     !credentials.runtimeTransport && !credentials.rawHeaders?.['anthropic-beta'] && !options.providerOverrides &&
-    !proxyOptions?.vercelRelayUrl && typeof accounting.assertClaudeOauthTerminal === 'function' && supportsClaudeOauthOriginal(originalBody, model));
+    !proxyOptions?.vercelRelayUrl && typeof accounting.assertClaudeOauthTerminal === 'function' && supportsClaudeOauthOriginal(originalBody, model, dynamic));
   if (beta && !oauth) accounting.assertSupported(typeof accounting.assertAnthropicBetaTerminal === 'function');
-  if (live && !oauth) accounting.assertSupported(supportsAnthropicLiveRequest(options.body, model, allowClientTools, beta));
+  if (live && !oauth) accounting.assertSupported(dynamic ? supportsClaudeDynamicOriginal(originalBody, model) : supportsAnthropicLiveRequest(originalBody, model, allowClientTools, beta, beta && allowClientTools, beta && allowClientTools, beta && allowClientTools, beta && allowClientTools, beta && allowClientTools, beta && allowClientTools, beta && allowClientTools));
   const url = executor.buildUrl(model, true, 0, credentials);
   const originalSerializedBody = accounting.requiresPreparedBaseWire ? JSON.stringify(originalBody) : null;
-  const transformed = oauth ? prepareAccountingClaudeOauthBody(originalBody, claudeOauthToken(credentials))
+  const transformed = oauth ? prepareAccountingClaudeOauthBody(originalBody, claudeOauthToken(credentials), undefined, dynamic)
     : executor.transformRequest(model, structuredClone(originalBody), true, credentials);
   const body = { ...transformed, stream: true };
   const headers = { ...executor.buildHeaders(credentials, true, url, model, body), ...(options.providerOverrides?.headers || {}) };
@@ -97,6 +105,16 @@ export async function executeAccountedAnthropicCandidate(executor, options) {
   }) : null;
   if (oauth) validateAccountingClaudeOauthPost(preparedWire.anthropicTransport, url, { method: 'POST', redirect: 'error', body: serialized, headers });
   const requireCacheTiers = beta && anthropicRequestHasCache1h(wireBody);
+  const serverDynamicOriginal = dynamic ? oauth ? claudeOauthDynamicOwner(originalBody) : originalBody : null;
+  const allowCodeExecutionUsage = serverDynamicOriginal !== null;
+  const serverSearchOriginal = !dynamic && beta && allowClientTools && originalBody.tools?.some(tool => tool.name === CLAUDE_ACCOUNTING_SERVER_SEARCH_NAME)
+    ? oauth ? claudeOauthServerSearchOwner(originalBody) : originalBody : null;
+  const allowWebSearchUsage = serverSearchOriginal !== null || dynamic && originalBody.tools.some(tool => tool.name === CLAUDE_ACCOUNTING_SERVER_SEARCH_NAME);
+  const serverFetchOriginal = !dynamic && beta && allowClientTools && originalBody.tools?.some(tool => tool.name === CLAUDE_ACCOUNTING_SERVER_FETCH_NAME)
+    ? oauth ? claudeOauthServerFetchOwner(originalBody) : originalBody : null;
+  const allowWebFetchUsage = serverFetchOriginal !== null || dynamic && originalBody.tools.some(tool => tool.name === CLAUDE_ACCOUNTING_SERVER_FETCH_NAME);
+  const citationDocuments = beta && allowClientTools ? captureClaudeCitationDocuments(originalBody) : null;
+  const citationSearchResults = beta && allowClientTools ? captureClaudeSearchResults(originalBody) : null;
   const postHeaders = preparedWire ? preparedWire.headers : headers;
   const postProxy = preparedWire ? preparedWire.proxyOptions : proxyOptions;
   const postBody = preparedWire ? preparedWire.anthropicTransport.serializedBody : serialized;
@@ -132,7 +150,7 @@ export async function executeAccountedAnthropicCandidate(executor, options) {
             else await accounting.assertAnthropicBetaTerminal(attempt, terminal);
           },
         } : accounting, attempt, signal,
-        limits: { allowClientTools, allowCache1h: beta, requireCacheTiers, allowThinking: oauth },
+        limits: { allowClientTools, allowCache1h: beta, requireCacheTiers, allowThinking: beta && allowClientTools, allowAbsentServerToolUsage: allowClientTools && !allowWebSearchUsage && !allowWebFetchUsage, allowWebSearchUsage, serverSearchOriginal, allowWebFetchUsage, serverFetchOriginal, allowCodeExecutionUsage, serverDynamicOriginal, citationDocuments, citationSearchResults },
         parserFactory: oauth ? createAccountingClaudeOauthParser(originalBody) : createAccountingClaudeSseParser, expectedModel: model });
     } catch (error) { transportError = { error }; }
     // Transfer once. Stream construction/terminal ownership is distinct from
@@ -151,7 +169,7 @@ export async function executeAccountedAnthropicCandidate(executor, options) {
         const inspected = await readBufferedClaudeAccounting(response, signal, {
           // Failed streams owe the same full block/tool JSON validation as
           // success. Capture for validation only, never successful delivery.
-          expectedModel: model, captureMessage: true, allowFailedHttp: !response.ok, allowCache1h: beta, requireCacheTiers, allowThinking: oauth,
+          expectedModel: model, captureMessage: true, allowFailedHttp: !response.ok, allowCache1h: beta, requireCacheTiers, allowThinking: beta && allowClientTools, allowAbsentServerToolUsage: allowClientTools && !allowWebSearchUsage && !allowWebFetchUsage, allowWebSearchUsage, serverSearchOriginal, allowWebFetchUsage, serverFetchOriginal, allowCodeExecutionUsage, serverDynamicOriginal, citationDocuments, citationSearchResults,
         });
         text = inspected.text; usage = inspected.usage; message = response.ok ? inspected.message : null;
       } else text = await readAccountingText(response, signal); // JSON/error text is not a raw usage schema.

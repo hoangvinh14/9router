@@ -37,6 +37,16 @@ export async function createSqlJsAdapter(filePath, { assertOwned = () => {}, dir
   let unhealthy = null;
   let closed = false;
   let depth = 0;
+  // Compiled SELECTs only, never result rows or admission/ownership evidence.
+  // Every hit still calls assertHealthy and executes with freshly bound params.
+  const readStatements = new Map();
+  const MAX_READ_STATEMENTS = 32;
+  let readEpoch = 0;
+  function clearReadStatements() {
+    readEpoch++;
+    const statements = [...readStatements.values()]; readStatements.clear();
+    for (const statement of statements) statement.free();
+  }
   function assertHealthy() {
     assertOwned();
     if (closed) throw new Error("SQL.js adapter closed");
@@ -46,6 +56,7 @@ export async function createSqlJsAdapter(filePath, { assertOwned = () => {}, dir
     assertHealthy();
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
     try {
+      clearReadStatements(); // SQL.js export closes outstanding statements.
       atomicDurableWrite(filePath, Buffer.from(db.export()));
       dirty = false;
     } catch (error) {
@@ -72,7 +83,7 @@ export async function createSqlJsAdapter(filePath, { assertOwned = () => {}, dir
   }
 
   function run(sql, params = []) {
-    assertHealthy();
+    assertHealthy(); clearReadStatements();
     const stmt = db.prepare(sql);
     try {
       stmt.bind(paramsObj(params));
@@ -88,18 +99,43 @@ export async function createSqlJsAdapter(filePath, { assertOwned = () => {}, dir
 
   function get(sql, params = []) {
     assertHealthy();
-    const stmt = db.prepare(sql);
+    const reusable = typeof sql === 'string' && sql.length <= 8192 && /^SELECT\b/i.test(sql);
+    if (!reusable) clearReadStatements();
+    let stmt = reusable ? readStatements.get(sql) : null;
+    // Lease outside the map: a programmable parameter may reenter the adapter.
+    // Neither nested reads nor invalidation may reuse/free an active statement.
+    if (stmt) readStatements.delete(sql);
+    if (!stmt) stmt = db.prepare(sql);
+    const epoch = readEpoch;
     try {
       stmt.bind(paramsObj(params));
       if (stmt.step()) return stmt.getAsObject();
       return undefined;
+    } catch (error) {
+      try { stmt.free(); } catch { /* original read/bind error remains primary */ }
+      stmt = null;
+      throw error;
     } finally {
-      stmt.free();
+      if (stmt) {
+        if (!reusable || epoch !== readEpoch) stmt.free();
+        else {
+          try { if (!stmt.reset()) throw new Error('SQL.js read statement reset failed'); }
+          catch (error) { try { stmt.free(); } catch { /* reset failure remains primary */ } throw error; }
+          const previous = readStatements.get(sql);
+          if (previous) { readStatements.delete(sql); previous.free(); }
+          if (readStatements.size >= MAX_READ_STATEMENTS) {
+            const oldest = readStatements.keys().next().value;
+            const evicted = readStatements.get(oldest); readStatements.delete(oldest); evicted.free();
+          }
+          readStatements.set(sql, stmt);
+        }
+      }
     }
   }
 
   function all(sql, params = []) {
     assertHealthy();
+    if (typeof sql !== 'string' || !/^SELECT\b/i.test(sql)) clearReadStatements();
     const stmt = db.prepare(sql);
     try {
       stmt.bind(paramsObj(params));
@@ -112,7 +148,7 @@ export async function createSqlJsAdapter(filePath, { assertOwned = () => {}, dir
   }
 
   function exec(sql) {
-    assertHealthy();
+    assertHealthy(); clearReadStatements();
     db.exec(sql);
     scheduleSave();
   }
@@ -120,6 +156,7 @@ export async function createSqlJsAdapter(filePath, { assertOwned = () => {}, dir
   function transaction(fn) {
     assertHealthy();
     if (fn.constructor?.name === "AsyncFunction") throw new Error("Database transaction callback must be synchronous");
+    clearReadStatements();
     const sp = `sp_${Math.random().toString(36).slice(2)}`;
     db.exec(`SAVEPOINT ${sp}`);
     depth++;
@@ -130,12 +167,13 @@ export async function createSqlJsAdapter(filePath, { assertOwned = () => {}, dir
       // it still forbids this outer frame from publishing/persisting success.
       assertHealthy();
       releasing = true;
+      clearReadStatements();
       db.exec(`RELEASE ${sp}`);
       scheduleSave();
       return result;
     } catch (e) {
       if (releasing) unhealthy ||= e;
-      try { db.exec(`ROLLBACK TO ${sp}`); db.exec(`RELEASE ${sp}`); }
+      try { clearReadStatements(); db.exec(`ROLLBACK TO ${sp}`); db.exec(`RELEASE ${sp}`); }
       catch (rollbackError) { unhealthy ||= rollbackError; }
       throw e;
     } finally { depth--; }
@@ -153,6 +191,7 @@ export async function createSqlJsAdapter(filePath, { assertOwned = () => {}, dir
     // SQL.js ATTACH uses its virtual filesystem, not the host filesystem.
     // Clone the current export, remove only excluded observability tables and
     // write a real SQLite artifact with the same acknowledgement primitive.
+    clearReadStatements();
     const clone = new SQLLib.Database(db.export());
     try {
       for (const table of excludedTables) {
@@ -169,7 +208,7 @@ export async function createSqlJsAdapter(filePath, { assertOwned = () => {}, dir
     process.removeListener("SIGINT", flush);
     process.removeListener("SIGTERM", flush);
     try { if (dirty && !unhealthy) persist(); }
-    finally { closed = true; db.close(); }
+    finally { closed = true; clearReadStatements(); db.close(); }
   }
 
   const flush = () => {

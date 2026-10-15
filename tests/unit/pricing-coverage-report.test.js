@@ -39,6 +39,50 @@ describe("effective reference pricing coverage, observational not raw usage cert
     expect(resolver.resolveReferencePriceSync(db, "oai", "text-embedding-3-small", "embeddings").snapshot.rates).toEqual({ input: "0", output: "0", cached: "0" });
     expect(resolver.resolveReferencePriceSync(db, "openai", "text-embedding-3-small", "embeddings").snapshot.rates.input).toBe("0.02");
   });
+  it('per-use explicit unit survives coverage projection/revision but never certifies tool usage', async () => {
+    const pricing = await import('@/lib/db/repos/pricingRepo.js');
+    const flat = { input: '1', output: '2' };
+    await pricing.updatePricing({ openai: { 'gpt-5': flat } });
+    const before = await report.getPricingCoverage();
+    expect(before.rows.find(row => row.model === 'gpt-5')).not.toHaveProperty('rateUnits');
+    await pricing.updatePricing({ openai: { 'gpt-5': { ...flat, web_search_per_1000: '0' } } });
+    const result = await report.getPricingCoverage();
+    expect(result.revision).not.toBe(before.revision);
+    expect(result.usageCertified).toBe(false);
+    expect(result.rows.find(row => row.model === 'gpt-5')).toMatchObject({ rates: { ...flat, web_search_per_1000: '0' },
+      rateUnits: { web_search_per_1000: 'USD/1000 uses' } });
+    expect(result.rows.find(row => row.endpoint === 'embeddings')).not.toHaveProperty('rateUnits');
+    const response = await route.GET(request());
+    expect(response.status).toBe(200); expect(response.headers.get('cache-control')).toBe('no-store');
+    expect((await response.json()).rows.find(row => row.model === 'gpt-5').rateUnits).toEqual({ web_search_per_1000: 'USD/1000 uses' });
+    await pricing.updatePricing({ openai: { 'gpt-5': flat } });
+    expect((await report.getPricingCoverage()).revision).toBe(before.revision);
+    expect(db.get("SELECT * FROM _meta WHERE key='ledgerStartedAt'")).toBeUndefined();
+  });
+  it('explicit image/document units remain observational in coverage; rate drift invalidates pagination and removal restores legacy projection', async () => {
+    const pricing = await import('@/lib/db/repos/pricingRepo.js'), flat = { input: '1', output: '2', cached: '0.1' };
+    await pricing.updatePricing({ openai: { 'gpt-5': flat } }); const before = await report.getPricingCoverage();
+    const rates = { ...flat, input_image: '3', cached_image: '0', input_document: '4', cached_document: '0.2' };
+    await pricing.updatePricing({ openai: { 'gpt-5': rates } }); const current = await report.getPricingCoverage();
+    expect(current.usageCertified).toBe(false); expect(current.revision).not.toBe(before.revision);
+    const row = current.rows.find(row => row.model === 'gpt-5'); expect(row.rates).toEqual(rates);
+    expect(row.rateUnits).toEqual({ input: 'USD/1M tokens', cached: 'USD/1M tokens', input_image: 'USD/1M tokens', cached_image: 'USD/1M tokens', input_document: 'USD/1M tokens', cached_document: 'USD/1M tokens' });
+    expect(row).not.toHaveProperty('usageSemantics'); expect((await route.GET(request(`?offset=1&revision=${before.revision}`))).status).toBe(409);
+    await pricing.updatePricing({ openai: { 'gpt-5': flat } }); expect((await report.getPricingCoverage()).revision).toBe(before.revision);
+    expect(db.get("SELECT * FROM _meta WHERE key='ledgerStartedAt'")).toBeUndefined();
+  });
+  it('processing tool-prompt rates and typed units survive observational coverage without usage authority; drift pins revisions and removal restores projection', async () => {
+    const pricing = await import('@/lib/db/repos/pricingRepo.js'), flat = { input: '1', output: '2' };
+    await pricing.updatePricing({ openai: { 'gpt-5': flat } }); const before = await report.getPricingCoverage();
+    const rates = { ...flat, processing_tool_text: '13', processing_tool_image: '17', processing_tool_document: '29', processing_tool_audio: '19', processing_tool_video: '0' };
+    await pricing.updatePricing({ openai: { 'gpt-5': rates } }); const current = await report.getPricingCoverage(), row = current.rows.find(row => row.model === 'gpt-5');
+    expect(current.usageCertified).toBe(false); expect(row.rates).toEqual(rates); expect(row).not.toHaveProperty('usageSemantics');
+    expect(row.rateUnits).toEqual(Object.fromEntries(Object.keys(rates).filter(key => key.startsWith('processing_tool_')).map(key => [key, 'USD/1M tokens'])));
+    expect(current.revision).not.toBe(before.revision); expect((await route.GET(request(`?offset=1&revision=${before.revision}`))).status).toBe(409);
+    const response = await route.GET(request()); expect(response.status).toBe(200); expect(response.headers.get('cache-control')).toBe('no-store'); expect((await response.json()).rows.find(row => row.model === 'gpt-5').rateUnits).toEqual(row.rateUnits);
+    expect(current.rows.find(item => item.endpoint === 'embeddings')).not.toHaveProperty('rateUnits');
+    await pricing.updatePricing({ openai: { 'gpt-5': flat } }); expect((await report.getPricingCoverage()).revision).toBe(before.revision); expect(db.get("SELECT * FROM _meta WHERE key='ledgerStartedAt'")).toBeUndefined();
+  });
   it("revision pinned pagination detects effective pricing changes; malformed/corrupt storage sanitized", async () => {
     const first = await report.getPricingCoverage({ limit: 1 });
     expect((await report.getPricingCoverage({ limit: 1, offset: 1, revision: first.revision })).rows).toHaveLength(1);
