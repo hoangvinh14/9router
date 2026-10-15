@@ -1,5 +1,7 @@
 # Continuation — queued Messages Claude OAuth checkpoint
 
+> Historical handoff. Latest first-next-action, pushed Git state and capture authority are in [2026-10-12 context-reset continuation](./api-key-budget-context-reset-20261012-0032.md). OAuth evidence below remains historical; old no-new-commit/push and next-thinking pointers are superseded.
+
 Read this → [plan](../261003-0827-api-key-quota-budget-pricing/plan.md) → [remaining packets](../261003-0827-api-key-quota-budget-pricing/reports/package-b-remaining-work.md) → [OAuth evidence](../261003-0827-api-key-quota-budget-pricing/reports/messages-oauth-continuation.md). This supersedes the 1000 cache-tier handoff's first-next-action, not its historical evidence.
 
 ## Authority

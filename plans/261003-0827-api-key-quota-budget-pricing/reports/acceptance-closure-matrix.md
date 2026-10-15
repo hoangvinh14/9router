@@ -6,6 +6,21 @@ This reconciles the closure-first roadmap with observed evidence. Focused green
 is not whole-AC acceptance. All phases remain in progress; enforcement is OFF.
 No production activation, commit, push or publication is authorized here.
 
+## Clarification acceptance được xác nhận — 2026-10-14
+
+[Hai mục tiêu đã xác nhận](../plan.md#confirmed-product-goals) cụ thể hóa contract, không thêm AC hoặc đóng checkbox từ intent:
+
+| Mục tiêu | Evidence để đóng | Gói / AC | Trạng thái |
+|---|---|---|---|
+| Từng upstream attempt trong retry/fallback/capacity/fusion | Own intent before POST, exact raw usage/original price/own terminal ACK, unknown-null-cost, duplicate/late safety, fresh successor gate, late panel sink/quorum unchanged | B; AC1/4/5/6/7/8/9/11 | OPEN integrated |
+| Supported formats, chat-embedded tools/media | Whole original/wire/raw/category/unit/rate authority; no quantity guesses, no blanket fee for client tools, standalone endpoints excluded | B; AC5/6/9/11 | OPEN integrated |
+| UI/policy → inference → ledger → UI/threshold refusal | Null/zero/lower/raise/toggle/re-enable, dual limit, pending/unresolved/overshoot/coverage display; edits never reset recorded spend | C, reuse A pricing; AC2/4/7/9/12 | OPEN integrated |
+| Calendar/reset/restart | Monday/day1 Asia/Ho_Chi_Minh, startedAt old-window attribution, unresolved survives reset, persisted key/policy/spend | C/D; AC1/3/6/8/10 | OPEN integrated |
+| Fault/recovery/durable persistence/managed restore | Own ACK and poison rules, audited correction/waiver/gap/maintenance, lost-ACK replay/late races, identity/audit/allowance preserved, actual supported-adapter proof | B/D; AC1/6/8/10/11/12 | OPEN integrated |
+| Full feature usability and verification | Current UI→inference→ledger→UI→threshold→restart→reset plus faults/recovery/restore and all13AC/security/compatibility/performance evidence | E after B/C/D; AC1–13 | OPEN |
+
+A historical closure unchanged; B/F current performance blocker and failed receipts remain. No gate running or activation authority from this clarification. Latest evidence lives in [audio continuation](./owned-inline-audio-resume-20261013.md), [CPU diagnosis](./owned-audio-cpu-diagnosis-20261014.md) and [feasibility](./owned-verification-core-feasibility-20261014.md); historical RUNNING text below is not a launch instruction.
+
 ## Current gates
 
 ### Current execution cross-reference (2026-10-11; supersedes historical running pointers)

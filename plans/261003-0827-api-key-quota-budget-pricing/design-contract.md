@@ -4,8 +4,17 @@
 
 - Đầu vào: [brainstorm](../reports/brainstorm-261003-1455-api-key-quota-budget-pricing.md), source revision `a99cf57239ff778b61e434c2786009d5ed1c412c`, branch `master`.
 - Outcome: tracking theo **gateway API key ID**, budget tuần/tháng đồng thời, chặn admissions mới theo recorded spend, pricing tham chiếu có sync/override. Chat mọi format và embeddings; gồm fallback, capacity adapter, fusion panel/judge và retry có thể tính phí.
-- Không có reservation, hard cap, daily/rolling budget, billing, quota pools hay metering image/audio/video/search/fetch. Không đổi routing preference hoặc upstream credential quota.
+- Không có reservation, hard cap, daily/rolling budget, billing, quota pools hay metering standalone image/audio/video/search/fetch endpoints. Không đổi routing preference hoặc upstream credential quota.
+- **Operator-approved embedded tool fees:** chat attempt reference cost gồm token/cache/reasoning cost và phí tool nhúng theo observed raw use counters × explicit typed reference rates. Quyết định continuation này không mở standalone search/fetch metering hoặc activation. Không bỏ qua phí tool riêng rồi quảng cáo tổng reference cost; missing usage/rate/unit authority vẫn fail-closed/unresolved, không guessed zero/rate.
 - Đây là contract triển khai được đề xuất từ inspection, không phải tính năng đã chạy. Các tên module/table/API mới là **proposed**, không phải source tồn tại.
+
+## Clarification mục tiêu được xác nhận — 2026-10-14
+
+Người dùng xác nhận phần làm rõ tại [mục tiêu hiện hành trong plan](./plan.md#confirmed-product-goals). Đây là clarification/traceability, không thay scope hoặc acceptance và không certify code hiện tại:
+
+- **Accounting:** từng actual có-thể-billable upstream attempt trong retry/fallback/capacity/fusion panel/judge/regeneration giữ key ID/intent/raw usage/original price/own ACK riêng. Failed response có exact usage vẫn tính đúng; unknown không guessed zero; duplicate/late không double-debit; fresh successor gates không bypass bằng fallback. Supported formats và chat-embedded tools/media giữ schema/category/unit/provenance; không meter standalone endpoints hoặc tự gán phí cho mọi client tool. Late fusion owners giữ sink, quorum/grace hiện tại không đổi.
+- **Vận hành:** management/UI chỉnh và hiển thị policy/spend/coverage/pending/unresolved; edits không reset tiền. Calendar reset chọn window mới chứ không xóa ledger; startedAt kỳ cũ và unresolved giữ semantics. Restart/durable ACK/recovery audit/late races/managed restore/import/all-adapter proof phải khép kín, không RAM-success hoặc chuyển allowance identity ngầm.
+- **Completion evidence:** current UI→inference→ledger→UI→threshold refusal→restart→calendar reset và fault/recovery/restore flows cùng cross-format/retry/fusion/security; unit/loopback/micro pass riêng không đủ. A reuse historical closure; B/C/D/E và all13AC còn OPEN, activation OFF. Không tăng deadline/prewarm/reduce freshness để thay thế repair. User đồng ý clarification không phải approval một candidate kiến trúc.
 
 ## Quyết định được người dùng xác nhận khi lập plan
 
@@ -114,6 +123,16 @@ Client key -> verified apiKeyId + server-generated requestId
 - Sync allowlist HTTPS exact host/path, redirects reject, timeout 15s, decompressed bytes <=20MiB, bounded entries/depth/field sizes, reject prototype keys/nonfinite/negative rates. Parse/stage validated snapshot rồi atomically swap catalog revision; malformed batch không phá last-known-good. API credentials không gửi tới source.
 - Manual sync và optional scheduler 24h (default off); single-flight, persisted lastAttempt/lastSuccess/error, không phụ thuộc traffic và không tự overwrite overrides. Sync lỗi không làm unavailable nếu stored valid rates còn dùng được.
 - Legacy `/api/pricing` GET/PATCH/DELETE giữ numeric provider/model map shape; enforcement có resolver/snapshot API riêng, metadata/coverage qua sync/status contract, không chèn metadata vào price map. Cả hai consumers `src/app/dashboard/settings/pricing/page.js` và `src/shared/components/PricingModal.js` phải cập nhật. Modal submit **chỉ changed model override objects**, đủ required rates hoặc documented optional fallback để match complete-source resolver, không sparse field merge ngầm giữa sources; untouched open/save no-op; explicit remove override/inherit synced price khác set zero. Reset UI dùng response effective prices, không `getDefaultPricing()` để che synced state. Missing rate không populate/persist thành 0; decimal UI draft không parseFloat trước monetary validation. Legacy numeric values chỉ accept finite/bounded representation; convert validated decimal lexical representation tại ingress, không dùng float arithmetic cho debit.
+
+### Operator-approved embedded server-tool reference pricing
+
+Sau [Messages authority review](./reports/messages-remaining-authority-review.md), user chọn **tính cả phí tool nhúng** trong chat attempt, không token-only virtual cost bỏ qua phí riêng. Implementation/evidence còn thuộc B/F, không tự certify provider support.
+
+- Rate per-use phải có category/unit rõ (ví dụ USD/1000 observed search uses), validated lexical decimal và retained original snapshot/provenance. Public docs là semantic evidence, không tự hardcode production rates hoặc fetch pricing tại inference. Missing explicit rate cho tool có thể tính phí phải refuse trước POST khi có thể xác định; missing/invalid raw counters sau POST lưu unresolved/null-cost, không estimate từ result blocks hoặc max_uses.
+- Raw original/version/caller/tool/history authority và cumulative observed counters là riêng với money. Không áp client-RAG source schema vào paid-server results hoặc suy luận billable count từ content blocks; response_inclusion có thể giấu blocks. Documented no-extra-fee tool category chỉ khi explicit semantic owner xác minh, không blanket free cho unknown tool/version.
+- Tổng token/cache/reasoning và per-use numerator được tính bằng BigInt/rational, normalize đơn vị chính xác và round-half-up **một lần mỗi attempt**. Không round từng component hoặc nhóm nhiều attempts. Original rate snapshot giữ qua drift/retry/recovery, explicit zero hợp lệ nhưng không fabricated free.
+- Pricing override/resolver/snapshot/coverage/UI phải phân biệt token units với tool-use units và preserve legacy token-price contract; synced source không có per-use rate không được inferred from token fields. Missing authority vẫn fail-closed. Admin correction/recovery/CAS/exact-usage provenance phải giữ categories/units, không đổi ACK/durability/deadline/quorum/collector/one-terminal semantics.
+- Actual original+wire+raw/pending/ownACK/originalprice, failedHTTP/tool-error/pause_turn/refresh/successor, relevant adapters/default-consumer regression và no content/credential leaks phải có evidence trước finite support claim. Approval này không gỡ paid-server gate ngay, không giảm scope/all13AC hay mở public activation.
 
 ## Shared errors và API quản trị đề xuất
 
