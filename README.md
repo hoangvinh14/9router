@@ -1487,6 +1487,8 @@ Notes:
 - **Streaming**: Server-Sent Events (SSE)
 - **Auth**: OAuth 2.0 (PKCE) + JWT + API Keys
 
+Storage, migration and backup contracts are documented in [database safety](docs/DB-SAFETY.md). The [internal accounting interface](docs/ACCOUNTING.md) is a foundation for future integration; inference accounting and budget enforcement remain disabled.
+
 ---
 
 ## 📝 API Reference

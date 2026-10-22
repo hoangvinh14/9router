@@ -45,7 +45,7 @@ export async function POST(request) {
     console.log("Error importing database:", error);
     return NextResponse.json(
       { error: error?.message || "Failed to import database" },
-      { status: 400 }
+      { status: error?.code === "api_key_identity_conflict" ? 409 : 400 }
     );
   }
 }

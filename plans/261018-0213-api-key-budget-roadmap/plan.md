@@ -29,14 +29,14 @@ created: 2026-10-18
 
 | # | Phase | Status |
 |---|-------|--------|
-| 1 | [Điều phối các plan con](./phase-01-start.md) | In progress — P1 closed; P2 preparation next |
+| 1 | [Điều phối các plan con](./phase-01-start.md) | In progress — P1/P2 closed; P3 preparation next |
 
 ## Các plan con và thứ tự
 
 | ID | Outcome / plan | Prerequisite | Mức chi tiết |
 |---|---|---|---|
 | P1 | [Reference pricing](../261018-0213-reference-pricing-port/plan.md) | Nền đã pull; dependency check trong phase 1 | Complete — conditional Linux acceptance |
-| P2 | [Ledger/durability tối thiểu](../261018-0214-accounting-foundation/plan.md) | P1 | Contract, chưa executable |
+| P2 | [Ledger/durability tối thiểu](../261018-0214-accounting-foundation/plan.md) | P1 | Complete — Node/SQL.js foundation; activation OFF |
 | P3 | [Một luồng chat khép kín](../261018-0213-durable-chat-accounting/plan.md) | P2 | Contract, chưa executable |
 | P4 | [Weekly/monthly budget + UI](../261018-0213-weekly-monthly-budget/plan.md) | P3 | Contract, chưa executable |
 | P5 | [Recovery/vận hành](../261018-0213-accounting-recovery/plan.md) | P4; dùng primitives P2 | Contract, chưa executable |
@@ -57,8 +57,9 @@ Mặc định P1→P2→P3→P4→P5 rồi chọn X1→X2→X3→X4→X5→X6 th
 ## Current integration workflow — 2026-10-22
 
 - User selected `master` for upstream synchronization and `develop` for integrating local features. New feature branches start from `develop`; completed features merge back into `develop`. Upstream updates enter `master` first, then merge into `develop` with affected checks.
-- Current request authorizes local commits and merging `feat/reference-pricing-port` into `develop`. It does not authorize a remote push, production deployment, or changes to `master`. The only configured remote is `origin`; an `upstream` remote has not been configured or verified.
-- P1 and its DB safety prerequisite are closed within the recorded conditional Linux boundary. P2 remains an outline and needs its own scoped design decisions and executable plan before implementation. No accounting activation follows from this integration.
+- The P1 integration request authorized local commits and merging `feat/reference-pricing-port` into `develop`. That historical authorization covered P1 only. The subsequent explicit user request authorizes committing/pushing `feat/accounting-foundation` and merging/pushing it into `develop`; production deployment and changes to `master` remain outside this delivery. The only configured remote is `origin`; an `upstream` remote has not been configured or verified.
+- P1 and its DB safety prerequisite are closed within the recorded conditional Linux boundary. P2 is complete on `feat/accounting-foundation`, with 3/3 phases and 22/22 tasks; implementation is committed at `e5e111f0`, with standalone tracing fix at `16754067`. Remote publication and integration follow the explicit Git delivery request; the receipt preserves its historical pre-Git capture state. Its [execution receipt](../reports/implementation-261022-accounting-foundation.md) records 311 focused/affected tests, lint, production build and detached standalone acceptance. Independent full-source review and Bun/better/Windows accounting parity remain P5/R release blockers.
+- P3 is the next dependency-ready outline and needs exact execution scope/files/tests before implementation. P4/P5, X1–X6 and R remain open. No accounting, enforcement or public activation follows from P2 closure.
 
 ## Historical intake status / authorization
 - Chỉ tạo plans; chưa triển khai slice nào. Đồng bộ Git hoàn tất, **baseline tests mới chưa chạy**.

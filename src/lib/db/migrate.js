@@ -9,6 +9,8 @@ import { getAppVersion } from "./version.js";
 import { stringifyJson } from "./helpers/jsonCol.js";
 import { installPricingRevision } from "./pricingRevision.js";
 import { validatePricingMutation } from "../pricing/pricingValidation.js";
+import { verifyAccountingSchema } from "./migrations/002-accounting-foundation.js";
+import { keyAccessToColumns, validateKeyAccessInput } from "@/shared/utils/keyAccess.js";
 
 // Marker file: prevents re-importing legacy JSON when user wipes data.sqlite.
 const MIGRATED_MARKER = path.join(DB_DIR, ".migrated-from-json");
@@ -46,13 +48,8 @@ function readJsonSafe(file) {
 }
 
 function isFreshDb(adapter) {
-  // Table _meta may not exist yet on truly fresh DB
-  try {
-    const row = adapter.get(`SELECT COUNT(*) as c FROM _meta`);
-    return !row || row.c === 0;
-  } catch {
-    return true;
-  }
+  // Existing application tables require a backup even if metadata is absent.
+  return !adapter.get("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' LIMIT 1");
 }
 
 // ─── Versioned migrations runner (skip-version safe) ─────────────────────
@@ -143,9 +140,12 @@ function importLegacyMain(adapter, data) {
   }, (p) => ({ id: p.id ?? null }));
 
   importWithAssertion(adapter, "apiKeys", data.apiKeys || [], (k) => {
+    const checked = k.access === undefined ? { ok: true, value: { restricted: false, allow: [] } } : validateKeyAccessInput(k.access);
+    if (!checked.ok) throw new Error(checked.error);
+    const cols = keyAccessToColumns(checked.value);
     adapter.run(
-      `INSERT OR REPLACE INTO apiKeys(id, key, name, machineId, isActive, createdAt) VALUES(?, ?, ?, ?, ?, ?)`,
-      [k.id, k.key, k.name || null, k.machineId || null, k.isActive === false ? 0 : 1, k.createdAt || new Date().toISOString()]
+      `INSERT INTO apiKeys(id, key, name, machineId, isActive, createdAt, accessRestricted, accessAllow) VALUES(?, ?, ?, ?, ?, ?, ?, ?)`,
+      [k.id, k.key, k.name || null, k.machineId || null, k.isActive === false ? 0 : 1, k.createdAt || new Date().toISOString(), cols.accessRestricted, cols.accessAllow]
     );
   }, (k) => ({ id: k.id ?? null, name: k.name ?? null }));
 
@@ -226,13 +226,10 @@ export async function runMigrationOnce(adapter) {
   // Prune stale backups every boot so old oversized backups shrink to KEEP.
   pruneOldBackups();
 
-  // Bootstrap _meta so we can read the stored backup schema version below
-  // (runVersionedMigrations also ensures this, but we need it earlier here).
-  adapter.exec(buildCreateTableSql("_meta", TABLES._meta));
-
   // Detect a pending schema change via the central SCHEMA_VERSION const.
   // A lightweight backup is taken BEFORE any schema mutation below.
-  const storedSchemaVer = parseInt(getMetaSync(adapter, "backupSchemaVersion", "0"), 10) || 0;
+  const hasMeta = adapter.get("SELECT name FROM sqlite_master WHERE type='table' AND name='_meta'");
+  const storedSchemaVer = hasMeta ? parseInt(getMetaSync(adapter, "backupSchemaVersion", "0"), 10) || 0 : 0;
   const schemaChanging = !fresh && storedSchemaVer < SCHEMA_VERSION;
   if (schemaChanging) {
     try {
@@ -241,7 +238,7 @@ export async function runMigrationOnce(adapter) {
       pruneOldBackups();
       console.log(`[DB][migrate] pre-schema backup ${storedSchemaVer} → ${SCHEMA_VERSION}: ${backupDir}`);
     } catch (e) {
-      console.warn(`[DB][migrate] pre-schema backup failed (continuing): ${e.message}`);
+      throw new Error("Required pre-schema backup failed; migration refused", { cause: e });
     }
   }
 
@@ -250,6 +247,7 @@ export async function runMigrationOnce(adapter) {
 
   // 2. Additive sync (auto add missing columns/indexes declared in TABLES)
   syncSchemaFromTables(adapter);
+  verifyAccountingSchema(adapter);
   installPricingRevision(adapter);
 
   // Stamp the schema version we just reached so future boots skip re-backup.

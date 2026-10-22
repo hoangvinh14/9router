@@ -7,6 +7,8 @@ import { validatePricingMutation } from "../pricing/pricingValidation.js";
 import { validateReferenceState, withPricingStateLock } from "../pricing/referenceState.js";
 import { readReferenceRow, writeReferenceRow } from "../pricing/catalogSync.js";
 import { reconcileSavedCatalogScheduleSync } from "../pricing/catalogSchedule.js";
+import { retainKeyBindings, retireKeyBindings, validateKeyBindings } from "./helpers/api-key-bindings.js";
+import { backupDbLite, makeBackupDir } from "./backup.js";
 
 // Settings
 export {
@@ -85,6 +87,7 @@ export async function exportDb() {
     schedule: readReferenceRow(db, "schedule") ?? { enabled: false },
   });
   const out = {
+    accountingMetadata: { version: 1, kind: "configuration-only", coverage: db.coverage.status() },
     settings,
     referencePricing,
     providerConnections: db.all(`SELECT * FROM providerConnections`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, provider: r.provider, authType: r.authType, name: r.name, email: r.email, priority: r.priority, isActive: r.isActive === 1, createdAt: r.createdAt, updatedAt: r.updatedAt })),
@@ -113,6 +116,31 @@ export async function importDb(payload) {
   // Snapshot caller data before awaiting coordinator admission. Validate complete
   // pricing/projection before DELETE; omission preserves existing reference state.
   const snapshot = structuredClone(payload);
+  // Validate serialized config and SQL-bound row fields before retaining any tombstone.
+  JSON.stringify(snapshot);
+  for (const [section, required] of Object.entries({ providerConnections: ["id", "provider"], providerNodes: ["id"], proxyPools: ["id"], apiKeys: ["id", "key"], combos: ["id", "name"] })) {
+    const rows = snapshot[section] ?? [];
+    if (!Array.isArray(rows)) throw new Error(`Invalid ${section}`);
+    const ids = new Set(), names = new Set();
+    for (const row of rows) {
+      if (!row || typeof row !== "object" || Array.isArray(row)) throw new Error(`Invalid ${section} row`);
+      for (const key of required) if (typeof row[key] !== "string" || !row[key]) throw new Error(`Invalid ${section} ${key}`);
+      if (ids.has(row.id) || section === "combos" && names.has(row.name)) {
+        const error = new Error(`Duplicate ${section} identity`);
+        if (section === "apiKeys") Object.assign(error, { status: 409, code: "api_key_identity_conflict" });
+        throw error;
+      }
+      ids.add(row.id); names.add(row.name);
+      for (const field of ["name", "machineId", "createdAt", "updatedAt", "type", "kind", "email", "authType", "testStatus"]) {
+        if (row[field] != null && typeof row[field] !== "string") throw new Error(`Invalid ${section} ${field}`);
+      }
+      if (row.priority != null && (typeof row.priority !== "number" || !Number.isFinite(row.priority))) throw new Error("Invalid connection priority");
+      if (section === "apiKeys" && row.access !== undefined) {
+        const checked = validateKeyAccessInput(row.access);
+        if (!checked.ok) throw new Error(`apiKeys ${row.id}: ${checked.error}`);
+      }
+    }
+  }
   snapshot.pricing = validatePricingMutation(snapshot.pricing ?? {});
   if (Object.hasOwn(snapshot, "referencePricing")) snapshot.referencePricing = validateReferenceState(snapshot.referencePricing);
   return withPricingStateLock(() => importValidatedDb(snapshot));
@@ -120,7 +148,13 @@ export async function importDb(payload) {
 
 async function importValidatedDb(payload) {
   const db = await getAdapter();
+  validateKeyBindings(db, db.coverage, payload.apiKeys || []);
+  backupDbLite(db, makeBackupDir("before-config-import"));
   db.durableTransaction(() => {
+    validateKeyBindings(db, db.coverage, payload.apiKeys || []);
+    const retained = new Set((payload.apiKeys || []).map(k => k.id));
+    retireKeyBindings(db, db.coverage, db.all("SELECT * FROM apiKeys").filter(k => !retained.has(k.id)));
+    retainKeyBindings(db, db.coverage, payload.apiKeys || []);
     // Wipe all tables (keep _meta)
     db.run(`DELETE FROM settings`);
     db.run(`DELETE FROM providerConnections`);

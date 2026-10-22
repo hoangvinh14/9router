@@ -4,6 +4,7 @@ import initSqlJs from "sql.js";
 import { PRAGMA_SQL } from "../schema.js";
 import { atomicDurableWrite, assertManagedSql, assertReadSql, synchronousResult } from "../durableFile.js";
 import { claimWriter } from "../writerOwnership.js";
+import { validateAccountingArtifacts } from "../accounting-coverage.js";
 
 let SQL;
 async function loadSql() { return SQL ??= await initSqlJs(); }
@@ -14,6 +15,11 @@ export async function createSqlJsAdapter(filePath, suppliedOwner) {
   let db;
   try {
     db = new SQLLib.Database(fs.existsSync(file) ? fs.readFileSync(file) : null);
+    validateAccountingArtifacts((sql, params = []) => {
+      const stmt = db.prepare(sql);
+      try { stmt.bind(params); return stmt.step() ? stmt.getAsObject() : undefined; }
+      finally { stmt.free(); }
+    }, owner.directory);
     db.exec(PRAGMA_SQL);
   } catch (error) { db?.close(); owner.release(); throw error; }
   let dirty = false, timer = null, closed = false, released = false, poisoned = false, depth = 0;
@@ -75,7 +81,14 @@ export async function createSqlJsAdapter(filePath, suppliedOwner) {
       throw error;
     } finally { depth--; }
   }
-  function flush() { if (dirty && !closed && !poisoned) { try { persist(); } catch { poison(); console.error("[sqljs] shutdown persistence unavailable"); } } }
+  function flush() {
+    if (adapter.beforeClose) {
+      try { adapter.close(); return true; } catch { console.error("[sqljs] accounting shutdown unavailable"); return false; }
+    } else if (dirty && !closed && !poisoned) {
+      try { persist(); } catch { poison(); console.error("[sqljs] shutdown persistence unavailable"); }
+    }
+  }
+  function signal() { const closed = flush(); if (adapter.beforeClose) setImmediate(() => process.exit(closed ? 0 : 1)); }
   const adapter = {
     driver: "sql.js", run,
     get(sql, params = []) { assertReadSql(sql); return statement(sql, params, stmt => stmt.step() ? stmt.getAsObject() : undefined); },
@@ -109,6 +122,7 @@ export async function createSqlJsAdapter(filePath, suppliedOwner) {
           if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(table)) throw new Error("Invalid backup table");
           clone.exec(`DROP TABLE IF EXISTS ${table}`);
         }
+        if (clone.exec("PRAGMA quick_check")[0]?.values?.[0]?.[0] !== "ok") throw new Error("Pre-change backup verification failed");
         atomicDurableWrite(path.join(parent, path.basename(destination)), Buffer.from(clone.export()));
       } finally { clone.close(); }
     },
@@ -121,7 +135,8 @@ export async function createSqlJsAdapter(filePath, suppliedOwner) {
         if (closePublicationFailure) throw closePublicationFailure;
         owner.release(); released = true; return;
       }
-      cancel(); process.removeListener("beforeExit", flush); process.removeListener("SIGINT", flush); process.removeListener("SIGTERM", flush);
+      adapter.beforeClose?.();
+      cancel(); process.removeListener("beforeExit", flush); process.removeListener("SIGINT", signal); process.removeListener("SIGTERM", signal);
       // A poisoned image is never exported, even on close. Lost authority also
       // discards RAM rather than overwriting a replacement owner's database.
       if (dirty && !poisoned) { try { persist(); } catch (error) { closePublicationFailure = error; } }
@@ -131,6 +146,6 @@ export async function createSqlJsAdapter(filePath, suppliedOwner) {
       owner.release(); released = true;
     },
   };
-  process.on("beforeExit", flush); process.on("SIGINT", flush); process.on("SIGTERM", flush);
+  process.on("beforeExit", flush); process.on("SIGINT", signal); process.on("SIGTERM", signal);
   return adapter;
 }

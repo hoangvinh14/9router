@@ -1,6 +1,7 @@
 import { PRAGMA_SQL } from "../schema.js";
 import { assertManagedSql, assertReadSql } from "../durableFile.js";
 import { nativeTransactions, verifyNativeDurability } from "./nativeDurability.js";
+import { validateAccountingArtifacts } from "../accounting-coverage.js";
 
 // Engine construction and ownership acquisition happen in the runtime factory.
 export function wrapNativeAdapter(db, owner, driver, closeEngine = () => db.close()) {
@@ -18,8 +19,11 @@ export function wrapNativeAdapter(db, owner, driver, closeEngine = () => db.clos
     return statement;
   }
   function checkpoint() { transactions.assertHealthy(); db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); }
-  function shutdown() { try { adapter.close(); } catch { console.error("[DB] writer shutdown unavailable"); } }
-  function signal() { shutdown(); process.exit(0); }
+  function shutdown() {
+    try { adapter.close(); return true; }
+    catch { console.error("[DB] writer shutdown unavailable"); return false; }
+  }
+  function signal() { const closed = shutdown(); setImmediate(() => process.exit(closed ? 0 : 1)); }
   const adapter = {
     driver,
     run(sql, params = []) {
@@ -41,6 +45,7 @@ export function wrapNativeAdapter(db, owner, driver, closeEngine = () => db.clos
       if (transactions.status().depth) throw new Error("Cannot close database inside transaction");
       if (released) return;
       if (closed) { owner.release(); released = true; return; }
+      adapter.beforeClose?.();
       clearInterval(timer);
       process.removeListener("beforeExit", shutdown);
       process.removeListener("SIGINT", signal); process.removeListener("SIGTERM", signal);
@@ -53,6 +58,7 @@ export function wrapNativeAdapter(db, owner, driver, closeEngine = () => db.clos
     },
   };
   try {
+    validateAccountingArtifacts((sql, params = []) => db.prepare(sql).get(...params), owner.directory);
     db.exec(PRAGMA_SQL);
     db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;");
     verifyNativeDurability(db);
