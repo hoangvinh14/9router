@@ -6,9 +6,11 @@
   "description": "Unit tests for 9router embeddings endpoint",
   "scripts": {
     "test": "vitest run --reporter=verbose",
+    "test:pricing-browser": "node browser/pricing-acceptance.mjs",
     "test:watch": "vitest --reporter=verbose"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "vitest": "^4.0.0"
   },
   "engines": {

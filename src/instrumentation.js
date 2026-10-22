@@ -10,5 +10,9 @@ export async function register() {
 
     const { startModelCatalogSync } = await import("@/lib/modelCatalog/sync.js");
     startModelCatalogSync();
+
+    // Separate reference-pricing timer only; no immediate fetch or new signals.
+    const { initializeServingPricing } = await import("@/lib/pricing/servingStartup.js");
+    await initializeServingPricing();
   }
 }

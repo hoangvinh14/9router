@@ -55,6 +55,8 @@ http.createServer = (...args) => {
   if (!handler) return origCreate(...args);
   const wrapped = (req, res) => {
     const socketIp = req.socket && req.socket.remoteAddress ? req.socket.remoteAddress : "";
+    const authorityForwarded = ["forwarded", "x-forwarded-host", "x-forwarded-proto", "x-forwarded-for", "x-real-ip"].some(name => Object.hasOwn(req.headers, name));
+    const socketProtocol = req.socket && req.socket.encrypted ? "https:" : "http:";
     const xff = req.headers["x-forwarded-for"];
     const xRealIp = req.headers["x-real-ip"];
     const viaProxy = !!(xff || xRealIp);
@@ -67,6 +69,10 @@ http.createServer = (...args) => {
     delete req.headers["x-forwarded-for"];
     delete req.headers["x-9r-via-proxy"];
     delete req.headers["x-9r-peer-token"];
+    delete req.headers["x-9r-authority-forwarded"];
+    delete req.headers["x-9r-socket-proto"];
+    req.headers["x-9r-authority-forwarded"] = authorityForwarded ? "1" : "0";
+    req.headers["x-9r-socket-proto"] = socketProtocol;
     req.headers["x-9r-real-ip"] = ip;
     req.headers["x-9r-peer-token"] = PEER_TOKEN;
     if (viaProxy) req.headers["x-9r-via-proxy"] = "1";

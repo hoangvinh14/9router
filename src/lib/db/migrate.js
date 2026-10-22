@@ -7,6 +7,8 @@ import { getMetaSync, setMetaSync } from "./helpers/metaStore.js";
 import { makeBackupDir, backupFile, backupDbLite, pruneOldBackups } from "./backup.js";
 import { getAppVersion } from "./version.js";
 import { stringifyJson } from "./helpers/jsonCol.js";
+import { installPricingRevision } from "./pricingRevision.js";
+import { validatePricingMutation } from "../pricing/pricingValidation.js";
 
 // Marker file: prevents re-importing legacy JSON when user wipes data.sqlite.
 const MIGRATED_MARKER = path.join(DB_DIR, ".migrated-from-json");
@@ -248,6 +250,7 @@ export async function runMigrationOnce(adapter) {
 
   // 2. Additive sync (auto add missing columns/indexes declared in TABLES)
   syncSchemaFromTables(adapter);
+  installPricingRevision(adapter);
 
   // Stamp the schema version we just reached so future boots skip re-backup.
   setMetaSync(adapter, "backupSchemaVersion", SCHEMA_VERSION);
@@ -261,13 +264,15 @@ export async function runMigrationOnce(adapter) {
   const hasLegacy = !!(legacyMain || legacyUsage || legacyDisabled || legacyDetails);
 
   if (fresh && hasLegacy && !alreadyImported) {
+    // Fail before importing any config/pricing row or creating the legacy marker.
+    const validatedMain = legacyMain ? { ...legacyMain, pricing: validatePricingMutation(legacyMain.pricing ?? {}) } : null;
     const t0 = Date.now();
     const backupDir = makeBackupDir("migrate-from-json");
     for (const f of Object.values(LEGACY_FILES)) backupFile(f, backupDir);
 
     try {
-      adapter.transaction(() => {
-        importLegacyMain(adapter, legacyMain);
+      adapter.durableTransaction(() => {
+        importLegacyMain(adapter, validatedMain);
         importLegacyUsage(adapter, legacyUsage);
         importLegacyDisabled(adapter, legacyDisabled);
         importLegacyDetails(adapter, legacyDetails);

@@ -24,6 +24,31 @@ Or run vitest directly with npx:
 npx vitest run --reporter=verbose --config ./vitest.config.js
 ```
 
+## Pricing browser acceptance
+
+Install the matching browser from this directory with `npx playwright install chromium`.
+With Node 24 and an existing compiled standalone artifact, run:
+
+```bash
+PRICING_STANDALONE=/absolute/path/to/standalone npm run test:pricing-browser
+```
+
+The runner reserves `127.0.0.1:23128`, starts its own compiled server with a fresh
+temporary SQLite database, and stops the server and browser on exit. It blocks
+non-local browser requests and supplies catalog fixtures at the server fetch
+boundary. It writes results, server logs and a mobile screenshot to the printed
+temporary directory. It never connects to a production instance.
+
+To smoke-test an already-built container image without exposing any host port:
+
+```bash
+PRICING_TEST_IMAGE=your-test-image node browser/pricing-container-smoke.mjs
+```
+
+This requires Docker daemon access. It creates a uniquely named container with
+networking disabled, uses disposable data, tests exact pricing and scheduler
+state across restart, and removes the container on exit.
+
 ## Test Files
 
 | File | What it tests |
