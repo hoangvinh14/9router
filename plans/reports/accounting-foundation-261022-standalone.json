@@ -1,0 +1,21 @@
+{
+  "artifact": "/tmp/9router-accounting-artifact-_11aeoqm/standalone",
+  "detachedFromSourceMirror": true,
+  "externalSymlinks": [],
+  "sqljsInitializationAndSelect": true,
+  "resolvedDependencies": {
+    "next": "/tmp/9router-accounting-artifact-_11aeoqm/standalone/node_modules/next/dist/server/next.js",
+    "sql.js": "/tmp/9router-accounting-artifact-_11aeoqm/standalone/node_modules/sql.js/dist/sql-wasm.js",
+    "sql.js/dist/sql-wasm.wasm": "/tmp/9router-accounting-artifact-_11aeoqm/standalone/node_modules/sql.js/dist/sql-wasm.wasm",
+    "@aws-sdk/credential-providers": "/tmp/9router-accounting-artifact-_11aeoqm/standalone/node_modules/@aws-sdk/credential-providers/dist-cjs/index.js"
+  },
+  "httpPath": "/",
+  "httpStatus": 307,
+  "port": 30127,
+  "childPid": 2389329,
+  "childExitCode": 143,
+  "childReaped": true,
+  "dataDir": "/tmp/9router-accounting-smoke-data-jok8al8p",
+  "log": "/tmp/9router-accounting-standalone-smoke-261022.log",
+  "sqljsExportReopen": true
+}

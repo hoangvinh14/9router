@@ -1,0 +1,191 @@
+{
+  "capturedAt": "2026-10-22",
+  "branch": "feat/accounting-foundation",
+  "base": "2ca882577859ca36206c4e8469d8a8adfafea297",
+  "workingTree": "uncommitted",
+  "sourceManifestSha256": "91b2d1eaff0cdf155c1ce65aad9c1142e518cc736ca9c968332b5077058aa863",
+  "files": {
+    "next.config.mjs": "16a9385d3d2bf04ed224afcfb40f1c7ac531d8d3ac0e04dc9e566bfeb80b7f69",
+    "src/app/api/settings/database/route.js": "e945ad6b01a47600559008d82de9077cc9ad004ab2e253d918cd58bbfd62a103",
+    "src/lib/accounting/attempt-payload.js": "7a131265f4a274cec3222c293c256dab2915e6ba90d4255da384163ac78fef59",
+    "src/lib/accounting/exact-money.js": "fdd55b57913f9a79c572408bbee5974f086dd780355bdbf932931368703f929a",
+    "src/lib/accounting/service.js": "6e68e58f0e3f0f8e4df6ed6d9d4ff35aa6d64bfe683010bd44e5ccb7dc49d841",
+    "src/lib/accounting/write-coordinator.js": "f416a4678854444c47520d450dee3c4b290fbfea9566e10b4723deeb675b197c",
+    "src/lib/db/accounting-coverage.js": "b30961ba9b6e5bd4a0a8cb6743b548ae9688f1e35115f90b6d03d2506198ba53",
+    "src/lib/db/accounting-lifecycle.js": "69801bc2a02594fc6272ba757dce1dda2d07cae300da1ffa2fc2d81348b5eb32",
+    "src/lib/db/adapters/nativeAdapter.js": "2448770091ea621b33cb9225eef61d879b0e6d3d778b7dfe7bd1d800b611ce12",
+    "src/lib/db/adapters/sqljsAdapter.js": "3661721f81ff5624cad1f802a4b2929d21368ac04aadfabe11bb0e40bce481c4",
+    "src/lib/db/backup.js": "9d162ff43041a0d372712227d648202e24b3fd46393ac1a8f9f190c7b49e3986",
+    "src/lib/db/driver.js": "0ba3c3d983976018eee00cf3483510365895d3654373977e2d581a5842ecd5d3",
+    "src/lib/db/helpers/api-key-bindings.js": "d78b23a3831f704a576401867a72a8e61d6d44ba0af45d72041e4bc674e56a4c",
+    "src/lib/db/index.js": "14b9b9e78856ca651617655568694c3c17291f190f819c76515bd48cf49598ba",
+    "src/lib/db/migrate.js": "b1b1fb2f3fe680b226b3d5d6b37e845327d2938c2341078233a7217569c389ef",
+    "src/lib/db/migrations/002-accounting-foundation.js": "c10e63fef4b752dca11a792357b3d39c0421b95d260cd9bb2318501f85b8796f",
+    "src/lib/db/migrations/index.js": "9c1507e90bcf6d507eb632c178579f0569b34c344b807a70767a819299102aa5",
+    "src/lib/db/repos/api-key-accounting-repo.js": "677775611220d682c1e8a4d36d9e614623c1a3a6c8b0b143affbe425146e31a7",
+    "src/lib/db/repos/apiKeysRepo.js": "750e360c8fafd5e6e2ffe553f58c0f4376b8e6a76cd436bc3db6aff5e78dc3bf",
+    "src/lib/db/schema.js": "9fa1c4d667a5a346eae49a36c9175eaf83401be145dbe13e07eeae9b8f41ea32",
+    "src/lib/db/writerOwnership.js": "c76d153c2dcba27c91921c48fe2d741e1fc16d488e8afcdfc41d72fd16e378ef",
+    "tests/fixtures/accounting/accounting-process.mjs": "7ebecf3f6a679c939ae52cef1e455f9e672502ed068b1ee47cafca8c49a50ab6",
+    "tests/fixtures/accounting/test-database.js": "081227b40fc0772a095b2faaf346d4df0208bac84907dcf62334fb3724dd8b06",
+    "tests/unit/accounting-coordinator.test.js": "e9a44b6610345a4e0406a26127a96480a685f1146b00f8706222540c301b1999",
+    "tests/unit/accounting-coverage.test.js": "fe397684734e939561b704328273979f26bedda9d05efcaafc7394dbaf3c3aa6",
+    "tests/unit/accounting-crash.test.js": "f998209c4ddf88ec8b01a184c5896d6ba6a0384da1bb5b41000a68704d3f189e",
+    "tests/unit/accounting-exact-money.test.js": "ba435757863d814a7f0be14da10e1818b73ad2befc509b352573175fcf465dbd",
+    "tests/unit/accounting-identity.test.js": "e7e9703c79ff3ca93154b904d3deb571ceb114d48f8b0fd5757eb98626164fba",
+    "tests/unit/accounting-import.test.js": "0cb100c83429d3eaa5d454346f869d86326138d98df941ef1b1e058b35c9b87d",
+    "tests/unit/accounting-ledger.test.js": "dd1adc5c2d1f4263c259da0674fc6f4fa1e8e236bb6372999c23b5208e9929a7",
+    "tests/unit/accounting-lifecycle.test.js": "b065a4dc0ef16043c193a659b41542265b7233ff913261433f0ac98563c33d03",
+    "tests/unit/accounting-migration.test.js": "0ff8ffb21fd248b6d491d0ff107346a5b7768ab5c9e6fca4255834273dda3998",
+    "tests/unit/key-access-migration.test.js": "28231010ae2444568d23e94d4d8d1086d2443c45b6ff296e53b559d170eba5a6"
+  },
+  "runtime": {
+    "node": "24.21.0",
+    "npm": "11.19.0",
+    "vitest": "4.1.11",
+    "next": "16.3.8",
+    "os": "Linux 6.8.0-138-generic x86_64"
+  },
+  "checks": [
+    {
+      "name": "accounting",
+      "files": 9,
+      "passed": 103,
+      "failed": 0,
+      "durationSeconds": 67.84,
+      "log": "/tmp/9router-accounting-acceptance-261022.log"
+    },
+    {
+      "name": "shared-regressions",
+      "files": 12,
+      "passed": 163,
+      "failed": 0
+    },
+    {
+      "name": "key-access-handlers",
+      "files": 1,
+      "passed": 45,
+      "failed": 0
+    },
+    {
+      "name": "eslint-touched-js",
+      "errors": 0,
+      "warnings": 0,
+      "files": 33
+    },
+    {
+      "name": "child-fixture-syntax",
+      "exitCode": 0
+    },
+    {
+      "name": "accounting-import-isolated-after-fixture-separation",
+      "passed": 2,
+      "failed": 0,
+      "durationSeconds": 9.74,
+      "log": "/tmp/9router-accounting-import-acceptance-261022.log",
+      "duplicateVerification": true
+    },
+    {
+      "name": "production-build-postbuild",
+      "exitCode": 0
+    },
+    {
+      "name": "detached-standalone",
+      "exitCode": 0,
+      "sqljsInitializeQueryExportReopen": true,
+      "httpStatus": 307,
+      "childReaped": true
+    }
+  ],
+  "activation": {
+    "ledgerStartedAtWritten": false,
+    "inferenceHooksEnabled": false,
+    "enforcementEnabled": false
+  },
+  "review": "Inline source review; scoped failure counsel and simplifier; no independent full-source review",
+  "build": {
+    "status": "passed",
+    "firstAttemptLog": "/tmp/9router-accounting-build-261022.log",
+    "initialError": "EAI_AGAIN fonts.googleapis.com in restricted sandbox",
+    "firstAttemptExitCode": 1,
+    "firstAttemptErrors": [
+      "EAI_AGAIN fonts.googleapis.com",
+      "Missing declared @aws-sdk/credential-providers"
+    ],
+    "retryLog": "/tmp/9router-accounting-build-261022-network.log",
+    "dependencySetup": "SDK 3.1135.0 with isolated nested dependency closure; no unrelated upgrades; source/manifests unchanged",
+    "lockfileLimitation": "Declared optional SDK missing from pre-existing lockfile; clean locked install not certified",
+    "packageJsonSha256": "eee409b146c9b7077559c3d6a37ff43856594ba76c1a50fbc4e5e42949b60993",
+    "packageLockSha256": "6650112afe7893dbc980eb4f7245e71738c06bc2cc6b374bb7a837716111c667",
+    "retryExitCode": 143,
+    "retryStoppedBy": "Owned SIGTERM after >10min compiling; no source-error result",
+    "mirror": "/tmp/9router-accounting-source-b6muhwnh",
+    "mirrorLog": "/tmp/9router-accounting-mirror-build-261022.log",
+    "inputManifestSha256": "0665aad5b8f43072f9455da3235eaa0fb70c97a7b2146ee490235274054abb13",
+    "inputManifest": "accounting-foundation-261022-build-inputs.json",
+    "dependencyMode": "complete installed tree mounted read-only; no external dependency symlinks",
+    "readonlyMountProbePassed": true,
+    "firstMirrorExitCode": 0,
+    "firstMirrorArtifactCheck": "Failed: required SQL.js WASM file omitted by tracing; no HTTP server started",
+    "firstMirrorArtifact": "/tmp/9router-accounting-artifact-7198n_ir/standalone",
+    "finalLog": "/tmp/9router-accounting-final-build-261022.log",
+    "dataDir": "/tmp/9router-accounting-mirror-data-8k53_te6",
+    "finalExitCode": 0,
+    "finalCompileMinutes": 3.6,
+    "staticPages": 152,
+    "standalone": {
+      "artifact": "/tmp/9router-accounting-artifact-_11aeoqm/standalone",
+      "detachedFromSourceMirror": true,
+      "externalSymlinks": [],
+      "sqljsInitializationAndSelect": true,
+      "resolvedDependencies": {
+        "next": "/tmp/9router-accounting-artifact-_11aeoqm/standalone/node_modules/next/dist/server/next.js",
+        "sql.js": "/tmp/9router-accounting-artifact-_11aeoqm/standalone/node_modules/sql.js/dist/sql-wasm.js",
+        "sql.js/dist/sql-wasm.wasm": "/tmp/9router-accounting-artifact-_11aeoqm/standalone/node_modules/sql.js/dist/sql-wasm.wasm",
+        "@aws-sdk/credential-providers": "/tmp/9router-accounting-artifact-_11aeoqm/standalone/node_modules/@aws-sdk/credential-providers/dist-cjs/index.js"
+      },
+      "httpPath": "/",
+      "httpStatus": 307,
+      "port": 30127,
+      "childPid": 2389329,
+      "childExitCode": 143,
+      "childReaped": true,
+      "dataDir": "/tmp/9router-accounting-smoke-data-jok8al8p",
+      "log": "/tmp/9router-accounting-standalone-smoke-261022.log",
+      "sqljsExportReopen": true
+    },
+    "buildWorkerLogs": "Expected fail-closed writer contention in temporary build DATA_DIR",
+    "runtimeWarning": "Existing typeless package warning for backgroundTokenRefresh.js; no module-type contract changed"
+  },
+  "verificationSummary": {
+    "uniqueTestsPassed": 311,
+    "testFiles": 22,
+    "eslintFiles": 33,
+    "errors": 0,
+    "warnings": 0,
+    "sourceHashesMatchRootAndBuildMirror": true,
+    "wholeRepositorySuiteClaimed": false
+  },
+  "closure": {
+    "completedAt": "2026-10-22T13:56:43.883005+00:00",
+    "planStatus": "completed",
+    "phasesDone": 3,
+    "tasksDone": 22,
+    "tasksTotal": 22,
+    "planValidated": true,
+    "journal": "plans/journals/2026-10-22-complete-accounting-foundation-and-standalone-verification.md",
+    "journalValidated": true,
+    "agentWikiPublish": "skipped",
+    "ownedProcessesRemaining": 0,
+    "smokePortReleased": true,
+    "userServersPreserved": [
+      20333,
+      20453
+    ],
+    "initialPricingArtifactsPreserved": true,
+    "ownedWorkspaceBuildOutputRemoved": true,
+    "committed": false,
+    "pushed": false,
+    "deployed": false
+  }
+}

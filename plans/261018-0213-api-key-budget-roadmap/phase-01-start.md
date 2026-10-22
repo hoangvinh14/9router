@@ -7,7 +7,7 @@ status: in-progress
 
 ## Bắt đầu
 1. Đọc roadmap, contract gốc và P1; không đọc lại toàn bộ chronology.
-2. Xác minh HEAD/stash bằng immutable SHA. Không apply stash; không chạy matrix/harness cũ. Khi user cho triển khai, tạo nhánh `feat/reference-pricing-port` từ master đã xác minh; không tự push.
+2. Xác minh HEAD/stash bằng immutable SHA. Không apply stash; không chạy matrix/harness cũ. Theo integration workflow hiện tại, feature branch mới bắt đầu từ `develop`; giữ nguyên các thay đổi chưa commit và không tự push/merge/activate.
 3. P1 dependency check phải cho biết minimal file set và revision invalidation/storage/auth seams. Nếu phải thay writer topology hoặc authority thì dừng phase đó, báo quyết định/prerequisite, không kéo toàn B vào pricing.
 4. Mỗi plan sau được hydrate chi tiết khi dependency đóng. Với X1–X6, tạo plan nhỏ theo từng owner/composition/seam qua `ak plan` trước implementation; envelope chỉ giữ coverage obligations.
 
@@ -27,6 +27,9 @@ Trước diagnostic: ghi một giả thuyết, expected observation, finite run 
 - Whole product chỉ DONE khi scope-map không còn obligation chưa assign/thiếu support và R có current evidence. Không declare unsupported refusal là delivered coverage.
 
 ## Checklist điều phối
+
+P1 và P2 đã đóng trong acceptance boundary riêng. P2 có [receipt hiện tại](../reports/implementation-261022-accounting-foundation.md); P3 là dependency-ready outline tiếp theo. Checklist P2–P5 vẫn mở vì P3/P4/P5 chưa được thực thi.
+
 - [x] P1 đóng với evidence mới; không kế thừa lịch sử A như current pass.
 - [ ] P2–P5 được detail và đóng lần lượt với dependency nhỏ.
 - [ ] X1–X6 được tách/đóng theo inventory, không chạy nguyên envelope.
