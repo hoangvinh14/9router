@@ -1,6 +1,9 @@
 import { ensureDirs, DATA_FILE } from "./paths.js";
 import { acquireWriterOwnership } from "./writerOwnership.js";
 import { initializeAvailableAdapter } from "./engineAcquisition.js";
+import { openAccountingCoverage } from "./accounting-coverage.js";
+import { initializeKeyBindings } from "./helpers/api-key-bindings.js";
+import { installAccountingLifecycle } from "./accounting-lifecycle.js";
 
 // Adapter and initialization lease survive Next HMR. Never recover by opening a
 // second writable engine while a failed/uncertain initialization still owns it.
@@ -43,6 +46,10 @@ async function initAdapter() {
     const { runMigrationOnce } = await import("./migrate.js");
     await runMigrationOnce(adapter);
     adapter.durableTransaction(() => {});
+    adapter.coverage = openAccountingCoverage(adapter, owner);
+    adapter.ownerInstanceId = owner.instanceId;
+    adapter.durableTransaction(() => initializeKeyBindings(adapter, adapter.coverage));
+    installAccountingLifecycle(adapter);
     const close = adapter.close.bind(adapter);
     adapter.close = () => {
       close();

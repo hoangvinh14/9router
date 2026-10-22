@@ -69,6 +69,8 @@ export function acquireWriterOwnership(filePath) {
     released = true;
   }
   const owner = Object.freeze({
+    directory,
+    instanceId: row.instanceId,
     assertOwned() {
       if (removed || released || fs.realpathSync(directory) !== directory || readOwner(lock).instanceId !== row.instanceId) throw new Error("Database writer ownership lost");
     },
@@ -97,7 +99,7 @@ export function claimWriter(filePath, supplied) {
     record.claimed = true;
     // Only the claimant receives engine-close release authority. The original
     // pre-open token can no longer unlock a live engine from another caller.
-    const lease = Object.freeze({ assertOwned: owner.assertOwned, release: record.releaseLease });
+    const lease = Object.freeze({ directory: owner.directory, instanceId: owner.instanceId, assertOwned: owner.assertOwned, release: record.releaseLease });
     return { owner: lease, file: record.file };
   } catch (error) { owner.release(); throw error; }
 }

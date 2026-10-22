@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getAdapter } from "../driver.js";
 import { keyAccessFromColumns, keyAccessToColumns } from "@/shared/utils/keyAccess.js";
 import { KEY_ACCESS_UNRESTRICTED } from "@/shared/constants/keyAccess.js";
+import { retainKeyBindings, retireKeyBindings, validateKeyBindings } from "../helpers/api-key-bindings.js";
 
 function rowToKey(row) {
   if (!row) return null;
@@ -33,6 +34,10 @@ export async function getApiKeyByKey(key) {
   if (!key) return null;
   const db = await getAdapter();
   const row = db.get(`SELECT * FROM apiKeys WHERE key = ?`, [key]);
+  if (row) {
+    if (!db.get("SELECT apiKeyId FROM apiKeyBindings WHERE apiKeyId=?", [row.id])) throw new Error("Retained key binding missing");
+    validateKeyBindings(db, db.coverage, [row]);
+  }
   return rowToKey(row);
 }
 
@@ -51,20 +56,25 @@ export async function createApiKey(name, machineId) {
     access: { restricted: false, allow: [] },
   };
   const cols = keyAccessToColumns(KEY_ACCESS_UNRESTRICTED);
-  db.run(
+  db.durableTransaction(() => {
+    retainKeyBindings(db, db.coverage, [apiKey]);
+    db.run(
     `INSERT INTO apiKeys(id, key, name, machineId, isActive, createdAt, accessRestricted, accessAllow) VALUES(?, ?, ?, ?, ?, ?, ?, ?)`,
     [apiKey.id, apiKey.key, apiKey.name, apiKey.machineId, 1, apiKey.createdAt, cols.accessRestricted, cols.accessAllow]
-  );
+    );
+  });
   return apiKey;
 }
 
 export async function updateApiKey(id, data) {
   const db = await getAdapter();
   let result = null;
-  db.transaction(() => {
+  db.durableTransaction(() => {
     const row = db.get(`SELECT * FROM apiKeys WHERE id = ?`, [id]);
     if (!row) return;
+    if (data.id !== undefined && data.id !== id) throw new Error("API key ID is immutable");
     const merged = { ...rowToKey(row), ...data };
+    validateKeyBindings(db, db.coverage, [merged]);
     const cols = keyAccessToColumns(merged.access);
     db.run(
       `UPDATE apiKeys SET key = ?, name = ?, machineId = ?, isActive = ?, accessRestricted = ?, accessAllow = ? WHERE id = ?`,
@@ -77,13 +87,19 @@ export async function updateApiKey(id, data) {
 
 export async function deleteApiKey(id) {
   const db = await getAdapter();
-  const res = db.run(`DELETE FROM apiKeys WHERE id = ?`, [id]);
-  return (res?.changes ?? 0) > 0;
+  return db.durableTransaction(() => {
+    const row = db.get("SELECT * FROM apiKeys WHERE id=?", [id]);
+    if (!row) return false;
+    retireKeyBindings(db, db.coverage, [row]);
+    return Number(db.run("DELETE FROM apiKeys WHERE id=?", [id]).changes) > 0;
+  });
 }
 
 export async function validateApiKey(key) {
   const db = await getAdapter();
-  const row = db.get(`SELECT isActive FROM apiKeys WHERE key = ?`, [key]);
+  const row = db.get(`SELECT * FROM apiKeys WHERE key = ?`, [key]);
   if (!row) return false;
+  if (!db.get("SELECT apiKeyId FROM apiKeyBindings WHERE apiKeyId=?", [row.id])) throw new Error("Retained key binding missing");
+  validateKeyBindings(db, db.coverage, [row]);
   return row.isActive === 1 || row.isActive === true;
 }
