@@ -1,0 +1,44 @@
+{
+  "taskId": "b15772c6c",
+  "exitCode": 0,
+  "status": "bounded-ordinary-Bun-lane-pass",
+  "mainCases": 12,
+  "childCases": 2,
+  "failed": 0,
+  "unreached": 0,
+  "skipped": 0,
+  "countUnit": "namedscenario controls,notVitestassertions",
+  "runtime": "Bun1.4.3/Linuxx64",
+  "engine": "actualbun:sqlite factory anddriver",
+  "faultOrRetentionInstrumentation": false,
+  "moduleBoundaryInstrumentation": "Bun plugin observed imports guarded against mirror escape; not OS sandbox/allpossible dynamicimports proof",
+  "resolverCounts": {
+    "bun-resolve-643452.jsonl": 38,
+    "bun-resolve-643467.jsonl": 37,
+    "bun-resolve-643458.jsonl": 10
+  },
+  "R4OriginalMirrorHarnessBinaryHashesMatch": true,
+  "noFixtureOwnershipFilesObserved": true,
+  "notAccepted": [
+    "Windows/filesystem",
+    "fullAPIauth",
+    "powerloss/crash",
+    "independentfullsourcereview",
+    "unresolved2analyticsfailures",
+    "P1overall"
+  ],
+  "artifactHashes": {
+    "adapter-reopen-result.json": "c5c7c5f8a510f49283f7e29f30498eb099a8a6bdcd351cad9e1e7775336f2b28",
+    "adapter-main-result.json": "d2fce9c97c1f1e7fe35bd232c64c5dae49cf23f58983a074bf197cace0ea4d33",
+    "adapter-contender-result.json": "2c51565e5762ee8cf3d2680a3448e109b57322043cbb2bd28bbb6da370da9015",
+    "bun-resolve-643452.jsonl": "eb0f5ad643a7a1fc8c57348357f2fe69049a9ade56d81c205365c9b889066ef3",
+    "mirror-inputs.json": "5be99f4e3f47a9c70e5db8afeecd44bca62757d8fa6d162441f1041a0f767ea4",
+    "bun-resolve-643467.jsonl": "ec169c176ca5375c6decfaae92b9c992505f53a7d897e98a12d4c6b814a90013",
+    "adapter-output.log": "7e0da180a8041801d571740397e86dcfa072e5bc57209c446d7a79a1a9bba44e",
+    "bun-ordinary-harness.mjs.txt": "3279ad5997dd06e472c861abe51537e4004abc7f55c9fb608e52ab664ad12907",
+    "offline-preload.cjs.txt": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4",
+    "adapter-exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bun-resolve-643458.jsonl": "cc38c8271ae90f5435db9d2d9825f3306fedbc194fb6e8383c1290fdd4c09457",
+    "bun-mirror-preload.mjs.txt": "0e65471820c9922f8e37dbb13a428cdc848b8b28592abc3eaa581e40155bd30f"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "passed": [
+    "unauthenticated pricing is denied",
+    "real browser login",
+    "exact override fixture via real API",
+    "unchanged modal save makes no PATCH",
+    "invalid decimal stays in editor without write",
+    "changed row saves exact input and explicit zero",
+    "mobile horizontal keyboard scroll and focus trap",
+    "hostile Origin and forwarded authority are denied",
+    "real stale coverage 409 and browser restart"
+  ],
+  "errors": [
+    "locator.check: Clicking the checkbox did not change its state\nCall log:\n\u001b[2m  - waiting for getByRole('checkbox')\u001b[22m\n\u001b[2m    - locator resolved to <input type=\"checkbox\"/>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - performing click action\u001b[22m\n\u001b[2m    - click action done\u001b[22m\n\u001b[2m    - waiting for scheduled navigations to finish\u001b[22m\n\u001b[2m    - navigations have finished\u001b[22m\n\n    at /home/gmo/projects/9router/tests/browser/pricing-acceptance.mjs:123:38\n    at check (/home/gmo/projects/9router/tests/browser/pricing-acceptance.mjs:18:47)\n    at /home/gmo/projects/9router/tests/browser/pricing-acceptance.mjs:122:9"
+  ],
+  "artifact": "/tmp/9router-phase3-build-261022/phase3-dist-261022/standalone",
+  "root": "/tmp/9router-browser-oJkgnh"
+}

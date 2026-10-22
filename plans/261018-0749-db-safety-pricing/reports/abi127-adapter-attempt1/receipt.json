@@ -1,0 +1,46 @@
+{
+  "taskId": "bcaf237d9",
+  "exitCode": 1,
+  "status": "failed",
+  "mainPlanned": 12,
+  "mainReached": 10,
+  "mainPassed": 9,
+  "mainFailed": 1,
+  "mainUnreached": 2,
+  "contender": {
+    "passed": 1,
+    "failed": 0
+  },
+  "reopen": "not run",
+  "cleanupErrorsReported": [],
+  "actualDriverLogged": "better-sqlite3",
+  "failureCode": "SQLITE_CONSTRAINT_NOTNULL",
+  "failedCase": "combined driver/migration/ACL (not passed)",
+  "sourceReview": "harness INSERT omits schema apiKeys.createdAt TEXT NOT NULL; production createApiKey supplies ISO string; no schema relaxation authorized",
+  "originalR3MirrorBindingHarnessHashesMatch": true,
+  "resolutions": [
+    {
+      "file": "esm-resolution-514985.jsonl",
+      "entries": 57,
+      "nonFileNonBuiltin": []
+    },
+    {
+      "file": "esm-resolution-514994.jsonl",
+      "entries": 23,
+      "nonFileNonBuiltin": []
+    }
+  ],
+  "retryAuthorized": false,
+  "artifactHashes": {
+    "adapter-inputs.json": "520896c61c6d6124a7820f19feb401f2d3a5b9555f82c272b596f8f5ba76e6a1",
+    "adapter-main-result.json": "1b432e1b66e3f9d6aea83a109efaed35bf15a4be46fd5c1f7dc1b5514b8bf958",
+    "adapter-contender-result.json": "9f28c4555d51cf585a80445b8652c99f0fb39319dd3ccb834f57be12ca41ad85",
+    "abi127-adapter-harness.mjs.txt": "cbc812670f0838ad99ab0682c7e2cb305f100c9e5d380f5026226c549e1857ba",
+    "esm-resolution-514985.jsonl": "6041105ae97004d7ea5c4fd35e9c6da0c640fcd01b7bdf96324fd564b4832203",
+    "adapter-output.log": "18f52369e98e7e45472a63013d60e3e02a03f24980c9e6ed2547a3cf8e3c6127",
+    "esm-resolution-514994.jsonl": "231a32887d7f7fa338441e769a3b1d6443044c2db5799ee0a06ec31c42eedb02",
+    "abi127-resolver.mjs.txt": "f5682b58075060e87e6c780b7d3ce4104dca0c187b4704e73e6213e8d49808d3",
+    "offline-preload.cjs.txt": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4",
+    "adapter-exit-code.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  }
+}

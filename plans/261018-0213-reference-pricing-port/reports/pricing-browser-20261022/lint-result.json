@@ -1,0 +1,6 @@
+{
+  "command": "npx eslint src/lib/pricing/servingStartup.js src/shared/components/PricingModal.js tests/browser/pricing-acceptance.mjs tests/browser/pricing-catalog-fixture.cjs tests/browser/pricing-container-smoke.mjs",
+  "exitCode": 0,
+  "output": "",
+  "sourceHashes": "source-hashes.json"
+}

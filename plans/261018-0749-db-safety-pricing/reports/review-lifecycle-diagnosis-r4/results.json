@@ -1,0 +1,150 @@
+{
+  "node": "v24.21.0",
+  "platform": "linux",
+  "purpose": "Static-review diagnosis; no production change",
+  "paths": [
+    {
+      "engine": "node",
+      "kind": "regular",
+      "existsBefore": true,
+      "lstatSymlink": false,
+      "opened": true,
+      "targetCreatedAfterOpen": false,
+      "closed": true,
+      "lockRemains": false,
+      "targetExistsAfter": false
+    },
+    {
+      "engine": "node",
+      "kind": "existing-symlink",
+      "existsBefore": true,
+      "lstatSymlink": true,
+      "error": "Database path must be a regular single-link file",
+      "lockRemains": false,
+      "targetExistsAfter": true
+    },
+    {
+      "engine": "node",
+      "kind": "dangling-symlink",
+      "existsBefore": false,
+      "lstatSymlink": true,
+      "opened": true,
+      "targetCreatedAfterOpen": true,
+      "targetDirectoryLeaseAcquired": true,
+      "closed": true,
+      "lockRemains": false,
+      "targetExistsAfter": true
+    },
+    {
+      "engine": "sqljs",
+      "kind": "regular",
+      "existsBefore": true,
+      "lstatSymlink": false,
+      "opened": true,
+      "targetCreatedAfterOpen": false,
+      "closed": true,
+      "lockRemains": false,
+      "targetExistsAfter": false
+    },
+    {
+      "engine": "sqljs",
+      "kind": "existing-symlink",
+      "existsBefore": true,
+      "lstatSymlink": true,
+      "error": "Database path must be a regular single-link file",
+      "lockRemains": false,
+      "targetExistsAfter": true
+    },
+    {
+      "engine": "sqljs",
+      "kind": "dangling-symlink",
+      "existsBefore": false,
+      "lstatSymlink": true,
+      "opened": true,
+      "targetCreatedAfterOpen": false,
+      "targetDirectoryLeaseAcquired": true,
+      "closed": true,
+      "lockRemains": false,
+      "targetExistsAfter": false
+    }
+  ],
+  "releases": [
+    {
+      "engine": "node",
+      "fixtureGateHeld": true,
+      "firstCloseError": "Database writer acquisition interrupted or in progress; operator recovery required",
+      "healthAfterFirstClose": {
+        "healthy": false,
+        "closed": true,
+        "poisoned": false,
+        "owned": true,
+        "durability": "wal-full"
+      },
+      "retryReturned": true,
+      "lockAfterRetry": true,
+      "nextOwnerError": "Database writer already active"
+    },
+    {
+      "engine": "sqljs",
+      "fixtureGateHeld": true,
+      "firstCloseError": "Database writer acquisition interrupted or in progress; operator recovery required",
+      "healthAfterFirstClose": {
+        "healthy": false,
+        "owned": true,
+        "closed": true,
+        "poisoned": false,
+        "durability": "atomic-fsync",
+        "dirty": false
+      },
+      "retryReturned": true,
+      "lockAfterRetry": true,
+      "nextOwnerError": "Database writer already active"
+    }
+  ],
+  "signals": [
+    {
+      "signal": "SIGTERM",
+      "handshake": {
+        "ready": true,
+        "pid": 656361,
+        "driver": "sql.js",
+        "dirty": true
+      },
+      "exitedWithinSignalDeadline": false,
+      "parentForcedTeardown": true,
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      },
+      "lockAfterExit": true,
+      "persistedRows": [
+        {
+          "id": 73
+        }
+      ],
+      "lockAfterVerifiedRecoveryClose": false
+    },
+    {
+      "signal": "SIGINT",
+      "handshake": {
+        "ready": true,
+        "pid": 656377,
+        "driver": "sql.js",
+        "dirty": true
+      },
+      "exitedWithinSignalDeadline": false,
+      "parentForcedTeardown": true,
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      },
+      "lockAfterExit": true,
+      "persistedRows": [
+        {
+          "id": 73
+        }
+      ],
+      "lockAfterVerifiedRecoveryClose": false
+    }
+  ]
+}

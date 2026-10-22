@@ -1,0 +1,13 @@
+{
+  "root": "/tmp/9router-pricing-cold-diag-r0s7qw7e",
+  "sourceManifest": "pricing-persistence-stage4-r2-source.json",
+  "sourceHashesVerified": true,
+  "helpers": {
+    "reporter.mjs": "d2a15b7e7a5d95f8fc7e0261e68099f905f284b7e0f35bf1f7c50f7f5a647c90",
+    "cold.test.js": "14cce7bca16fed419cbd59c2c94143aa0a089dbc9145bff8d31d3bab04d6ebdd",
+    "vitest.config.mjs": "08cd422718f77dbbb6ed0c0e4caefd53bd8b68e184407a6fc55d2d7beacdf0f8"
+  },
+  "scope": "one coldprocess measurement, same default test deadline plus external60swatchdog; not acceptance/no assertions modified",
+  "differences": "diagnostic captures operations but omits expectation overhead and initial explicit scheduler module imports; runner overhead still present",
+  "limits": "cannot turn previous failedtest green or establish exact old durationcause"
+}

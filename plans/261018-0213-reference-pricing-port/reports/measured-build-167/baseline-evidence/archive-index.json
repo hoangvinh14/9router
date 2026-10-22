@@ -1,0 +1,41 @@
+{
+  "build-output.log": {
+    "size": 266,
+    "sha256": "5580e2fb2b898fd422de9380cd9270ccd3c4b0903813a7a883bd6c4a29d1de09",
+    "originalSizeAfterCopy": 266
+  },
+  "runner-output.log": {
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "originalSizeAfterCopy": 0
+  },
+  "build-exit.txt": {
+    "size": 4,
+    "sha256": "ca2ebdf97d7469496b1f4b78958f9dc8447efdcb623953fee7b6996b762f6fff",
+    "originalSizeAfterCopy": 4
+  },
+  "runner-exit.txt": {
+    "missing": true
+  },
+  "launcher-timeout.txt": {
+    "size": 52,
+    "sha256": "de2bb4838efe7c7c2342e587b0aa75f20d83777329f8bb4147a6727490f51df2",
+    "originalSizeAfterCopy": 52
+  },
+  "measurement-outside.jsonl": {
+    "size": 1718941,
+    "sha256": "85e4b89edeb65e359d5af77c596d7a3fd2b955aa36218fd681218485c0dc7051",
+    "originalSizeAfterCopy": 1718941
+  },
+  "measurement-inside.jsonl": {
+    "size": 4232,
+    "sha256": "d7c726bc3b6004d7263c5506d4ff57b8e3e6d2027462579265ac3217c15a0940",
+    "originalSizeAfterCopy": 4232
+  },
+  "proxy-events.json": {
+    "size": 619,
+    "sha256": "800efb75a46f8bb74a505c279a62000d75e9f32e4b78f49bcb831df9449037d4",
+    "originalSizeAfterCopy": 619
+  },
+  "collectedAt": 1792512406.5225275
+}

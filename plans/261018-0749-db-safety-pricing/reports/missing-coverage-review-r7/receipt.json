@@ -1,0 +1,9 @@
+{
+  "taskId": "d71cc1f6852c50225ce9b861db4039108",
+  "answerSha256": "57dd700811621e0f5a8f84ceefe43ac8e384561ccf1ef06b63a3c4118d865b1a",
+  "status": "incomplete; no new production defect established",
+  "read": "three complete test files plus SQLjspublication lines1-120",
+  "unread": "usage,callers,driver tests,remainingSQLjstests,consumers,ownershipdelta,receipts",
+  "observation": "low: native RELEASE test title overstates caught inner failure coverage",
+  "gate": "not complete; no new reviewer authorized"
+}

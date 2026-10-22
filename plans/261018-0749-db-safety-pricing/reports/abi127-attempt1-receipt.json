@@ -1,0 +1,23 @@
+{
+  "taskId": "b058d2be4",
+  "exitCode": 1,
+  "status": "failed",
+  "recordedFailure": "require.cache all paths must start with mirror",
+  "offendingCacheEntryRecorded": false,
+  "actualAdapterHarness": "not run",
+  "originalR3AndMirrorHashesUnchanged": true,
+  "originalAbi137BindingUnchanged": true,
+  "harnessInputsUnchanged": true,
+  "artifactHashes": {
+    "abi127-attempt1-abi127-preflight-result.json": "1d23d81a59747512052da0586164ba52d5d637ec6cb0b98cf38a2f641880bbcb",
+    "abi127-attempt1-abi127-preflight-output.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "abi127-attempt1-abi127-preflight-exit-code.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "abi127-attempt1-preflight-inputs.json": "d13a9f6a7ea2f154ca505d3c167e1e19aead7bfb191f6b43ba0c103b936eb94b",
+    "abi127-attempt1-preflight.mjs.txt": "f4c723919a904dcf3b2910f7c52a90c2ecd5c9c5629fc54be29679ff2bd7634e",
+    "abi127-attempt1-offline-preload.cjs.txt": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4",
+    "abi127-mirror-manifest.json": "14e3b5220da5349b5d564c6e442a5c0d9af0d20344c6c06f0d7f50c6a9ce60dc"
+  },
+  "setupPassed": true,
+  "retryAuthorized": false,
+  "fixtureRootRetained": "/tmp/9router-db-safety-abi127-mOsx0u"
+}

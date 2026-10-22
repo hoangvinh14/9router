@@ -1,0 +1,26 @@
+{"event": "observer_start", "wall": 1792511312.6774652, "mono": 232221.716039067, "side": "inside", "interval": 5, "clockTicks": 100}
+{"event": "process_start", "wall": 1792511312.6952028, "mono": 232221.733776948, "side": "inside", "pid": 4, "role": "build"}
+{"event": "relay_start", "wall": 1792511314.6605725, "mono": 232223.699145977, "side": "inside", "connection": 133304111222688}
+{"event": "relay_end", "wall": 1792511314.6687796, "mono": 232223.707353592, "side": "inside", "connection": 133304111222688, "reason": "eof", "start": 232223.699124574, "leftBytes": 103, "rightBytes": 45, "phase": "recv"}
+{"event": "relay_start", "wall": 1792511350.1975176, "mono": 232259.236091301, "side": "inside", "connection": 133304111222976}
+{"event": "relay_end", "wall": 1792511350.5361574, "mono": 232259.574731431, "side": "inside", "connection": 133304111222976, "reason": "eof", "start": 232259.236066071, "leftBytes": 2031, "rightBytes": 9606, "phase": "recv"}
+{"event": "relay_start", "wall": 1792511350.7728891, "mono": 232259.811463232, "side": "inside", "connection": 133304111222688}
+{"event": "relay_start", "wall": 1792511350.7809565, "mono": 232259.819530509, "side": "inside", "connection": 133304111223072}
+{"event": "relay_start", "wall": 1792511350.7839794, "mono": 232259.822554198, "side": "inside", "connection": 133304111223840}
+{"event": "relay_start", "wall": 1792511350.7867785, "mono": 232259.825352409, "side": "inside", "connection": 133304111224224}
+{"event": "relay_start", "wall": 1792511350.7883832, "mono": 232259.826957064, "side": "inside", "connection": 133304111224608}
+{"event": "relay_start", "wall": 1792511350.7891452, "mono": 232259.827718842, "side": "inside", "connection": 133304111224992}
+{"event": "relay_start", "wall": 1792511350.7836964, "mono": 232259.822270268, "side": "inside", "connection": 133304111223456}
+{"event": "relay_end", "wall": 1792511351.093876, "mono": 232260.132450961, "side": "inside", "connection": 133304111222688, "reason": "eof", "start": 232259.811438735, "leftBytes": 2037, "rightBytes": 31622, "phase": "recv"}
+{"event": "relay_end", "wall": 1792511351.1352322, "mono": 232260.173806616, "side": "inside", "connection": 133304111224992, "reason": "eof", "start": 232259.825610631, "leftBytes": 2035, "rightBytes": 54584, "phase": "recv"}
+{"event": "relay_end", "wall": 1792511351.1662867, "mono": 232260.204861943, "side": "inside", "connection": 133304111224608, "reason": "eof", "start": 232259.821204882, "leftBytes": 2037, "rightBytes": 92019, "phase": "recv"}
+{"event": "relay_end", "wall": 1792511351.1705992, "mono": 232260.209173923, "side": "inside", "connection": 133304111224224, "reason": "eof", "start": 232259.821621426, "leftBytes": 2037, "rightBytes": 15816, "phase": "recv"}
+{"event": "relay_end", "wall": 1792511351.2095253, "mono": 232260.248099601, "side": "inside", "connection": 133304111223072, "reason": "eof", "start": 232259.8127662, "leftBytes": 2037, "rightBytes": 24413, "phase": "recv"}
+{"event": "relay_end", "wall": 1792511351.3781939, "mono": 232260.416768406, "side": "inside", "connection": 133304111223456, "reason": "eof", "start": 232259.815524739, "leftBytes": 2037, "rightBytes": 16808, "phase": "recv"}
+{"event": "relay_end", "wall": 1792511351.484774, "mono": 232260.523350238, "side": "inside", "connection": 133304111223840, "reason": "eof", "start": 232259.820281444, "leftBytes": 2037, "rightBytes": 24713, "phase": "recv"}
+{"event": "wait_expired", "wall": 1792512215.287395, "mono": 233124.325975349, "side": "inside", "pid": 4, "role": "build", "seconds": 900}
+{"event": "signal_group", "wall": 1792512219.055076, "mono": 233128.09365125, "side": "inside", "pgid": 4, "signal": "SIGTERM"}
+{"event": "wait_expired", "wall": 1792512224.1171415, "mono": 233133.155715204, "side": "inside", "pid": 4, "role": "build", "seconds": 5}
+{"event": "signal_group", "wall": 1792512224.1179175, "mono": 233133.156491042, "side": "inside", "pgid": 4, "signal": "SIGKILL"}
+{"event": "process_exit", "wall": 1792512225.1798685, "mono": 233134.218443307, "side": "inside", "pid": 4, "role": "build", "code": -9}
+{"event": "observer_exit", "wall": 1792512226.4040585, "mono": 233135.442633997, "side": "inside", "code": 124}

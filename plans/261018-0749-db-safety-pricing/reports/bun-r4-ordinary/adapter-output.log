@@ -1,0 +1,2 @@
+[DB][migrate] applied #1 initial
+[DB] Driver: bun:sqlite | file: /tmp/9router-db-safety-bun-ordinary-r4-pFyDh4/fixtures/data/db/data.sqlite

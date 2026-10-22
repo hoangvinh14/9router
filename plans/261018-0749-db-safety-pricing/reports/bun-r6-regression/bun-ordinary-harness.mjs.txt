@@ -1,0 +1,189 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+
+const root = '/tmp/9router-db-bun-r6-AZAROO';
+const mirror = path.join(root, 'mirror');
+const mode = process.argv[2] || 'main';
+const result = { mode, status: 'failed', runtime: process.versions.bun, revision: Bun.revision, cases: [], cleanupErrors: [] };
+const owned = new Set();
+let create, acquire, file;
+const track = db => { owned.add(db); return db; };
+const close = db => { db.close(); owned.delete(db); };
+async function check(name, fn) {
+  const entry = { name, status: 'failed' }; result.cases.push(entry);
+  try { await fn(); entry.status = 'passed'; }
+  catch (error) { entry.error = { name: error.name, message: error.message }; throw error; }
+}
+function provenance() {
+  assert.equal(process.versions.bun, '1.4.3');
+  assert.equal(fs.realpathSync(process.execPath), path.join(root, 'bin/bun'));
+  const log = path.join(root, `evidence/bun-resolve-${process.pid}.jsonl`);
+  assert.ok(fs.existsSync(log));
+  result.resolutionLog = log;
+}
+
+function child(childMode) {
+  const child = spawnSync(process.execPath, ['--preload', path.join(root, 'harness/bun-mirror-preload.mjs'), path.join(root, 'harness/bun-ordinary-harness.mjs'), childMode], {
+    cwd: mirror, env: process.env, encoding: 'utf8', timeout: 10_000, maxBuffer: 65536,
+  });
+  result.children ??= [];
+  result.children.push({ mode: childMode, status: child.status, signal: child.signal, error: child.error?.message ?? null, stdout: child.stdout, stderr: child.stderr });
+  assert.equal(child.error, undefined); assert.equal(child.signal, null); assert.equal(child.status, 0);
+  let receipt;
+  const receiptPath = path.join(root, `evidence/adapter-${childMode}-result.json`);
+  try { receipt = JSON.parse(fs.readFileSync(receiptPath, 'utf8')); }
+  catch (cause) { throw new Error(`Cannot read/parse ${childMode} receipt: ${receiptPath}`, { cause }); }
+  assert.equal(receipt.status, 'passed'); assert.equal(receipt.runtime, '1.4.3'); assert.equal(receipt.revision, Bun.revision);
+}
+try {
+  assert.ok(['main', 'contender', 'reopen'].includes(mode));
+  assert.equal(process.versions.bun, '1.4.3');
+  assert.equal(fs.realpathSync(process.execPath), path.join(root, 'bin/bun'));
+  assert.equal(fs.realpathSync(process.env.DB_SAFETY_FIXTURE_ROOT), root);
+  assert.equal(process.cwd(), mirror);
+  for (const key of ['HOME', 'DATA_DIR', 'TMPDIR', 'XDG_CACHE_HOME']) assert.equal(path.dirname(fs.realpathSync(process.env[key])), path.join(root, 'fixtures'));
+  assert.equal(process.env.NODE_OPTIONS, undefined);
+  assert.throws(() => globalThis.fetch('https://invalid.example'), /network disabled/);
+  ({ createBunSqliteAdapter: create } = await import('../mirror/src/lib/db/adapters/bunSqliteAdapter.js'));
+  ({ acquireWriterOwnership: acquire } = await import('../mirror/src/lib/db/writerOwnership.js'));
+  file = path.join(process.env.DATA_DIR, 'actual-factory/data.sqlite');
+  if (mode === 'contender') {
+    await check('real child refuses occupied writer before opening application file', async () => {
+      await assert.rejects(create(file), /already active|in progress/);
+    });
+    // This rejection occurs before opening the engine; not engine coverage.
+  } else if (mode === 'reopen') {
+    await check('new process reopens factory ACK and driver schema/ACL/pricing', async () => {
+      const db = track(await create(file));
+      assert.equal(db.driver, 'bun:sqlite'); assert.equal(db.get('SELECT value FROM prices WHERE id=?', ['a']).value, '2'); close(db);
+      const { getAdapter } = await import('../mirror/src/lib/db/driver.js');
+      const driver = track(await getAdapter()); assert.equal(driver.driver, 'bun:sqlite');
+      assert.equal(driver.get("SELECT value FROM _meta WHERE key='backupSchemaVersion'").value, '2');
+      const row = driver.get('SELECT accessRestricted, accessAllow FROM apiKeys WHERE id=?', ['fixture-key']);
+      const { keyAccessFromColumns } = await import('../mirror/src/shared/utils/keyAccess.js');
+      assert.deepEqual(keyAccessFromColumns(row.accessRestricted, row.accessAllow), { restricted: true, allow: ['fixture-model'] });
+      const { getPricingForModel } = await import('../mirror/src/lib/db/repos/pricingRepo.js');
+      assert.deepEqual(await getPricingForModel('fixture-provider', 'model-a'), { input: 0, output: 2 });
+      assert.deepEqual(await getPricingForModel('fixture-provider', 'model-b'), { input: 3, output: 4 });
+      close(driver); provenance();
+    });
+  } else {
+    assert.equal(fs.existsSync(file), false);
+    let db;
+    await check('real factory WAL/FULL and managed durable ACK', async () => {
+      db = track(await create(file)); assert.equal(db.driver, 'bun:sqlite');
+      assert.equal(db.get('PRAGMA journal_mode').journal_mode, 'wal'); assert.equal(db.get('PRAGMA synchronous').synchronous, 2);
+      db.exec('CREATE TABLE prices(id TEXT PRIMARY KEY, value TEXT)');
+      db.durableTransaction(() => { assert.equal(db.canMemoizePricing(), false); db.run('INSERT INTO prices VALUES (?,?)', ['a', '1']); });
+      assert.equal(db.canMemoizePricing(), true); assert.equal(db.health().healthy, true); assert.equal(db.raw, undefined);
+    });
+    await check('same-parent factory exclusion and real child exclusion', async () => {
+      await assert.rejects(create(path.join(path.dirname(file), 'other.sqlite')));
+      child('contender'); assert.equal(fs.existsSync(path.join(path.dirname(file), 'other.sqlite')), false);
+    });
+    await check('rollback/nested and outermost ACK restriction', async () => {
+      assert.throws(() => db.transaction(() => { db.transaction(() => db.run("UPDATE prices SET value='9'")); assert.throws(() => db.durableTransaction(() => {}), /outermost/); throw new Error('abort fixture'); }), /abort fixture/);
+      assert.equal(db.get('SELECT value FROM prices').value, '1');
+    });
+    await check('caught close preserves transaction; uncaught close rolls back', async () => {
+      db.durableTransaction(() => { assert.throws(() => db.close(), /inside transaction/); db.run("UPDATE prices SET value='2'"); });
+      assert.throws(() => db.transaction(() => { db.run("UPDATE prices SET value='9'"); db.close(); }), /inside transaction/);
+      assert.equal(db.get('SELECT value FROM prices').value, '2'); assert.equal(db.health().healthy, true);
+    });
+    await check('SQL transaction/read mutation guards and trigger compatibility', async () => {
+      for (const method of ['exec', 'run', 'get', 'all']) assert.throws(() => db[method]('/* fixture */ BEGIN'), /managed/);
+      for (const method of ['get', 'all']) {
+        assert.throws(() => db[method]("UPDATE prices SET value='9'"));
+        assert.throws(() => db[method]('SELECT 1; SELECT 2'));
+      }
+      db.exec("CREATE TRIGGER price_trigger AFTER INSERT ON prices BEGIN UPDATE prices SET value=CASE WHEN NEW.value='x' THEN 'y' ELSE NEW.value END WHERE id=NEW.id; END;");
+      db.transaction(() => { db.run("INSERT INTO prices VALUES('trigger','x')"); assert.equal(db.get("SELECT value FROM prices WHERE id='trigger'").value, 'y'); db.run("DELETE FROM prices WHERE id='trigger'"); });
+    });
+    await check('async callback refused before entry', async () => {
+      let entered = false;
+      assert.throws(() => db.transaction(async () => { entered = true; }), /synchronous/);
+      assert.equal(entered, false); assert.equal(db.health().healthy, true);
+    });
+    await check('checkpoint close and closed-use rejection', async () => {
+      db.checkpoint(); close(db); assert.throws(() => db.get('SELECT 1')); assert.equal(db.health().closed, true);
+    });
+    await check('retained pre-open token cannot unlock real adapter', async () => {
+      const target = path.join(process.env.DATA_DIR, 'lease/data.sqlite');
+      const token = acquire(target); const leaseDb = track(await create(target, token));
+      assert.throws(() => token.release(), /adapter close/); await assert.rejects(create(target));
+      close(leaseDb); const replacement = track(await create(target)); close(replacement);
+    });
+    await check('thenable return rolls back and poisons real adapter', async () => {
+      const target = path.join(process.env.DATA_DIR, 'thenable/data.sqlite');
+      const poisoned = track(await create(target)); poisoned.exec('CREATE TABLE values_fixture(value TEXT)');
+      assert.throws(() => poisoned.transaction(() => { poisoned.run("INSERT INTO values_fixture VALUES('not-ACK')"); return Promise.resolve(); }), /synchronous/);
+      assert.equal(poisoned.health().poisoned, true); assert.throws(() => poisoned.get('SELECT * FROM values_fixture'));
+      close(poisoned); const reopened = track(await create(target)); assert.equal(reopened.get('SELECT count(*) AS c FROM values_fixture').c, 0); close(reopened);
+    });
+    let driver;
+    await check('actual driver selects Bun and migrations retain schema2/ACL', async () => {
+      const { getAdapter } = await import('../mirror/src/lib/db/driver.js');
+      driver = track(await getAdapter()); assert.equal(driver.driver, 'bun:sqlite'); assert.equal(await getAdapter(), driver);
+      const { SCHEMA_VERSION } = await import('../mirror/src/lib/db/schema.js'); assert.equal(SCHEMA_VERSION, 2);
+      assert.equal(driver.get("SELECT value FROM _meta WHERE key='backupSchemaVersion'").value, '2');
+      const columns = driver.all('PRAGMA table_info(apiKeys)').map(row => row.name);
+      assert.ok(columns.includes('accessRestricted')); assert.ok(columns.includes('accessAllow'));
+      const { keyAccessToColumns, keyAccessFromColumns } = await import('../mirror/src/shared/utils/keyAccess.js');
+      const cols = keyAccessToColumns({ restricted: true, allow: ['fixture-model'] });
+      driver.durableTransaction(() => driver.run('INSERT INTO apiKeys(id,key,name,accessRestricted,accessAllow,createdAt) VALUES(?,?,?,?,?,?)', ['fixture-key','non-secret-fixture','fixture',cols.accessRestricted,cols.accessAllow,'2026-10-18T00:00:00.000Z']));
+      const row = driver.get('SELECT accessRestricted,accessAllow FROM apiKeys WHERE id=?', ['fixture-key']);
+      assert.deepEqual(keyAccessFromColumns(row.accessRestricted, row.accessAllow), { restricted: true, allow: ['fixture-model'] });
+      assert.deepEqual(keyAccessFromColumns(1, '{broken'), { restricted: true, allow: [] });
+    });
+    await check('real pricing repo update preserves other model and explicit numeric zero', async () => {
+      const { updatePricing, getPricingForModel } = await import('../mirror/src/lib/db/repos/pricingRepo.js');
+      await updatePricing({ 'fixture-provider': { 'model-a': { input: 1, output: 2 } } });
+      await updatePricing({ 'fixture-provider': { 'model-b': { input: 3, output: 4 } } });
+      await updatePricing({ 'fixture-provider': { 'model-a': { input: 0, output: 2 } } });
+      assert.deepEqual(await getPricingForModel('fixture-provider', 'model-a'), { input: 0, output: 2 });
+      driver.durableTransaction(() => {}); close(driver);
+    });
+    await check('fresh-process ACK and driver/ACL/pricing reopen with module provenance', async () => { child('reopen'); provenance(); });
+    await check('dangling DB symlink refuses open and leaves target absent', async () => {
+      const directory = path.join(process.env.DATA_DIR, 'dangling');
+      const targetDir = path.join(process.env.DATA_DIR, 'dangling-target');
+      fs.mkdirSync(directory); fs.mkdirSync(targetDir);
+      const link = path.join(directory, 'data.sqlite'), target = path.join(targetDir, 'data.sqlite');
+      fs.symlinkSync(target, link);
+      await assert.rejects(async () => await create(link), /regular/);
+      assert.equal(fs.existsSync(target), false);
+      assert.equal(fs.lstatSync(link).isSymbolicLink(), true);
+      assert.equal(fs.existsSync(path.join(directory, '.gateway-writer.lock')), false);
+    });
+    await check('closed engine retries lease release after gate collision then reopens', async () => {
+      const target = path.join(process.env.DATA_DIR, 'release-retry/data.sqlite');
+      const retryDb = track(await create(target));
+      retryDb.durableTransaction(() => retryDb.exec('CREATE TABLE release_fixture(id INTEGER)'));
+      const gate = path.join(path.dirname(target), '.gateway-writer-acquisition'); fs.mkdirSync(gate);
+      try {
+        assert.throws(() => retryDb.close(), /acquisition/);
+        assert.throws(() => retryDb.close(), /acquisition/);
+        assert.equal(retryDb.health().closed, true);
+        assert.equal(retryDb.health().healthy, false);
+        assert.equal(retryDb.health().owned, true);
+      } finally { fs.rmdirSync(gate); }
+      close(retryDb); retryDb.close();
+      assert.equal(fs.existsSync(path.join(path.dirname(target), '.gateway-writer.lock')), false);
+      const replacement = track(await create(target));
+      assert.equal(replacement.get('SELECT COUNT(*) AS n FROM release_fixture').n, 0);
+      close(replacement);
+    });
+    assert.equal(result.cases.length, 14);
+  }
+  result.status = 'passed';
+} catch (error) {
+  result.error = { name: error.name, code: error.code ?? null, message: error.message };
+  process.exitCode = 1;
+} finally {
+  for (const db of owned) { try { db.close(); } catch (error) { result.cleanupErrors.push(error.message); } }
+  if (result.cleanupErrors.length) { result.status = 'failed'; process.exitCode = 1; }
+  result.passed = result.cases.filter(entry => entry.status === 'passed').length;
+  fs.writeFileSync(path.join(root, `evidence/adapter-${mode}-result.json`), JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
+}

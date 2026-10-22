@@ -1,0 +1,53 @@
+{
+  "taskId": "b6aa50c3f",
+  "exitCode": 0,
+  "status": "passed-bounded-better-lane",
+  "mainCases": 12,
+  "childCases": {
+    "contender": 1,
+    "reopen": 1
+  },
+  "failed": 0,
+  "unreached": 0,
+  "skipped": 0,
+  "countUnit": "named scenario controls, not Vitest assertions",
+  "actualRuntime": "Node22.23.2/Linuxx64 ABI127",
+  "actualDriver": "better-sqlite3 12.11.1 private publisher ABI127 binding",
+  "originalR3MirrorBindingHarnessHashesMatch": true,
+  "priorFailureRetained": true,
+  "caseNamesRetained": true,
+  "ESMResolutionCounts": {
+    "esm-resolution-583366.jsonl": 62,
+    "esm-resolution-583336.jsonl": 63,
+    "esm-resolution-583349.jsonl": 23
+  },
+  "finalCJSProvenanceChecked": [
+    "main",
+    "reopen"
+  ],
+  "noWriterLocksRemainingObserved": true,
+  "acceptanceScope": "byte-identical source mirror with isolated changed binding only; normal-close fresh-process reopen; not original ABI137 environment",
+  "doesNotAccept": [
+    "Bun",
+    "Windows/filesystem",
+    "fullAPIauth",
+    "power-loss/crash certification",
+    "unresolved analytics failures",
+    "independent source review",
+    "P1 prerequisite overall"
+  ],
+  "artifactHashes": {
+    "adapter-reopen-result.json": "ab29a6e6c9190447f9e89e12284b2ffd99907b5b505ecf5364f26912f9c1e721",
+    "adapter-inputs.json": "20c304533b6baa5d3d0c140eabba84f7572f75d6d1f6efd144ec80d488637d79",
+    "adapter-main-result.json": "0bab6333df4209efca49119494a9da001c3a549c621ac1d33b41b5242874253c",
+    "adapter-contender-result.json": "9f28c4555d51cf585a80445b8652c99f0fb39319dd3ccb834f57be12ca41ad85",
+    "esm-resolution-583366.jsonl": "9e085746275568d98df99a465888067909f05ec03c92e2bb0fc6f442787ce486",
+    "esm-resolution-583336.jsonl": "d7a09832f30cd27e79506f6509dd665070caa95de80f3331aa789fcc0900ed84",
+    "abi127-adapter-harness.mjs.txt": "645f474f055ebd2f025c605a6e56df93479b234d06f128205e7fc42683b59b76",
+    "adapter-output.log": "5da8ce16cec4299c61adb52f3979012325e88ef864556b4ec575033af08e4029",
+    "esm-resolution-583349.jsonl": "bcf39dd1ee4518cd05316e86950a08936aa109f5af71d471683009c886761ea7",
+    "abi127-resolver.mjs.txt": "56f14980a484e1ef9db46c4c73ce239c1701a579f9ba9462bfe26d0f5f362504",
+    "offline-preload.cjs.txt": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4",
+    "adapter-exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  }
+}

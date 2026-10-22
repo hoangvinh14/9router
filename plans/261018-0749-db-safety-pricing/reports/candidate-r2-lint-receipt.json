@@ -1,0 +1,17 @@
+{
+  "taskId": "b44dc5b08",
+  "exitCode": 0,
+  "lintFileCount": 18,
+  "log": "candidate-r2-eslint.log",
+  "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "sourceManifest": "candidate-r2-source.json",
+  "manifestHashVerification": "passed",
+  "activeLsp": {
+    "files": 8,
+    "clean": 8,
+    "diagnostics": 0
+  },
+  "testTask": "b116895a2",
+  "testStatus": "awaiting terminal notification; not polled",
+  "acceptance": false
+}

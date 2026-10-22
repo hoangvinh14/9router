@@ -1,0 +1,71 @@
+{
+  "taskId": "bde11d71a",
+  "exitCode": 1,
+  "revision": "87a74e1bda3677193c6f71a7e2100c90311f0689",
+  "fileCount": 8,
+  "assertions": {
+    "passed": 84,
+    "failed": 2
+  },
+  "reporterSuccess": false,
+  "identityAndCollection": "complete for selected eight files; not a passing or no-regression claim",
+  "results": [
+    {
+      "file": "tests/unit/cached-token-usage.test.js",
+      "passed": 16,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "tests/unit/db-concurrent.test.js",
+      "passed": 6,
+      "failed": 2,
+      "failures": [
+        "DB Concurrency — atomic safety 100 parallel saveRequestUsage → no count loss",
+        "DB Concurrency — atomic safety daily summary aggregates correctly under parallel writes"
+      ]
+    },
+    {
+      "file": "tests/unit/db-driver-chain.test.js",
+      "passed": 3,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "tests/unit/db-migration-chain.test.js",
+      "passed": 4,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "tests/unit/db-sqlite-vs-lowdb.test.js",
+      "passed": 23,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "tests/unit/key-access-migration.test.js",
+      "passed": 3,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "tests/unit/key-access.test.js",
+      "passed": 24,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "tests/unit/provider-pricing-minimax-m3.test.js",
+      "passed": 5,
+      "failed": 0,
+      "failures": []
+    }
+  ],
+  "artifacts": {
+    "current-baseline-results.json": "1d2b866aa6d9327ecc583e94474001a58ac3792c3ed5c563097180b96bb43812",
+    "current-baseline-output.log": "8ef29b88dc5b0395135e52c27aaea3e6c7502dfa88382c35ef4d8102211f854d",
+    "baseline-manifest.json": "185c984262b3f1c07f676ee71169739c3dd85da3a0c085986505d86b2d51b200",
+    "offline-preload.cjs": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4"
+  }
+}

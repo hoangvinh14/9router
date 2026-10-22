@@ -1,0 +1,13 @@
+{
+  "command": "timeout --signal=TERM --kill-after=30s 900s docker build --progress=plain --tag 9router-pricing-acceptance:261022 --file /tmp/9router-container-context-crel0rzq/Dockerfile /tmp/9router-container-context-crel0rzq",
+  "exitCode": 0,
+  "image": "9router-pricing-acceptance:261022",
+  "digest": "sha256:ae17569a1e40e33de61e8e04580d0be9c8c51b5ee2d6c53f7110de2428f4f8dc",
+  "buildStepSeconds": 489,
+  "exportSeconds": 118.5,
+  "runtimeSourceManifest": "../runtime-source-manifest.json",
+  "notes": [
+    "Temporary build-only environment adjusted; repository Dockerfile unchanged.",
+    "Shared build-time writer-exclusion warnings retained; not warning-free certification."
+  ]
+}

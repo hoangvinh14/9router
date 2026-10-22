@@ -1,0 +1,88 @@
+{
+  "taskId": "b1ad06e0f",
+  "exitCode": 1,
+  "totals": {
+    "numTotalTests": 88,
+    "numPassedTests": 86,
+    "numFailedTests": 2,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "files": [
+    {
+      "file": "tests/unit/cached-token-usage.test.js",
+      "removed": [],
+      "added": [],
+      "passToFail": [],
+      "retainedFailures": []
+    },
+    {
+      "file": "tests/unit/db-concurrent.test.js",
+      "removed": [],
+      "added": [],
+      "passToFail": [],
+      "retainedFailures": [
+        "DB Concurrency \u2014 atomic safety 100 parallel saveRequestUsage \u2192 no count loss",
+        "DB Concurrency \u2014 atomic safety daily summary aggregates correctly under parallel writes"
+      ]
+    },
+    {
+      "file": "tests/unit/db-driver-chain.test.js",
+      "removed": [
+        "Driver fallback chain default \u2192 picks better-sqlite3 when available",
+        "Driver fallback chain falls back to node:sqlite when better-sqlite3 unavailable",
+        "Driver fallback chain falls back to sql.js when both native drivers unavailable"
+      ],
+      "added": [
+        "Driver fallback chain actual driver propagates factory failure without SQL.js fallback or migration",
+        "Driver fallback chain better binding probe is memory-only and missing binding permits fallback",
+        "Driver fallback chain default selects an available real engine and initializes durable health",
+        "Driver fallback chain recognized missing engine permits selection to continue before opening app file",
+        "Driver fallback chain unknown imports, failed probes and project factory errors remain fatal"
+      ],
+      "passToFail": [],
+      "retainedFailures": []
+    },
+    {
+      "file": "tests/unit/db-migration-chain.test.js",
+      "removed": [],
+      "added": [],
+      "passToFail": [],
+      "retainedFailures": []
+    },
+    {
+      "file": "tests/unit/db-sqlite-vs-lowdb.test.js",
+      "removed": [],
+      "added": [],
+      "passToFail": [],
+      "retainedFailures": []
+    },
+    {
+      "file": "tests/unit/key-access-migration.test.js",
+      "removed": [],
+      "added": [],
+      "passToFail": [],
+      "retainedFailures": []
+    },
+    {
+      "file": "tests/unit/key-access.test.js",
+      "removed": [],
+      "added": [],
+      "passToFail": [],
+      "retainedFailures": []
+    },
+    {
+      "file": "tests/unit/provider-pricing-minimax-m3.test.js",
+      "removed": [],
+      "added": [],
+      "passToFail": [],
+      "retainedFailures": []
+    }
+  ],
+  "overallNoRegressionClaim": false,
+  "artifactSha256": {
+    "affected-r1-results.json": "1049b9ef23133f9320e5db3cddefc41c837b3069cc5957aa3126b763c304e06e",
+    "affected-r1-output.log": "f08bf87cffc1efab1b19319a791a62cd96539076b33f880e591267d49ba27178",
+    "focused-r1-results.json": "629fb35a86a731ff138c78f1f15df8033c9cd7f34509a1d541603e54781395b5"
+  }
+}

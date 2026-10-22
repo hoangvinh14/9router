@@ -1,0 +1,4 @@
+(node:656361) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/gmo/projects/9router/src/lib/db/adapters/nodeSqliteAdapter.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/gmo/projects/9router/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "cases": [
+    {
+      "name": "default close retained prepare statement lifetime (observational)",
+      "status": "passed",
+      "afterDefaultClose": {
+        "returned": {
+          "value": 1
+        }
+      }
+    },
+    {
+      "name": "strict close finalizes retained prepare statements and repeated close is safe",
+      "status": "passed"
+    },
+    {
+      "name": "strict close with active transaction does not publish uncommitted value",
+      "status": "passed",
+      "reopenedRows": 0
+    },
+    {
+      "name": "default close transaction statement reachability (observational) then strict cleanup",
+      "status": "passed",
+      "afterDefaultClose": {
+        "returned": {
+          "changes": 1,
+          "lastInsertRowid": 2
+        }
+      },
+      "reopenedRows": 0
+    }
+  ],
+  "cleanupErrors": [],
+  "runtime": "1.4.3",
+  "revision": "c6da4a4d3010e5553438c60f6bd76d981976867c",
+  "passed": 4
+}

@@ -1,0 +1,93 @@
+{
+  "mode": "main",
+  "status": "passed",
+  "runtime": "1.4.3",
+  "revision": "c6da4a4d3010e5553438c60f6bd76d981976867c",
+  "cases": [
+    {
+      "name": "real factory WAL/FULL and managed durable ACK",
+      "status": "passed"
+    },
+    {
+      "name": "same-parent factory exclusion and real child exclusion",
+      "status": "passed"
+    },
+    {
+      "name": "rollback/nested and outermost ACK restriction",
+      "status": "passed"
+    },
+    {
+      "name": "caught close preserves transaction; uncaught close rolls back",
+      "status": "passed"
+    },
+    {
+      "name": "SQL transaction/read mutation guards and trigger compatibility",
+      "status": "passed"
+    },
+    {
+      "name": "async callback refused before entry",
+      "status": "passed"
+    },
+    {
+      "name": "checkpoint close and closed-use rejection",
+      "status": "passed"
+    },
+    {
+      "name": "retained pre-open token cannot unlock real adapter",
+      "status": "passed"
+    },
+    {
+      "name": "thenable return rolls back and poisons real adapter",
+      "status": "passed"
+    },
+    {
+      "name": "actual driver selects Bun and migrations retain schema2/ACL",
+      "status": "passed"
+    },
+    {
+      "name": "real pricing repo update preserves other model and explicit numeric zero",
+      "status": "passed"
+    },
+    {
+      "name": "fresh-process ACK and driver/ACL/pricing reopen with module provenance",
+      "status": "passed"
+    },
+    {
+      "name": "dangling DB symlink refuses open and leaves target absent",
+      "status": "passed"
+    },
+    {
+      "name": "closed engine retries lease release after gate collision then reopens",
+      "status": "passed"
+    },
+    {
+      "name": "actual engine closed release sync recovery after-unlink preserves replacement",
+      "status": "passed"
+    },
+    {
+      "name": "actual engine closed release sync recovery after-gate-cleanup preserves replacement",
+      "status": "passed"
+    }
+  ],
+  "cleanupErrors": [],
+  "children": [
+    {
+      "mode": "contender",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "mode": "reopen",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "[DB] Driver: bun:sqlite | file: /tmp/9router-db-bun-r7-m13fAK/fixtures/data/db/data.sqlite\n",
+      "stderr": ""
+    }
+  ],
+  "resolutionLog": "/tmp/9router-db-bun-r7-m13fAK/evidence/bun-resolve-888228.jsonl",
+  "passed": 16
+}

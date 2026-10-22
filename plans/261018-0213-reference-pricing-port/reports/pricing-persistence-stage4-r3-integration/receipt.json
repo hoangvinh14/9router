@@ -1,0 +1,26 @@
+{
+  "taskId": "b13a6ec11",
+  "exitCode": 0,
+  "summary": {
+    "success": true,
+    "numTotalTests": 31,
+    "numPassedTests": 31,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "testFiles": 3,
+  "sourceHashesVerified": true,
+  "reportByteOffsets": [
+    855,
+    15088
+  ],
+  "budget": "Explicit user-approved10s only cold-start identity bothNode/SQLjs; otherdeadlinesunchanged/no prewarm",
+  "limits": "pass under revisedbudget, not oldtimeoutcausefixed or wholeproductacceptance",
+  "artifactHashes": {
+    "results.json": "d80ddee1c858585ba00d32b15a032b61df396d28220276479adf9deb66be69ce",
+    "runner-prefix.log": "a87d088eb6aa80cd76ec9e4fab799abb35831769c0f310e1370a102304a47ad8",
+    "exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "output.log": "8591d835b716e05fbf71c655d2b4940459df3bd2dbe60aec4c32ac0c9d39875d"
+  }
+}

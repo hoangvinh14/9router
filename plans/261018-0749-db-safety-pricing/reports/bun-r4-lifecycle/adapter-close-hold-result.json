@@ -1,0 +1,15 @@
+{
+  "mode": "hold",
+  "status": "passed",
+  "runtime": "1.4.3",
+  "revision": "c6da4a4d3010e5553438c60f6bd76d981976867c",
+  "observations": {},
+  "cleanupErrors": [],
+  "planned": [
+    "normal close native-lifetime and owner boundary",
+    "repeated close",
+    "initialization failure cleanup",
+    "close failure handling"
+  ],
+  "notRun": []
+}

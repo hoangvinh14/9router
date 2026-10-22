@@ -1,0 +1,15 @@
+{
+  "taskId": "b7947129e",
+  "exitCode": 0,
+  "status": "diagnosis collected; post-unlink defect reproduced",
+  "sourceProbeHashesMatch": true,
+  "cases": 8,
+  "artifactHashes": {
+    "inputs.json": "9b528f8a5707205f056333d9f800119fc5d767dea228f93708592475ebc5f350",
+    "probe.mjs": "8ca2eb817eefc46758bd8263e056e5d95d037f9e5887bfc3ac2b875957de7835",
+    "results.json": "e1b1d5ca1c5522ad4c4dfc10f54d0670041773c6f9ec562e26c50494fc3496ef",
+    "output.log": "44a4211b2697a18f29ecdb5724c91747857e997284416db254eeab3714bcd4b2",
+    "exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  "limits": "after-gate retry return observed but retry fsync calls not traced; not proof of successful resync; replacement locks preserved. No signal/build/API proof"
+}

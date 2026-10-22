@@ -1,0 +1,11 @@
+
+> 9router-app@0.5.104 build
+> next build --webpack
+
+▲ Next.js 16.3.8 (webpack)
+✓ Running next.config.mjs took 100ms
+- Experiments (use with caution):
+  · optimizePackageImports
+  · proxyClientMaxBodySize: "128mb"
+
+  Creating an optimized production build ...

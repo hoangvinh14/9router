@@ -1,0 +1,47 @@
+{
+  "taskId": "b3c591d89",
+  "exitCode": 1,
+  "status": "failed-deterministic-native-close-boundary",
+  "runtime": "Bun1.4.3/Linuxx64",
+  "revision": "c6da4a4d3010e5553438c60f6bd76d981976867c",
+  "actualFactoryDriver": "bun:sqlite",
+  "instrumentation": "Database.prototype.prepare retains strong refs; private statements not publicly exposed",
+  "beforeCloseSecondOwnerRejected": true,
+  "afterCloseSecondOwnerAcquired": true,
+  "retainedOldNativeSELECTStillExecutable": true,
+  "notRun": [
+    "repeated close",
+    "initialization failure cleanup",
+    "close failure handling"
+  ],
+  "cleanupErrorsReported": [],
+  "originalR3MirrorHarnessBinaryHashesMatch": true,
+  "fixtureWriterLocksObserved": [],
+  "repairAuthorized": false,
+  "limits": [
+    "not concurrent write/corruption proof",
+    "not public API escape",
+    "not complete Bun driver/ordinary lane",
+    "ownership lock distinct from SQLite locking"
+  ],
+  "artifactHashes": {
+    "bun-revision.txt": "18ef44f9a870601b84968a1f731ec6743721328b7a0f9ade40520f07bf602ef5",
+    "lifetime-preflight-inputs.json": "0a63203c9641fc43f8d45caee90fd8e8980e8f6862c4d424c49f3f60156f81c8",
+    "adapter-close-hold-result.json": "1e83c1d9de1ea9019592010fd7430ff6ee1c963724ab04edbcba2fa96a02c7db",
+    "setup-exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "lifetime-preflight-exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bun-adapter-close-boundary.mjs.txt": "8efc0e07877946b23f85515118cab95fd191f4ece7933e4716c00f1aad3bfdfe",
+    "adapter-close-reject-result.json": "c188d8135b0d8a0509685fa078a8f3aeb681d357cf84d1245541e0ea32046dc9",
+    "adapter-close-inputs.json": "cfe90a91f81e87711f14a7be2b1544fc50004edc3c038755fc9065377f17d72c",
+    "bun-lifetime-preflight.mjs.txt": "9e60fd0df4a0a1b3b17caf746efc94c1e1ae8a49bed37b660449bf9efdabcb05",
+    "lifetime-preflight-result.json": "5edfba9230dc11ad35ef0fc1373eb1cbee3ba49e58f58304c0a15fb3bf5ea2c4",
+    "setup-result.json": "2bf1419168fffc60389913d72bf9d9c21786b567aac1ddf32b32c4b6021e49af",
+    "lifetime-preflight-output.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "setup-output.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bun-version.txt": "bd31e8d9cf8d14a1e9e3fdf3b9f6a524819aed0d1b14627523c6765767c7d8f1",
+    "adapter-close-output.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "adapter-close-exit-code.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "adapter-close-main-result.json": "c415cf4d49cc28383efe08535efbd45c9520f669faf90f1a87f736f4bd239b61",
+    "offline-preload.cjs.txt": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4"
+  }
+}

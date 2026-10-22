@@ -1,0 +1,22 @@
+{
+  "tag": "bun-v1.4.3",
+  "releaseId": 408543611,
+  "publishedAt": "2026-10-10T05:24:54Z",
+  "immutable": false,
+  "asset": {
+    "id": 626789490,
+    "name": "bun-linux-x64-baseline.zip",
+    "size": 42015103,
+    "digest": "sha256:1fc2edac843102909e3a1be1d8d9802cc6071cf074e67e88231f4ffe0f8b397b",
+    "browser_download_url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-linux-x64-baseline.zip"
+  },
+  "checksumMetadataSha256": "36d649a8c4505c69628e9d6b566c6b954fb967943ae9d1e3b07682f6cc89a800",
+  "publisherChecksumFileSha256": "861ce0f19aa4f8a94bef81045c7fcad38dbb2343f2c6e2d6bdc8561be5dba637",
+  "binaryDownloaded": false,
+  "CPUObserved": {
+    "sse4_2": true,
+    "avx2": false
+  },
+  "host": "Linuxx86_64 glibc2.35",
+  "source": "https://api.github.com/repos/oven-sh/bun/releases/latest"
+}

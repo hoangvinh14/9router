@@ -1,0 +1,9 @@
+{
+  "preparationUsedSha256": "aa7068156a02f2c86dbe9eb3fb16298fdd8f90673b243f15fe49dd18027089fe",
+  "revisedHelperSha256": "c7de853db788b73f8de693549f3c850667170d06dcded21586a3990e1539fdab",
+  "revisedHelperExecuted": false,
+  "syntax": "AST parse passed",
+  "preparedMirrorHarnessSourceHashes": "unchanged",
+  "changes": "explicit JSON errors, split statements, exact existing fixture directory guards, narrowly documented S108/B108 literals",
+  "note": "No successful setup rerun; revised generator did not generate existing mirrors"
+}

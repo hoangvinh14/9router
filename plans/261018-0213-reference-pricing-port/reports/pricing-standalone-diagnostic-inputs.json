@@ -1,0 +1,13 @@
+{
+  "root": "/tmp/9router-pricing-node-diag-6k4q4nez",
+  "sourceManifest": "pricing-persistence-stage4-r2-source.json",
+  "sourceHashesVerified": true,
+  "helpers": {
+    "probe.mjs": "f8c3d91e786fedb96d90700d58ae0f507249e082d0a012a8c7920034dbcb9aba",
+    "watchdog.py": "2de4f5879d4bda5a71ed64dbaf89a6c847088c6ee18e663202ae5e351a005520",
+    "loader.mjs": "50c0ed230aca0c26f6dfcbeda0dfccbc70213483decd793bf3a4b6005ef3aa2d"
+  },
+  "scope": "one cold standalone currentNode24 measurement not acceptance/defaulttestdeadlineunchanged",
+  "differences": "native NodeESM aliases replacing Vite transforms/no expect overhead; no global install/privateaddon/newruntime",
+  "externalWatchdog": "60s processgroup TERM then3sKILL; fsyncedstage-start/end evidence"
+}

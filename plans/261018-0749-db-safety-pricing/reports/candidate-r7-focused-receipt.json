@@ -1,0 +1,16 @@
+{
+  "taskId": "ba525a9bb",
+  "exitCode": 0,
+  "sourceHashesVerified": true,
+  "summary": {
+    "success": true,
+    "numTotalTests": 60,
+    "numPassedTests": 60,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "testFiles": 5,
+  "rawSha256": "7c16852e2165a85fa0b4cccd6bfd4ff34d71ebdcbebcc13b8d8c78649db762cb",
+  "scope": "new12release-sync controls plus4priorfocusedDBfiles actualNode/SQLjs; not fullaffected/allruntime/independentreview acceptance"
+}

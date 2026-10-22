@@ -1,0 +1,14 @@
+[
+  {
+    "name": "version",
+    "returnCode": 0,
+    "signal": null,
+    "diagnosticTimeout": false
+  },
+  {
+    "name": "launch",
+    "returnCode": -15,
+    "signal": 15,
+    "diagnosticTimeout": true
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "taskId": "b8ce7ce74",
+  "exitCode": 0,
+  "rootManifestsUnchanged": true,
+  "prior1256SourceHashesMatch": true,
+  "aws": {
+    "version": "3.1153.0",
+    "resolved": "https://registry.npmjs.org/@aws-sdk/credential-providers/-/credential-providers-3.1153.0.tgz",
+    "integrity": "sha512-aIzqDdPfgtsTTgogor+EPp//Rhde1nkVJcdUeS0zEX5hliURW7KX11f6+XcZnTmAgopR/wEEZWVmo5rBxm4bGg=="
+  },
+  "installedVersion": "3.1153.0",
+  "stagingLockSha256": "b1a3233c4dc994111f1a40a9c704d52a0c2574040768064691dd8139a0815d42",
+  "lifecycleScripts": "disabled",
+  "limits": "Setup success, not build/browser/Docker acceptance"
+}

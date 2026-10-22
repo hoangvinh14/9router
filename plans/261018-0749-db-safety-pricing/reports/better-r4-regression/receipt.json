@@ -1,0 +1,39 @@
+{
+  "taskId": "b7bd34891",
+  "exitCode": 0,
+  "status": "bounded-lane-pass",
+  "mainCases": 12,
+  "childCases": 2,
+  "failed": 0,
+  "unreached": 0,
+  "skipped": 0,
+  "runtime": "Node22.23.2 ABI127/Linuxx64",
+  "ESMResolutionCounts": {
+    "esm-resolution-642555.jsonl": 23,
+    "esm-resolution-642533.jsonl": 63,
+    "esm-resolution-642573.jsonl": 62
+  },
+  "finalCJSProvenanceChecked": true,
+  "R4OriginalMirrorHarnessAndOriginalAbi137BindingUnchanged": true,
+  "noFixtureWriterLocksObserved": true,
+  "limits": [
+    "private byte-identical source mirror with changed ABI127 dependency, not originalABI137 runtime",
+    "namedscenario counts not Vitestassertions",
+    "ordinaryclose reopen not powerloss/fullAPIauth",
+    "does not waive R4combined2analyticsfailures/Bun/Windows/review"
+  ],
+  "artifactHashes": {
+    "adapter-reopen-result.json": "20dbc06474712cdb87a637e14840f4a42c29dabe9230c9fa41fb16a0c6b18cab",
+    "adapter-main-result.json": "2cefc385b4f0d05547ed03f06ec795c9cc1c100f1b26d4decc5919385ce59ebf",
+    "adapter-contender-result.json": "9f28c4555d51cf585a80445b8652c99f0fb39319dd3ccb834f57be12ca41ad85",
+    "mirror-inputs.json": "6ff80b54076ffce4d9995865cd3280d5d4db70da1e1069444cc45008090dce5e",
+    "abi127-adapter-harness.mjs.txt": "eb85c6bcecc9e19b2dcfe90b2734205c27b798ab9e19a8750312bf0ae1a185db",
+    "esm-resolution-642555.jsonl": "b552147c06fe8a0fff8488b11dbcc53dce6bbfca2d4384a2f74bcf914ade3f16",
+    "esm-resolution-642533.jsonl": "be6e2c4549c2d9aeaad4b8212c0f7c324e84ae9a89abd7d6f9157e35458fdbb8",
+    "adapter-output.log": "6732d4112fb1aa1b6a7701f2d00f97651e1e69e4e4f92646d2bd32d9c090cacf",
+    "esm-resolution-642573.jsonl": "4f43f992932f66557be667a0441aa9d26510baa6c8489c984384ec9400f3a4da",
+    "abi127-resolver.mjs.txt": "52f5ebaa8f80d9f09d8b7c90d9c662f45e0929e8605fac56aecbf0eb97075406",
+    "offline-preload.cjs.txt": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4",
+    "adapter-exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  }
+}

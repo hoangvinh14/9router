@@ -1,0 +1,35 @@
+{
+  "taskId": "b34837935",
+  "notificationStatus": "failed",
+  "notificationExitCode": 124,
+  "root": "/tmp/9router-pricing-staged-build-qszrhmf6",
+  "artifacts": {
+    "runner-output.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0,
+      "mtimeUtc": "2026-10-20T03:03:04.383709+00:00"
+    },
+    "runner-exit.txt": {
+      "sha256": "ca2ebdf97d7469496b1f4b78958f9dc8447efdcb623953fee7b6996b762f6fff",
+      "size": 4,
+      "mtimeUtc": "2026-10-20T03:18:33.640180+00:00"
+    },
+    "build-output.log": {
+      "sha256": "c70c325216a1c27eadfd321cb765739118ca22e0a69d57109d85bfab9b3409d7",
+      "size": 266,
+      "mtimeUtc": "2026-10-20T03:03:08.420615+00:00"
+    },
+    "build-exit.txt": {
+      "sha256": "ca2ebdf97d7469496b1f4b78958f9dc8447efdcb623953fee7b6996b762f6fff",
+      "size": 4,
+      "mtimeUtc": "2026-10-20T03:18:12.115138+00:00"
+    },
+    "proxy-events.json": {
+      "sha256": "800efb75a46f8bb74a505c279a62000d75e9f32e4b78f49bcb831df9449037d4",
+      "size": 619,
+      "mtimeUtc": "2026-10-20T03:18:24.961162+00:00"
+    }
+  },
+  "missing": [],
+  "collectionUtc": "2026-10-20T03:28:40.955897+00:00"
+}

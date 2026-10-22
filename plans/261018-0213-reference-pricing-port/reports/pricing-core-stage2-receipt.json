@@ -1,0 +1,16 @@
+{
+  "taskId": "b950ca8a7",
+  "exitCode": 0,
+  "summary": {
+    "success": true,
+    "numTotalTests": 28,
+    "numPassedTests": 28,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "sourceHashesVerified": true,
+  "testFiles": 4,
+  "rawSha256": "1997b2494079342e5f3afc97c51c1d2f1869cf18ae2fb25304360cd9051f696a",
+  "limits": "unwired core revision/resolver tests Node and SQLjs; not migration/repo/API/UI/Docker proof"
+}

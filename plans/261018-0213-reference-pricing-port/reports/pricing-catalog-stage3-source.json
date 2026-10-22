@@ -1,0 +1,27 @@
+{
+  "root": "/tmp/9router-pricing-catalog-mg_6fyq_",
+  "files": {
+    "src/lib/pricing/catalogJson.js": "559770bc6c79f00f75698992d13d8687002c1914b45a9153dba432f91f79f72a",
+    "src/lib/pricing/catalogMapping.js": "d80d650d2a358726ec81cd8a1ae3b90a7002ea2894a1681106b7c6eccb44092e",
+    "src/lib/pricing/constants.js": "0c8398c8fc97846dcd655684300ad59172db4e0e87e52f6fc6c366f386262c98",
+    "src/lib/pricing/decimalMoney.js": "b3ff9137fa79dfa84c3abcc08b2b7bfb4295a430f86ba3e8031b0abfa90c57d9",
+    "src/lib/pricing/pricingValidation.js": "393e2841835c831ade831d42e0e243fcb5b0ce0c04b3afa30282101842daeffb",
+    "src/lib/pricing/rateValidation.js": "f9440996aa0572f6021fc8ab3f70393f95be36191de85a6d695639bf80047fd5",
+    "src/lib/pricing/referenceResolver.js": "c01bd546b21863cdb5542bad73f98264ff09438277a8517dd75cd0e9f757c230",
+    "src/lib/pricing/snapshotMemo.js": "07ee67898575202d668657968192629681899547a907e5cca5403b0f5cc3ba0d",
+    "src/lib/db/pricingRevision.js": "a31b0bbc5e9428c3271d88a7811ad3c58dd48e1cb2395a967291c1f15da52d01",
+    "tests/unit/pricing-decimal-money.test.js": "2c5b0f7cf116c491a3337878c8d9aaebe2de1a5f3a67100eac482c61a557b8e5",
+    "tests/unit/pricing-validation.test.js": "908728dd4b6f7d58421d6441659138c7da7d9af72ee5f1335b70c97294a74af1",
+    "tests/unit/pricing-snapshot-cache.test.js": "aa3639ae09ba4d5902cfbf7697591ade2562334f900083f7f200d21a20f3e46d",
+    "tests/unit/pricing-snapshot-sqljs.test.js": "edf5f87ef971ad80415d504739f6d20e586a4050e235d637ff89c2ebf21f7a4a",
+    "src/lib/pricing/referenceState.js": "60991b9b6734273bb436c85729f93e95f9d15325373259f3ab36e4e347c6e499",
+    "src/lib/pricing/catalogSync.js": "097db82e49e4c94045402327b1dc8a2fb76247f03cdbceac7d1f98a69d3ad96b",
+    "src/lib/pricing/catalogSchedule.js": "bd5ce3cab82ca9b0e74c9043c1e605b120fb6432504c9b999931a1adad0a3767",
+    "src/lib/pricing/catalogScheduler.js": "4a33740386e712a2de6c8a8604e6bc99882a0d27e4bbe8f1325770996f85ee65",
+    "tests/unit/pricing-catalog-sync.test.js": "ccb4286198dc6f7b1adc419aae93ca1cc86011c7f9a9bf4e0fa19dd8c7a9b824",
+    "tests/unit/pricing-schedule.test.js": "db0b9d7ce484a62bd3f4f7ff586ce88e1c825b94e3bb86017e84b82d7b0fd56b",
+    "tests/fixtures/pricing/models-dev-minimal.json": "a55a20751a5d447dc23e28b26e172ecc4033aa7ceecca04357baac0309ce8470",
+    "tests/fixtures/pricing/models-dev-overprecision.json": "cb8a89d9c3151720cf713589b0eed60d324ff9ba4b260f752d47a2f91d38f17b"
+  },
+  "scope": "stage3 catalog/projection/schedule explicit fixtures; current DB repo/import/migrate/API still untouched"
+}

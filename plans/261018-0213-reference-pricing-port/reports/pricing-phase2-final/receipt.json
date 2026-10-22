@@ -1,0 +1,26 @@
+{
+  "taskId": "b819910f1",
+  "exitCode": 0,
+  "summary": {
+    "success": true,
+    "numTotalTests": 271,
+    "numPassedTests": 271,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "testFiles": 26,
+  "sourceHelperHashesVerified": true,
+  "reportByteOffsets": [
+    855,
+    103163
+  ],
+  "limits": "26file offline affected barrier; actualTCP/h2c separate archived; not build/UI/Docker",
+  "budget": "Userauthorized10s ONLYoriginalcoldpersistenceidentitybothadapters; othertimeoutsunchanged",
+  "artifactHashes": {
+    "results.json": "da2085bc1108016e88fb749b5fca84789cf03a889a81bff389d7bbf645327fd9",
+    "runner-prefix.log": "6d8012e6155e02a69d11b73ff932a25a611e6d57f0bad32e7f5caa4b517ef87b",
+    "exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "output.log": "e1b58f3dbd2d6a3be9507a7c3887d32379cf70cbc6cde29940f05260bb82f506"
+  }
+}

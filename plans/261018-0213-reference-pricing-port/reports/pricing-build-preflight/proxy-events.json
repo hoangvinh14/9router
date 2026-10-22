@@ -1,0 +1,18 @@
+[
+  {
+    "target": "models.dev:443",
+    "allowed": false
+  },
+  {
+    "target": "127.0.0.1:20128",
+    "allowed": false
+  },
+  {
+    "target": "fonts.googleapis.com:443",
+    "allowed": true
+  },
+  {
+    "target": "fonts.gstatic.com:443",
+    "allowed": true
+  }
+]

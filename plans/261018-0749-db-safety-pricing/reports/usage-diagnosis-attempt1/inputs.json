@@ -1,0 +1,10 @@
+{
+  "root": "/tmp/9router-usage-diagnosis-qx2rXF",
+  "usageSourceSha256": "ad4bf3642337c483211ac7507694f2c36adf0dad7e3256e9447c3cd5748bdbc1",
+  "usageMatchesHead": true,
+  "frozenR4ManifestSha256": "9da99473f1909da27764a4ccde6336839b6c92c79839aa03f50d35a6b94afecb",
+  "harnessHashes": {
+    "usage-diagnosis.test.js": "63438791db5e8a9991528bad23833368d3f16634885b46d6a5914b1462e6220b",
+    "vitest.config.mjs": "2a89fb0644c94a5c514076ec2f8189ff3d5ccaa40c4a1a0d1a24414e0f9c92fd"
+  }
+}

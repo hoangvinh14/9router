@@ -1,0 +1,47 @@
+{
+  "source": "https://api.github.com/repos/WiseLibs/better-sqlite3/releases/339692067/assets?per_page=100&page=2",
+  "releaseId": 339692067,
+  "releaseTag": "v12.11.1",
+  "releaseImmutableObserved": false,
+  "asset": {
+    "url": "https://api.github.com/repos/WiseLibs/better-sqlite3/releases/assets/448381028",
+    "id": 448381028,
+    "node_id": "RA_kwDOBAfkfM4aucBk",
+    "name": "better-sqlite3-v12.11.1-node-v127-linux-x64.tar.gz",
+    "label": "",
+    "uploader": {
+      "login": "github-actions[bot]",
+      "id": 41898282,
+      "node_id": "MDM6Qm90NDE4OTgyODI=",
+      "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/github-actions%5Bbot%5D",
+      "html_url": "https://github.com/apps/github-actions",
+      "followers_url": "https://api.github.com/users/github-actions%5Bbot%5D/followers",
+      "following_url": "https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}",
+      "gists_url": "https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/github-actions%5Bbot%5D/subscriptions",
+      "organizations_url": "https://api.github.com/users/github-actions%5Bbot%5D/orgs",
+      "repos_url": "https://api.github.com/users/github-actions%5Bbot%5D/repos",
+      "events_url": "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/github-actions%5Bbot%5D/received_events",
+      "type": "Bot",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "content_type": "application/x-gzip",
+    "state": "uploaded",
+    "size": 1089479,
+    "digest": "sha256:94ce113ea2d9347fcd1cf8e46445cc271d1dbd02d05a64aa460442222f023b11",
+    "download_count": 4215871,
+    "created_at": "2026-06-15T17:16:59Z",
+    "updated_at": "2026-06-15T17:16:59Z",
+    "browser_download_url": "https://github.com/WiseLibs/better-sqlite3/releases/download/v12.11.1/better-sqlite3-v12.11.1-node-v127-linux-x64.tar.gz"
+  },
+  "downloaded": false,
+  "metadataSha256": {
+    "binding-abi127-release-assets-page1.json": "92968d40f3ec223c7f1e4973ab937992021b94864d9fe47d2812cd9d46af6a04",
+    "binding-abi127-release-assets-page2.json": "6b674d1ca13a64fa53c58b1a86b6f9bcefe93bfbadba1e07a5cd71568fdeab44"
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "mode": "main",
+  "status": "failed",
+  "runtime": "v22.23.2",
+  "abi": "127",
+  "cases": [
+    {
+      "name": "real factory WAL/FULL and managed durable ACK",
+      "status": "passed"
+    },
+    {
+      "name": "same-parent factory exclusion and real child exclusion",
+      "status": "passed"
+    },
+    {
+      "name": "rollback/nested and outermost ACK restriction",
+      "status": "passed"
+    },
+    {
+      "name": "caught close preserves transaction; uncaught close rolls back",
+      "status": "passed"
+    },
+    {
+      "name": "SQL transaction/read mutation guards and trigger compatibility",
+      "status": "passed"
+    },
+    {
+      "name": "async callback refused before entry",
+      "status": "passed"
+    },
+    {
+      "name": "checkpoint close and closed-use rejection",
+      "status": "passed"
+    },
+    {
+      "name": "retained pre-open token cannot unlock real adapter",
+      "status": "passed"
+    },
+    {
+      "name": "thenable return rolls back and poisons real adapter",
+      "status": "passed"
+    },
+    {
+      "name": "actual driver selects better and migrations retain schema2/ACL",
+      "status": "failed",
+      "error": {
+        "name": "SqliteError",
+        "message": "NOT NULL constraint failed: apiKeys.createdAt"
+      }
+    }
+  ],
+  "cleanupErrors": [],
+  "children": [
+    {
+      "mode": "contender",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "(node:514994) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:\n--import 'data:text/javascript,import { register } from \"node:module\"; import { pathToFileURL } from \"node:url\"; register(\"/tmp/9router-db-safety-abi127-mOsx0u/harness/abi127-resolver.mjs\", pathToFileURL(\"./\"));'\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:514994) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/9router-db-safety-abi127-mOsx0u/mirror/src/lib/db/adapters/betterSqliteAdapter.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /tmp/9router-db-safety-abi127-mOsx0u/mirror/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    }
+  ],
+  "error": {
+    "name": "SqliteError",
+    "code": "SQLITE_CONSTRAINT_NOTNULL",
+    "message": "NOT NULL constraint failed: apiKeys.createdAt"
+  },
+  "passed": 9
+}

@@ -1,0 +1,19 @@
+{
+  "taskId": "b357bc75b",
+  "exitCode": 1,
+  "status": "collection-failure",
+  "testsExecuted": 0,
+  "nodeLane": "collection failed before assertions",
+  "sqljsLane": "not run (parent stops on first failed lane)",
+  "classification": "assistant-authored harness imports mocks API from absolute vitest module path, not literal vitest package; reported mock API resolution error",
+  "causalEvidence": "none; no usage-count or runtime-backend result",
+  "sourceUnchanged": true,
+  "artifactHashes": {
+    "usage-diagnosis.test.js": "63438791db5e8a9991528bad23833368d3f16634885b46d6a5914b1462e6220b",
+    "vitest.config.mjs": "2a89fb0644c94a5c514076ec2f8189ff3d5ccaa40c4a1a0d1a24414e0f9c92fd",
+    "inputs.json": "b32cf33b5545cfc77a23367c0ef8156731aa2a1b653097a0e9e40e78abc2d746",
+    "evidence/node-output.log": "4f11099184dc59e3c31b2ed2c4abe531b70081185c1b10234b068c666d0e33a7",
+    "evidence/node-exit.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  },
+  "followUp": "proposed only: fresh copy, literal vitest import with exact package alias in config; no automatic rerun"
+}

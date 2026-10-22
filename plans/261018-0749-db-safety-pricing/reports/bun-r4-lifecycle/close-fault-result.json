@@ -1,0 +1,36 @@
+{
+  "status": "passed",
+  "runtime": "1.4.3",
+  "cases": [
+    {
+      "name": "initialization failure after real prepare strictly finalizes before release",
+      "status": "passed",
+      "strictCalls": [
+        [
+          true
+        ]
+      ]
+    },
+    {
+      "name": "real-engine close fault poisons and retains owner until strict retry; committed data persists",
+      "status": "passed",
+      "strictCalls": [
+        [
+          true
+        ],
+        [
+          true
+        ]
+      ]
+    },
+    {
+      "name": "initialization plus strict-close failure retains exclusion; raw fixture cleanup never implies ACK",
+      "status": "passed",
+      "retainedLock": true,
+      "recovery": "left fixture lock intact; no automatic release/ACK inferred after raw teardown"
+    }
+  ],
+  "cleanupErrors": [],
+  "kind": "actual Bun engine with explicitly injected JS prepare/close faults",
+  "passed": 3
+}

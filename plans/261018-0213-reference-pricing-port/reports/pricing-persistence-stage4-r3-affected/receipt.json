@@ -1,0 +1,26 @@
+{
+  "taskId": "baeed4691",
+  "exitCode": 0,
+  "summary": {
+    "success": true,
+    "numTotalTests": 206,
+    "numPassedTests": 206,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "testFiles": 20,
+  "sourceHashesVerified": true,
+  "reportByteOffsets": [
+    855,
+    77864
+  ],
+  "budget": "10s only approved cold-start pricingidentity, allotherdeadlinesdefault",
+  "limits": "20file DB/ACL/legacyusage+pricing affected barrier; not API/UI/build/Docker",
+  "artifactHashes": {
+    "results.json": "43bc2f7fe94a7ea58025e0eb4bbb7cc1b980945dd357012b0df7b2810bbb112d",
+    "runner-prefix.log": "d1eb217aabef723f86d3332a46252f20ccc083b0a4015f5485770ce082f982fc",
+    "exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "output.log": "1cb722c7404ff9d7fc8668626e839de1b6e732fc3948d560ddb67a300c43f390"
+  }
+}

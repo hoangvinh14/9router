@@ -1,0 +1,1 @@
+Evidence collector failed before archiving: json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0). Both manifest and raw parse were on one source line; failing input not established by traceback. No source checks completed in that attempt. Counsel before collection correction. No rerun.

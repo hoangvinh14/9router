@@ -1,0 +1,19 @@
+{
+  "passed": [
+    "unauthenticated pricing is denied",
+    "real browser login",
+    "exact override fixture via real API",
+    "unchanged modal save makes no PATCH",
+    "invalid decimal stays in editor without write",
+    "changed row saves exact input and explicit zero",
+    "mobile horizontal keyboard scroll and focus trap",
+    "hostile Origin and forwarded authority are denied",
+    "real stale coverage 409 and browser restart",
+    "scheduler checkbox enables without immediate fetch"
+  ],
+  "errors": [
+    "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: true\nReceived: false\n    at captureRawStack (/home/gmo/projects/9router/tests/node_modules/playwright-core/lib/coreBundle.js:9282:17)\n    at callMatcherAsStep (/home/gmo/projects/9router/tests/node_modules/playwright/lib/matchers/expect.js:13316:57)\n    at Object.toBe (/home/gmo/projects/9router/tests/node_modules/playwright/lib/matchers/expect.js:13308:23)\n    at /home/gmo/projects/9router/tests/browser/pricing-acceptance.mjs:139:84\n    at async check (/home/gmo/projects/9router/tests/browser/pricing-acceptance.mjs:18:41)\n    at async file:///home/gmo/projects/9router/tests/browser/pricing-acceptance.mjs:135:3"
+  ],
+  "artifact": "/tmp/9router-phase3-build-261022/phase3-dist-261022/standalone",
+  "root": "/tmp/9router-browser-VBedi6"
+}

@@ -1,0 +1,2 @@
+[DB][migrate] applied #1 initial
+[DB] Driver: bun:sqlite | file: /tmp/9router-db-bun-r6-AZAROO/fixtures/data/db/data.sqlite

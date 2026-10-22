@@ -1,0 +1,60 @@
+{
+  "lane": "node",
+  "node": "v24.21.0",
+  "cases": [
+    {
+      "name": "identical-fixed-50",
+      "requested": 50,
+      "uniqueTimestamps": 1,
+      "history": 1,
+      "rawRows": 1,
+      "counters": {
+        "requests": 1,
+        "promptTokens": 100,
+        "completionTokens": 50
+      },
+      "errors": []
+    },
+    {
+      "name": "unique-fixed-100",
+      "requested": 100,
+      "uniqueTimestamps": 100,
+      "history": 100,
+      "rawRows": 100,
+      "counters": {
+        "requests": 100,
+        "promptTokens": 10000,
+        "completionTokens": 5000
+      },
+      "errors": []
+    },
+    {
+      "name": "automatic-100",
+      "requested": 100,
+      "uniqueTimestamps": 2,
+      "history": 2,
+      "rawRows": 2,
+      "counters": {
+        "requests": 2,
+        "promptTokens": 200,
+        "completionTokens": 100
+      },
+      "errors": []
+    },
+    {
+      "name": "automatic-50",
+      "requested": 50,
+      "uniqueTimestamps": 2,
+      "history": 2,
+      "rawRows": 2,
+      "counters": {
+        "requests": 2,
+        "promptTokens": 200,
+        "completionTokens": 100
+      },
+      "errors": []
+    }
+  ],
+  "purpose": "diagnosis-only; original concurrency assertions remain unchanged/red",
+  "usageSourceSha256": "ad4bf3642337c483211ac7507694f2c36adf0dad7e3256e9447c3cd5748bdbc1"
+}

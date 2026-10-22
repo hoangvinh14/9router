@@ -1,0 +1,10 @@
+{
+  "taskId": "b326b8125",
+  "exitCode": 0,
+  "files": [
+    "src/lib/db/writerOwnership.js",
+    "tests/unit/db-release-sync.test.js"
+  ],
+  "sourceHashesVerified": true,
+  "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

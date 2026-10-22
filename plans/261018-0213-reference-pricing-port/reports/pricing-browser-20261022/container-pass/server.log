@@ -1,0 +1,21 @@
+▲ Next.js 16.4.2
+- Local:         http://127.0.0.1:23128
+- Network:       http://127.0.0.1:23128
+✓ Ready in 0ms
+✓ Running next.config took 28ms
+[DB][migrate] applied #1 initial
+[DB] Driver: better-sqlite3 | file: /app/data/db/data.sqlite
+▲ Next.js 16.4.2
+- Local:         http://127.0.0.1:23128
+- Network:       http://127.0.0.1:23128
+✓ Ready in 0ms
+✓ Running next.config took 28ms
+[DB] Driver: better-sqlite3 | file: /app/data/db/data.sqlite
+(node:1) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///app/src/sse/services/backgroundTokenRefresh.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///app/src/sse/services/backgroundTokenRefresh.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

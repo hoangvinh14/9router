@@ -1,0 +1,10 @@
+{
+  "command": [
+    "node",
+    "--experimental-loader",
+    "/tmp/9router-pricing-node-diag-6k4q4nez/loader.mjs",
+    "/tmp/9router-pricing-node-diag-6k4q4nez/probe.mjs"
+  ],
+  "reason": "process-exited",
+  "exitCode": 0
+}

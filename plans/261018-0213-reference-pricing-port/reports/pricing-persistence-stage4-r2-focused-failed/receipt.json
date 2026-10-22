@@ -1,0 +1,36 @@
+{
+  "taskId": "b8c81ee24",
+  "exitCode": 1,
+  "sourceHashesVerified": true,
+  "summary": {
+    "success": false,
+    "numTotalTests": 16,
+    "numPassedTests": 1,
+    "numFailedTests": 1,
+    "numPendingTests": 14,
+    "numTodoTests": 0
+  },
+  "failures": [
+    {
+      "file": "/home/gmo/projects/9router/tests/unit/pricing-persistence-import.test.js",
+      "name": "Node actual pricing persistence and config integration acknowledges complete exact overrides durably, preserves numeric map and zero, and avoids no-op revision writes",
+      "status": "failed",
+      "failureMessages": [
+        "Error: STACK_TRACE_ERROR\n    at task (file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.<anonymous> (file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.<anonymous> (file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at chain (file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at /home/gmo/projects/9router/tests/unit/pricing-persistence-import.test.js:31:5\n    at file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:40\n    at runWithSuite (file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:2258:8)\n    at Object.collect (file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:10)\n    at Object.collect (file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:1893:54)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+      ]
+    }
+  ],
+  "reportByteOffsets": [
+    0,
+    8796
+  ],
+  "filter": "acknowledges complete exact overrides durably, preserves numeric map and zero, and avoids no-op revision writes",
+  "deselection": "all other cases intentionally not selected",
+  "artifactHashes": {
+    "results.json": "7858d80cf38652090c17cb843adcdaf9947c292af68150032c7691b5bc7e6c37",
+    "runner-prefix.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source.json": "2c8d6e352e992a9e9240b33f71b6695cbfd34b50d89c022e632da94b52e20538",
+    "exit-code.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "output.log": "7fc8b550bf2fe511266b8c9b55f8808ebcc9ae4590047afc9c18ef7aba9309ef"
+  }
+}

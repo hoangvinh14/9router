@@ -1,0 +1,12 @@
+{
+  "taskId": "b973d3bc7",
+  "exitCode": 1,
+  "sourceHashesVerified": true,
+  "artifacts": {
+    "collector-attempt1.txt": "ad9de245f95af8e45a1d2e66a643cb6108e9927757e5160dbec5198dd7008aeb",
+    "source.json": "210ee540ce5f5a7defd552a16e9791c42b6cc08f893bdc0700b9234a3954ff33",
+    "exit-code.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "output.log": "407f69056412a5170323136320a3a8d494c2f014d024f2a08243680e2b2f0040"
+  },
+  "reportParsing": "pending bounded raw inspection; no results inferred"
+}

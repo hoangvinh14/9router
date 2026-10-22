@@ -1,0 +1,32 @@
+{
+  "preflightTaskId": "b05fa72cc",
+  "preflightExitCode": 0,
+  "preflightArtifactSha256": {
+    "abi127-r2-result.json": "b591f4e75643203aebfdd1db692bffb201b429e219ca46d04cb63f66d82ee542",
+    "abi127-r2-output.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "abi127-r2-exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "abi127-r2-inputs.json": "a250c74ac69c944638a74c71138e1eb1cf5113a49197c622012095d5a071837b"
+  },
+  "timeoutSeconds": 60,
+  "childTimeoutMs": 10000,
+  "mainCases": 12,
+  "childCases": {
+    "contender": 1,
+    "reopen": 1
+  },
+  "syntheticEngineFaults": false,
+  "harnessSha256": {
+    "abi127-adapter-harness.mjs": "cbc812670f0838ad99ab0682c7e2cb305f100c9e5d380f5026226c549e1857ba",
+    "abi127-resolver.mjs": "f5682b58075060e87e6c780b7d3ce4104dca0c187b4704e73e6213e8d49808d3",
+    "offline-preload.cjs": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4"
+  },
+  "mirrorManifestSha256": "14e3b5220da5349b5d564c6e442a5c0d9af0d20344c6c06f0d7f50c6a9ce60dc",
+  "R3OriginalsAndMirrorVerifiedUnchanged": true,
+  "coverageLimits": [
+    "mirror execution, not original dependency ABI",
+    "normal-close fresh-process reopen not crash/power-loss",
+    "ACL column/helper composition not full API auth",
+    "no Bun/Windows or analytics repair"
+  ],
+  "lint": "3mjs exit0; Node22 --check harness/resolver exit0"
+}

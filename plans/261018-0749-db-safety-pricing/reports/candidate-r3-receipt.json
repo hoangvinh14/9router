@@ -1,0 +1,103 @@
+{
+  "taskId": "b774229a1",
+  "exitCode": 1,
+  "files": 11,
+  "assertions": 117,
+  "passed": 115,
+  "failed": 2,
+  "pending": 0,
+  "todo": 0,
+  "r2ToR3Deltas": [
+    {
+      "file": "tests/unit/cached-token-usage.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-concurrent.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-driver-chain.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-durable-publication.test.js",
+      "added": [
+        "actual Node SQLite durable publication close inside callback cannot release live transaction ownership, caught or uncaught"
+      ],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-migration-chain.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-sqlite-vs-lowdb.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-sqljs-publication.test.js",
+      "added": [
+        "actual SQL.js publication and health close inside callback cannot publish or release ownership, caught or uncaught",
+        "actual SQL.js publication and health partial exec failure stays dirty outside transactions but rolls back inside clean or dirty transactions"
+      ],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-writer-ownership.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/key-access-migration.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/key-access.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/provider-pricing-minimax-m3.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    }
+  ],
+  "changedSourceTestFiles": [
+    "src/lib/db/adapters/nativeAdapter.js",
+    "src/lib/db/adapters/sqljsAdapter.js",
+    "tests/unit/db-durable-publication.test.js",
+    "tests/unit/db-sqljs-publication.test.js"
+  ],
+  "frozenHashCheck": "passed",
+  "lint": {
+    "r3ChangedFiles": 4,
+    "r3Exit": 0,
+    "unchangedR2Files": 14,
+    "r2Exit": 0
+  },
+  "overallAccepted": false,
+  "artifacts": {
+    "candidate-r3-results.json": "ceffed206d0dc7794f094157bc520b6309a8da7437584d504f05774a7dc60b67",
+    "candidate-r3-output.log": "d7d049205de064a2c3ea835a44c2f4a055539bc4a2f77464b681cbd6136fc284",
+    "candidate-r3-source.json": "e011a96ed491cefd2129af0af89afa82d0c82c05a52a328a77bdad81a159ffbe",
+    "candidate-r3-eslint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

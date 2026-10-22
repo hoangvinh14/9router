@@ -1,0 +1,37 @@
+# Bun 1.4.3 — isolated verification proposal
+
+Research date: 2026-10-18. Current authorization is metadata/documentation lookup and planning only. No Bun executable downloaded, installed or run. Windows support unchanged, P1 gate closed.
+
+## Proposed artifact
+Official stable release [bun-v1.4.3](https://github.com/oven-sh/bun/releases/tag/bun-v1.4.3), published2026-10-10, release408543611, draft=false/prerelease=false/immutable=false. [Saved metadata](./bun-release-metadata.json), [pin](./bun-artifact-pin.json), [publisher checksum file](./bun-SHASUMS256.txt).
+
+- Asset `bun-linux-x64-baseline.zip`, ID626789490, compressed42015103bytes.
+- SHA256 `1fc2edac843102909e3a1be1d8d9802cc6071cf074e67e88231f4ffe0f8b397b` agrees between GitHub API digest and publisher SHASUMS256.txt. Checksum-file SHA itself matches metadata. Neither is independent signature verification; no trusted signing-key verification or CVE audit claimed.
+- Exact URL: `https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-linux-x64-baseline.zip`.
+- Host observed Linuxx86_64,glibc2.35,SSE4.2=yes,AVX2=no. Choose baseline rather than assuming AVX2. Current [installation docs](https://bun.sh/docs/installation) say baseline assets alias the single runtime-dispatch x64binary and require SSE4.2/glibc2.17+; downloaded content/CPU execution remains unverified. Do not assume two distinct ZIP digests mean distinct CPU requirements. Pin exact selected ZIP regardless.
+
+Metadata lookup of `latest` was discovery only; execution must use the fixed version/asset/hash, never silently update it.
+
+## New source-backed compatibility risk: close before release
+Version-pinned [sqlite declarations](https://raw.githubusercontent.com/oven-sh/bun/bun-v1.4.3/packages/bun-types/sqlite.d.ts) saved as [source evidence](./bun-v1.4.3-sqlite.d.ts.txt), lines273–306, explicitly distinguish:
+- `close()` defaultfalse uses deferred SQLite close; statements made with `prepare()` can remain usable until finalized/garbage-collected.
+- `close(true)` finalizes outstanding statements and requests immediate connection release, throwing if close fails.
+
+Shared nativeAdapter uses `db.prepare`, clears its Map of statements, calls `db.close()` and then releases writer ownership. Initial-failure cleanup also calls `db.close()` then release. Clearing JS references does not guarantee synchronous finalization/GC. This may conflict with the candidate's full-engine-close-before-release contract on Bun. It is a **potential defect supported by source/docs**, not a reproduced live-writer escape or data-loss claim. Private statements are not publicly exposed, and actual reachability/lifetime must be checked. Advisor counsel supports preserving this as unresolved, not silently changing source during planning; advice is not independent review.
+
+Do not solve by copying better-sqlite3 test counts or by treating successful new-owner acquisition as proof prior SQLite handle closed. `close(true)` is a candidate repair policy, not a verified fix or currently authorized production edit.
+
+## Proposed bounded execution — requires approval
+1. **Private setup:** one fixed-artifact HTTPS download into a new0700temporary root, timeout120s established before launch, compressed cap48MB, exact size/hash. Allow only github.com and expected release-assets/objects GitHub CDN redirects. No shell installer/curl-pipe-shell, npm/bun install, sudo, shell RC/global PATH changes, auto-upgrade or fallback binary. No private credentials/data in requests. Unexpected redirect/hash/size/archive mismatch → counsel and STOP, no retry.
+2. **Safe ZIP extraction:** inspect members first, reject absolute/traversal/duplicates/symlink/device/special entries, expanded aggregate cap200MB and ratio cap8. Accept only expected executable path `bun-linux-x64-baseline/bun` and parent directory; contents not downloaded so layout unverified. Manual regular-file extraction, record executable SHA; execute only after checks, never overwrite a system Bun.
+3. **Availability/lifetime preflight,30s:** actual pinned Bun `--version`/`--revision` and builtin bun:sqlite; report runtime identity/CPU failure before app use. Fresh owned fixture DBs only. Raw retained prepare statement after `close()` vs `close(true)`, including transaction rollback/commit outcome and reuse attempts. Mark defaultclose behavior observational, strictclose and no unacknowledged-state leak as required controls. No server/provider/telemetry/crash-upload actions intended; use stable not canary, disabled core dumps and selected-JS network guard if supported. JS guard is not an OS/native sandbox; do not claim network-proof isolation.
+4. **Actual adapter/driver lifecycle,60s parent/10s children:** byte-identical fresh source mirror using actual bun:sqlite; no Node mocks or altered process.versions. Runtime-specific resolver/preload required to validate exact local aliases and module origins; do not assume Node experimental-loader or CJS cache APIs work unchanged in Bun. Stage static checks and explicit artifact/input manifest before launch, preserve all failures. No engine fallback accepted: driver must report bun:sqlite.
+5. **Priority close controls:** normal/repeatedclose, outstanding cached prepare statements, active-transaction close refusal, initialization-failure cleanup and close-failure poison/lock retention. Distinguish raw reachable statement fixture from private wrapper exposure; label synthetic fault injection separately. Need observable actual connection release/finalization or documented strict-close contract+actual tests, not GC timing/sleeps. If current adapter violates contract, STOP and present evidence and exact bounded repair proposal; production repair is not part of setup approval.
+6. **Then ordinary safety controls:** ownership/second process and stale-policy behavior, WAL/FULL, durable ACK/orderly reopen, rollback/nesting/sync-callback/thenable poison, SQL read/write/trigger guards, migration/schema2/ACL and pricing numericzero/modelmerge. Reuse scenario names where invariant identical; Bun-specific differences explicitly manifest, no silent skip/weakening. Fixed ISOcreatedAt required in direct SQLkey fixture to avoid prior harness defect. These are named scenarios, not equivalent to all Vitest assertions.
+7. **Final receipt:** exact runtime/revision/executableSHA/source+mirror+helper hashes, results/exits/signals, module origins, fixture locks/close outcomes. Keep prior reds; no cross-attempt pass synthesis, no timeout tuning/prewarming/green retry. Do not change root node_modules/lockfiles or original ABI137binding. A Bun pass advances only that lane; no power-loss or allplatform certificate.
+
+## Windows / remaining gates
+Linux Bun evidence does not establish Windows directory fsync/rename/PID-recovery behavior. Windows needs a real Windows runner/environment and a separate authorized packet, not DockerLinux/Wine or silent platform support reduction. Independent full-source review and two unresolved analytics failures remain open. No CI push/dispatch, support waiver, pricing API/UI port, commit/push or activation authorized.
+
+## Decision requested
+Approve pinned private Bun download/extraction + bounded availability/close-lifetime preflight and actual adapter tests above, **stop on failure and no production repair**; or defer/provide an existing suitable runtime. The current step has completed planning only. No need to install Bun globally or change the machine's default Node runtime.

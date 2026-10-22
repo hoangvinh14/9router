@@ -1,0 +1,31 @@
+{
+  "taskId": "b846b70d3",
+  "exitCode": 0,
+  "kind": "diagnosis-only; not replacement of original failing regression",
+  "lanes": {
+    "node": {
+      "passedTests": 4,
+      "exitCode": 0
+    },
+    "sqljs": {
+      "passedTests": 4,
+      "exitCode": 0
+    }
+  },
+  "r4SourceUnchanged": true,
+  "usageSourceMatchesHEAD": true,
+  "harnessInputsMatch": true,
+  "fixtureLocks": [],
+  "artifactHashes": {
+    "inputs.json": "5b65e29a12b2c426d02995a5b228bc61b6aa40d04c8c6779b25cf27c8410f978",
+    "usage-diagnosis.test.js": "3781cb69af92bba66b2c9dcaaae66e8eb36ccb6ae59a6a433ec0ac2c08266c5a",
+    "vitest.config.mjs": "8ca77f111710a0745d6e36ae397df97772074b5e403562aae20e7ebe4a92c403",
+    "evidence/node-diagnosis.json": "79c70507e69c7476481544937621cb1e8eadf5ca2a11bf54d16efe59a5be1d10",
+    "evidence/node-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "evidence/node-output.log": "b1f6c06589eddeabf931e5cd76e30135e66c7c03237fce67b809e682e3f4e4ef",
+    "evidence/sqljs-diagnosis.json": "85a059bbf44305550b6d081e5c8beeb41f8cab9457f32ab2ee3835596e35626b",
+    "evidence/sqljs-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "evidence/sqljs-output.log": "9cf0238d6cc74b6c75b6138a3ba3653378b27551de01b4b7ca5abe3d6a7d24d5"
+  },
+  "limits": "uniqueTimestamps captured on mutated input objects, not per-row persisted timestamp projection; raw count/history/stats corroborate; SQLjs only pre-open engine availability mocked"
+}

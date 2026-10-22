@@ -1,0 +1,24 @@
+{
+  "taskId": "b048b6138",
+  "exitCode": 0,
+  "sourceHashesVerified": true,
+  "tests": {
+    "numTotalTests": 53,
+    "numPassedTests": 53,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "originalFailureIdentities": [
+    {
+      "name": "DB Concurrency \u2014 atomic safety 100 parallel saveRequestUsage \u2192 no count loss",
+      "status": "passed"
+    },
+    {
+      "name": "DB Concurrency \u2014 atomic safety daily summary aggregates correctly under parallel writes",
+      "status": "passed"
+    }
+  ],
+  "scope": "4files usage-event-identity, db-concurrent, db-sqlite-vs-lowdb, cached-token-usage; not full DB/ACL/allruntime acceptance",
+  "rawSha256": "a16fecb6b1ed562ae4849aeeab035371672f438e3d768a76b3678ac1f4dfcae8"
+}

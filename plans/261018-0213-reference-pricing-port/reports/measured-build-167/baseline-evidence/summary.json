@@ -1,0 +1,663 @@
+{
+  "durationSampled": 927.38,
+  "maxGapSeconds": 5.86,
+  "rssSumPeakGiB": 8.925,
+  "memAvailableMinGiB": 2.295,
+  "swapUsedStartGiB": 1.081,
+  "swapUsedEndGiB": 2.499,
+  "vmDelta": {
+    "pswpin": 17301,
+    "pswpout": 493012,
+    "pgmajfault": 14356,
+    "oom_kill": 0
+  },
+  "sampleErrors": [],
+  "recordedProcessesStillPresent": [],
+  "affinities": {
+    "0-11": 541,
+    "0-1": 527,
+    "unknown": 4
+  },
+  "relayTerminals": [
+    {
+      "event": "relay_end",
+      "wall": 1792511350.535011,
+      "mono": 232259.573585964,
+      "side": "outside",
+      "connection": 129010729396416,
+      "reason": "eof",
+      "start": 232259.349141518,
+      "leftBytes": 1939,
+      "rightBytes": 9567,
+      "phase": "recv"
+    },
+    {
+      "event": "relay_end",
+      "wall": 1792511351.0921342,
+      "mono": 232260.13070872,
+      "side": "outside",
+      "connection": 129010729396128,
+      "reason": "eof",
+      "start": 232259.905884588,
+      "leftBytes": 1951,
+      "rightBytes": 31583,
+      "phase": "recv"
+    },
+    {
+      "event": "relay_end",
+      "wall": 1792511351.133306,
+      "mono": 232260.171909873,
+      "side": "outside",
+      "connection": 129010729700512,
+      "reason": "eof",
+      "start": 232259.920416413,
+      "leftBytes": 1949,
+      "rightBytes": 54545,
+      "phase": "recv"
+    },
+    {
+      "event": "relay_end",
+      "wall": 1792511351.165379,
+      "mono": 232260.203953631,
+      "side": "outside",
+      "connection": 129010729700224,
+      "reason": "eof",
+      "start": 232259.92429612,
+      "leftBytes": 1951,
+      "rightBytes": 91980,
+      "phase": "recv"
+    },
+    {
+      "event": "relay_end",
+      "wall": 1792511351.1697526,
+      "mono": 232260.208326674,
+      "side": "outside",
+      "connection": 129010729699936,
+      "reason": "eof",
+      "start": 232259.936464828,
+      "leftBytes": 1951,
+      "rightBytes": 15777,
+      "phase": "recv"
+    },
+    {
+      "event": "relay_end",
+      "wall": 1792511351.2077384,
+      "mono": 232260.246312553,
+      "side": "outside",
+      "connection": 129010729395648,
+      "reason": "eof",
+      "start": 232259.927197276,
+      "leftBytes": 1951,
+      "rightBytes": 24374,
+      "phase": "recv"
+    },
+    {
+      "event": "relay_end",
+      "wall": 1792511351.3772552,
+      "mono": 232260.41582987,
+      "side": "outside",
+      "connection": 129010729699360,
+      "reason": "eof",
+      "start": 232259.958560449,
+      "leftBytes": 1951,
+      "rightBytes": 16769,
+      "phase": "recv"
+    },
+    {
+      "event": "relay_end",
+      "wall": 1792511351.4836123,
+      "mono": 232260.522186369,
+      "side": "outside",
+      "connection": 129010729699648,
+      "reason": "eof",
+      "start": 232259.975833566,
+      "leftBytes": 1951,
+      "rightBytes": 24674,
+      "phase": "recv"
+    }
+  ],
+  "phaseSamples": [
+    {
+      "seconds": 0.0,
+      "rssSumGiB": 0.002,
+      "availableGiB": 8.611,
+      "cpuCoresApprox": null,
+      "processes": [
+        {
+          "pid": 1576194,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_poll.constprop.0",
+          "ticks": 0,
+          "readBytes": 0,
+          "writeBytes": 0
+        }
+      ],
+      "pressure": {
+        "pressure/memory": "some avg10=0.03 avg60=0.03 avg300=0.00 total=176264576\nfull avg10=0.03 avg60=0.03 avg300=0.00 total=166994738",
+        "pressure/io": "some avg10=0.03 avg60=5.26 avg300=13.00 total=5296261916\nfull avg10=0.03 avg60=5.23 avg300=12.84 total=5105116416",
+        "pressure/cpu": "some avg10=0.02 avg60=0.15 avg300=0.15 total=1461698965\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0"
+      },
+      "activeRelays": {}
+    },
+    {
+      "seconds": 118.6,
+      "rssSumGiB": 1.318,
+      "availableGiB": 7.663,
+      "cpuCoresApprox": 1.56,
+      "processes": [
+        {
+          "pid": 1576194,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_poll.constprop.0",
+          "ticks": 0,
+          "readBytes": 0,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576196,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_wait",
+          "ticks": 4,
+          "readBytes": 0,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576197,
+          "name": "python3",
+          "state": "S",
+          "rssMiB": 18,
+          "wchan": "do_select",
+          "ticks": 74,
+          "readBytes": 0,
+          "writeBytes": 8192
+        },
+        {
+          "pid": 1576199,
+          "name": "npm run build",
+          "state": "S",
+          "rssMiB": 73,
+          "wchan": "ep_poll",
+          "ticks": 229,
+          "readBytes": 364544,
+          "writeBytes": 8192
+        },
+        {
+          "pid": 1576222,
+          "name": "sh",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_wait",
+          "ticks": 0,
+          "readBytes": 4096,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576226,
+          "name": "next-build (v16",
+          "state": "R",
+          "rssMiB": 1254,
+          "wchan": "0",
+          "ticks": 16205,
+          "readBytes": 3256320,
+          "writeBytes": 5894144
+        }
+      ],
+      "pressure": {
+        "pressure/memory": "some avg10=0.00 avg60=0.01 avg300=0.00 total=176430968\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=167085251",
+        "pressure/io": "some avg10=0.00 avg60=0.76 avg300=8.69 total=5296491013\nfull avg10=0.00 avg60=0.75 avg300=8.58 total=5105278235",
+        "pressure/cpu": "some avg10=19.93 avg60=13.38 avg300=4.92 total=1479280887\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0"
+      },
+      "activeRelays": {}
+    },
+    {
+      "seconds": 242.4,
+      "rssSumGiB": 1.744,
+      "availableGiB": 8.59,
+      "cpuCoresApprox": 1.46,
+      "processes": [
+        {
+          "pid": 1576194,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_poll.constprop.0",
+          "ticks": 0,
+          "readBytes": 0,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576196,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_wait",
+          "ticks": 4,
+          "readBytes": 0,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576197,
+          "name": "python3",
+          "state": "S",
+          "rssMiB": 18,
+          "wchan": "do_select",
+          "ticks": 121,
+          "readBytes": 0,
+          "writeBytes": 8192
+        },
+        {
+          "pid": 1576199,
+          "name": "npm run build",
+          "state": "S",
+          "rssMiB": 72,
+          "wchan": "ep_poll",
+          "ticks": 240,
+          "readBytes": 364544,
+          "writeBytes": 8192
+        },
+        {
+          "pid": 1576222,
+          "name": "sh",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_wait",
+          "ticks": 0,
+          "readBytes": 4096,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576226,
+          "name": "next-build (v16",
+          "state": "R",
+          "rssMiB": 1692,
+          "wchan": "0",
+          "ticks": 33421,
+          "readBytes": 3256320,
+          "writeBytes": 5894144
+        }
+      ],
+      "pressure": {
+        "pressure/memory": "some avg10=0.00 avg60=0.00 avg300=0.00 total=176455304\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=167109268",
+        "pressure/io": "some avg10=0.00 avg60=0.15 avg300=5.73 total=5296799099\nfull avg10=0.00 avg60=0.15 avg300=5.65 total=5105582004",
+        "pressure/cpu": "some avg10=15.42 avg60=15.85 avg300=8.98 total=1500715852\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0"
+      },
+      "activeRelays": {}
+    },
+    {
+      "seconds": 360.8,
+      "rssSumGiB": 1.743,
+      "availableGiB": 8.586,
+      "cpuCoresApprox": 1.33,
+      "processes": [
+        {
+          "pid": 1576194,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_poll.constprop.0",
+          "ticks": 0,
+          "readBytes": 0,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576196,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_wait",
+          "ticks": 4,
+          "readBytes": 0,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576197,
+          "name": "python3",
+          "state": "S",
+          "rssMiB": 18,
+          "wchan": "do_select",
+          "ticks": 164,
+          "readBytes": 0,
+          "writeBytes": 8192
+        },
+        {
+          "pid": 1576199,
+          "name": "npm run build",
+          "state": "S",
+          "rssMiB": 72,
+          "wchan": "ep_poll",
+          "ticks": 240,
+          "readBytes": 364544,
+          "writeBytes": 8192
+        },
+        {
+          "pid": 1576222,
+          "name": "sh",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_wait",
+          "ticks": 0,
+          "readBytes": 4096,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576226,
+          "name": "next-build (v16",
+          "state": "R",
+          "rssMiB": 1690,
+          "wchan": "0",
+          "ticks": 50378,
+          "readBytes": 3256320,
+          "writeBytes": 5894144
+        }
+      ],
+      "pressure": {
+        "pressure/memory": "some avg10=0.00 avg60=0.00 avg300=0.00 total=176455465\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=167109426",
+        "pressure/io": "some avg10=0.00 avg60=0.01 avg300=3.81 total=5296800333\nfull avg10=0.00 avg60=0.01 avg300=3.76 total=5105583181",
+        "pressure/cpu": "some avg10=14.22 avg60=16.96 avg300=11.99 total=1522807831\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0"
+      },
+      "activeRelays": {}
+    },
+    {
+      "seconds": 478.9,
+      "rssSumGiB": 3.489,
+      "availableGiB": 7.172,
+      "cpuCoresApprox": 2.0,
+      "processes": [
+        {
+          "pid": 1576194,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_poll.constprop.0",
+          "ticks": 0,
+          "readBytes": 0,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576196,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_wait",
+          "ticks": 4,
+          "readBytes": 0,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576197,
+          "name": "python3",
+          "state": "S",
+          "rssMiB": 18,
+          "wchan": "do_select",
+          "ticks": 206,
+          "readBytes": 0,
+          "writeBytes": 8192
+        },
+        {
+          "pid": 1576199,
+          "name": "npm run build",
+          "state": "S",
+          "rssMiB": 72,
+          "wchan": "ep_poll",
+          "ticks": 240,
+          "readBytes": 364544,
+          "writeBytes": 8192
+        },
+        {
+          "pid": 1576222,
+          "name": "sh",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_wait",
+          "ticks": 0,
+          "readBytes": 4096,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576226,
+          "name": "next-build (v16",
+          "state": "S",
+          "rssMiB": 3479,
+          "wchan": "futex_wait_queue",
+          "ticks": 69617,
+          "readBytes": 903200768,
+          "writeBytes": 458813440
+        }
+      ],
+      "pressure": {
+        "pressure/memory": "some avg10=0.03 avg60=0.24 avg300=0.08 total=176844935\nfull avg10=0.03 avg60=0.23 avg300=0.08 total=167471923",
+        "pressure/io": "some avg10=0.37 avg60=3.11 avg300=3.73 total=5301000498\nfull avg10=0.37 avg60=3.05 avg300=3.67 total=5109706771",
+        "pressure/cpu": "some avg10=0.15 avg60=10.50 avg300=12.93 total=1542168849\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0"
+      },
+      "activeRelays": {}
+    },
+    {
+      "seconds": 602.4,
+      "rssSumGiB": 4.933,
+      "availableGiB": 5.812,
+      "cpuCoresApprox": 1.75,
+      "processes": [
+        {
+          "pid": 1576194,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_poll.constprop.0",
+          "ticks": 0,
+          "readBytes": 0,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576196,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_wait",
+          "ticks": 4,
+          "readBytes": 0,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576197,
+          "name": "python3",
+          "state": "S",
+          "rssMiB": 18,
+          "wchan": "do_select",
+          "ticks": 253,
+          "readBytes": 0,
+          "writeBytes": 8192
+        },
+        {
+          "pid": 1576199,
+          "name": "npm run build",
+          "state": "S",
+          "rssMiB": 72,
+          "wchan": "ep_poll",
+          "ticks": 240,
+          "readBytes": 364544,
+          "writeBytes": 8192
+        },
+        {
+          "pid": 1576222,
+          "name": "sh",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_wait",
+          "ticks": 0,
+          "readBytes": 4096,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576226,
+          "name": "next-build (v16",
+          "state": "S",
+          "rssMiB": 4957,
+          "wchan": "ep_poll",
+          "ticks": 88725,
+          "readBytes": 3269128192,
+          "writeBytes": 459055104
+        }
+      ],
+      "pressure": {
+        "pressure/memory": "some avg10=3.84 avg60=1.04 avg300=0.27 total=177706286\nfull avg10=3.52 avg60=0.95 avg300=0.25 total=168248327",
+        "pressure/io": "some avg10=18.89 avg60=8.85 avg300=4.69 total=5308755679\nfull avg10=4.82 avg60=3.28 avg300=3.21 total=5112695231",
+        "pressure/cpu": "some avg10=51.66 avg60=35.26 avg300=18.57 total=1575750771\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0"
+      },
+      "activeRelays": {}
+    },
+    {
+      "seconds": 721.2,
+      "rssSumGiB": 7.376,
+      "availableGiB": 4.653,
+      "cpuCoresApprox": 0.42,
+      "processes": [
+        {
+          "pid": 1576194,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_poll.constprop.0",
+          "ticks": 0,
+          "readBytes": 0,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576196,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_wait",
+          "ticks": 4,
+          "readBytes": 0,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576197,
+          "name": "python3",
+          "state": "S",
+          "rssMiB": 10,
+          "wchan": "do_select",
+          "ticks": 302,
+          "readBytes": 0,
+          "writeBytes": 8192
+        },
+        {
+          "pid": 1576199,
+          "name": "npm run build",
+          "state": "S",
+          "rssMiB": 16,
+          "wchan": "ep_poll",
+          "ticks": 240,
+          "readBytes": 364544,
+          "writeBytes": 8192
+        },
+        {
+          "pid": 1576222,
+          "name": "sh",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_wait",
+          "ticks": 0,
+          "readBytes": 4096,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576226,
+          "name": "next-build (v16",
+          "state": "S",
+          "rssMiB": 7523,
+          "wchan": "ep_poll",
+          "ticks": 107178,
+          "readBytes": 14941663232,
+          "writeBytes": 459055104
+        }
+      ],
+      "pressure": {
+        "pressure/memory": "some avg10=4.24 avg60=8.02 avg300=3.64 total=190635064\nfull avg10=3.99 avg60=6.98 avg300=3.13 total=179349160",
+        "pressure/io": "some avg10=43.38 avg60=25.22 avg300=11.24 total=5337771608\nfull avg10=27.80 avg60=13.81 avg300=6.30 total=5127888773",
+        "pressure/cpu": "some avg10=21.90 avg60=37.50 avg300=26.31 total=1626550009\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0"
+      },
+      "activeRelays": {}
+    },
+    {
+      "seconds": 840.1,
+      "rssSumGiB": 1.512,
+      "availableGiB": 10.508,
+      "cpuCoresApprox": 0.05,
+      "processes": [
+        {
+          "pid": 1576194,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_poll.constprop.0",
+          "ticks": 0,
+          "readBytes": 0,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576196,
+          "name": "bwrap",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_wait",
+          "ticks": 4,
+          "readBytes": 0,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576197,
+          "name": "python3",
+          "state": "S",
+          "rssMiB": 10,
+          "wchan": "do_select",
+          "ticks": 342,
+          "readBytes": 0,
+          "writeBytes": 8192
+        },
+        {
+          "pid": 1576199,
+          "name": "npm run build",
+          "state": "S",
+          "rssMiB": 16,
+          "wchan": "ep_poll",
+          "ticks": 240,
+          "readBytes": 364544,
+          "writeBytes": 8192
+        },
+        {
+          "pid": 1576222,
+          "name": "sh",
+          "state": "S",
+          "rssMiB": 2,
+          "wchan": "do_wait",
+          "ticks": 0,
+          "readBytes": 4096,
+          "writeBytes": 0
+        },
+        {
+          "pid": 1576226,
+          "name": "next-build (v16",
+          "state": "S",
+          "rssMiB": 1517,
+          "wchan": "ep_poll",
+          "ticks": 110736,
+          "readBytes": 15294337024,
+          "writeBytes": 459055104
+        }
+      ],
+      "pressure": {
+        "pressure/memory": "some avg10=1.46 avg60=4.81 avg300=4.58 total=199715605\nfull avg10=1.45 avg60=4.59 avg300=4.20 total=188222403",
+        "pressure/io": "some avg10=70.76 avg60=63.93 avg300=30.67 total=5420198290\nfull avg10=66.88 avg60=57.59 avg300=25.16 total=5202061857",
+        "pressure/cpu": "some avg10=2.38 avg60=8.05 avg300=18.90 total=1632794222\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0"
+      },
+      "activeRelays": {}
+    }
+  ]
+}

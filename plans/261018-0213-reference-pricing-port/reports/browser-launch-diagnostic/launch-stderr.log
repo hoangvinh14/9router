@@ -1,0 +1,8 @@
+[4:4:1019/071844.303047:VERBOSE1:chrome/app/chrome_crash_reporter_client.cc:199] GetCollectStatsConsent(): is_official_chrome_build is false so returning false
+[4:4:1019/071844.390755:VERBOSE1:chrome/app/chrome_crash_reporter_client.cc:199] GetCollectStatsConsent(): is_official_chrome_build is false so returning false
+[1:1:1019/071849.634498:VERBOSE1:chrome/common/media/cdm_registration.cc:214] Registering bundled Widevine 4.10.3050.0
+[12:12:1019/071849.636077:VERBOSE1:chrome/common/media/cdm_registration.cc:214] Registering bundled Widevine 4.10.3050.0
+[1:1:1019/071851.013649:INFO:third_party/webrtc/rtc_base/cpu_info.cc:77] Available number of cores: 12
+[12:12:1019/071851.013672:INFO:third_party/webrtc/rtc_base/cpu_info.cc:77] Available number of cores: 12
+[1:1:1019/071851.149151:VERBOSE1:content/zygote/zygote_main_linux.cc:202] ZygoteMain: initializing 0 fork delegates
+[12:12:1019/071851.148600:VERBOSE1:content/zygote/zygote_main_linux.cc:202] ZygoteMain: initializing 0 fork delegates

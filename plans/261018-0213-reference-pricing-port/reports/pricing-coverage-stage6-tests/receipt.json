@@ -1,0 +1,26 @@
+{
+  "taskId": "bb0bdf853",
+  "exitCode": 0,
+  "summary": {
+    "success": true,
+    "numTotalTests": 61,
+    "numPassedTests": 61,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "testFiles": 5,
+  "sourceHashesVerified": true,
+  "reportByteOffsets": [
+    0,
+    24022
+  ],
+  "scope": "coverage committedview/currentregistry/revisionquery+realJWTNodeintegration; wrapperstamps syntax/lintonly untilactualTCPlane",
+  "limits": "Actual issued JWT Node DB integration; actual Node/SQLjs coverage. No actualTCP/server/startup/Docker proof. Overlaps stage5; do not sum.",
+  "artifactHashes": {
+    "results.json": "fc4b9706e2ffa7b666c2fe810dbea28a8b72f94fc8d4797514a8fc1dc112ae13",
+    "runner-prefix.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "output.log": "99dc8255e72d297f11046cc3fc434fac704215a4b32135e3ef4e307ce5e9ad70"
+  }
+}

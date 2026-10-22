@@ -1,0 +1,40 @@
+{
+  "taskId": "b7b9cc9f6",
+  "exitCode": 0,
+  "status": "bounded-R6-better-runtime-pass",
+  "runtime": "Node22.23.2/Linuxglibc privatebetter12.11.1ABI127",
+  "namedScenarioCounts": {
+    "main": 14,
+    "contender": 1,
+    "reopen": 1
+  },
+  "countUnit": "named scenarios, not Vitest assertion counts",
+  "sourceMirrorHarnessHashesMatch": true,
+  "moduleProvenanceVerified": true,
+  "resolverCounts": {
+    "esm-resolution-877640.jsonl": 62,
+    "esm-resolution-877614.jsonl": 63,
+    "esm-resolution-877628.jsonl": 23
+  },
+  "fixtureOwnershipFiles": [],
+  "artifactHashes": {
+    "adapter-contender-result.json": "9f28c4555d51cf585a80445b8652c99f0fb39319dd3ccb834f57be12ca41ad85",
+    "adapter-exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "adapter-main-result.json": "bef1bbc16cc4cd96ad903223e325f1a03fd926dbb210630a1ce12fa3013a186e",
+    "adapter-output.log": "fef6c580dd837cd712fa3fda3d7b46017531a775ec722864fe1730734c008901",
+    "adapter-reopen-result.json": "3413548facca2ff03175df11d05f2ce6cddc9f896c7524ad4da0e2e47bdd1187",
+    "esm-resolution-877614.jsonl": "fddaa0d781ef58dd1c43c478d906a66093a18cefdc5bb97f1325757c8736c94a",
+    "esm-resolution-877628.jsonl": "d8dfe4bdc6049d956d3cddd07fa26c398c981f4fa950a945644a28736c94464d",
+    "esm-resolution-877640.jsonl": "8317e9cb6290f8f5173477703458c87110aa4e1827def3d44fc71509d8985052",
+    "mirror-inputs.json": "7fae539b9ee46348aaa8296957b55929d8ea85f539a70c78a96ac6e68150e185",
+    "offline-preload.cjs.txt": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4",
+    "abi127-resolver.mjs.txt": "2619dc8c71efc00b95cf4529c7bde8ba2cb17f85fd080e89630c0d0a311e4199",
+    "abi127-adapter-harness.mjs.txt": "45b5b8b00c5ee14cdbcf299834ff72ecd845b82b88b107f5e8e42b7a7210a07e"
+  },
+  "limits": [
+    "not Docker Node22Alpine/musl proof",
+    "not Windows",
+    "not signal-shutdown/powerloss",
+    "copied usageRepo not exercised by these factory/driver scenarios; usage verified separate Vitest lane"
+  ]
+}

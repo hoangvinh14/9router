@@ -1,0 +1,24 @@
+
+> 9router-app@0.5.104 build
+> next build --webpack
+
+▲ Next.js 16.3.8 (webpack)
+✓ Running next.config.mjs took 185ms
+- Experiments (use with caution):
+  · optimizePackageImports
+  · proxyClientMaxBodySize: "128mb"
+
+  Creating an optimized production build ...
+Failed to compile.
+
+./open-sse/shared/awsCredentials.js
+Module not found: Can't resolve '@aws-sdk/credential-providers'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./open-sse/executors/bedrock.js
+./src/app/api/providers/validate/route.js
+
+
+> Build failed because of webpack errors

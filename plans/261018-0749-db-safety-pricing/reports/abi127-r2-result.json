@@ -1,0 +1,94 @@
+{
+  "runtime": "v22.23.2",
+  "abi": "127",
+  "executable": "/home/gmo/.nvm/versions/node/v22.23.2/bin/node",
+  "platform": "linux",
+  "arch": "x64",
+  "status": "passed",
+  "stage": "complete",
+  "milestones": {
+    "opened": true,
+    "queryPassed": true,
+    "provenancePassed": true,
+    "closed": true
+  },
+  "packageFile": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/package.json",
+  "fixtureFile": "/tmp/9router-db-safety-abi127-mOsx0u/fixtures/data/binding-preflight-r2.sqlite",
+  "cacheEntries": [
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/harness/offline-preload.cjs",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/harness/offline-preload.cjs"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/index.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/index.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/database.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/database.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/util.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/util.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/sqlite-error.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/sqlite-error.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/wrappers.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/wrappers.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/transaction.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/transaction.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/pragma.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/pragma.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/backup.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/backup.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/serialize.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/serialize.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/function.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/function.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/aggregate.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/aggregate.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/table.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/table.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/inspect.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/lib/methods/inspect.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/package.json",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/package.json"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/bindings/bindings.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/bindings/bindings.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/file-uri-to-path/index.js",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/file-uri-to-path/index.js"
+    },
+    {
+      "file": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/build/Release/better_sqlite3.node",
+      "realpath": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+    }
+  ],
+  "unexpectedCacheEntries": [],
+  "loadedAddon": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/build/Release/better_sqlite3.node",
+  "addonSha256": "df9fbd0d061f360d81fb51e265c53c9605020bd68219e34f33c07c85de15719a"
+}

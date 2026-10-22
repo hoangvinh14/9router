@@ -1,0 +1,8 @@
+{
+  "mirrorManifestSha256": "14e3b5220da5349b5d564c6e442a5c0d9af0d20344c6c06f0d7f50c6a9ce60dc",
+  "harness": {
+    "harness/offline-preload.cjs": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4",
+    "harness/abi127-preflight.mjs": "f4c723919a904dcf3b2910f7c52a90c2ecd5c9c5629fc54be29679ff2bd7634e"
+  },
+  "timeoutSeconds": 30
+}
