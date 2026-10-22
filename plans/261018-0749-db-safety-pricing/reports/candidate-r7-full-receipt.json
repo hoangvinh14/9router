@@ -1,0 +1,16 @@
+{
+  "taskId": "b3cad2960",
+  "exitCode": 0,
+  "sourceHashesVerified": true,
+  "summary": {
+    "success": true,
+    "numTotalTests": 149,
+    "numPassedTests": 149,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "testFiles": 13,
+  "rawSha256": "fcfa2d0cabaaaf0d6d462fdfb80b7540df167c33875a57d5e982490c709510b8",
+  "scope": "13file DB/ACL/pricing/usage affected barrier including release-sync; not API/UI/build/Docker/Windows/shutdown acceptance"
+}

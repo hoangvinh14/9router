@@ -1,0 +1,22 @@
+{
+  "taskId": "b2e2993dc",
+  "exitCode": 1,
+  "status": "attempted-failed-blocked",
+  "runtime": "v22.23.2",
+  "runtimeAbi": 127,
+  "bindingAbiReported": 137,
+  "errorCode": "ERR_DLOPEN_FAILED",
+  "actualDbOpen": false,
+  "adapterHarness": "not run: stop-on-ABI-failure contract",
+  "sourceAndTestR3HashesUnchanged": true,
+  "preflightInputsUnchanged": true,
+  "fixtureRootRetained": "/tmp/9router-db-safety-node22-qc25Rh",
+  "artifacts": {
+    "node22-preflight-result.json": "86ce09773c70a167be2b32df33e75fa56e46075a16690986678836a1ff0493e0",
+    "node22-preflight-output.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "node22-preflight-exit-code.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "node22-preflight-inputs.json": "f2133dd36b926284dce5f1576c6d2f1228c1dff291445dbc0b36a1c64f36f69a",
+    "node22-source-check.json": "93d25384bc0d73c6c42e2b288c85a3dc33f89b7e34f639708bd27fba2374b4fa"
+  },
+  "nextSetupAuthorized": false
+}

@@ -1,0 +1,1 @@
+{"hypothesis":"shared storage prerequisite required","observations":{"sqljsFilePresentAtReturn":false,"sqljsHasDurableTransaction":false,"sqljsHasHealth":false,"sqljsSecondWriterAccepted":true,"priceAfterFirstWriterClose":"2","priceAfterUnrelatedWriter":"1","nativeJournal":"wal","nativeSynchronous":1,"nativeHasDurableTransaction":false},"productImplementation":false}

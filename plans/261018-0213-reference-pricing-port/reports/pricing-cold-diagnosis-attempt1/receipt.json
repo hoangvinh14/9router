@@ -1,0 +1,20 @@
+{
+  "taskId": "b1bbb542b",
+  "exitCode": 1,
+  "sourceAndHelperHashesVerified": true,
+  "missingArtifacts": [
+    "spans.jsonl"
+  ],
+  "artifactHashes": {
+    "reporter.mjs": "d2a15b7e7a5d95f8fc7e0261e68099f905f284b7e0f35bf1f7c50f7f5a647c90",
+    "runner-events.jsonl": "dff23380e7a12ba1222c61ab6e48d125ce1bdca7b54f5804b4536e3df1e680b2",
+    "cold.test.js": "14cce7bca16fed419cbd59c2c94143aa0a089dbc9145bff8d31d3bab04d6ebdd",
+    "vitest.config.mjs": "08cd422718f77dbbb6ed0c0e4caefd53bd8b68e184407a6fc55d2d7beacdf0f8",
+    "exit-code.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "output.log": "b1d8fc197216eace832a9f66b12f3d776eb8d8dbb2b0010ee976b6c0da1ead3e"
+  },
+  "classification": "diagnostic test timeout confirmed by custom reporter; no completed stage timing captured",
+  "effectiveTestTimeout": 5000,
+  "errorMessage": "Test timed out in 5000ms.\nIf this is a long-running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".",
+  "limits": "does not establish exact previous test cause or stage cost; missing spans explicitly retained; no acceptance"
+}

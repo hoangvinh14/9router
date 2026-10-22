@@ -1,0 +1,16 @@
+{
+  "runtime": "v22.23.2",
+  "executable": "/home/gmo/.nvm/versions/node/v22.23.2/bin/node",
+  "abi": "127",
+  "platform": "linux",
+  "arch": "x64",
+  "bindingVersion": "12.11.1",
+  "fixtureFile": "/tmp/9router-db-safety-node22-qc25Rh/data/preflight.sqlite",
+  "status": "failed",
+  "stage": "open",
+  "error": {
+    "name": "Error",
+    "code": "ERR_DLOPEN_FAILED",
+    "message": "The module '/home/gmo/projects/9router/node_modules/better-sqlite3/build/Release/better_sqlite3.node'\nwas compiled against a different Node.js version using\nNODE_MODULE_VERSION 137. This version of Node.js requires\nNODE_MODULE_VERSION 127. Please try re-compiling or re-installing\nthe module (for instance, using `npm rebuild` or `npm install`)."
+  }
+}

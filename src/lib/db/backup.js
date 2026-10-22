@@ -38,6 +38,10 @@ export function backupFile(srcPath, destDir, destName = null) {
 // observability log, so the backup stays small regardless of DB size.
 export function backupDbLite(adapter, destDir, destName = "data.sqlite") {
   const dest = path.join(destDir, destName);
+  if (typeof adapter.backupTo === "function") {
+    adapter.backupTo(dest, BACKUP_EXCLUDE_TABLES);
+    return dest;
+  }
   try { fs.rmSync(dest, { force: true }); } catch {}
   const escaped = dest.replace(/'/g, "''");
 

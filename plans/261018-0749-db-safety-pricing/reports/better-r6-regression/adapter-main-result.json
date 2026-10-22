@@ -1,0 +1,155 @@
+{
+  "mode": "main",
+  "status": "passed",
+  "runtime": "v22.23.2",
+  "abi": "127",
+  "cases": [
+    {
+      "name": "real factory WAL/FULL and managed durable ACK",
+      "status": "passed"
+    },
+    {
+      "name": "same-parent factory exclusion and real child exclusion",
+      "status": "passed"
+    },
+    {
+      "name": "rollback/nested and outermost ACK restriction",
+      "status": "passed"
+    },
+    {
+      "name": "caught close preserves transaction; uncaught close rolls back",
+      "status": "passed"
+    },
+    {
+      "name": "SQL transaction/read mutation guards and trigger compatibility",
+      "status": "passed"
+    },
+    {
+      "name": "async callback refused before entry",
+      "status": "passed"
+    },
+    {
+      "name": "checkpoint close and closed-use rejection",
+      "status": "passed"
+    },
+    {
+      "name": "retained pre-open token cannot unlock real adapter",
+      "status": "passed"
+    },
+    {
+      "name": "thenable return rolls back and poisons real adapter",
+      "status": "passed"
+    },
+    {
+      "name": "actual driver selects better and migrations retain schema2/ACL",
+      "status": "passed"
+    },
+    {
+      "name": "real pricing repo update preserves other model and explicit numeric zero",
+      "status": "passed"
+    },
+    {
+      "name": "fresh-process ACK and driver/ACL/pricing reopen with module provenance",
+      "status": "passed"
+    },
+    {
+      "name": "dangling DB symlink refuses open and leaves target absent",
+      "status": "passed"
+    },
+    {
+      "name": "closed engine retries lease release after gate collision then reopens",
+      "status": "passed"
+    }
+  ],
+  "cleanupErrors": [],
+  "children": [
+    {
+      "mode": "contender",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "(node:877628) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:\n--import 'data:text/javascript,import { register } from \"node:module\"; import { pathToFileURL } from \"node:url\"; register(\"/tmp/9router-db-better-r6-jOZC9C/harness/abi127-resolver.mjs\", pathToFileURL(\"./\"));'\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:877628) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/9router-db-better-r6-jOZC9C/mirror/src/lib/db/adapters/betterSqliteAdapter.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /tmp/9router-db-better-r6-jOZC9C/mirror/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    },
+    {
+      "mode": "reopen",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "[DB] Driver: better-sqlite3 | file: /tmp/9router-db-better-r6-jOZC9C/fixtures/data/db/data.sqlite\n",
+      "stderr": "(node:877640) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:\n--import 'data:text/javascript,import { register } from \"node:module\"; import { pathToFileURL } from \"node:url\"; register(\"/tmp/9router-db-better-r6-jOZC9C/harness/abi127-resolver.mjs\", pathToFileURL(\"./\"));'\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:877640) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/9router-db-better-r6-jOZC9C/mirror/src/lib/db/adapters/betterSqliteAdapter.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /tmp/9router-db-better-r6-jOZC9C/mirror/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    }
+  ],
+  "cacheEntries": [
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/harness/offline-preload.cjs",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/harness/offline-preload.cjs"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/index.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/index.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/database.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/database.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/util.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/util.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/sqlite-error.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/sqlite-error.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/wrappers.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/wrappers.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/transaction.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/transaction.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/pragma.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/pragma.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/backup.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/backup.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/serialize.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/serialize.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/function.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/function.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/aggregate.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/aggregate.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/table.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/table.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/inspect.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/lib/methods/inspect.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/bindings/bindings.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/bindings/bindings.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/file-uri-to-path/index.js",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/file-uri-to-path/index.js"
+    },
+    {
+      "file": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/build/Release/better_sqlite3.node",
+      "realpath": "/tmp/9router-db-better-r6-jOZC9C/mirror/node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+    }
+  ],
+  "addonSha256": "df9fbd0d061f360d81fb51e265c53c9605020bd68219e34f33c07c85de15719a",
+  "passed": 14
+}

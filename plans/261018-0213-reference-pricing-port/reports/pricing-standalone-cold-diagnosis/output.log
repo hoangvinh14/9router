@@ -1,0 +1,9 @@
+(node:916295) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/tmp/9router-pricing-node-diag-6k4q4nez/loader.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+[DB][migrate] applied #1 initial
+[DB] Driver: node:sqlite | file: /tmp/9router-pricing-node-diag-6k4q4nez/data/db/data.sqlite
+(node:916295) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/gmo/projects/9router/src/lib/db/index.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/gmo/projects/9router/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

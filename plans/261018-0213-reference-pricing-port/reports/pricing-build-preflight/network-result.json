@@ -1,0 +1,10 @@
+{
+  "models.dev:443": 403,
+  "127.0.0.1:20128": 403,
+  "fonts.googleapis.com:443": 200,
+  "fonts.gstatic.com:443": 200,
+  "directEgress": "denied",
+  "checkoutWrite": "denied EROFS",
+  "hostHome": "masked",
+  "descendantReady": true
+}

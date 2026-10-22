@@ -1,0 +1,41 @@
+{
+  "taskId": "bdcd2622f",
+  "exitCode": 0,
+  "status": "bounded-R7-Bun-runtime-pass",
+  "runtime": "1.4.3",
+  "revision": "c6da4a4d3010e5553438c60f6bd76d981976867c",
+  "namedScenarioCounts": {
+    "main": 16,
+    "contender": 1,
+    "reopen": 1
+  },
+  "countUnit": "named scenarios, not Vitest assertions",
+  "sourceMirrorHarnessBinaryHashesMatch": true,
+  "moduleProvenanceVerified": true,
+  "resolverCounts": {
+    "bun-resolve-888263.jsonl": 37,
+    "bun-resolve-888250.jsonl": 10,
+    "bun-resolve-888228.jsonl": 38
+  },
+  "fixtureOwnershipFiles": [],
+  "artifactHashes": {
+    "adapter-reopen-result.json": "bb34175f1bd82824688bf871795edef4a088ba3aab58053759104e1a23533fcb",
+    "adapter-main-result.json": "3093430896296a771cc5ec0263a2453e14a35fa4a7f647b8e5d527ff8eca2d8d",
+    "adapter-contender-result.json": "2c51565e5762ee8cf3d2680a3448e109b57322043cbb2bd28bbb6da370da9015",
+    "bun-resolve-888263.jsonl": "400b58107b3554a4faaa58c92b3fae28f7645df8979edc777121910c72d93b6b",
+    "mirror-inputs.json": "01f0ca2b4cfba629c5060d6010c5c741ab65050bc88163e9abd35a59f49651bc",
+    "bun-resolve-888250.jsonl": "63c8ed4505e67122cb32ef8db54f24f8f6de1c1e2cdff01d6299829a459ba50e",
+    "bun-resolve-888228.jsonl": "3fdb8456455765ffe6f7ad5c172af0860192dce4724c2f5d5f6f6abc6ba8a392",
+    "adapter-output.log": "c0c7f9fc3716a48e383b41e4dbf3cd9a4283b9a9a9871177139702eb90c38ff7",
+    "bun-ordinary-harness.mjs.txt": "0496a850133de2f5178cde26ff484f05e0544119bb373b05d3284d4c5b896ab1",
+    "offline-preload.cjs.txt": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4",
+    "adapter-exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bun-mirror-preload.mjs.txt": "3ec8388acab38464ab94a93b30f20095a8f0b710906f64d976333a766a5b41b8"
+  },
+  "limits": [
+    "Linuxhost not DockerAlpine/musl or Windows",
+    "not powerloss/signal shutdown",
+    "2directorysync faults explicitly JS injected on actual engine",
+    "usage copied not exercised by native factory scenarios; separate Vitest evidence applies"
+  ]
+}

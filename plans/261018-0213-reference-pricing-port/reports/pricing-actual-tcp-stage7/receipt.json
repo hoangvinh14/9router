@@ -1,0 +1,25 @@
+{
+  "taskId": "bcf47bd97",
+  "exitCode": 0,
+  "summary": {
+    "success": true,
+    "numTotalTests": 11,
+    "numPassedTests": 11,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "testFiles": 2,
+  "sourceHelperHashesVerified": true,
+  "reportByteOffsets": [
+    912,
+    5571
+  ],
+  "limits": "Actual TCP wrapper/guard; session/settings mocked and Next forwarding simulated. Not compiled Next server or Docker acceptance.",
+  "artifactHashes": {
+    "results.json": "0d110271869e5856d5f9262af0af5297d990e25c4f19efa94fcc1a33b95d9fc4",
+    "runner-prefix.log": "2245d0ca8f1c0585fb0fd65059e413ae24a4d8f963e8e7844b8614258bdf29a3",
+    "tcp-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "tcp-output.log": "121f0dffff71260c9590cb8566818e87d5e08ca0e583182929f8af0c72f094b1"
+  }
+}

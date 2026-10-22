@@ -1,0 +1,13 @@
+{
+  "revision": "87a74e1bda3677193c6f71a7e2100c90311f0689",
+  "tests": [
+    "tests/unit/provider-pricing-minimax-m3.test.js",
+    "tests/unit/key-access.test.js",
+    "tests/unit/key-access-migration.test.js",
+    "tests/unit/db-sqlite-vs-lowdb.test.js",
+    "tests/unit/db-concurrent.test.js",
+    "tests/unit/db-driver-chain.test.js",
+    "tests/unit/db-migration-chain.test.js",
+    "tests/unit/cached-token-usage.test.js"
+  ]
+}

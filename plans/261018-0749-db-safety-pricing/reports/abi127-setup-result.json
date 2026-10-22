@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "url": "https://github.com/WiseLibs/better-sqlite3/releases/download/v12.11.1/better-sqlite3-v12.11.1-node-v127-linux-x64.tar.gz",
+  "redirects": [
+    {
+      "host": "release-assets.githubusercontent.com",
+      "path": "/github-production-release-asset/67626108/44ad3a80-7971-47dd-9ba3-73e6119dfe58",
+      "status": 302
+    }
+  ],
+  "expectedSha256": "94ce113ea2d9347fcd1cf8e46445cc271d1dbd02d05a64aa460442222f023b11",
+  "finalHost": "release-assets.githubusercontent.com",
+  "finalPath": "/github-production-release-asset/67626108/44ad3a80-7971-47dd-9ba3-73e6119dfe58",
+  "size": 1089479,
+  "sha256": "94ce113ea2d9347fcd1cf8e46445cc271d1dbd02d05a64aa460442222f023b11",
+  "members": [
+    {
+      "name": "build/Release/better_sqlite3.node",
+      "size": 2118144,
+      "type": "b'0'"
+    }
+  ],
+  "extractedSha256": "df9fbd0d061f360d81fb51e265c53c9605020bd68219e34f33c07c85de15719a",
+  "extractedBytes": 2118144
+}

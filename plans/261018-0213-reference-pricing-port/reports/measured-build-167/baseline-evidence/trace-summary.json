@@ -1,0 +1,261 @@
+{
+  "traceSize": 6205257,
+  "traceSha256": "68c84afbf2e067bbf311596a20a65c5ba7620969cf5705caae14982167015e7f",
+  "events": 5656,
+  "errors": 0,
+  "slowest": [
+    {
+      "name": "webpack-compilation",
+      "seconds": 391.499,
+      "tags": {
+        "name": "server"
+      },
+      "startTime": 1792511321034
+    },
+    {
+      "name": "finish-modules",
+      "seconds": 272.604,
+      "tags": {},
+      "startTime": 1792511404911
+    },
+    {
+      "name": "node-file-trace-plugin",
+      "seconds": 269.987,
+      "tags": {
+        "traceEntryCount": "412"
+      },
+      "startTime": 1792511405160
+    },
+    {
+      "name": "add-entry",
+      "seconds": 144.947,
+      "tags": {
+        "request": "next-flight-client-entry-loader?modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fsrc%2Fapp%2F(dashboard)%2Fdashboard%2Fskills%2Fpage.js%22%2C%22ids%22%3A%5B%5D%7D&server=false!"
+      },
+      "startTime": 1792511731536
+    },
+    {
+      "name": "add-entry",
+      "seconds": 134.446,
+      "tags": {
+        "request": "./node_modules/next/dist/client/next.js"
+      },
+      "startTime": 1792511731529
+    },
+    {
+      "name": "add-entry",
+      "seconds": 134.446,
+      "tags": {
+        "request": "./node_modules/next/dist/client/app-next.js"
+      },
+      "startTime": 1792511731529
+    },
+    {
+      "name": "add-entry",
+      "seconds": 134.445,
+      "tags": {
+        "request": "next-flight-client-entry-loader?modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fnode_modules%2Fnext%2Fdist%2Fclient%2Fcomponents%2Fbuiltin%2Fglobal-error.js%22%2C%22ids%22%3A%5B%5D%7D&modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fnode_modules%2Fnext%2Fdist%2Fclient%2Fcomponents%2Fclient-page.js%22%2C%22ids%22%3A%5B%5D%7D&modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fnode_modules%2Fnext%2Fdist%2Fclient%2Fcomponents%2Fclient-segment.js%22%2C%22ids%22%3A%5B%5D%7D&modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fnode_modules%2Fnext%2Fdist%2Fclient%2Fcomponents%2Fhttp-access-fallback%2Ferror-boundary.js%22%2C%22ids%22%3A%5B%5D%7D&modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fnode_modules%2Fnext%2Fdist%2Fclient%2Fcomponents%2Flayout-router.js%22%2C%22ids%22%3A%5B%5D%7D&modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fnode_modules%2Fnext%2Fdist%2Fclient%2Fcomponents%2Frender-from-template-context.js%22%2C%22ids%22%3A%5B%5D%7D&modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fnode_modules%2Fnext%2Fdist%2Flib%2Fframework%2Fboundary-components.js%22%2C%22ids%22%3A%5B%5D%7D&modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fnode_modules%2Fnext%2Fdist%2Flib%2Fmetadata%2Fgenerate%2Ficon-mark.js%22%2C%22ids%22%3A%5B%5D%7D&server=false!"
+      },
+      "startTime": 1792511731530
+    },
+    {
+      "name": "add-entry",
+      "seconds": 134.445,
+      "tags": {
+        "request": "next-flight-client-entry-loader?modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fnode_modules%2Fnext%2Fdist%2Fclient%2Fcomponents%2Fbuiltin%2Fglobal-error.js%22%2C%22ids%22%3A%5B%5D%7D&server=false!"
+      },
+      "startTime": 1792511731530
+    },
+    {
+      "name": "add-entry",
+      "seconds": 134.439,
+      "tags": {
+        "request": "next-flight-client-entry-loader?modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fsrc%2Fapp%2Flanding%2Fpage.js%22%2C%22ids%22%3A%5B%5D%7D&server=false!"
+      },
+      "startTime": 1792511731536
+    },
+    {
+      "name": "add-entry",
+      "seconds": 134.0,
+      "tags": {
+        "request": "next-flight-client-entry-loader?modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fsrc%2Fapp%2F(dashboard)%2Fdashboard%2Fproxy-pools%2Fpage.js%22%2C%22ids%22%3A%5B%5D%7D&server=false!"
+      },
+      "startTime": 1792511731536
+    },
+    {
+      "name": "add-entry",
+      "seconds": 130.1,
+      "tags": {
+        "request": "next-flight-client-entry-loader?modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fsrc%2Fapp%2Flogin%2Fpage.js%22%2C%22ids%22%3A%5B%5D%7D&server=false!"
+      },
+      "startTime": 1792511731536
+    },
+    {
+      "name": "add-entry",
+      "seconds": 130.099,
+      "tags": {
+        "request": "next-flight-client-entry-loader?modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fsrc%2Fapp%2F(dashboard)%2Fdashboard%2Ftoken-saver%2FTokenSaverClient.js%22%2C%22ids%22%3A%5B%22default%22%5D%7D&server=false!"
+      },
+      "startTime": 1792511731536
+    },
+    {
+      "name": "add-entry",
+      "seconds": 126.95,
+      "tags": {
+        "request": "next-flight-client-entry-loader?modules=%7B%22request%22%3A%22%2Fhome%2Fgmo%2Fprojects%2F9router%2Fsrc%2Fapp%2Fcallback%2Fpage.js%22%2C%22ids%22%3A%5B%5D%7D&server=false!"
+      },
+      "startTime": 1792511731536
+    },
+    {
+      "name": "build-module",
+      "seconds": 125.453,
+      "tags": {
+        "name": "/home/gmo/projects/9router/node_modules/next/font/google/target.css?{\"path\":\"src/app/layout.js\",\"import\":\"Inter\",\"arguments\":[{\"subsets\":[\"latin\"],\"variable\":\"--font-inter\"}],\"variableName\":\"inter\"}",
+        "layer": "app-pages-browser"
+      },
+      "startTime": 1792511733251
+    },
+    {
+      "name": "build-module-css",
+      "seconds": 125.443,
+      "tags": {
+        "name": "/home/gmo/projects/9router/node_modules/material-symbols/outlined.css",
+        "layer": "app-pages-browser"
+      },
+      "startTime": 1792511733292
+    },
+    {
+      "name": "build-module-js",
+      "seconds": 110.09,
+      "tags": {
+        "name": "/home/gmo/projects/9router/node_modules/react-dom/cjs/react-dom-client.production.js",
+        "layer": "pages-dir-browser"
+      },
+      "startTime": 1792511736150
+    },
+    {
+      "name": "build-module-js",
+      "seconds": 109.54,
+      "tags": {
+        "name": "/home/gmo/projects/9router/node_modules/next/dist/lib/constants.js",
+        "layer": "app-pages-browser"
+      },
+      "startTime": 1792511736147
+    },
+    {
+      "name": "build-module-js",
+      "seconds": 109.524,
+      "tags": {
+        "name": "/home/gmo/projects/9router/node_modules/react/cjs/react-jsx-runtime.production.js",
+        "layer": "pages-dir-browser"
+      },
+      "startTime": 1792511736150
+    }
+  ],
+  "lastEvents": [
+    {
+      "name": "build-module-js",
+      "durationSec": 0.092,
+      "startTime": 1792511882230,
+      "tags": {
+        "name": "/home/gmo/projects/9router/node_modules/uuid/dist/native.js",
+        "layer": "app-pages-browser"
+      }
+    },
+    {
+      "name": "build-module-js",
+      "durationSec": 0.096,
+      "startTime": 1792511882246,
+      "tags": {
+        "name": "/home/gmo/projects/9router/node_modules/uuid/dist/sha1.js",
+        "layer": "app-pages-browser"
+      }
+    },
+    {
+      "name": "build-module-js",
+      "durationSec": 0.097,
+      "startTime": 1792511882247,
+      "tags": {
+        "name": "/home/gmo/projects/9router/node_modules/uuid/dist/regex.js",
+        "layer": "app-pages-browser"
+      }
+    },
+    {
+      "name": "build-module-js",
+      "durationSec": 0.174,
+      "startTime": 1792511882364,
+      "tags": {
+        "name": "/home/gmo/projects/9router/src/app/(dashboard)/dashboard/providers/[id]/AddApiKeyModal.js",
+        "layer": "app-pages-browser"
+      }
+    },
+    {
+      "name": "build-module-js",
+      "durationSec": 0.012,
+      "startTime": 1792511882566,
+      "tags": {
+        "name": "/home/gmo/projects/9router/src/shared/utils/bulkAdd.js",
+        "layer": "app-pages-browser"
+      }
+    },
+    {
+      "name": "build-module-js",
+      "durationSec": 0.026,
+      "startTime": 1792511882582,
+      "tags": {
+        "name": "/home/gmo/projects/9router/src/shared/components/PricingModal.js",
+        "layer": "app-pages-browser"
+      }
+    }
+  ],
+  "phaseNames": {
+    "generate-buildid": 1,
+    "load-custom-routes": 1,
+    "create-dist-dir": 1,
+    "clean": 1,
+    "discover-routes": 1,
+    "create-root-mapping": 1,
+    "generate-route-types": 1,
+    "public-dir-conflict-check": 1,
+    "generate-routes-manifest": 1,
+    "create-entrypoints": 1,
+    "generate-webpack-config": 1,
+    "next-trace-entrypoint-plugin": 1,
+    "build-module-external": 13,
+    "build-module-json": 8,
+    "build-module-css": 5,
+    "font-loader": 2,
+    "postcss": 2,
+    "next-font-loader": 2,
+    "css-loader": 4,
+    "make": 2,
+    "get-entries": 1,
+    "node-file-trace-plugin": 1,
+    "collect-traced-files": 1,
+    "finish-modules": 1,
+    "chunk-graph": 2,
+    "optimize-modules": 2,
+    "optimize-chunks": 2,
+    "optimize-tree": 2,
+    "optimize-chunk-modules": 2,
+    "optimize": 2,
+    "module-hash": 2,
+    "code-generation": 2,
+    "hash": 2,
+    "code-generation-jobs": 2,
+    "module-assets": 2,
+    "create-chunk-assets": 2,
+    "minify-webpack-plugin-optimize": 2,
+    "css-minimizer-plugin": 2,
+    "create-trace-assets": 1,
+    "seal": 2,
+    "webpack-compilation": 2,
+    "emit": 2,
+    "webpack-close": 2,
+    "webpack-generate-error-stats": 2,
+    "next-client-pages-loader": 1,
+    "postcss-process": 2,
+    "postcss-loader": 2,
+    "build-module-woff2": 1
+  }
+}

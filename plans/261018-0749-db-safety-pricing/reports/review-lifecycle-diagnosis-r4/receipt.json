@@ -1,0 +1,24 @@
+{
+  "taskId": "b8b20199c",
+  "exitCode": 0,
+  "status": "diagnostic-observations-collected; reproduced defects, not passing acceptance",
+  "runtime": "Node v24.21.0 Linux, node:sqlite and sql.js actual directfactories",
+  "sourceHashesVerified": true,
+  "harnessHashVerified": true,
+  "artifactHashes": {
+    "inputs.json": "5a1973954f13cf1419487bb64b4e1e6b67a54345b8d96f3fac3f9fc608227493",
+    "lifecycle-diagnosis.mjs": "c8e3e1234ac2f684de0087bc76c8269a41d489e1aa19623fc359a3b0d5fb0ea9",
+    "results.json": "e310af7d7bb22bcbc277906d3759cc8c36a78aa9b7cab99893e63cd17efeb4a8",
+    "output.log": "04ca13b60ec7ec5f2bfd00d7839778bc166380ea1808d8986f9caa88a5f72a45",
+    "exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "signals/SIGTERM/child.log": "d16bb0f8efdcd2ef3b27cefb8fc68f5c754a9041746b7b6062a7d9bd839921fb",
+    "signals/SIGINT/child.log": "690187d26d6f8fccb056b2856b26704ae746dd17519eed7b453858b5a5d3e117"
+  },
+  "remainingLocks": [
+    "release/sqljs/.gateway-writer.lock",
+    "release/node/.gateway-writer.lock"
+  ],
+  "lockDisposition": "intentionally retained failed-release fixtures; no manual teardown presented as success",
+  "signals": "isolatedpersistentSQLjs child only; one second nontermination then parent SIGKILL; not wholeapp evidence",
+  "targetLease": "no competing second engine opened"
+}

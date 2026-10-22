@@ -1,0 +1,16 @@
+{
+  "taskId": "bf890ef02",
+  "exitCode": 0,
+  "summary": {
+    "success": true,
+    "numTotalTests": 8,
+    "numPassedTests": 8,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "sourceHashesVerified": true,
+  "files": 1,
+  "rawSha256": "7401454ff3dc25050fa3bc5118ae7fb79afe5b8f2ae380e7f17cd5a5fc29bef0",
+  "limits": "purecore only; not DB/revision/API/UI/build/Docker acceptance"
+}

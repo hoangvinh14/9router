@@ -1,0 +1,11 @@
+{
+  "taskId": "db21b7b6562de19335a8eb1aee658a5cb",
+  "route": {
+    "model": "cx/gpt-6-astra",
+    "provider": "9router"
+  },
+  "answerSha256": "faab81b3de0cda511fd916d958285f63bb471a2c5cb3c2aa0bdeb8adad00bf47",
+  "status": "changes-requested; review-incomplete",
+  "findings": "3staticfindings; runtime diagnosis pending",
+  "scope": "production bodies read, tests/consumers/receipts incomplete; not full-review-gate completion"
+}

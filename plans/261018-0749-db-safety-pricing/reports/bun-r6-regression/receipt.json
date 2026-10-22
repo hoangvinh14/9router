@@ -1,0 +1,40 @@
+{
+  "taskId": "b6e125ce8",
+  "exitCode": 0,
+  "status": "bounded-R6-Bun-runtime-pass",
+  "runtime": "Bun1.4.3/Linuxx64 actualbun:sqlite",
+  "namedScenarioCounts": {
+    "main": 14,
+    "contender": 1,
+    "reopen": 1
+  },
+  "countUnit": "named scenarios, not Vitest assertions",
+  "sourceMirrorHarnessBinaryHashesMatch": true,
+  "moduleProvenanceVerified": true,
+  "resolverCounts": {
+    "bun-resolve-877684.jsonl": 10,
+    "bun-resolve-877674.jsonl": 38,
+    "bun-resolve-877692.jsonl": 37
+  },
+  "fixtureOwnershipFiles": [],
+  "artifactHashes": {
+    "adapter-contender-result.json": "2c51565e5762ee8cf3d2680a3448e109b57322043cbb2bd28bbb6da370da9015",
+    "adapter-exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "adapter-main-result.json": "951b0d3b7e0deca4ee71394fe7557fbba588b153d1365273e6acabb5d341ccae",
+    "adapter-output.log": "10e82703ab588f764d4285f6a77c60567042fd9f4b051a4e74244759423be06d",
+    "adapter-reopen-result.json": "6f43dc65092b5523ef9160543c820f976c0a1d5638156097fae524ecf7e7c8b8",
+    "bun-resolve-877674.jsonl": "6b5b591b68f2b48d73c4714b6b0d4f817c4ba7b12c90fbda651ca088d7d393d5",
+    "bun-resolve-877684.jsonl": "edc05aa310f81faf44df3f676ce57a85f64934f7b388f7a8f49cc2f92b57346f",
+    "bun-resolve-877692.jsonl": "70624efc2b9f33b3e4de2052190cfce05949de56e63906567fdd487970f1c177",
+    "mirror-inputs.json": "746c5b95b0936bf8c5c71acc76d9da5a05efb91c2a2205630f24d81f49eccc88",
+    "offline-preload.cjs.txt": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4",
+    "bun-mirror-preload.mjs.txt": "8d61582927847812fdd1ffd0c0ddb5651b50c67488a2dc56ca9181b4c837bf29",
+    "bun-ordinary-harness.mjs.txt": "fa6f3dff949027add2b35d90176a3d63d0aa1c1cd97e9991394e6e9e28312550"
+  },
+  "limits": [
+    "resolver instrumentation not OS sandbox",
+    "no Node CJS/addon provenance claim for builtinBun",
+    "not Docker/Windows/signal-shutdown/powerloss",
+    "copied usageRepo not exercised by factory scenarios, separate Vitest usage lane"
+  ]
+}

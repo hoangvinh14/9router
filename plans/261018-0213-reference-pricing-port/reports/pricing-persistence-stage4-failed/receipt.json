@@ -1,0 +1,42 @@
+{
+  "taskId": "b973d3bc7",
+  "exitCode": 1,
+  "sourceHashesVerified": true,
+  "artifacts": {
+    "collector-attempt1.txt": "ad9de245f95af8e45a1d2e66a643cb6108e9927757e5160dbec5198dd7008aeb",
+    "source.json": "210ee540ce5f5a7defd552a16e9791c42b6cc08f893bdc0700b9234a3954ff33",
+    "exit-code.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "output.log": "407f69056412a5170323136320a3a8d494c2f014d024f2a08243680e2b2f0040"
+  },
+  "reportParsing": "unique complete reporter document at line boundary; prefix preserved",
+  "jsonByteOffsets": [
+    855,
+    15650
+  ],
+  "summary": {
+    "success": false,
+    "numTotalTests": 31,
+    "numPassedTests": 29,
+    "numFailedTests": 2,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "failures": [
+    {
+      "file": "/home/gmo/projects/9router/tests/unit/pricing-persistence-import.test.js",
+      "name": "Node actual pricing persistence and config integration acknowledges complete exact overrides durably, preserves numeric map and zero, and avoids no-op revision writes",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected '1' to be '2' // Object.is equality\n    at /home/gmo/projects/9router/tests/unit/pricing-persistence-import.test.js:44:81\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "/home/gmo/projects/9router/tests/unit/pricing-persistence-import.test.js",
+      "name": "SQL.js actual pricing persistence and config integration acknowledges complete exact overrides durably, preserves numeric map and zero, and avoids no-op revision writes",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected '1' to be '2' // Object.is equality\n    at /home/gmo/projects/9router/tests/unit/pricing-persistence-import.test.js:44:81\n    at file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    }
+  ]
+}

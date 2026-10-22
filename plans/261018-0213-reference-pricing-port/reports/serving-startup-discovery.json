@@ -1,0 +1,18 @@
+{
+  "commit": "3a4955a0336f970505c325b0faf892f5397c93bb",
+  "exitCode": 128,
+  "classification": "two new planned paths absent in legacy commit; no product/test failure",
+  "counselTakenBeforeCorrection": true,
+  "files": [
+    {
+      "path": "/tmp/9router-p1-recheck-BlFpFB/servingStartup.js",
+      "size": 0,
+      "disposition": "removed only empty owned discovery placeholder"
+    },
+    {
+      "path": "/tmp/9router-p1-recheck-BlFpFB/pricing-serving-startup.test.js",
+      "size": 0,
+      "disposition": "removed only empty owned discovery placeholder"
+    }
+  ]
+}

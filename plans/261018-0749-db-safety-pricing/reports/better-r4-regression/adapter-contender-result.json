@@ -1,0 +1,14 @@
+{
+  "mode": "contender",
+  "status": "passed",
+  "runtime": "v22.23.2",
+  "abi": "127",
+  "cases": [
+    {
+      "name": "real child refuses occupied writer before opening application file",
+      "status": "passed"
+    }
+  ],
+  "cleanupErrors": [],
+  "passed": 1
+}

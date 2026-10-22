@@ -1,0 +1,13 @@
+[TypeError: fetch failed] {
+  [cause]: Error: Pricing fixture: non-loopback network disabled
+      at net.Socket.connect (/home/gmo/projects/9router/plans/261018-0213-reference-pricing-port/reports/loopback-preload.cjs:15:32)
+      at Object.connect (node:net:261:17)
+      at connect (node:internal/deps/undici/undici:3320:24)
+      at Client.connect (node:internal/deps/undici/undici:9367:65)
+      at connect (node:internal/deps/undici/undici:9526:27)
+      at _resume (node:internal/deps/undici/undici:9682:11)
+      at resume (node:internal/deps/undici/undici:9624:7)
+      at Client.<computed> (node:internal/deps/undici/undici:9401:35)
+      at [dispatch] (node:internal/deps/undici/undici:9443:24)
+      at Client.dispatch (node:internal/deps/undici/undici:2316:33)
+}

@@ -1,0 +1,7 @@
+{
+  "timeoutSeconds": 60,
+  "cases": 3,
+  "faults": "explicit JS prepare/close injection on actual Bun engine; not uninstrumented runtime behavior",
+  "scriptSha256": "135931d6c3a5041972787c313e577472c84f0ab945ff21a0a46e07baa5bc906d",
+  "R4OriginalsMirrorVerified": true
+}

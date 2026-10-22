@@ -1,0 +1,10 @@
+{"specifier":"/tmp/9router-db-bun-r7-m13fAK/harness/bun-ordinary-harness.mjs","importer":"bun:main","resolved":"/tmp/9router-db-bun-r7-m13fAK/harness/bun-ordinary-harness.mjs"}
+{"specifier":"../mirror/src/lib/db/adapters/bunSqliteAdapter.js","importer":"/tmp/9router-db-bun-r7-m13fAK/harness/bun-ordinary-harness.mjs","resolved":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/adapters/bunSqliteAdapter.js"}
+{"specifier":"../writerOwnership.js","importer":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/adapters/bunSqliteAdapter.js","resolved":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/writerOwnership.js"}
+{"specifier":"./nativeAdapter.js","importer":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/adapters/bunSqliteAdapter.js","resolved":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/adapters/nativeAdapter.js"}
+{"specifier":"./durableFile.js","importer":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/writerOwnership.js","resolved":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/durableFile.js"}
+{"specifier":"../schema.js","importer":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/adapters/nativeAdapter.js","resolved":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/schema.js"}
+{"specifier":"../durableFile.js","importer":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/adapters/nativeAdapter.js","resolved":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/durableFile.js"}
+{"specifier":"./nativeDurability.js","importer":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/adapters/nativeAdapter.js","resolved":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/adapters/nativeDurability.js"}
+{"specifier":"../durableFile.js","importer":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/adapters/nativeDurability.js","resolved":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/durableFile.js"}
+{"specifier":"../mirror/src/lib/db/writerOwnership.js","importer":"/tmp/9router-db-bun-r7-m13fAK/harness/bun-ordinary-harness.mjs","resolved":"/tmp/9router-db-bun-r7-m13fAK/mirror/src/lib/db/writerOwnership.js"}

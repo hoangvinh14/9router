@@ -1,0 +1,26 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+const root = '/tmp/9router-db-safety-better-r4-RntrCG';
+const mirror = path.join(root, 'mirror');
+const aliases = new Map([
+  ['@/lib/dataDir.js', 'src/lib/dataDir.js'],
+  ['@/shared/constants/keyAccess.js', 'src/shared/constants/keyAccess.js'],
+]);
+const harness = path.join(root, 'harness/abi127-adapter-harness.mjs');
+export async function resolve(specifier, context, nextResolve) {
+  const result = aliases.has(specifier)
+    ? { url: pathToFileURL(path.join(mirror, aliases.get(specifier))).href, shortCircuit: true }
+    : await nextResolve(specifier, context);
+  if (result.url.startsWith('file:')) {
+    const file = fileURLToPath(result.url);
+    const realpath = fs.realpathSync(file);
+    if (file !== realpath || !(realpath.startsWith(mirror + path.sep) || realpath === harness)) {
+      throw new Error(`Unowned ESM resolution refused: ${specifier} -> ${realpath}`);
+    }
+  } else if (!result.url.startsWith('node:')) {
+    throw new Error(`Non-file/non-builtin resolution refused: ${specifier}`);
+  }
+  fs.appendFileSync(path.join(root, `evidence/esm-resolution-${process.pid}.jsonl`), JSON.stringify({ specifier, parent: context.parentURL ?? null, resolved: result.url }) + '\n');
+  return result;
+}

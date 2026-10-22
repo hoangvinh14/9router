@@ -1,0 +1,11 @@
+file:///browser-capability.mjs:24
+    browser.once('exit', code => reject(new Error(`Owned Chromium exited before CDP: ${code}`)));
+                                        ^
+
+Error: Owned Chromium exited before CDP: null
+    at ChildProcess.<anonymous> (file:///browser-capability.mjs:24:41)
+    at ChildProcess.wrapper (node:events:639:12)
+    at ChildProcess.emit (node:events:514:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:295:12)
+
+Node.js v24.21.0

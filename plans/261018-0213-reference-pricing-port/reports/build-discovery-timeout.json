@@ -1,0 +1,7 @@
+{
+  "event": "Broad read-only Playwright discovery timed out after10s",
+  "classification": "discovery inconclusive, not application/test failure",
+  "lintArchiveCompletedBeforeTimeout": true,
+  "counselTaken": true,
+  "correction": "bounded exactroot/tests resolves; no install. ExistingcachedChromium executable and builtinNodeWebSocket available; bwrap unsharednetwork/loopback no-op preflight passed."
+}

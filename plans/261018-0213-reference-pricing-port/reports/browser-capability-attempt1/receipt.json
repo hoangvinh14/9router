@@ -1,0 +1,18 @@
+{
+  "taskId": "bae726aed",
+  "exitCode": 1,
+  "counselBeforeDiagnosis": true,
+  "helperHashMatch": true,
+  "missingArtifacts": [
+    "browser-result.json",
+    "capability.png"
+  ],
+  "limits": "aboutblank capability only; no app acceptance or verified sandbox state",
+  "artifactHashes": {
+    "browser-capability.mjs": "fd566285fa33097c64dbdfecff3e5618d2795113e1bc81c8ad0954ec1a305bcf",
+    "browser-stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "inputs.json": "2ae35d3844e63c78d4bda8dedd324d8245b957d7917cade91523b79718ae04e5",
+    "exit-code.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "output.log": "9210b105ff016dc73b2a8551090f608c98a6f9e49c7f20ed2d7c5d6777fd5e40"
+  }
+}

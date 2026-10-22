@@ -1,0 +1,11 @@
+{
+  "taskId": "bfc3ee78d",
+  "exitCode": 0,
+  "files": [
+    "src/lib/db/repos/usageRepo.js",
+    "tests/unit/usage-event-identity.test.js"
+  ],
+  "sourceHashesVerified": true,
+  "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "scope": "two changed usage files only, not runtime/full-project acceptance"
+}

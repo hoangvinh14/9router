@@ -1,0 +1,26 @@
+{
+  "taskId": "bf28d83a5",
+  "exitCode": 0,
+  "sourceHashesVerified": true,
+  "testFiles": 12,
+  "summary": {
+    "success": true,
+    "numTotalTests": 137,
+    "numPassedTests": 137,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "originalFailureIdentities": [
+    {
+      "name": "DB Concurrency \u2014 atomic safety 100 parallel saveRequestUsage \u2192 no count loss",
+      "status": "passed"
+    },
+    {
+      "name": "DB Concurrency \u2014 atomic safety daily summary aggregates correctly under parallel writes",
+      "status": "passed"
+    }
+  ],
+  "rawSha256": "95b667b0ae5a39be195a170475a3959cb0829515e13510917aa781de5468b50d",
+  "scope": "12file current source DB/ACL/pricing/usage regression; not browser/API/build/Docker/Windows/shutdown certification"
+}

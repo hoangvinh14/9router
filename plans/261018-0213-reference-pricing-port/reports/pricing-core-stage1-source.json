@@ -1,0 +1,11 @@
+{
+  "root": "/tmp/9router-pricing-core-a1mbb7gg",
+  "files": {
+    "src/lib/pricing/constants.js": "0c8398c8fc97846dcd655684300ad59172db4e0e87e52f6fc6c366f386262c98",
+    "src/lib/pricing/decimalMoney.js": "b3ff9137fa79dfa84c3abcc08b2b7bfb4295a430f86ba3e8031b0abfa90c57d9",
+    "src/lib/pricing/rateValidation.js": "f9440996aa0572f6021fc8ab3f70393f95be36191de85a6d695639bf80047fd5",
+    "src/lib/pricing/catalogJson.js": "559770bc6c79f00f75698992d13d8687002c1914b45a9153dba432f91f79f72a",
+    "tests/unit/pricing-decimal-money.test.js": "2c5b0f7cf116c491a3337878c8d9aaebe2de1a5f3a67100eac482c61a557b8e5"
+  },
+  "scope": "pure pricing schema/decimal/catalog JSON only; no DB/API/UI/build acceptance"
+}

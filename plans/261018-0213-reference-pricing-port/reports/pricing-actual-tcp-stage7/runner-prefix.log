@@ -1,0 +1,8 @@
+(node:957765) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/gmo/projects/9router/src/sse/services/backgroundTokenRefresh.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/gmo/projects/9router/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:957786) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/gmo/projects/9router/src/sse/services/backgroundTokenRefresh.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/gmo/projects/9router/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "redirects": [
+    {
+      "host": "release-assets.githubusercontent.com",
+      "path": "/github-production-release-asset/357728969/50e58d41-6d81-465f-8411-c6c932ea19b9",
+      "status": 302
+    }
+  ],
+  "runtimeExecuted": false,
+  "url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.3/bun-linux-x64-baseline.zip",
+  "expectedSha256": "1fc2edac843102909e3a1be1d8d9802cc6071cf074e67e88231f4ffe0f8b397b",
+  "finalHost": "release-assets.githubusercontent.com",
+  "finalPath": "/github-production-release-asset/357728969/50e58d41-6d81-465f-8411-c6c932ea19b9",
+  "size": 42015103,
+  "sha256": "1fc2edac843102909e3a1be1d8d9802cc6071cf074e67e88231f4ffe0f8b397b",
+  "members": [
+    {
+      "name": "bun-linux-x64-baseline/",
+      "size": 0,
+      "mode": 16877
+    },
+    {
+      "name": "bun-linux-x64-baseline/bun",
+      "size": 88979072,
+      "mode": 33261
+    }
+  ],
+  "executable": "/tmp/9router-db-safety-bun-RuROb8/bin/bun",
+  "executableBytes": 88979072,
+  "executableSha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b"
+}

@@ -1,0 +1,41 @@
+{
+  "taskId": "b7660c63c",
+  "exitCode": 0,
+  "status": "bounded-R7-better-runtime-pass",
+  "runtime": "v22.23.2",
+  "abi": "127",
+  "namedScenarioCounts": {
+    "main": 16,
+    "contender": 1,
+    "reopen": 1
+  },
+  "countUnit": "named scenarios, not Vitest assertions",
+  "sourceMirrorHarnessHashesMatch": true,
+  "moduleProvenanceVerified": true,
+  "resolverCounts": {
+    "esm-resolution-888161.jsonl": 63,
+    "esm-resolution-888188.jsonl": 62,
+    "esm-resolution-888175.jsonl": 23
+  },
+  "fixtureOwnershipFiles": [],
+  "artifactHashes": {
+    "adapter-reopen-result.json": "22b2930da3ef8ae454618be4900c2e84eaeb4ead7109dba16d1d9857fc43732d",
+    "adapter-main-result.json": "28caa580dcc6fe952883b6cb3a0f59f0b1fc463c6ecef4badb2dc64717ac649f",
+    "adapter-contender-result.json": "9f28c4555d51cf585a80445b8652c99f0fb39319dd3ccb834f57be12ca41ad85",
+    "esm-resolution-888161.jsonl": "48422b302f6ab0c25320b7c0ccf3c2c374d490c9ef6045f120f65ba74f80fd53",
+    "mirror-inputs.json": "18c9b2f3ce298fe23c615b002f499fa1334732a7bccfe037b064f2aaa1b58fec",
+    "abi127-adapter-harness.mjs.txt": "7ffc8190fcce4d18a349a12a2b4904a260a7bae82c2acaf7838b3a0e24f50b04",
+    "adapter-output.log": "fadbf1ab1d59bab1cb5a3f136edb8081d1cd57585ded121af0c6cbbe8ad62e78",
+    "esm-resolution-888188.jsonl": "64eff81f44615f8b4efe196cf4b09e909e1b3c27049c9d65768749dac3ba615f",
+    "abi127-resolver.mjs.txt": "6ced1cfbfc8e449652ca5c7fa70520fb96bb787580ca91ee3de5d96b47653b38",
+    "offline-preload.cjs.txt": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4",
+    "adapter-exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "esm-resolution-888175.jsonl": "acece6cf260fe3bdba87ce83c342e6a456259611508ef40bd8f2752ea1f862da"
+  },
+  "limits": [
+    "Linuxglibc private ABI127 not DockerAlpine/musl",
+    "not Windows/powerloss/signal shutdown",
+    "2directorysync faults explicitly JS injected on real engine; no retry-read/delete of replacement",
+    "usage copied not exercised by native factory scenarios; separate Vitest evidence applies"
+  ]
+}

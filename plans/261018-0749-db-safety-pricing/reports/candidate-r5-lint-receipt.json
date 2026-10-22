@@ -1,0 +1,15 @@
+{
+  "taskId": "b9d56c5d7",
+  "exitCode": 0,
+  "files": [
+    "src/lib/db/adapters/nativeAdapter.js",
+    "src/lib/db/adapters/sqljsAdapter.js",
+    "src/lib/db/writerOwnership.js",
+    "tests/unit/db-driver-chain.test.js",
+    "tests/unit/db-durable-publication.test.js",
+    "tests/unit/db-sqljs-publication.test.js",
+    "tests/unit/db-writer-ownership.test.js"
+  ],
+  "sourceHashesVerified": true,
+  "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

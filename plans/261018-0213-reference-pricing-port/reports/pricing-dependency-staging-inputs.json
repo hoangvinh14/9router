@@ -1,0 +1,13 @@
+{
+  "root": "/tmp/9router-pricing-dependencies-9rqe5d7_",
+  "authorization": "User selected temporary staging dependency setup and newly manifested build; no root/global/liveDocker mutation",
+  "files": {
+    "package.json": "eee409b146c9b7077559c3d6a37ff43856594ba76c1a50fbc4e5e42949b60993",
+    "package-lock.json": "6650112afe7893dbc980eb4f7245e71738c06bc2cc6b374bb7a837716111c667"
+  },
+  "install": "npm install --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org/; full declared dependency graph in staging",
+  "lockResolvedHosts": [
+    "registry.npmjs.org"
+  ],
+  "limits": "No lifecycle scripts/native compilation, Node24 build uses node:sqlite; Docker Node22/musl remains separate"
+}

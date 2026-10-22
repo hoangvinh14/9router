@@ -1,0 +1,21 @@
+▲ Next.js 16.4.2
+- Local:         http://127.0.0.1:23128
+- Network:       http://127.0.0.1:23128
+✓ Ready in 0ms
+(node:2200582) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/9router-phase3-build-261022/phase3-dist-261022/standalone/src/sse/services/backgroundTokenRefresh.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /tmp/9router-phase3-build-261022/phase3-dist-261022/standalone/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✓ Running next.config took 24ms
+[DB][migrate] applied #1 initial
+[DB] Driver: node:sqlite | file: /tmp/9router-browser-VBedi6/db/data.sqlite
+▲ Next.js 16.4.2
+- Local:         http://127.0.0.1:23128
+- Network:       http://127.0.0.1:23128
+✓ Ready in 0ms
+(node:2200807) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/9router-phase3-build-261022/phase3-dist-261022/standalone/src/sse/services/backgroundTokenRefresh.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /tmp/9router-phase3-build-261022/phase3-dist-261022/standalone/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✓ Running next.config took 33ms
+[DB] Driver: node:sqlite | file: /tmp/9router-browser-VBedi6/db/data.sqlite

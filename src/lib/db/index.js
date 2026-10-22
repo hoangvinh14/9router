@@ -3,6 +3,10 @@ import { getAdapter } from "./driver.js";
 import { stringifyJson, parseJson } from "./helpers/jsonCol.js";
 import { keyAccessFromColumns, keyAccessToColumns, validateKeyAccessInput } from "@/shared/utils/keyAccess.js";
 import { KEY_ACCESS_UNRESTRICTED } from "@/shared/constants/keyAccess.js";
+import { validatePricingMutation } from "../pricing/pricingValidation.js";
+import { validateReferenceState, withPricingStateLock } from "../pricing/referenceState.js";
+import { readReferenceRow, writeReferenceRow } from "../pricing/catalogSync.js";
+import { reconcileSavedCatalogScheduleSync } from "../pricing/catalogSchedule.js";
 
 // Settings
 export {
@@ -49,7 +53,7 @@ export {
 
 // Pricing
 export {
-  getPricing, getPricingForModel, updatePricing, resetPricing, resetAllPricing,
+  getPricing, getEditorPricing, getPricingForModel, updatePricing, resetPricing, resetAllPricing,
 } from "./repos/pricingRepo.js";
 
 // Disabled models
@@ -73,9 +77,16 @@ export {
 export async function exportDb() {
   const db = await getAdapter();
   const { exportSettings } = await import("./repos/settingsRepo.js");
-
+  const settings = await exportSettings();
+  // No JS yield between committed barrier and config/reference row capture.
+  db.durableTransaction(() => {});
+  const referencePricing = validateReferenceState({
+    version: 1, catalog: readReferenceRow(db, "catalog"), status: readReferenceRow(db, "status"),
+    schedule: readReferenceRow(db, "schedule") ?? { enabled: false },
+  });
   const out = {
-    settings: await exportSettings(),
+    settings,
+    referencePricing,
     providerConnections: db.all(`SELECT * FROM providerConnections`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, provider: r.provider, authType: r.authType, name: r.name, email: r.email, priority: r.priority, isActive: r.isActive === 1, createdAt: r.createdAt, updatedAt: r.updatedAt })),
     providerNodes: db.all(`SELECT * FROM providerNodes`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, type: r.type, name: r.name, createdAt: r.createdAt, updatedAt: r.updatedAt })),
     proxyPools: db.all(`SELECT * FROM proxyPools`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, isActive: r.isActive === 1, testStatus: r.testStatus, createdAt: r.createdAt, updatedAt: r.updatedAt })),
@@ -99,9 +110,17 @@ export async function importDb(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     throw new Error("Invalid database payload");
   }
-  const db = await getAdapter();
+  // Snapshot caller data before awaiting coordinator admission. Validate complete
+  // pricing/projection before DELETE; omission preserves existing reference state.
+  const snapshot = structuredClone(payload);
+  snapshot.pricing = validatePricingMutation(snapshot.pricing ?? {});
+  if (Object.hasOwn(snapshot, "referencePricing")) snapshot.referencePricing = validateReferenceState(snapshot.referencePricing);
+  return withPricingStateLock(() => importValidatedDb(snapshot));
+}
 
-  db.transaction(() => {
+async function importValidatedDb(payload) {
+  const db = await getAdapter();
+  db.durableTransaction(() => {
     // Wipe all tables (keep _meta)
     db.run(`DELETE FROM settings`);
     db.run(`DELETE FROM providerConnections`);
@@ -168,11 +187,18 @@ export async function importDb(payload) {
     for (const [tool, mappings] of Object.entries(payload.mitmAlias || {})) {
       db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('mitmAlias', ?, ?)`, [tool, stringifyJson(mappings || {})]);
     }
-    for (const [provider, models] of Object.entries(payload.pricing || {})) {
-      db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('pricing', ?, ?)`, [provider, stringifyJson(models || {})]);
+    for (const [provider, models] of Object.entries(payload.pricing)) {
+      db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('pricing', ?, ?)`, [provider, stringifyJson(models)]);
+    }
+    if (Object.hasOwn(payload, "referencePricing")) {
+      db.run("DELETE FROM kv WHERE scope='referencePricing'");
+      for (const key of ["catalog", "status", "schedule"]) {
+        const value = payload.referencePricing[key];
+        if (value !== null) writeReferenceRow(db, key, value);
+      }
     }
   });
-
+  reconcileSavedCatalogScheduleSync(db);
   return await exportDb();
 }
 

@@ -1,0 +1,16 @@
+{
+  "fixtureRoot": "/tmp/9router-db-safety-node22-qc25Rh",
+  "nodeExecutable": "/home/gmo/.nvm/versions/node/v22.23.2/bin/node",
+  "nodeSha256": "3517c2df0b2f8cd7f422b4b8450ef81c6889f08eb03e281d6de9079b15e6a327",
+  "inputs": {
+    "node_modules/better-sqlite3/package.json": "4665126292eff5dffe6c0ffabf98c4de18e479aa0b53edd775028eb567b3ecc1",
+    "node_modules/better-sqlite3/build/Release/better_sqlite3.node": "45cb92a176fb758533db6d9a343acdfc73e4de27ac4c20a0cb2a6fb5be3e84f2",
+    "package-lock.json": "6650112afe7893dbc980eb4f7245e71738c06bc2cc6b374bb7a837716111c667",
+    "tests/package-lock.json": "1f6088b105bdbcbe5e1e3237d5b162845aefe5e924fa7966c0b0a7cfd235f029",
+    "plans/261018-0749-db-safety-pricing/reports/node22-preflight.mjs": "27816268546ee03f360753259949ba0689862983053b0933cd9fa55e665b102d",
+    "plans/261018-0213-reference-pricing-port/reports/offline-preload.cjs": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4"
+  },
+  "networkContainment": "selected JS APIs blocked by preload, no OS network sandbox claim",
+  "preparationFailure": "Original combined Python command timed out at 10s; no receipt/process remained. Counsel followed; split bounded source and per-file hash operations completed within original10s bound; no test timeout raised. Cause not established.",
+  "preflightTimeoutSeconds": 30
+}

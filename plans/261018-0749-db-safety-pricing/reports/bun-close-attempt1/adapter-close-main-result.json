@@ -1,0 +1,51 @@
+{
+  "mode": "main",
+  "status": "failed",
+  "runtime": "1.4.3",
+  "revision": "c6da4a4d3010e5553438c60f6bd76d981976867c",
+  "observations": {
+    "preClose": {
+      "driver": "bun:sqlite",
+      "retainedStatements": 3,
+      "value": 73
+    },
+    "reject": {
+      "rejected": true,
+      "runtime": "1.4.3",
+      "error": "Database writer already active"
+    },
+    "publicAdapterClosed": true,
+    "hold": {
+      "acquired": true,
+      "runtime": "1.4.3",
+      "driver": "bun:sqlite"
+    },
+    "retainedAfterClose": {
+      "returned": {
+        "boundary": 73
+      }
+    },
+    "holderExit": {
+      "code": 0,
+      "signal": null,
+      "stderr": ""
+    }
+  },
+  "cleanupErrors": [],
+  "planned": [
+    "normal close native-lifetime and owner boundary",
+    "repeated close",
+    "initialization failure cleanup",
+    "close failure handling"
+  ],
+  "notRun": [
+    "repeated close",
+    "initialization failure cleanup",
+    "close failure handling"
+  ],
+  "error": {
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "message": "Writer ownership released while retained native prepared SELECT remains executable under delayed collection"
+  }
+}

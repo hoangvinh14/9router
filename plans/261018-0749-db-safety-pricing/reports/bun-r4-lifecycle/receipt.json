@@ -1,0 +1,30 @@
+{
+  "tasks": {
+    "bf5b2c12e": 0,
+    "bfbce69b1": 0
+  },
+  "status": "bounded-Bun-strictclose-and-fault-controls-pass",
+  "boundary": "retainednative statements invalidated before ownerhandoff; repeatedclose/publicrefusal verified",
+  "faultControlsPassed": 3,
+  "faults": "JSprepare/close injected onactualBun1.4.3,notspontaneousnativefaults",
+  "sourceMirrorHarnessBinaryHashesMatch": true,
+  "intentionalUncertainFixtureLockRetained": [
+    "fixtures/data/fault-init-uncertain/.gateway-writer.lock"
+  ],
+  "notAllPlatformAcceptance": true,
+  "archivedArtifacts": {
+    "adapter-close-hold-result.json": "1e83c1d9de1ea9019592010fd7430ff6ee1c963724ab04edbcba2fa96a02c7db",
+    "close-fault-output.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bun-adapter-close-boundary.mjs.txt": "90b7e412df6f3eaa8f940131d34e672d2e8d710176280a38a10651fd74aea7bf",
+    "close-fault-result.json": "bcd717ffba2d256092f1943dedd4ce57920039b562c1c1bd1429f39ed64ab004",
+    "adapter-close-reject-result.json": "c188d8135b0d8a0509685fa078a8f3aeb681d357cf84d1245541e0ea32046dc9",
+    "close-fault-inputs.json": "0ef067ab841c0ea00085c23ad381e0ca980a9004b44e7b7c6f2fed3dad93102a",
+    "bun-close-fault-controls.mjs.txt": "135931d6c3a5041972787c313e577472c84f0ab945ff21a0a46e07baa5bc906d",
+    "close-fault-exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "inputs.json": "12ea508f3e213e61de2ef0e73cd985155298a032a058940ada396a21772960b8",
+    "adapter-close-output.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "adapter-close-exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "adapter-close-main-result.json": "2009f42b82d2abde118778e4c56aa6df5f3d390b21f11d3c259510f9f581f786",
+    "offline-preload.cjs.txt": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4"
+  }
+}

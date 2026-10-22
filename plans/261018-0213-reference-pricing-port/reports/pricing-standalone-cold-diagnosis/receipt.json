@@ -1,0 +1,97 @@
+{
+  "taskId": "b6dd4070a",
+  "exitCode": 0,
+  "sourceAndHelperHashesVerified": true,
+  "watchdog": {
+    "command": [
+      "node",
+      "--experimental-loader",
+      "/tmp/9router-pricing-node-diag-6k4q4nez/loader.mjs",
+      "/tmp/9router-pricing-node-diag-6k4q4nez/probe.mjs"
+    ],
+    "reason": "process-exited",
+    "exitCode": 0
+  },
+  "spans": [
+    {
+      "name": "import-db-index",
+      "ms": 856.861928
+    },
+    {
+      "name": "init-db",
+      "ms": 148.1638519999999
+    },
+    {
+      "name": "import-sync",
+      "ms": 1.8587350000000242
+    },
+    {
+      "name": "import-resolver",
+      "ms": 21.41744499999993
+    },
+    {
+      "name": "sync-fixture",
+      "ms": 121.05294800000001
+    },
+    {
+      "name": "override",
+      "ms": 32.785513999999694
+    },
+    {
+      "name": "resolve",
+      "ms": 10.254402000000027
+    },
+    {
+      "name": "noops",
+      "ms": 4.802490000000034
+    },
+    {
+      "name": "map1",
+      "ms": 6.773114999999962
+    },
+    {
+      "name": "map2",
+      "ms": 4.232314999999744
+    },
+    {
+      "name": "reopen",
+      "ms": 36.384513999999854
+    },
+    {
+      "name": "close",
+      "ms": 4.485149999999976
+    }
+  ],
+  "totalMs": 1274.206283,
+  "observations": [
+    {
+      "ms": 0.29367400000001,
+      "event": "process",
+      "node": "v24.21.0",
+      "abi": "137"
+    },
+    {
+      "ms": 1011.91818,
+      "event": "driver",
+      "value": "node:sqlite"
+    },
+    {
+      "ms": 1267.179924,
+      "event": "observations",
+      "retainedRevision": "b3365fc734090cb2ca6e006a8065dbb4252b6b5d6c0d23ab7e3ea9c4ad09dbed",
+      "reopenedRevision": "b3365fc734090cb2ca6e006a8065dbb4252b6b5d6c0d23ab7e3ea9c4ad09dbed",
+      "schemaVersion": "1",
+      "backupSchemaVersion": "2"
+    }
+  ],
+  "limits": "standalone measurement only; no assertion/test acceptance or proof of previous Vite timeoutcause",
+  "artifactHashes": {
+    "watchdog.json": "2f80b98a4ae8ac5cfc2ff45afc725ead0d5001b43508fe2ba1dbb8eddf311bb1",
+    "probe.mjs": "f8c3d91e786fedb96d90700d58ae0f507249e082d0a012a8c7920034dbcb9aba",
+    "watchdog.py": "2de4f5879d4bda5a71ed64dbaf89a6c847088c6ee18e663202ae5e351a005520",
+    "exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "loader.mjs": "50c0ed230aca0c26f6dfcbeda0dfccbc70213483decd793bf3a4b6005ef3aa2d",
+    "spans.jsonl": "3d60d2909a122b2372a68c101ae3cb1c342ff4b0dd40b9dcc963d69575093bcc",
+    "output.log": "d1b545e4ba6b247c6a2f506376884afd32c78bcd1566ed2b9604b2d61573226e"
+  }
+}

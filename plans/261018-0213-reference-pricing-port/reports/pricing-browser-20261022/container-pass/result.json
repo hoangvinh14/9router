@@ -1,0 +1,10 @@
+{
+  "image": "9router-pricing-acceptance:261022",
+  "name": "9router-pricing-test-2220789",
+  "passed": [
+    "Node 22 Alpine runtime",
+    "container authenticated exact override and schedule enable",
+    "container restart retains exact decimals and running schedule"
+  ],
+  "success": true
+}

@@ -1,0 +1,26 @@
+{
+  "taskId": "b203701b9",
+  "exitCode": 0,
+  "summary": {
+    "success": true,
+    "numTotalTests": 46,
+    "numPassedTests": 46,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "testFiles": 2,
+  "sourceHashesVerified": true,
+  "reportByteOffsets": [
+    0,
+    17843
+  ],
+  "scope": "guard+CRUD+sync routes only; no wrapper/socket stamps/coverage/startup/UI yet",
+  "limits": "mocked session/storage unit boundary; not actualJWT/TCP or server acceptance",
+  "artifactHashes": {
+    "results.json": "e53c6196a16c27fb938e73fd58b08704b89e17039c990cd7708aa705a3666481",
+    "runner-prefix.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "output.log": "bac81de000368b48acf48a5e5fa9da6bc81a6c0e505d996f93c45f078e509b8d"
+  }
+}

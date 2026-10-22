@@ -1,0 +1,178 @@
+(node:881711) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/gmo/projects/9router/src/lib/db/adapters/nodeSqliteAdapter.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/gmo/projects/9router/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "runtime": "v24.21.0",
+  "purpose": "diagnosis-only post-unlink/final-arbitration directory fsync",
+  "cases": [
+    {
+      "engine": "node",
+      "phase": "after-unlink",
+      "replacement": false,
+      "firstError": "injected after-unlink directory sync",
+      "injected": true,
+      "ownLockRemoved": true,
+      "gateRemoved": true,
+      "lockAfterFirst": false,
+      "health": {
+        "healthy": false,
+        "closed": true,
+        "poisoned": false,
+        "owned": false,
+        "durability": "wal-full"
+      },
+      "retryError": "ENOENT: no such file or directory, lstat '/tmp/9router-db-release-sync-diagnosis-hmOrBF/node/after-unlink/false/.gateway-writer.lock'",
+      "fixtureLockRemains": false
+    },
+    {
+      "engine": "node",
+      "phase": "after-unlink",
+      "replacement": true,
+      "firstError": "injected after-unlink directory sync",
+      "injected": true,
+      "ownLockRemoved": true,
+      "gateRemoved": true,
+      "lockAfterFirst": false,
+      "health": {
+        "healthy": false,
+        "closed": true,
+        "poisoned": false,
+        "owned": false,
+        "durability": "wal-full"
+      },
+      "replacementUsableBefore": true,
+      "retryError": "Database writer ownership lost",
+      "replacementLockUnchanged": true,
+      "replacementUsableAfter": true,
+      "fixtureLockRemains": false
+    },
+    {
+      "engine": "node",
+      "phase": "after-gate-cleanup",
+      "replacement": false,
+      "firstError": "injected after-gate-cleanup directory sync",
+      "injected": true,
+      "ownLockRemoved": true,
+      "gateRemoved": true,
+      "lockAfterFirst": false,
+      "health": {
+        "healthy": false,
+        "closed": true,
+        "poisoned": false,
+        "owned": false,
+        "durability": "wal-full"
+      },
+      "retryReturned": true,
+      "fixtureLockRemains": false
+    },
+    {
+      "engine": "node",
+      "phase": "after-gate-cleanup",
+      "replacement": true,
+      "firstError": "injected after-gate-cleanup directory sync",
+      "injected": true,
+      "ownLockRemoved": true,
+      "gateRemoved": true,
+      "lockAfterFirst": false,
+      "health": {
+        "healthy": false,
+        "closed": true,
+        "poisoned": false,
+        "owned": false,
+        "durability": "wal-full"
+      },
+      "replacementUsableBefore": true,
+      "retryReturned": true,
+      "replacementLockUnchanged": true,
+      "replacementUsableAfter": true,
+      "fixtureLockRemains": false
+    },
+    {
+      "engine": "sqljs",
+      "phase": "after-unlink",
+      "replacement": false,
+      "firstError": "injected after-unlink directory sync",
+      "injected": true,
+      "ownLockRemoved": true,
+      "gateRemoved": true,
+      "lockAfterFirst": false,
+      "health": {
+        "healthy": false,
+        "owned": false,
+        "closed": true,
+        "poisoned": false,
+        "durability": "atomic-fsync",
+        "dirty": false
+      },
+      "retryError": "ENOENT: no such file or directory, lstat '/tmp/9router-db-release-sync-diagnosis-hmOrBF/sqljs/after-unlink/false/.gateway-writer.lock'",
+      "fixtureLockRemains": false
+    },
+    {
+      "engine": "sqljs",
+      "phase": "after-unlink",
+      "replacement": true,
+      "firstError": "injected after-unlink directory sync",
+      "injected": true,
+      "ownLockRemoved": true,
+      "gateRemoved": true,
+      "lockAfterFirst": false,
+      "health": {
+        "healthy": false,
+        "owned": false,
+        "closed": true,
+        "poisoned": false,
+        "durability": "atomic-fsync",
+        "dirty": false
+      },
+      "replacementUsableBefore": true,
+      "retryError": "Database writer ownership lost",
+      "replacementLockUnchanged": true,
+      "replacementUsableAfter": true,
+      "fixtureLockRemains": false
+    },
+    {
+      "engine": "sqljs",
+      "phase": "after-gate-cleanup",
+      "replacement": false,
+      "firstError": "injected after-gate-cleanup directory sync",
+      "injected": true,
+      "ownLockRemoved": true,
+      "gateRemoved": true,
+      "lockAfterFirst": false,
+      "health": {
+        "healthy": false,
+        "owned": false,
+        "closed": true,
+        "poisoned": false,
+        "durability": "atomic-fsync",
+        "dirty": false
+      },
+      "retryReturned": true,
+      "fixtureLockRemains": false
+    },
+    {
+      "engine": "sqljs",
+      "phase": "after-gate-cleanup",
+      "replacement": true,
+      "firstError": "injected after-gate-cleanup directory sync",
+      "injected": true,
+      "ownLockRemoved": true,
+      "gateRemoved": true,
+      "lockAfterFirst": false,
+      "health": {
+        "healthy": false,
+        "owned": false,
+        "closed": true,
+        "poisoned": false,
+        "durability": "atomic-fsync",
+        "dirty": false
+      },
+      "replacementUsableBefore": true,
+      "retryReturned": true,
+      "replacementLockUnchanged": true,
+      "replacementUsableAfter": true,
+      "fixtureLockRemains": false
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "taskId": "b77e2e4ce",
+  "exitCode": 0,
+  "summary": {
+    "success": true,
+    "numTotalTests": 13,
+    "numPassedTests": 13,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "sourceHashesVerified": true,
+  "testFiles": 2,
+  "rawSha256": "367c8b54f823d71ae61f757ea505a88bd196aad61b313163a49fd4515b089885",
+  "limits": "explicit catalog fixtures and schedule only; not config import/migration/repo/API/UI/Docker acceptance"
+}

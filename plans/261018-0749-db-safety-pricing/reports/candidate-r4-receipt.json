@@ -1,0 +1,92 @@
+{
+  "taskId": "bcd817aa6",
+  "exitCode": 1,
+  "status": "failed",
+  "files": 11,
+  "assertions": 120,
+  "passed": 118,
+  "failed": 2,
+  "pending": 0,
+  "todo": 0,
+  "focusedDBControls": 37,
+  "R3ToR4Deltas": [
+    {
+      "file": "tests/unit/cached-token-usage.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-concurrent.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-driver-chain.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-durable-publication.test.js",
+      "added": [
+        "native engine uncertainty seam (fault engine, not a runtime lane) explicit close failure retains ownership and poisons until successful retry",
+        "native engine uncertainty seam (fault engine, not a runtime lane) explicit close policy runs once on normal close and repeated close stays idempotent",
+        "native engine uncertainty seam (fault engine, not a runtime lane) initialization cleanup uses close policy and retains exclusion if closure is uncertain"
+      ],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-migration-chain.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-sqlite-vs-lowdb.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-sqljs-publication.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-writer-ownership.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/key-access-migration.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/key-access.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/provider-pricing-minimax-m3.test.js",
+      "added": [],
+      "removed": [],
+      "passToFail": []
+    }
+  ],
+  "sourceHashesUnchanged": true,
+  "overallAccepted": false,
+  "failureObservation": "same two usage-count identities; actual3vs100 and1vs50; not proof of unchangedcause/no patchinfluence",
+  "artifactHashes": {
+    "candidate-r4-results.json": "58a966663c0ba292e4afb78b188167ca43adb07b0b59192720b6d3269f0862ed",
+    "candidate-r4-output.log": "ed4dc30f3f2e12f90c64bf6b5c156324a2aef79cdae46b5a3341787939f5e13f",
+    "candidate-r4-source.json": "9da99473f1909da27764a4ccde6336839b6c92c79839aa03f50d35a6b94afecb"
+  }
+}

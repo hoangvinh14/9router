@@ -1,0 +1,11 @@
+{
+  "taskId": "b00e0473c",
+  "exitCode": 0,
+  "result": {
+    "success": true,
+    "controls": 11,
+    "boundary": "selected-JS numeric loopback only, all local ports addressable; not OS sandbox"
+  },
+  "sourceHelperHashesVerified": true,
+  "limits": "Selected JS numericloopback allports boundary, not OS sandbox; no actualTCPmanagement acceptance yet"
+}

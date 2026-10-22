@@ -1,0 +1,25 @@
+{
+  "taskId": "bf78357a1",
+  "exitCode": 0,
+  "summary": {
+    "success": true,
+    "numTotalTests": 36,
+    "numPassedTests": 36,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "testFiles": 4,
+  "sourceHelperHashesVerified": true,
+  "reportByteOffsets": [
+    855,
+    16943
+  ],
+  "limits": "Focused exact editor metadata integration; broad regression/UI/browser/build still required",
+  "artifactHashes": {
+    "results.json": "bc19d027e6df5c10b3d26bc8a898503f506d2665bd070567714160880ef36023",
+    "runner-prefix.log": "e50769bb5aa3dc2638979414dd5ca46cd71268ad9cea297a39123df87f95627d",
+    "exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "output.log": "e154ff5c2d1e98ff22f0520d26e6bbbc01c4bdacebc7319346c69ae2ececa957"
+  }
+}

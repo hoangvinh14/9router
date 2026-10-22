@@ -1,0 +1,8 @@
+{
+  "taskId": "b5fc29c08",
+  "exitCode": 0,
+  "files": 1,
+  "sourceHashesVerified": true,
+  "outputBytes": 0,
+  "scope": "only test cold-start budget change explicitly authorized; no production acceptance"
+}

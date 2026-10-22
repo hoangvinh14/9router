@@ -1,0 +1,113 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { createInterface } from 'node:readline';
+import { once } from 'node:events';
+
+const root = '/tmp/9router-db-safety-bun-RuROb8';
+const mode = process.argv[2] || 'main';
+const file = path.join(root, 'fixtures/data/adapter-close/data.sqlite');
+const result = { mode, status: 'failed', runtime: process.versions.bun, revision: Bun.revision,
+  observations: {}, cleanupErrors: [], planned: ['normal close native-lifetime and owner boundary', 'repeated close', 'initialization failure cleanup', 'close failure handling'], notRun: [] };
+const children = new Set();
+let adapter, descriptor, prototype;
+const retained = [];
+const engines = new Set();
+function bounded(promise, label) {
+  let timer;
+  return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(label + ' timed out')), 10000); })]).finally(() => clearTimeout(timer));
+}
+async function contender(action) {
+  const child = spawn(process.execPath, ['--preload', path.join(root, 'harness/offline-preload.cjs'), import.meta.filename, action], { env: process.env, stdio: ['pipe', 'pipe', 'pipe'] });
+  children.add(child);
+  const lines = createInterface({ input: child.stdout });
+  const line = bounded(once(lines, 'line'), action + ' ready');
+  const exited = once(child, 'exit');
+  let stderr = ''; child.stderr.on('data', chunk => { stderr += chunk.toString(); });
+  const [text] = await line;
+  let receipt;
+  try { receipt = JSON.parse(text); }
+  catch (cause) { throw new Error('Malformed contender response', { cause }); }
+  result.observations[action] = receipt;
+  if (action === 'reject') {
+    const [code, signal] = await bounded(exited, 'reject exit');
+    assert.equal(code, 0); assert.equal(signal, null); assert.equal(receipt.rejected, true);
+    children.delete(child); lines.close();
+  }
+  return { child, lines, exited, stderr: () => stderr };
+}
+try {
+  assert.equal(process.versions.bun, '1.4.3');
+  assert.equal(fs.realpathSync(process.execPath), path.join(root, 'bin/bun'));
+  assert.equal(fs.realpathSync(process.env.DB_SAFETY_FIXTURE_ROOT), root);
+  assert.throws(() => globalThis.fetch('https://invalid.example'), /network disabled/);
+  const { createBunSqliteAdapter } = await import('../mirror/src/lib/db/adapters/bunSqliteAdapter.js');
+  if (mode !== 'main') {
+    if (mode === 'reject') {
+      try { adapter = await createBunSqliteAdapter(file); }
+      catch (error) { result.observations.rejection = error.message; }
+      assert.equal(adapter, undefined); assert.ok(result.observations.rejection);
+      console.log(JSON.stringify({ rejected: true, runtime: process.versions.bun, error: result.observations.rejection }));
+    } else {
+      assert.equal(mode, 'hold');
+      adapter = await createBunSqliteAdapter(file); assert.equal(adapter.driver, 'bun:sqlite');
+      console.log(JSON.stringify({ acquired: true, runtime: process.versions.bun, driver: adapter.driver }));
+      const input = createInterface({ input: process.stdin });
+      const [command] = await bounded(once(input, 'line'), 'hold shutdown');
+      assert.equal(command, 'close'); adapter.close(); adapter = undefined; input.close();
+    }
+    result.status = 'passed';
+  } else {
+    assert.equal(fs.existsSync(file), false);
+    const { Database } = await import('bun:sqlite');
+    prototype = Database.prototype;
+    descriptor = Object.getOwnPropertyDescriptor(prototype, 'prepare');
+    assert.ok(descriptor && typeof descriptor.value === 'function');
+    const original = descriptor.value;
+    Object.defineProperty(prototype, 'prepare', { ...descriptor, value: function (...args) {
+      const statement = Reflect.apply(original, this, args);
+      retained.push({ statement, sql: args[0], engine: this }); engines.add(this);
+      return statement;
+    } });
+    adapter = await createBunSqliteAdapter(file);
+    assert.equal(adapter.driver, 'bun:sqlite');
+    assert.equal(adapter.get('SELECT 73 AS boundary').boundary, 73);
+    const target = retained.find(row => row.sql === 'SELECT 73 AS boundary');
+    assert.ok(target); assert.equal(engines.size, 1);
+    result.observations.preClose = { driver: adapter.driver, retainedStatements: retained.length, value: target.statement.get().boundary };
+    await contender('reject');
+    adapter.close();
+    result.observations.publicAdapterClosed = adapter.health().closed;
+    Object.defineProperty(prototype, 'prepare', descriptor); descriptor = undefined;
+    const holder = await contender('hold');
+    assert.equal(result.observations.hold.acquired, true);
+    assert.equal(result.observations.hold.driver, 'bun:sqlite');
+    try { result.observations.retainedAfterClose = { returned: target.statement.get() }; }
+    catch (error) { result.observations.retainedAfterClose = { error: { name: error.name, message: error.message } }; }
+    // Record both facts before the safety assertion; no write/corruption probe.
+    holder.child.stdin.end('close\n');
+    const [code, signal] = await bounded(holder.exited, 'holder exit');
+    result.observations.holderExit = { code, signal, stderr: holder.stderr() };
+    children.delete(holder.child); holder.lines.close();
+    assert.equal(code, 0); assert.equal(signal, null);
+    assert.ok(result.observations.retainedAfterClose.error, 'Writer ownership released while retained native prepared SELECT remains executable under delayed collection');
+    result.status = 'passed';
+    result.notRun = result.planned.slice(1);
+  }
+} catch (error) {
+  result.error = { name: error.name, code: error.code ?? null, message: error.message };
+  result.notRun = mode === 'main' ? result.planned.slice(1) : [];
+  process.exitCode = 1;
+} finally {
+  if (descriptor) { try { Object.defineProperty(prototype, 'prepare', descriptor); } catch (error) { result.cleanupErrors.push(error.message); } }
+  for (const child of children) {
+    try { if (child.exitCode === null && child.signalCode === null) { const ended = once(child, 'exit'); child.kill('SIGKILL'); await bounded(ended, 'child cleanup'); } }
+    catch (error) { result.cleanupErrors.push(error.message); }
+  }
+  for (const row of retained) { try { row.statement.finalize(); } catch (error) { result.cleanupErrors.push(error.message); } }
+  for (const engine of engines) { try { engine.close(true); } catch (error) { result.cleanupErrors.push(error.message); } }
+  if (adapter) { try { adapter.close(); } catch (error) { result.cleanupErrors.push(error.message); } }
+  if (result.cleanupErrors.length) { result.status = 'failed'; process.exitCode = 1; }
+  fs.writeFileSync(path.join(root, `evidence/adapter-close-${mode}-result.json`), JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
+}

@@ -1,0 +1,17 @@
+{
+  "taskId": "bd7fc9cbe",
+  "exitCode": 0,
+  "result": {
+    "models.dev:443": 403,
+    "127.0.0.1:20128": 403,
+    "fonts.googleapis.com:443": 200,
+    "fonts.gstatic.com:443": 200,
+    "directEgress": "denied",
+    "checkoutWrite": "denied EROFS",
+    "hostHome": "masked",
+    "descendantReady": true
+  },
+  "sourceHelperHashesVerified": true,
+  "descendantCleanup": "outer helper verified no marked process after namespace exit",
+  "limits": "font CONNECT destination boundary, not TLS-SNI/HTTP content restriction; timedCPUaffinitybuildnotaggregate-memorylimit"
+}

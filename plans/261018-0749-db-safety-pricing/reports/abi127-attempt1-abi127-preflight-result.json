@@ -1,0 +1,17 @@
+{
+  "runtime": "v22.23.2",
+  "abi": "127",
+  "executable": "/home/gmo/.nvm/versions/node/v22.23.2/bin/node",
+  "platform": "linux",
+  "arch": "x64",
+  "packageFile": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/package.json",
+  "status": "failed",
+  "stage": "open",
+  "loadedAddon": "/tmp/9router-db-safety-abi127-mOsx0u/mirror/node_modules/better-sqlite3/build/Release/better_sqlite3.node",
+  "addonSha256": "df9fbd0d061f360d81fb51e265c53c9605020bd68219e34f33c07c85de15719a",
+  "error": {
+    "name": "AssertionError",
+    "code": "ERR_ASSERTION",
+    "message": "The expression evaluated to a falsy value:\n\n  assert.ok(fs.realpathSync(file).startsWith(mirror + path.sep))\n"
+  }
+}

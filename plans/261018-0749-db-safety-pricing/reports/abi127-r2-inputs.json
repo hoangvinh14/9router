@@ -1,0 +1,10 @@
+{
+  "purpose": "approved one changed-input preflight; exactpreloadexception/stagemilestones",
+  "timeoutSeconds": 30,
+  "mirrorManifestSha256": "14e3b5220da5349b5d564c6e442a5c0d9af0d20344c6c06f0d7f50c6a9ce60dc",
+  "scriptSha256": "ca9975fae11cd17273cb7f2e93139286e7430ab02887fced4ef66dbf427b4a18",
+  "preloadSha256": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4",
+  "R3OriginalsUnchanged": true,
+  "mirrorUnchanged": true,
+  "priorFailedAttemptRetained": true
+}

@@ -1,0 +1,7 @@
+{
+  "root": "/tmp/9router-pricing-browser-capability-yoy7hd3a",
+  "helper": "/home/gmo/projects/9router/plans/261018-0213-reference-pricing-port/reports/browser-capability.mjs",
+  "sha256": "fd566285fa33097c64dbdfecff3e5618d2795113e1bc81c8ad0954ec1a305bcf",
+  "binary": "/home/gmo/.cache/ms-playwright/chromium-1228/chrome-linux64/chrome",
+  "scope": "aboutblank CDP capability only; no application tested; sandbox not disabled; isolated network namespace"
+}

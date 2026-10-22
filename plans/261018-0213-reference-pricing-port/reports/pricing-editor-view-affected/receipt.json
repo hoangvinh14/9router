@@ -1,0 +1,25 @@
+{
+  "taskId": "bbb1bde90",
+  "exitCode": 0,
+  "summary": {
+    "success": true,
+    "numTotalTests": 275,
+    "numPassedTests": 275,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "testFiles": 26,
+  "sourceHelperHashesVerified": true,
+  "reportByteOffsets": [
+    855,
+    104943
+  ],
+  "limits": "26file affected barrier after exact editor projection refinement; no UI/build/Docker proof",
+  "artifactHashes": {
+    "results.json": "620df8f1a41989dd147dffc488a36ccb85b76fe489098013d9b575f61013ce94",
+    "runner-prefix.log": "47f2f4aff203ff074a0a1b85e68284506abca25020c4942c19c7b2b009d35a2f",
+    "exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "output.log": "1e901f8bd7e94d01f27f48824569220a5701310f7268fad8b4ab23da5048ee7d"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "taskId": "ba73888fc",
+  "exitCode": 0,
+  "sourceHashesVerified": true,
+  "tests": {
+    "numTotalTests": 48,
+    "numPassedTests": 48,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "scope": "four focused files, actual Node/SQLjs; not affected/all-runtime acceptance",
+  "rawSha256": "14ba93b3d36541f2d00862c33f5dd9492857c434735c7dd228f5b7f4cecb96b5"
+}

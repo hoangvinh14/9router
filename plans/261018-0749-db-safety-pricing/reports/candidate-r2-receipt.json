@@ -1,0 +1,82 @@
+{
+  "taskId": "b116895a2",
+  "exitCode": 1,
+  "files": 11,
+  "assertions": 114,
+  "passed": 112,
+  "failed": 2,
+  "pending": 0,
+  "todo": 0,
+  "deltasFromR1Affected": [
+    {
+      "file": "tests/unit/cached-token-usage.test.js",
+      "removed": [],
+      "added": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-concurrent.test.js",
+      "removed": [],
+      "added": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-driver-chain.test.js",
+      "removed": [],
+      "added": [
+        "Driver fallback chain actual driver selects real SQL.js after pre-open native-unavailable decision and migrates ACL schema"
+      ],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-migration-chain.test.js",
+      "removed": [],
+      "added": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/db-sqlite-vs-lowdb.test.js",
+      "removed": [],
+      "added": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/key-access-migration.test.js",
+      "removed": [],
+      "added": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/key-access.test.js",
+      "removed": [],
+      "added": [],
+      "passToFail": []
+    },
+    {
+      "file": "tests/unit/provider-pricing-minimax-m3.test.js",
+      "removed": [],
+      "added": [],
+      "passToFail": []
+    }
+  ],
+  "actualAvailableEngines": [
+    "node:sqlite",
+    "sql.js"
+  ],
+  "syntheticControls": [
+    "native RELEASE/close fault engine",
+    "pre-open engine availability for SQL.js driver composition"
+  ],
+  "unverified": [
+    "bun:sqlite runtime",
+    "better-sqlite3 runtime",
+    "Windows/filesystem"
+  ],
+  "overallAcceptance": false,
+  "sourceHashesVerified": true,
+  "artifacts": {
+    "candidate-r2-results.json": "a1da03daf2246830d267d679e98f1044aab341d44a9bf145b3cb5369868e5d35",
+    "candidate-r2-output.log": "ce2849f08516a6254f7a378c1e29038dc3a5ee46817c5a2c5961ff08bd9f15ab",
+    "candidate-r2-source.json": "4747e60c06aba3f75cc6acf92ed35c7218c50a88c8ee0be6794e9c47b4f26f54"
+  }
+}

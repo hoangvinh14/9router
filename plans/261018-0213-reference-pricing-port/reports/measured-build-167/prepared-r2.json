@@ -1,0 +1,11 @@
+{
+  "status": "pass",
+  "root": "/tmp/9router-pricing-measured-ixuel6x9",
+  "sourceCount": 1256,
+  "inventory": {
+    "files": 36425,
+    "links": 32
+  },
+  "fixture": "pass",
+  "preflight": "pass"
+}

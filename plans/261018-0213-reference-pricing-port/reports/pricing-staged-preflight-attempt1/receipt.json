@@ -1,0 +1,19 @@
+{
+  "taskId": "b334ecdd3",
+  "exitCode": 0,
+  "sourceHelperHashesVerified": true,
+  "result": {
+    "models.dev:443": 403,
+    "127.0.0.1:20128": 403,
+    "fonts.googleapis.com:443": 200,
+    "fonts.gstatic.com:443": 200,
+    "directEgress": "denied",
+    "checkoutWrite": "denied EROFS",
+    "hostHome": "masked",
+    "awsVersion": "3.1153.0",
+    "awsResolvedPath": "/home/gmo/projects/9router/node_modules/@aws-sdk/credential-providers/dist-cjs/index.js",
+    "dependencyWrite": "denied EROFS",
+    "descendantReady": true
+  },
+  "limits": "pre-correction helper evidence; pending static metadata diagnostic repair means not build gate approval"
+}

@@ -1,0 +1,18 @@
+{
+  "setupTaskId": "bcf4aa0bb",
+  "setupExitCode": 0,
+  "timeoutSeconds": 30,
+  "namedCases": 4,
+  "identityCommands": [
+    "--version",
+    "--revision"
+  ],
+  "executableSha256": "7ce7d6b654eddeec20afddf2396317fba6dc19ab52788a27e894e1806bf8f24b",
+  "harnessSha256": {
+    "bun-lifetime-preflight.mjs": "9e60fd0df4a0a1b3b17caf746efc94c1e1ae8a49bed37b660449bf9efdabcb05",
+    "offline-preload.cjs": "b20eedaf166c709aa450e1f8a7df631b83160d31cc1cf3b09f77b8046a962ee4"
+  },
+  "originalR3SourceTestsUnchanged": true,
+  "scope": "raw bun:sqlite lifetime, not adapter acceptance",
+  "networkGuard": "selected JS APIs only, not OS isolation"
+}

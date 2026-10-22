@@ -1,0 +1,19 @@
+{
+  "head": "87a74e1bda3677193c6f71a7e2100c90311f0689",
+  "stash": "d515fb4927ed45a5853104406cd0fecca549c04c",
+  "branch": "feat/reference-pricing-port",
+  "files": {
+    "package.json": "eee409b146c9b7077559c3d6a37ff43856594ba76c1a50fbc4e5e42949b60993",
+    "package-lock.json": "6650112afe7893dbc980eb4f7245e71738c06bc2cc6b374bb7a837716111c667",
+    "tests/package.json": "320deca1e8563b1f70a33bca22530c549069174c8b8f6c8cb08fcf5c0f9e3f9f",
+    "tests/package-lock.json": "1f6088b105bdbcbe5e1e3237d5b162845aefe5e924fa7966c0b0a7cfd235f029",
+    "tests/vitest.config.js": "8c1d2f07f7da1f8eca95569cb383b5d3949b92b2d582e6cba980965c464e839d",
+    "src/lib/db/driver.js": "5136903b4f2d821abc132436fa2f01c4c9adcbcddc6b733e955b6e31e1e0b157",
+    "src/lib/db/schema.js": "62308aad30f7ced05503dba48c69c9ce61b589e8cd2c317643ef898544c061b5",
+    "src/lib/db/migrate.js": "a345d645854e93def4fe3fbfbd25aa55d692f23c7df497c2a1df237dbc838054",
+    "src/lib/db/index.js": "921c45f9be14fa2e3fdad169ff63492cc588dc375585e212baed23eff3341dcc",
+    "src/lib/db/repos/pricingRepo.js": "af2d1b8787b41c1bcf4a9cdee37d02e73056671bc68a6eac91a7c4fdbeb2646e",
+    "custom-server.js": "c3b4f23acd30384d814ac16f729cc956db717a342abc68a74153f87bbe45ff3f",
+    "src/instrumentation.js": "329dd650b04076e7e667f9d36bbb7d2c5d0487102561b70cf31cb67ba783b8b1"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "src/lib/pricing/servingStartup.js": "adb78c06ad6fc475507a668e591d93ae2590ea04e424b30d9f1678e92a7660ea",
+  "src/shared/components/PricingModal.js": "4c8862dd2b8308f5e7eff23b383c576a79d8ca0f21e0887bf697551cec19bac5",
+  "tests/browser/pricing-acceptance.mjs": "348fad45d501fea112a231cd48d71b7b092aa4b17645879587cb1feb3d77c0e6",
+  "tests/browser/pricing-catalog-fixture.cjs": "bd7f5ac5510969799de7c5099366e0c205295bedce097678d80475bad0012a96",
+  "tests/package.json": "d2ad2ba891cace7235e98c43b07e72bdd22a96baf0a58c0999f841fb7c0bd726",
+  "tests/browser/pricing-container-smoke.mjs": "8a566fa57c771ead12c2a9ebb2c682e6acabf0953e23255c72777125fef453f0",
+  "tests/README.md": "12f0c6eac2b8df4cf101dcb7753898e80b3119265f12eb6f2d0981434463b462"
+}

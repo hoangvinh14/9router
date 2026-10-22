@@ -1,0 +1,7 @@
+{
+  "root": "/tmp/9router-browser-launch-diag-1lmcyoal",
+  "helper": "plans/261018-0213-reference-pricing-port/reports/browser-launch-diagnostic.py",
+  "sha256": "73b342a823c0184528bdc6fd7df993d807db2be12dd4d3e7f7ba44be1ca48346",
+  "difference": "Capture version/actualnegativeexitcode(signal)+verboseChromiumlogging; same sandbox-intent namespace, no application, no disabling sandbox",
+  "prior": "browser-capability-attempt1/receipt.json"
+}

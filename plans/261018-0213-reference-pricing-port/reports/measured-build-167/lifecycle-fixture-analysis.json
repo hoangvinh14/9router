@@ -1,0 +1,156 @@
+{
+  "checkedAt": 1792551922.4631627,
+  "parseErrors": 0,
+  "events": {
+    "measurement-inside.jsonl": [
+      {
+        "event": "observer_start",
+        "wall": 1792551832.1657503,
+        "mono": 272741.204324653,
+        "side": "inside",
+        "interval": 5,
+        "clockTicks": 100
+      },
+      {
+        "event": "process_start",
+        "wall": 1792551832.1905572,
+        "mono": 272741.229131993,
+        "side": "inside",
+        "pid": 4,
+        "role": "build"
+      },
+      {
+        "event": "wait_expired",
+        "wall": 1792551834.191653,
+        "mono": 272743.230227237,
+        "side": "inside",
+        "pid": 4,
+        "role": "build",
+        "seconds": 2
+      },
+      {
+        "event": "signal_group",
+        "wall": 1792551834.1920965,
+        "mono": 272743.230669651,
+        "side": "inside",
+        "pgid": 4,
+        "signal": "SIGTERM"
+      },
+      {
+        "event": "wait_expired",
+        "wall": 1792551839.193603,
+        "mono": 272748.232177146,
+        "side": "inside",
+        "pid": 4,
+        "role": "build",
+        "seconds": 5
+      },
+      {
+        "event": "signal_group",
+        "wall": 1792551839.194156,
+        "mono": 272748.232729933,
+        "side": "inside",
+        "pgid": 4,
+        "signal": "SIGKILL"
+      },
+      {
+        "event": "process_exit",
+        "wall": 1792551839.2008374,
+        "mono": 272748.239412068,
+        "side": "inside",
+        "pid": 4,
+        "role": "build",
+        "code": -9
+      },
+      {
+        "event": "observer_exit",
+        "wall": 1792551839.202281,
+        "mono": 272748.240854701,
+        "side": "inside",
+        "code": 124,
+        "threads": [
+          {
+            "name": "MainThread",
+            "daemon": false,
+            "alive": true
+          },
+          {
+            "name": "Thread-1 (serve_forever)",
+            "daemon": true,
+            "alive": true
+          }
+        ]
+      }
+    ],
+    "measurement-outside.jsonl": [
+      {
+        "event": "observer_start",
+        "wall": 1792551831.821785,
+        "mono": 272740.860386496,
+        "side": "outside",
+        "interval": 5,
+        "clockTicks": 100
+      },
+      {
+        "event": "process_start",
+        "wall": 1792551831.8548284,
+        "mono": 272740.893402946,
+        "side": "outside",
+        "pid": 1785168,
+        "role": "namespace"
+      },
+      {
+        "event": "process_exit",
+        "wall": 1792551839.271245,
+        "mono": 272748.309819815,
+        "side": "outside",
+        "pid": 1785168,
+        "role": "namespace",
+        "code": 124
+      },
+      {
+        "event": "process_exit",
+        "wall": 1792551839.2722325,
+        "mono": 272748.310805864,
+        "side": "outside",
+        "pid": 1785168,
+        "role": "namespace",
+        "code": 124
+      },
+      {
+        "event": "process_exit",
+        "wall": 1792551839.2726834,
+        "mono": 272748.311257328,
+        "side": "outside",
+        "pid": 1785168,
+        "role": "namespace",
+        "code": 124
+      },
+      {
+        "event": "observer_exit",
+        "wall": 1792551839.274009,
+        "mono": 272748.31258285,
+        "side": "outside",
+        "code": 124,
+        "threads": [
+          {
+            "name": "MainThread",
+            "daemon": false,
+            "alive": true
+          },
+          {
+            "name": "Thread-1 (serve_forever)",
+            "daemon": true,
+            "alive": true
+          }
+        ]
+      }
+    ]
+  },
+  "sampledIdentities": 5,
+  "sampledStillPresent": [],
+  "payloadLog": "FIXTURE_PAYLOAD 4 5\n",
+  "buildExit": "124",
+  "runnerLog": "",
+  "scope": "sampled identities only; payload PID namespace IDs are not host process IDs"
+}

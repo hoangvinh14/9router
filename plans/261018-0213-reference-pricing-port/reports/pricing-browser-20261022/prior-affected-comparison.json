@@ -1,0 +1,7 @@
+{
+  "prior": "pricing-editor-view-affected-inputs.json",
+  "files": 86,
+  "changed": [
+    "src/lib/pricing/servingStartup.js"
+  ]
+}

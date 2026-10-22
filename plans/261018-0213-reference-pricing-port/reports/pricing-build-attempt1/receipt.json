@@ -1,0 +1,17 @@
+{
+  "taskId": "bb279601d",
+  "exitCode": 1,
+  "counselBeforeDiagnosis": true,
+  "missingArtifacts": [],
+  "hashMismatches": [],
+  "boundFiles": 1256,
+  "artifactHashes": {
+    "runner-exit.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "build-exit.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "isolated-build.py": "b3fc24cc04481a41ed99f7283e0db5534a39d1fc0449901caa7b65e55f28f516",
+    "inputs.json": "d7c052699f72a250796e385120c2c7746df4f9cfc4c3e6564e4c15101a76c884",
+    "build-output.log": "ad308478f27430bb9e409eb846ebf1574709efefef20377a20e5dd715bc3935a",
+    "proxy-events.json": "800efb75a46f8bb74a505c279a62000d75e9f32e4b78f49bcb831df9449037d4",
+    "runner-output.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

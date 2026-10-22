@@ -1,0 +1,12 @@
+{
+  "taskId": "d31b5177ba2b0a57633bbc25f9df075f2",
+  "answerSha256": "bedb1ceca943d2cf0520193b3c01a87c34b949019e146ac77c782a228a55f0b6",
+  "route": {
+    "model": "cx/gpt-6-astra",
+    "provider": "9router"
+  },
+  "status": "incomplete; new post-unlink directory fsync recovery finding",
+  "coverage": "production11bodies read; tests/usage/consumers/receipts not inspected",
+  "fullReviewGate": "not complete",
+  "furtherDelegation": "not authorized beyond consumed followup"
+}
