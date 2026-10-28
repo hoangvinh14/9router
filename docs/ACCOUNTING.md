@@ -1,6 +1,24 @@
 # Internal accounting core
 
-The [accounting service](../src/lib/accounting/service.js) is a prerequisite for provider integration. No inference handler invokes it yet, no budget is enforced, and initialization never sets `ledgerStartedAt`. See [database safety](./DB-SAFETY.md) for storage, backup and identity rules.
+The [accounting service](../src/lib/accounting/service.js) supports an internal disposable-fixture chat integration. Production accounting and budget enforcement remain OFF, and initialization never sets `ledgerStartedAt`. See [database safety](./DB-SAFETY.md) for storage, backup and identity rules.
+
+Explicit `apiKeyBudgetPolicies` store nullable weekly/monthly limits and a
+version. Only null/null means unlimited, independently of ACL. Missing or
+invalid policy denies; retained installation markers prevent silent defaults
+when a previously initialized policy disappears.
+
+Node SQLite and SQL.js provide adapter-private
+`withPersistedAccountingAuthority(work)`: a fresh read-only persisted snapshot
+with verified schema/owner and unchanged authority projection, including WAL.
+The restricted driver capability `getPersistedRequestAuthority()` wraps only
+an already initialized lifetime and returns request-local identity/selection
+proofs with fresh assertions. Secrets and reader functions stay private.
+Recording-only failure can retain this proof; dirty configuration, uncertain
+open transactions, invalid sidecar/owner/schema or maintenance deny. Ordinary
+poisoned reads remain blocked. These are identity/selection proofs, not intent
+or gap ACKs or POST permission. P3 still owns app ACL/route and continuation
+composition. [Verification and finite overhead](../plans/reports/implementation-261027-0850-persisted-authority.md)
+cover Linux Node SQLite/SQL.js only; activation remains OFF.
 
 ## Call contract
 
@@ -26,6 +44,49 @@ Extended rates require `{ exact: true, provenance, components: [{ category, coun
 
 Attempts start pending and transition to settled, unresolved or proven not_dispatched. Unknown usage remains null cost. Exact late observations may settle unresolved rows. Identical intent/terminal replay is idempotent; conflicting terminal observations are audited and refuse a second debit. `resolveAttempt(id, { operationId, expectedVersion, actor, reason, evidence, action, ... })` supports internal CAS recovery of unresolved rows with `waive`, `exact_usage` or `cost_correction`. Waiver is explicit audited zero; manual resolution wins over late conflicting callbacks. No management route or historical debit is introduced.
 
+## Selected chat integration
+
+The app chat handler captures a request-local capability before parsing the
+body. Only the private disposable-fixture association activates it; no header,
+body field, setting or environment flag enables production accounting. The
+selected path uses a persisted OpenAI-compatible **chat** node and the Default
+executor, with existing auth, ACL, account/model selection, direct transport
+and saved HTTP proxy behavior.
+
+Every native generation POST, including transport retries, needs its own intent
+ACK and a fresh persisted identity/selection proof immediately before exposure.
+Local accounting refusal bypasses ordinary retry, cooldown and combo fallback.
+Recording failure permits continuation only for verified explicit unlimited
+policy with an independent delivered coverage-gap ACK. It never reopens a
+writer or relaxes ordinary poisoned reads.
+
+The strict `openai-chat-explicit-details` profile requires complete raw prompt,
+completion, total, cached and reasoning counters. Cached tokens are included in
+prompt tokens; reasoning is included in completion tokens. Cache writes and
+write tiers are explicitly zero for this selected profile; declarations of
+those unsupported categories invalidate exact evidence. This does not certify
+all compatible providers. Prices come from the original P2 snapshot, including
+explicit zero cached rates and input-rate fallback for absent cached rates.
+
+JSON owns and bounds the raw body before translation, awaits its own exact or
+unresolved terminal ACK, then replays native bytes. SSE uses one incremental
+UTF-8/event reader: deltas may pass, while meaningful finish and DONE await
+complete usage, protocol completion and the attempt's own terminal ACK. A mixed
+delta/finish frame is split. DONE defines the selected protocol boundary;
+already-read trailing evidence is refused and the raw reader is cancelled.
+Missing/conflicting usage, premature EOF, stall, cancellation or failed ACK
+cannot become a successful translator flush. Existing native error-terminal
+formatting handles failures after headers. Raw byte activity feeds the existing
+stall watchdog, including fragmented frames; upstream completion clears that
+watchdog while the terminal ACK is pending.
+
+Raw JSON, frame and retained terminal bounds are owned by
+[runtimeConfig.js](../open-sse/config/runtimeConfig.js). Receipt sinks survive
+request disposal for late evidence; duplicate/conflicting observations use the
+existing ledger rules. Tests and finite measurement evidence belong to the
+[P3 execution record](../plans/261018-0213-durable-chat-accounting/plan.md), not
+production activation authority.
+
 ## Remaining owners
 
-P3 owns actual dispatch/protocol integration, all successor/fresh gates, coverage-gap continuation eligibility and late sinks. P4 owns policy, calendars and budgets. P5 owns authenticated management/recovery UX and managed physical restore. Bun/better/Windows accounting validation remains a P5/R release blocker. Activation requires complete dispatch coverage and its own acceptance; the existence of this core does not establish that coverage.
+P3 owns acceptance of the selected dispatch/protocol integration, all successor/fresh gates, coverage-gap continuation eligibility and late sinks. Broader provider and transport inventory remains separate. P4 owns policy, calendars and budgets. P5 owns authenticated management/recovery UX and managed physical restore. Bun/better/Windows accounting validation remains a P5/R release blocker. Activation requires complete dispatch coverage and its own acceptance; the existence of this core does not establish that coverage.

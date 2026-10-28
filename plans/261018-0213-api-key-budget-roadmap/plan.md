@@ -29,7 +29,7 @@ created: 2026-10-18
 
 | # | Phase | Status |
 |---|-------|--------|
-| 1 | [Điều phối các plan con](./phase-01-start.md) | In progress — P1/P2 closed; P3 preparation next |
+| 1 | [Điều phối các plan con](./phase-01-start.md) | In progress — P1/P2/P3 complete within recorded boundaries; P4 next |
 
 ## Các plan con và thứ tự
 
@@ -37,7 +37,7 @@ created: 2026-10-18
 |---|---|---|---|
 | P1 | [Reference pricing](../261018-0213-reference-pricing-port/plan.md) | Nền đã pull; dependency check trong phase 1 | Complete — conditional Linux acceptance |
 | P2 | [Ledger/durability tối thiểu](../261018-0214-accounting-foundation/plan.md) | P1 | Complete — Node/SQL.js foundation; activation OFF |
-| P3 | [Một luồng chat khép kín](../261018-0213-durable-chat-accounting/plan.md) | P2 | Contract, chưa executable |
+| P3 | [Một luồng chat khép kín](../261018-0213-durable-chat-accounting/plan.md) | P2; named prerequisite below | Complete October 28 — selected JSON/SSE, Node/SQL.js; activation OFF |
 | P4 | [Weekly/monthly budget + UI](../261018-0213-weekly-monthly-budget/plan.md) | P3 | Contract, chưa executable |
 | P5 | [Recovery/vận hành](../261018-0213-accounting-recovery/plan.md) | P4; dùng primitives P2 | Contract, chưa executable |
 | X1 | [Responses và embeddings](../261018-0215-responses-embeddings-accounting/plan.md) | P3; pricing/schema phù hợp | Envelope: tách owner trước làm |
@@ -49,6 +49,13 @@ created: 2026-10-18
 | R | [Whole-product acceptance](../261018-0213-budget-release-acceptance/plan.md) | P1–P5 + X1–X6 inventory đóng | Contract, chưa executable |
 
 Mặc định P1→P2→P3→P4→P5 rồi chọn X1→X2→X3→X4→X5→X6 theo dependency đã resolve; không làm song song. Nếu P3 cần seam retry/transport của X5 thì chỉ kéo đúng prerequisite được đặt tên, không mở toàn X5. Envelope không được chạy như một giant plan mới.
+
+P3 invocation `--auto` ngày 2026-10-23 đã đặt tên
+[policy/persisted-authority + transport prerequisite](../261023-0739-p3-chat-dispatch-prerequisites/plan.md),
+phụ thuộc P2 và không depend P3. Cả hai prerequisite phases đã accepted ngày 27/10 với
+actual-adapter/transport evidence. P3 JSON/SSE và combined acceptance đã hoàn tất
+ngày 28/10; [final reconciliation](../reports/implementation-261028-1243-chat-plan-completion.md)
+giữ test/measurement/build/standalone evidence và scope limits. Không production activation.
 
 ## Trade-offs và better approach
 - Merge/rebase toàn nhánh: giả định conflict cùng lúc vẫn kiểm soát được; hỏng sớm ở ACL/schema/routing khác nghĩa. Selective port: giả định tách dependency được; hỏng sớm khi shared driver kéo theo cả accounting. Rewrite: giả định reuse ít giá trị; hỏng sớm ở lặp lại defect và mất evidence.
