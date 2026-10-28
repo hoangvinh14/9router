@@ -10,6 +10,7 @@ import { stringifyJson } from "./helpers/jsonCol.js";
 import { installPricingRevision } from "./pricingRevision.js";
 import { validatePricingMutation } from "../pricing/pricingValidation.js";
 import { verifyAccountingSchema } from "./migrations/002-accounting-foundation.js";
+import { verifyAccountingPolicySchema, readAccountingPolicy } from "./helpers/accounting-policy.js";
 import { keyAccessToColumns, validateKeyAccessInput } from "@/shared/utils/keyAccess.js";
 
 // Marker file: prevents re-importing legacy JSON when user wipes data.sqlite.
@@ -248,6 +249,8 @@ export async function runMigrationOnce(adapter) {
   // 2. Additive sync (auto add missing columns/indexes declared in TABLES)
   syncSchemaFromTables(adapter);
   verifyAccountingSchema(adapter);
+  verifyAccountingPolicySchema(adapter);
+  for (const row of adapter.all("SELECT apiKeyId FROM apiKeyBindings")) readAccountingPolicy(adapter, row.apiKeyId);
   installPricingRevision(adapter);
 
   // Stamp the schema version we just reached so future boots skip re-backup.

@@ -1,6 +1,7 @@
 // Stream handler with disconnect detection - shared for all providers
 import { STREAM_STALL_TIMEOUT_MS } from "../config/runtimeConfig.js";
 import { dbg, isDebugEnabled } from "./debugLog.js";
+import { accountingStreamActivity } from "./accounting-openai-stream.js";
 
 // Get HH:MM:SS timestamp
 function getTimeString() {
@@ -198,6 +199,8 @@ export function pipeWithDisconnect(providerResponse, transformStream, streamCont
   let totalBytes = 0;
   let lastChunkAt = Date.now();
   let abortMessage = "upstream connection lost";
+  let unsubscribe = null;
+  let rawComplete = false;
   const t0 = Date.now();
   const tag = "STREAM";
   const clearStall = () => {
@@ -205,6 +208,7 @@ export function pipeWithDisconnect(providerResponse, transformStream, streamCont
   };
   const armStall = () => {
     clearStall();
+    if (rawComplete) return;
     stallTimer = setTimeout(() => {
       stallTimer = null;
       abortMessage = "stream stall timeout";
@@ -221,13 +225,18 @@ export function pipeWithDisconnect(providerResponse, transformStream, streamCont
     signal: streamController.signal,
     startTime: streamController.startTime,
     isConnected: () => streamController.isConnected(),
-    handleComplete: () => { dbg(tag, `complete | chunks=${chunkCount} | bytes=${totalBytes} | dur=${Date.now() - t0}ms`); clearStall(); streamController.handleComplete(); },
-    handleError: (e) => { dbg(tag, `error: ${e?.message} | chunks=${chunkCount} | bytes=${totalBytes} | dur=${Date.now() - t0}ms`); clearStall(); streamController.handleError(e); },
-    handleDisconnect: (r) => { dbg(tag, `disconnect: ${r} | chunks=${chunkCount} | bytes=${totalBytes} | dur=${Date.now() - t0}ms`); clearStall(); streamController.handleDisconnect(r); },
+    handleComplete: () => { dbg(tag, `complete | chunks=${chunkCount} | bytes=${totalBytes} | dur=${Date.now() - t0}ms`); clearStall(); unsubscribe?.(); streamController.handleComplete(); },
+    handleError: (e) => { dbg(tag, `error: ${e?.message} | chunks=${chunkCount} | bytes=${totalBytes} | dur=${Date.now() - t0}ms`); clearStall(); unsubscribe?.(); streamController.handleError(e); },
+    handleDisconnect: (r) => { dbg(tag, `disconnect: ${r} | chunks=${chunkCount} | bytes=${totalBytes} | dur=${Date.now() - t0}ms`); clearStall(); unsubscribe?.(); streamController.handleDisconnect(r); },
     abort: () => { clearStall(); streamController.abort(); }
   };
 
   armStall();
+  const rawActivity = accountingStreamActivity(providerResponse);
+  unsubscribe = rawActivity?.subscribe((size, done) => {
+    if (size) lastChunkAt = Date.now();
+    if (done) { rawComplete = true; clearStall(); } else armStall();
+  });
   dbg(tag, `pipe start | stallTimeout=${stallTimeoutMs}ms`);
 
   const upstreamTap = new TransformStream({
@@ -241,7 +250,7 @@ export function pipeWithDisconnect(providerResponse, transformStream, streamCont
       if (isDebugEnabled && (chunkCount <= 5 || chunkCount % 20 === 0 || gap > 5000)) {
         dbg(tag, `chunk #${chunkCount} | size=${sz}B | gap=${gap}ms | total=${totalBytes}B`);
       }
-      armStall();
+      if (!rawActivity) armStall();
       controller.enqueue(chunk);
     },
     flush() { dbg(tag, `upstream EOF | chunks=${chunkCount} | bytes=${totalBytes} | dur=${Date.now() - t0}ms`); clearStall(); }

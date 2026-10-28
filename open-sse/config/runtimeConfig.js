@@ -96,3 +96,8 @@ export function resolveRetryEntry(entry) {
 export const SKIP_PATTERNS = [
   "Please write a 5-10 word title for the following conversation:"
 ];
+
+// Bounds apply to raw evidence, independently of analytics/translation buffers.
+export const ACCOUNTING_JSON_MAX_BYTES = 8 * 1024 * 1024;
+export const ACCOUNTING_SSE_FRAME_MAX_BYTES = 256 * 1024;
+export const ACCOUNTING_SSE_TERMINAL_MAX_BYTES = 512 * 1024;

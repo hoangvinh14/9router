@@ -84,22 +84,23 @@ export async function getKeyAccessContext(request) {
 // and resolved provider ids (for provider-as-model kinds).
 async function getAllowSets(ctx) {
   if (ctx._sets) return ctx._sets;
-  const comboNames = new Set((await getCombos()).map((c) => lower(c.name)));
-  const combos = new Set();
-  const models = new Set();
-  const providers = new Set();
-  for (const entry of ctx.allow) {
-    const key = lower(entry);
-    if (comboNames.has(key)) {
-      combos.add(key);
-      continue;
-    }
-    const info = await getModelInfo(entry);
+  const combos = await getCombos();
+  const resolved = await Promise.all(ctx.allow.map(entry => getModelInfo(entry)));
+  ctx._sets = buildKeyAllowSets(ctx.allow, combos, resolved);
+  return ctx._sets;
+}
+
+// Resolved identities are supplied by the same routing resolver as the caller.
+export function buildKeyAllowSets(allow, comboRows, resolved) {
+  const comboNames = new Set(comboRows.map(c => lower(c.name)));
+  const combos = new Set(), models = new Set(), providers = new Set();
+  allow.forEach((entry, index) => {
+    if (comboNames.has(lower(entry))) { combos.add(lower(entry)); return; }
+    const info = resolved[index];
     if (info?.provider && info.model) models.add(canonicalModel(info.provider, info.model));
     if (!entry.includes("/")) providers.add(lower(resolveProviderId(entry)));
-  }
-  ctx._sets = { combos, models, providers };
-  return ctx._sets;
+  });
+  return { combos, models, providers };
 }
 
 async function isModelStringAllowed(ctx, requested) {

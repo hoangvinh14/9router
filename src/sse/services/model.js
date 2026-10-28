@@ -9,7 +9,7 @@ const LOCAL_PROVIDER_ALIASES = {
   "xiaomi-tokenplan": "xiaomi-tokenplan",
 };
 
-const RESERVED_PROVIDER_PREFIXES = new Set(Object.keys(LOCAL_PROVIDER_ALIASES));
+export const RESERVED_PROVIDER_PREFIXES = new Set(Object.keys(LOCAL_PROVIDER_ALIASES));
 for (const entry of REGISTRY) {
   RESERVED_PROVIDER_PREFIXES.add(entry.id);
   if (entry.alias) RESERVED_PROVIDER_PREFIXES.add(entry.alias);

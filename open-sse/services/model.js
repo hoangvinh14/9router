@@ -107,6 +107,12 @@ export async function getModelInfoCore(modelStr, aliasesOrGetter) {
       ? await aliasesOrGetter()
       : aliasesOrGetter;
 
+  return resolveModelInfoFromAliases(modelStr, aliases);
+}
+
+export function resolveModelInfoFromAliases(modelStr, aliases) {
+  const parsed = parseModel(modelStr);
+  if (!parsed.isAlias) return { provider: parsed.provider, model: parsed.model };
   // Resolve alias
   const resolved =
     resolveModelAliasFromMap(parsed.model, aliases) ||

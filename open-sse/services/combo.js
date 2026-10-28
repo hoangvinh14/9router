@@ -1,3 +1,4 @@
+import { isAccountingRefusal } from "../utils/accounting-transport.js";
 /**
  * Shared combo (model combo) handling with fallback support
  */
@@ -411,6 +412,7 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       if (!lastStatus) lastStatus = result.status;
       log.warn("COMBO", `Model ${modelStr} failed, trying next`, { status: result.status });
     } catch (error) {
+      if (isAccountingRefusal(error)) throw error;
       // Catch unexpected exceptions to ensure fallback continues
       lastError = error.message || String(error);
       if (!lastStatus) lastStatus = 500;

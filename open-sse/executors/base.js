@@ -1,9 +1,11 @@
+import { createAccountedBoundary } from "./accounted-base.js";
 import { HTTP_STATUS, RETRY_CONFIG, DEFAULT_RETRY_CONFIG, resolveRetryEntry, FETCH_CONNECT_TIMEOUT_MS } from "../config/runtimeConfig.js";
 import { shouldRefreshCredentials } from "../services/oauthCredentialManager.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { dbg } from "../utils/debugLog.js";
 import { ANTHROPIC_API_VERSION, OPENAI_COMPAT_BASE, ANTHROPIC_COMPAT_BASE } from "../providers/shared.js";
 import { resolveOpenAICompatibleApiType } from "../services/provider.js";
+import { isAccountingRefusal } from "../utils/accounting-transport.js";
 
 /**
  * BaseExecutor - Base class for provider executors
@@ -97,7 +99,9 @@ export class BaseExecutor {
     return { status: response.status, message: bodyText || `HTTP ${response.status}` };
   }
 
-  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null, providerOverrides = null }) {
+  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null, providerOverrides = null, accounting = null }) {
+    if (accounting?.profile && stream) body = { ...body, stream_options: { ...body.stream_options, include_usage: true } };
+    if (accounting?.profile) accounting = createAccountedBoundary(accounting);
     const fallbackCount = this.getFallbackCount();
     let lastError = null;
     let lastStatus = 0;
@@ -148,7 +152,10 @@ export class BaseExecutor {
           headers,
           body: bodyStr,
           signal: mergedSignal
-        }, proxyOptions);
+        }, proxyOptions, accounting ? {
+          prepare: wire => accounting.prepare(wire),
+          onHeaders: () => clearTimeout(connectTimer),
+        } : null);
         clearTimeout(connectTimer);
         const ct = response.headers?.get?.("content-type") || "";
         const cl = response.headers?.get?.("content-length") || "?";
@@ -165,6 +172,7 @@ export class BaseExecutor {
         return { response, url, headers, transformedBody };
       } catch (error) {
         clearTimeout(connectTimer);
+        if (isAccountingRefusal(error)) throw error;
         lastError = error;
         const isConnectTimeout = connectCtrl.signal.aborted && error.name === "AbortError";
         dbg("FETCH", `${this.provider.toUpperCase()} ✖ ${error.name}: ${error.message}${isConnectTimeout ? " (connect timeout)" : ""}`);

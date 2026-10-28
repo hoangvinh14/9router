@@ -10,6 +10,21 @@ import { verifyAccountingSchema } from '../../src/lib/db/migrations/002-accounti
 let fixture;
 afterEach(() => { vi.restoreAllMocks(); if (fixture) { try { fixture.db.close(); } catch {} fs.rmSync(fixture.root, { recursive: true, force: true }); fixture = null; } });
 for (const engine of ['node', 'sqljs']) describe(`${engine} coverage and maintenance`, () => {
+  it('returns a fresh isolated identity view and refuses missing database markers', async () => {
+    fixture = await openFixture(engine); const { db } = fixture; addKey(db);
+    const first = db.coverage.inspectIdentity('key-one', 'fixture-secret');
+    expect(first.coverage).toEqual(db.coverage.status('key-one'));
+    expect(first.fingerprint).toBe(db.coverage.fingerprint('fixture-secret'));
+    expect(first.retiredBindings).toEqual(db.coverage.retiredBindings());
+    expect(first).not.toHaveProperty('bindingKey');
+    first.coverage.gaps.push({ id: 'unowned' }); first.retiredBindings.push({ apiKeyId: 'unowned' });
+    expect(db.coverage.inspectIdentity('key-one', 'fixture-secret').retiredBindings).toEqual([]);
+    expect(db.coverage.inspectIdentity('key-one', 'fixture-secret').coverage.gaps).toEqual([]);
+    db.coverage.latchGap('key-one', 'new recording failure');
+    expect(db.coverage.inspectIdentity('key-one', 'fixture-secret').coverage.gaps).toHaveLength(1);
+    db.durableTransaction(() => db.run("DELETE FROM _meta WHERE key='accountingBindingKeyId'"));
+    expect(() => db.coverage.inspectIdentity('key-one', 'fixture-secret')).toThrow(/reference changed/);
+  });
   it('keeps independent gap ACK, scope, generation CAS and idempotent audited release', async () => {
     fixture = await openFixture(engine); const { db } = fixture; addKey(db);
     const gap = db.coverage.latchGap('key-one', 'storage failure').gaps[0];
