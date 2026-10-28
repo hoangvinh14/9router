@@ -3,6 +3,7 @@ import { promisify } from "util";
 import { access, constants, readFile } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
+import { runtimeHostPath } from "@/lib/runtime-host-path";
 import { randomUUID } from "crypto";
 
 const execFileAsync = promisify(execFile);
@@ -40,10 +41,10 @@ function getZedSettingsPaths() {
   }
   if (process.platform === "win32") {
     const local = process.env.LOCALAPPDATA || join(home, "AppData", "Local");
-    return [join(local, "Zed", "settings.json")];
+    return [runtimeHostPath(local, "Zed", "settings.json")];
   }
   const xdg = process.env.XDG_CONFIG_HOME || join(home, ".config");
-  return [join(xdg, "zed", "settings.json")];
+  return [runtimeHostPath(xdg, "zed", "settings.json")];
 }
 
 /** Candidate paths for Zed's global kv_store (holds system_id). */
@@ -56,11 +57,11 @@ export function getZedGlobalDbPaths() {
   }
   if (process.platform === "win32") {
     const local = process.env.LOCALAPPDATA || join(home, "AppData", "Local");
-    const base = join(local, "Zed", "db");
+    const base = runtimeHostPath(local, "Zed", "db");
     return channels.map((c) => join(base, c, "db.sqlite"));
   }
   const xdg = process.env.XDG_DATA_HOME || join(home, ".local", "share");
-  const base = join(xdg, "zed", "db");
+  const base = runtimeHostPath(xdg, "zed", "db");
   return channels.map((c) => join(base, c, "db.sqlite"));
 }
 
@@ -82,7 +83,6 @@ export async function readZedSystemId() {
 
 async function queryKvStore(dbPath, key) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Database = require("better-sqlite3");
     const db = new Database(dbPath, { readonly: true, fileMustExist: true });
     try {

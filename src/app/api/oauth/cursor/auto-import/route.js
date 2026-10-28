@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { access, constants } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
+import { runtimeHostPath } from "@/lib/runtime-host-path";
 import { execFile } from "child_process";
 import { promisify } from "util";
 
@@ -36,16 +37,16 @@ function getCandidatePaths(platform) {
     const localAppData =
       process.env.LOCALAPPDATA || join(home, "AppData", "Local");
     return [
-      join(appData, "Cursor", "User", "globalStorage", "state.vscdb"),
-      join(
+      runtimeHostPath(appData, "Cursor", "User", "globalStorage", "state.vscdb"),
+      runtimeHostPath(
         appData,
         "Cursor - Insiders",
         "User",
         "globalStorage",
         "state.vscdb",
       ),
-      join(localAppData, "Cursor", "User", "globalStorage", "state.vscdb"),
-      join(
+      runtimeHostPath(localAppData, "Cursor", "User", "globalStorage", "state.vscdb"),
+      runtimeHostPath(
         localAppData,
         "Programs",
         "Cursor",
@@ -78,7 +79,6 @@ const normalize = (value) => {
  */
 function extractTokensViaBetterSqlite(dbPath) {
   // Dynamic require so the route stays importable even if native bindings fail
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const Database = require("better-sqlite3");
   const db = new Database(dbPath, { readonly: true, fileMustExist: true });
 

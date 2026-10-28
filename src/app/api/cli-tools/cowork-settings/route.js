@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
+import { runtimeHostPath } from "@/lib/runtime-host-path";
 import os from "os";
 import crypto from "crypto";
 import { DEFAULT_PLUGINS, LOCAL_STDIO_PLUGINS, buildManagedMcpServers } from "@/shared/constants/coworkPlugins";
@@ -59,10 +60,10 @@ const getCandidateRoots = () => {
     const localApp = process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
     const roaming = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
     return [
-      path.join(localApp, "Claude-3p"),
-      path.join(roaming, "Claude-3p"),
-      path.join(localApp, "Claude"),
-      path.join(roaming, "Claude"),
+      runtimeHostPath(localApp, "Claude-3p"),
+      runtimeHostPath(roaming, "Claude-3p"),
+      runtimeHostPath(localApp, "Claude"),
+      runtimeHostPath(roaming, "Claude"),
     ];
   }
   return [
@@ -79,9 +80,9 @@ const getAppInstallPaths = () => {
     const localApp = process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
     const programFiles = process.env["ProgramFiles"] || "C:\\Program Files";
     return [
-      path.join(localApp, "AnthropicClaude"),
-      path.join(programFiles, "Claude"),
-      path.join(programFiles, "AnthropicClaude"),
+      runtimeHostPath(localApp, "AnthropicClaude"),
+      runtimeHostPath(programFiles, "Claude"),
+      runtimeHostPath(programFiles, "AnthropicClaude"),
     ];
   }
   return [];
@@ -108,7 +109,7 @@ const get1pRoot = () => {
   if (os.platform() === "darwin") return path.join(os.homedir(), "Library", "Application Support", "Claude");
   if (os.platform() === "win32") {
     const roaming = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
-    return path.join(roaming, "Claude");
+    return runtimeHostPath(roaming, "Claude");
   }
   return path.join(os.homedir(), ".config", "Claude");
 };
