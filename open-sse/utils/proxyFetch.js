@@ -1,7 +1,7 @@
 import { Readable } from "stream";
 import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
 import { dbg } from "./debugLog.js";
-import { captureTransportRequest, isAccountingRefusal, runAccountedTransport } from "./accounting-transport.js";
+import { accountingRefusal, captureTransportRequest, isAccountingRefusal, runAccountedTransport } from "./accounting-transport.js";
 
 const originalFetch = globalThis.fetch;
 const proxyDispatchers = new Map();
@@ -258,11 +258,19 @@ async function fetchWithTlsFallback(url, options, proxyUrl, accounting = null) {
     invoke: requestOptions => originalFetch(url, dispatcher ? { ...requestOptions, dispatcher } : requestOptions),
   });
   try {
+    // Protocol adapters may need Node's HTTP/1 transport on the direct path.
+    // Keep proxy/no-proxy resolution and strict-proxy enforcement here.
+    if (!proxyUrl && options.directFetch) {
+      // Custom transports have no attested accounting dispatch boundary yet.
+      // Refuse before preparing a ticket or exposing a request to the network.
+      if (accounting?.boundary) throw accountingRefusal(new Error("Accounting custom direct transport unsupported"));
+      return await options.directFetch(url, options);
+    }
     const dispatcher = proxyUrl ? await getDispatcher(proxyUrl) : undefined;
     return await send(dispatcher, false);
   } catch (err) {
     if (isAccountingRefusal(err)) throw err;
-    const isStrictSsl = process.env.STRICT_SSL === "true" || process.env.STRICT_SSL === "1";
+    const isStrictSsl = options.strictTls === true || process.env.STRICT_SSL === "true" || process.env.STRICT_SSL === "1";
     if (!isStrictSsl && isTlsCertError(err)) {
       if (options.body && typeof options.body.getReader === "function" && options.body.locked) {
         throw err;

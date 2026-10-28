@@ -103,8 +103,27 @@ for (const engine of ['node','sqljs']) describe(`${engine} actual POST admission
     })});
     const pool=JSON.parse(db.get("SELECT data FROM proxyPools WHERE id='pool-one'").data);
     const executor=new BaseExecutor('openai',{baseUrl:url,retry});
-    const result=await executor.execute({...request,accounting:boundary,proxyOptions:{enabled:true,url:pool.proxyUrl,strictProxy:pool.strictProxy}});
+    const directFetch=vi.fn(()=>{throw new Error('custom direct transport must not override proxy');});
+    const result=await executor.execute({...request,accounting:boundary,directFetch,proxyOptions:{enabled:true,url:pool.proxyUrl,strictProxy:pool.strictProxy}});
+    expect(directFetch).not.toHaveBeenCalled();
     expect(await result.response.text()).toBe('proxied');expect(posts).toBe(1);expect(connects).toBe(1);expect(db.all('SELECT * FROM apiKeyAccounting')).toHaveLength(1);
+  });
+  it('refuses unsupported accounted custom direct transport without preparing, retrying or POSTing', async () => {
+    const {BaseExecutor}=await network();let posts=0;
+    const port=await listen(http.createServer((req,res)=>{posts++;req.resume();res.end();})),url=`http://127.0.0.1:${port}/chat`;
+    const {db,boundary}=await setup(engine,url),prepare=vi.spyOn(boundary,'prepare');
+    const directFetch=vi.fn((url,options)=>nativeFetch(url,options));
+    const executor=new BaseExecutor('openai',{baseUrls:[url,url],retry:{...retry,502:{attempts:2,delayMs:0}}});
+    await expect(executor.execute({...request,accounting:boundary,directFetch})).rejects.toThrow('Accounting custom direct transport unsupported');
+    expect(directFetch).not.toHaveBeenCalled();expect(prepare).not.toHaveBeenCalled();expect(posts).toBe(0);
+    expect(db.all('SELECT * FROM apiKeyAccounting')).toEqual([]);
+  });
+  it('retains custom direct transport for nonaccounted requests', async () => {
+    const {BaseExecutor}=await network();let posts=0;
+    const port=await listen(http.createServer((req,res)=>{posts++;req.resume();res.end('custom direct');})),url=`http://127.0.0.1:${port}/chat`;
+    const directFetch=vi.fn((url,options)=>nativeFetch(url,options));
+    const result=await new BaseExecutor('openai',{baseUrl:url,retry}).execute({...request,directFetch});
+    expect(await result.response.text()).toBe('custom direct');expect(directFetch).toHaveBeenCalledTimes(1);expect(posts).toBe(1);
   });
   it.each(['key','credential','settings','environment'])('refuses %s drift while intent ACK is held without retry or POST', async change => {
     const {BaseExecutor}=await network(), gate=hold(),entered=hold();let posts=0;

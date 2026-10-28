@@ -99,7 +99,7 @@ export class BaseExecutor {
     return { status: response.status, message: bodyText || `HTTP ${response.status}` };
   }
 
-  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null, providerOverrides = null, accounting = null }) {
+  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null, providerOverrides = null, accounting = null, directFetch = null }) {
     if (accounting?.profile && stream) body = { ...body, stream_options: { ...body.stream_options, include_usage: true } };
     if (accounting?.profile) accounting = createAccountedBoundary(accounting);
     const fallbackCount = this.getFallbackCount();
@@ -151,7 +151,10 @@ export class BaseExecutor {
           method: "POST",
           headers,
           body: bodyStr,
-          signal: mergedSignal
+          signal: mergedSignal,
+          // Protocol adapters that need their own transport (opencode's TLS
+          // fingerprint) override the direct path; proxies still take priority.
+          ...(directFetch ? { directFetch } : {}),
         }, proxyOptions, accounting ? {
           prepare: wire => accounting.prepare(wire),
           onHeaders: () => clearTimeout(connectTimer),

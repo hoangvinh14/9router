@@ -1,10 +1,12 @@
 import { ensureDirs, DATA_FILE } from "./paths.js";
+import { stripNullBytes } from "./helpers/nullBytes.js";
 import { acquireWriterOwnership } from "./writerOwnership.js";
 import { initializeAvailableAdapter } from "./engineAcquisition.js";
 import { openAccountingCoverage } from "./accounting-coverage.js";
 import { initializeKeyBindings } from "./helpers/api-key-bindings.js";
 import { installAccountingLifecycle } from "./accounting-lifecycle.js";
 import { createPersistedRequestAuthority } from "../accounting/persisted-request-authority.js";
+
 
 // Adapter and initialization lease survive Next HMR. Never recover by opening a
 // second writable engine while a failed/uncertain initialization still owns it.
@@ -35,6 +37,18 @@ async function selectAdapter(owner) {
   const { createSqlJsAdapter } = await import("./adapters/sqljsAdapter.js");
   return createSqlJsAdapter(DATA_FILE, owner);
 }
+// Mutate the selected adapter rather than copying it: lifecycle and authority
+// closures retain this exact object, including its dynamically installed hooks.
+function withNullByteSafeParams(adapter) {
+  for (const method of ["run", "get", "all"]) {
+    const original = adapter[method];
+    adapter[method] = function (sql, params = []) {
+      return original.call(this, sql, Array.isArray(params) ? params.map(stripNullBytes) : params);
+    };
+  }
+  return adapter;
+}
+
 async function initAdapter() {
   const owner = acquireWriterOwnership(DATA_FILE);
   let adapter, selectionStarted = false;
@@ -43,7 +57,7 @@ async function initAdapter() {
     // If the factory fails it owns cleanup. The driver cannot prove that an
     // arbitrary thrown factory closed its engine; never release it here.
     selectionStarted = true;
-    adapter = await selectAdapter(owner);
+    adapter = withNullByteSafeParams(await selectAdapter(owner));
     const { runMigrationOnce } = await import("./migrate.js");
     await runMigrationOnce(adapter);
     adapter.durableTransaction(() => {});
