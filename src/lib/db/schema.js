@@ -3,7 +3,7 @@
 // pre-change safety backup in migrate.js: when the stored version is lower,
 // one lightweight DB backup is taken before applying schema changes. Forgetting
 // to bump only skips that backup — it does NOT break the additive auto-sync.
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const PRAGMA_SQL = `
 PRAGMA journal_mode = WAL;
@@ -92,6 +92,15 @@ export const TABLES = {
   },
   apiKeyBindings: {
     columns: { apiKeyId: "TEXT PRIMARY KEY", fingerprint: "TEXT UNIQUE NOT NULL", createdAt: "TEXT NOT NULL", retiredAt: "TEXT" },
+  },
+  apiKeyBudgetPolicies: {
+    columns: {
+      apiKeyId: "TEXT PRIMARY KEY",
+      weeklyLimitNanoUsd: "INTEGER CHECK(weeklyLimitNanoUsd IS NULL OR (typeof(weeklyLimitNanoUsd)='integer' AND weeklyLimitNanoUsd>=0 AND weeklyLimitNanoUsd<=9000000000000000))",
+      monthlyLimitNanoUsd: "INTEGER CHECK(monthlyLimitNanoUsd IS NULL OR (typeof(monthlyLimitNanoUsd)='integer' AND monthlyLimitNanoUsd>=0 AND monthlyLimitNanoUsd<=9000000000000000))",
+      version: "INTEGER NOT NULL CHECK(typeof(version)='integer' AND version>=1)",
+      updatedAt: "TEXT NOT NULL",
+    },
   },
   apiKeyAccounting: {
     columns: {

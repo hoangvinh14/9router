@@ -1,6 +1,7 @@
 import { Readable } from "stream";
 import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
 import { dbg } from "./debugLog.js";
+import { captureTransportRequest, isAccountingRefusal, runAccountedTransport } from "./accounting-transport.js";
 
 const originalFetch = globalThis.fetch;
 const proxyDispatchers = new Map();
@@ -251,11 +252,16 @@ async function getDispatcher(proxyUrl, insecure = false) {
   return proxyDispatchers.get(key);
 }
 
-async function fetchWithTlsFallback(url, options, proxyUrl) {
+async function fetchWithTlsFallback(url, options, proxyUrl, accounting = null) {
+  const send = (dispatcher, insecure) => runAccountedTransport({
+    ...accounting, url, options, route: { kind: proxyUrl ? "proxy" : "direct", proxyUrl: proxyUrl || null, insecure },
+    invoke: requestOptions => originalFetch(url, dispatcher ? { ...requestOptions, dispatcher } : requestOptions),
+  });
   try {
     const dispatcher = proxyUrl ? await getDispatcher(proxyUrl) : undefined;
-    return await originalFetch(url, dispatcher ? { ...options, dispatcher } : options);
+    return await send(dispatcher, false);
   } catch (err) {
+    if (isAccountingRefusal(err)) throw err;
     const isStrictSsl = process.env.STRICT_SSL === "true" || process.env.STRICT_SSL === "1";
     if (!isStrictSsl && isTlsCertError(err)) {
       if (options.body && typeof options.body.getReader === "function" && options.body.locked) {
@@ -264,7 +270,7 @@ async function fetchWithTlsFallback(url, options, proxyUrl) {
       // ponytail: in-memory insecure agent fallback for self-signed MITM corporate/antivirus certs
       console.warn(`[ProxyFetch] TLS cert verification failed (${err.cause?.code || err.code}), retrying with insecure TLS: ${url}`);
       const insecureDispatcher = await getDispatcher(proxyUrl, true);
-      return await originalFetch(url, { ...options, dispatcher: insecureDispatcher });
+      return await send(insecureDispatcher, true);
     }
     throw err;
   }
@@ -273,8 +279,41 @@ async function fetchWithTlsFallback(url, options, proxyUrl) {
 /**
  * Create HTTPS request with manual socket connection (bypass DNS)
  */
-async function createBypassRequest(parsedUrl, realIP, options) {
+async function createBypassRequest(parsedUrl, realIP, options, accounting = null) {
   const httpsModule = await import("https");
+  if (accounting) {
+    const https = httpsModule.default ?? httpsModule;
+    // Explicit destination owns the actual socket; SNI and certificate
+    // identity remain the requested hostname rather than the resolved IP.
+    return runAccountedTransport({ ...accounting, url: parsedUrl.toString(), options,
+      route: { kind: "mitm-bypass", realIP, servername: parsedUrl.hostname, port: parsedUrl.port || HTTPS_PORT },
+      invoke: requestOptions => new Promise((resolve, reject) => {
+        let request, settled = false;
+        const cleanup = () => requestOptions.signal?.removeEventListener("abort", abort);
+        const fail = error => { if (settled) return; settled = true; cleanup(); request?.destroy(error); reject(error); };
+        const abort = () => fail(requestOptions.signal.reason);
+        try {
+          request = https.request({ hostname: realIP, port: parsedUrl.port || HTTPS_PORT, servername: parsedUrl.hostname, signal: requestOptions.signal,
+            path: parsedUrl.pathname + parsedUrl.search, method: requestOptions.method || "POST",
+            headers: { ...requestOptions.headers, Host: parsedUrl.host },
+          }, response => {
+            if (settled) { response.destroy(); return; }
+            settled = true; cleanup();
+            const headers = new Headers();
+            for (const [key, value] of Object.entries(response.headers)) {
+              if (Array.isArray(value)) value.forEach(item => headers.append(key, item));
+              else if (value !== undefined) headers.set(key, value);
+            }
+            resolve(new Response(Readable.toWeb(response), { status: response.statusCode, statusText: response.statusMessage, headers }));
+          });
+          request.on("error", fail);
+          requestOptions.signal?.addEventListener("abort", abort, { once: true });
+          if (requestOptions.signal?.aborted) { abort(); return; }
+          request.end(requestOptions.body);
+        } catch (error) { fail(error); }
+      }),
+    });
+  }
   const netModule = await import("net");
   // CJS modules expose exports via .default in ESM dynamic import context
   const https = httpsModule.default ?? httpsModule;
@@ -329,8 +368,9 @@ async function createBypassRequest(parsedUrl, realIP, options) {
   });
 }
 
-export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
+export async function proxyAwareFetch(url, options = {}, proxyOptions = null, boundary = null) {
   const targetUrl = typeof url === "string" ? url : url.toString();
+  const accounting = boundary ? { boundary, initial: captureTransportRequest(targetUrl, options, proxyOptions), proxyOptions } : null;
 
   // Vercel relay: forward request via relay headers
   const vercelRelayUrl = normalizeString(proxyOptions?.vercelRelayUrl);
@@ -344,7 +384,11 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
       "x-relay-target": `${parsed.protocol}//${parsed.host}`,
       "x-relay-path": `${parsed.pathname}${parsed.search}`,
     };
-    return originalFetch(vercelRelayUrl, { ...options, headers: relayHeaders });
+    const relayOptions = { ...options, headers: relayHeaders };
+    return runAccountedTransport({ boundary, initial: boundary ? captureTransportRequest(targetUrl, relayOptions, proxyOptions) : null,
+      url: vercelRelayUrl, options: relayOptions, proxyOptions, route: { kind: "relay", targetUrl },
+      invoke: requestOptions => originalFetch(vercelRelayUrl, requestOptions),
+    });
   }
 
   const connectionProxyUrl = resolveConnectionProxyUrl(targetUrl, proxyOptions);
@@ -356,8 +400,9 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
     if (proxyUrl) {
       // Proxy resolves DNS externally (not affected by /etc/hosts) — use proxy directly
       try {
-        return await fetchWithTlsFallback(url, options, proxyUrl);
+        return await fetchWithTlsFallback(url, options, proxyUrl, accounting);
       } catch (proxyError) {
+        if (isAccountingRefusal(proxyError)) throw proxyError;
         if (proxyOptions?.strictProxy === true) {
           throw new Error(`[ProxyFetch] Proxy required but failed (strictProxy=true): ${proxyError.message}`);
         }
@@ -368,22 +413,24 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
     try {
       const parsedUrl = new URL(targetUrl);
       const realIP = await resolveRealIP(parsedUrl.hostname);
-      if (realIP) return await createBypassRequest(parsedUrl, realIP, options);
+      if (realIP) return await createBypassRequest(parsedUrl, realIP, options, accounting);
     } catch (error) {
+      if (isAccountingRefusal(error)) throw error;
       console.warn(`[ProxyFetch] MITM bypass failed: ${error.message}`);
     }
   }
 
   if (proxyUrl) {
     try {
-      return await fetchWithTlsFallback(url, options, proxyUrl);
+      return await fetchWithTlsFallback(url, options, proxyUrl, accounting);
     } catch (proxyError) {
+      if (isAccountingRefusal(proxyError)) throw proxyError;
       // If strictProxy is enabled, fail hard instead of falling back to direct
       if (proxyOptions?.strictProxy === true) {
         throw new Error(`[ProxyFetch] Proxy required but failed (strictProxy=true): ${proxyError.message}`);
       }
       console.warn(`[ProxyFetch] Proxy failed, falling back to direct: ${proxyError.message}`);
-      return fetchWithTlsFallback(url, options, null);
+      return fetchWithTlsFallback(url, options, null, accounting);
     }
   }
 
@@ -407,7 +454,7 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
 
   // got-scraping disabled — use native fetch directly
   // (Re-enable per-host by wrapping with tryGotScrapingFetch when needed)
-  return fetchWithTlsFallback(url, options, null);
+  return fetchWithTlsFallback(url, options, null, accounting);
 }
 
 /**

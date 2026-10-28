@@ -6,6 +6,7 @@ import { createNodeSqliteAdapter } from '../../../src/lib/db/adapters/nodeSqlite
 import { createSqlJsAdapter } from '../../../src/lib/db/adapters/sqljsAdapter.js';
 import initial from '../../../src/lib/db/migrations/001-initial.js';
 import accounting from '../../../src/lib/db/migrations/002-accounting-foundation.js';
+import policy from '../../../src/lib/db/migrations/003-accounting-policy.js';
 import { openAccountingCoverage } from '../../../src/lib/db/accounting-coverage.js';
 import { initializeKeyBindings } from '../../../src/lib/db/helpers/api-key-bindings.js';
 import { installAccountingLifecycle } from '../../../src/lib/db/accounting-lifecycle.js';
@@ -16,7 +17,7 @@ export async function openFixture(engine, file) {
   const owner = acquireWriterOwnership(file);
   const db = await (engine === 'node' ? createNodeSqliteAdapter : createSqlJsAdapter)(file, owner);
   if (!db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='_meta'")) {
-    db.durableTransaction(() => { initial.up(db); accounting.up(db); });
+    db.durableTransaction(() => { initial.up(db); accounting.up(db); policy.up(db); });
   }
   installPricingRevision(db);
   db.coverage = openAccountingCoverage(db, owner);
@@ -39,6 +40,7 @@ export function addKey(db, id = 'key-one', secret = 'fixture-secret') {
   db.durableTransaction(() => {
     db.run('INSERT INTO apiKeys(id,key,createdAt) VALUES(?,?,?)', [id, secret, createdAt]);
     db.run('INSERT INTO apiKeyBindings(apiKeyId,fingerprint,createdAt) VALUES(?,?,?)', [id, db.coverage.fingerprint(secret), createdAt]);
+    db.run('INSERT INTO apiKeyBudgetPolicies(apiKeyId,weeklyLimitNanoUsd,monthlyLimitNanoUsd,version,updatedAt) VALUES(?,NULL,NULL,1,?)', [id, createdAt]);
   });
   return { id, key: secret, createdAt };
 }

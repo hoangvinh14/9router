@@ -4,6 +4,7 @@ import { initializeAvailableAdapter } from "./engineAcquisition.js";
 import { openAccountingCoverage } from "./accounting-coverage.js";
 import { initializeKeyBindings } from "./helpers/api-key-bindings.js";
 import { installAccountingLifecycle } from "./accounting-lifecycle.js";
+import { createPersistedRequestAuthority } from "../accounting/persisted-request-authority.js";
 
 // Adapter and initialization lease survive Next HMR. Never recover by opening a
 // second writable engine while a failed/uncertain initialization still owns it.
@@ -75,4 +76,11 @@ export async function getAdapter() {
 export function getAdapterSync() {
   if (!state.instance || !state.instance.health().healthy) throw new Error("Database storage unavailable or not initialized");
   return state.instance;
+}
+
+// An already initialized lifetime only: no replacement writer, poisoned normal
+// reads or startup repair. The returned capability exposes no adapter methods.
+export function getPersistedRequestAuthority() {
+  if (!state.instance) throw new Error("Accounting storage not initialized");
+  return createPersistedRequestAuthority(state.instance);
 }

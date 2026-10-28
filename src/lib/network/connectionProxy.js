@@ -67,6 +67,32 @@ export async function resolveConnectionProxyConfig(
   providerSpecificData = {}
 ) {
   try {
+    const poolId = normalizeString(providerSpecificData?.proxyPoolId);
+    const pool = poolId && poolId !== "__none__" ? await getProxyPoolById(poolId) : null;
+    return resolveSavedConnectionProxy(providerSpecificData, pool);
+  } catch (error) {
+    console.error(
+      "[resolveConnectionProxyConfig] Failed to resolve proxy config:",
+      error
+    );
+
+    return {
+      source: "error",
+
+      proxyPoolId: null,
+      proxyPool: null,
+
+      connectionProxyEnabled: false,
+      connectionProxyUrl: "",
+      connectionNoProxy: "",
+
+      strictProxy: false,
+    };
+  }
+}
+
+// Shared deterministic resolution for ordinary and verified persisted selection.
+export function resolveSavedConnectionProxy(providerSpecificData = {}, selectedPool = null) {
     const proxyPoolIdRaw = normalizeString(
       providerSpecificData?.proxyPoolId
     );
@@ -89,7 +115,7 @@ export async function resolveConnectionProxyConfig(
      * -----------------------------
      */
     if (proxyPoolId) {
-      const proxyPool = await getProxyPoolById(proxyPoolId);
+      const proxyPool = selectedPool;
 
       const proxyUrl = normalizeString(proxyPool?.proxyUrl);
       const noProxy = normalizeString(proxyPool?.noProxy);
@@ -177,23 +203,4 @@ export async function resolveConnectionProxyConfig(
 
       ...legacy,
     };
-  } catch (error) {
-    console.error(
-      "[resolveConnectionProxyConfig] Failed to resolve proxy config:",
-      error
-    );
-
-    return {
-      source: "error",
-
-      proxyPoolId: null,
-      proxyPool: null,
-
-      connectionProxyEnabled: false,
-      connectionProxyUrl: "",
-      connectionNoProxy: "",
-
-      strictProxy: false,
-    };
-  }
 }

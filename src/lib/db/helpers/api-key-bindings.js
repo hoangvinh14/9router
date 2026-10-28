@@ -1,4 +1,5 @@
 import { text, unavailable } from "../../accounting/attempt-payload.js";
+import { initializeAccountingPolicy, readAccountingPolicy } from "./accounting-policy.js";
 
 function collision() {
   return Object.assign(new Error("API key identity binding conflict; import unchanged"), { status: 409, code: "api_key_identity_conflict" });
@@ -20,7 +21,11 @@ export function validateKeyBindings(db, coverage, keys, { allowUnboundExisting =
 }
 export function retainKeyBindings(db, coverage, keys, options) {
   validateKeyBindings(db, coverage, keys, options);
-  for (const key of keys) db.run("INSERT OR IGNORE INTO apiKeyBindings(apiKeyId,fingerprint,createdAt) VALUES(?,?,?)", [key.id, coverage.fingerprint(key.key), key.createdAt || new Date().toISOString()]);
+  for (const key of keys) {
+    if (db.get("SELECT apiKeyId FROM apiKeyBindings WHERE apiKeyId=?", [key.id])) readAccountingPolicy(db, key.id);
+    else initializeAccountingPolicy(db, key.id);
+    db.run("INSERT OR IGNORE INTO apiKeyBindings(apiKeyId,fingerprint,createdAt) VALUES(?,?,?)", [key.id, coverage.fingerprint(key.key), key.createdAt || new Date().toISOString()]);
+  }
 }
 export function retireKeyBindings(db, coverage, keys) {
   const bindings = keys.map(key => {
@@ -45,6 +50,7 @@ export function initializeKeyBindings(db, coverage) {
   for (const b of coverage.retiredBindings()) {
     const existing = db.get("SELECT * FROM apiKeyBindings WHERE apiKeyId=? OR fingerprint=?", [b.apiKeyId, b.fingerprint]);
     if (existing && (existing.apiKeyId !== b.apiKeyId || existing.fingerprint !== b.fingerprint)) throw unavailable("Restored binding conflict");
+    if (!existing) initializeAccountingPolicy(db, b.apiKeyId);
     db.run("INSERT OR IGNORE INTO apiKeyBindings(apiKeyId,fingerprint,createdAt,retiredAt) VALUES(?,?,?,?)", [b.apiKeyId, b.fingerprint, b.retiredAt, b.retiredAt]);
     db.run("UPDATE apiKeyBindings SET retiredAt=COALESCE(retiredAt,?) WHERE apiKeyId=?", [b.retiredAt, b.apiKeyId]);
     db.run("UPDATE apiKeys SET isActive=0 WHERE id=?", [b.apiKeyId]);

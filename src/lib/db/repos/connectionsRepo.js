@@ -32,7 +32,7 @@ function resetHealthStateOnActivation(existing, patch) {
   return normalized;
 }
 
-function rowToConn(row) {
+export function rowToConn(row) {
   if (!row) return null;
   const extra = parseJson(row.data, {});
   return {

@@ -1,0 +1,21 @@
+{
+  "artifact": "/home/gmo/projects/9router/.next-chat-final-261028",
+  "port": 20139,
+  "complete": true,
+  "isolatedPackage": true,
+  "cssSelectorsVerified": true,
+  "packagedSqlJsWasmReopen": true,
+  "pid": 3995318,
+  "health": true,
+  "runtimeKiroAppdata": true,
+  "runtimeOtherCandidates": true,
+  "renderedLogin": true,
+  "servedCssSelectorsVerified": true,
+  "exit": {
+    "code": 143,
+    "signal": null
+  },
+  "actualNodeDatabaseReopen": true,
+  "runtimeNodeAdapter": true,
+  "disposableDataRemoved": true
+}

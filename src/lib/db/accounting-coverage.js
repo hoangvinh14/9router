@@ -3,6 +3,7 @@ import path from "node:path";
 import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 import { atomicDurableWrite } from "./durableFile.js";
 import { canonical, conflict, text, timestamp, unavailable } from "../accounting/attempt-payload.js";
+import { verifyAccountingPolicySchema } from "./helpers/accounting-policy.js";
 
 export const COVERAGE_FILE = ".accounting-coverage.json";
 const MAX_BYTES = 4 * 1024 * 1024;
@@ -13,7 +14,8 @@ const integer = value => Number.isSafeInteger(value) && value >= 0;
 function validate(s) {
   if (!s || s.version !== 1 || typeof s.id !== "string" || !s.id || !hex(s.bindingKey) || !integer(s.generation) ||
       !Array.isArray(s.gaps) || !Array.isArray(s.retiredBindings) || !Array.isArray(s.receipts) || s.receipts.length > MAX_RECEIPTS ||
-      Object.keys(s).some(k => !["version", "id", "bindingKey", "generation", "gaps", "retiredBindings", "receipts", "maintenance"].includes(k))) throw unavailable("Invalid accounting coverage");
+      s.policyVersion !== undefined && s.policyVersion !== 1 ||
+      Object.keys(s).some(k => !["version", "id", "bindingKey", "generation", "gaps", "retiredBindings", "receipts", "maintenance", "policyVersion"].includes(k))) throw unavailable("Invalid accounting coverage");
   const ids = new Set(), fingerprints = new Set(), gapIds = new Set(), operations = new Set();
   for (const b of s.retiredBindings) {
     text(b.apiKeyId, "retired key ID", 200); timestamp(b.retiredAt);
@@ -66,6 +68,11 @@ export function validateAccountingArtifacts(get, directory) {
     return;
   }
   const s = read(file);
+  if (s.policyVersion === 1) {
+    if (meta("accountingPoliciesInitialized") !== "1") throw unavailable("Required accounting policy installation missing");
+    verifyAccountingPolicySchema({ get });
+    if (get("SELECT b.apiKeyId FROM apiKeyBindings b LEFT JOIN apiKeyBudgetPolicies p ON p.apiKeyId=b.apiKeyId WHERE p.apiKeyId IS NULL LIMIT 1")) throw unavailable("Required retained accounting policy missing");
+  }
   if (!reference) {
     if (keyId || activated || populated || s.generation || s.maintenance || s.gaps.length || s.retiredBindings.length || s.receipts.length) throw unavailable("Orphan accounting coverage");
     return;
@@ -92,6 +99,11 @@ export function openAccountingCoverage(db, owner) {
       db.run("INSERT OR IGNORE INTO _meta(key,value) VALUES(?,?)", [key, value]);
     }
   });
+  if (db.get("SELECT value FROM _meta WHERE key='accountingPoliciesInitialized'")?.value === "1" && state.policyVersion !== 1) {
+    verifyAccountingPolicySchema(db);
+    state = { ...state, policyVersion: 1 };
+    atomicDurableWrite(file, JSON.stringify(state));
+  }
   let poisoned = false;
   function current() {
     owner.assertOwned();
@@ -103,10 +115,12 @@ export function openAccountingCoverage(db, owner) {
       return after && after.apiKeyId === gap.apiKeyId && after.startedAt === gap.startedAt && after.generation >= gap.generation &&
         (!gap.resolvedAt || after.resolvedAt === gap.resolvedAt && after.operationId === gap.operationId);
     });
-    if (next.id !== state.id || next.bindingKey !== state.bindingKey || next.generation < state.generation || !gapsRetained ||
+    if (next.id !== state.id || next.bindingKey !== state.bindingKey || state.policyVersion === 1 && next.policyVersion !== 1 || next.generation < state.generation || !gapsRetained ||
         !retained(state.retiredBindings, next.retiredBindings, "apiKeyId") || !retained(state.receipts, next.receipts, "operationId")) throw unavailable("Accounting history changed");
-    if (db.health().healthy && (db.get("SELECT value FROM _meta WHERE key='accountingCoverageId'")?.value !== next.id ||
-        db.get("SELECT value FROM _meta WHERE key='accountingBindingKeyId'")?.value !== keyId)) throw unavailable("Accounting database reference changed");
+    if (db.health().healthy) {
+      const markers = new Map(db.all("SELECT key,value FROM _meta WHERE key IN ('accountingCoverageId','accountingBindingKeyId')").map(row => [row.key, row.value]));
+      if (markers.get("accountingCoverageId") !== next.id || markers.get("accountingBindingKeyId") !== keyId) throw unavailable("Accounting database reference changed");
+    }
     state = next;
     return next;
   }
@@ -119,13 +133,22 @@ export function openAccountingCoverage(db, owner) {
     state = next;
   }
   function status(apiKeyId = null) {
-    const s = current();
+    return statusFrom(current(), apiKeyId);
+  }
+  function statusFrom(s, apiKeyId) {
     return structuredClone({ version: 1, id: s.id, bindingKeyId: keyId, generation: s.generation, maintenance: s.maintenance,
       gaps: s.gaps.filter(g => apiKeyId === null || g.apiKeyId === null || g.apiKeyId === apiKeyId) });
   }
   function fingerprint(secret) {
     text(secret, "key secret", 8192);
     return createHmac("sha256", Buffer.from(current().bindingKey, "hex")).update(secret).digest("hex");
+  }
+  function inspectIdentity(apiKeyId, secret) {
+    text(secret, "key secret", 8192);
+    const s = current();
+    return Object.freeze({ coverage: statusFrom(s, apiKeyId),
+      fingerprint: createHmac("sha256", Buffer.from(s.bindingKey, "hex")).update(secret).digest("hex"),
+      retiredBindings: structuredClone(s.retiredBindings) });
   }
   function retainRetiredBindings(bindings) {
     const next = structuredClone(current());
@@ -185,6 +208,6 @@ export function openAccountingCoverage(db, owner) {
     });
     return { operationId, payloadHash, generation: expectedGeneration, acknowledgedAt };
   }
-  return Object.freeze({ status, fingerprint, latchGap, enterMaintenance, reconcile, retainRetiredBindings,
+  return Object.freeze({ status, fingerprint, inspectIdentity, latchGap, enterMaintenance, reconcile, retainRetiredBindings,
     retiredBindings: () => structuredClone(current().retiredBindings) });
 }

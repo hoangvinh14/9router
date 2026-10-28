@@ -5,6 +5,7 @@ import { PRAGMA_SQL } from "../schema.js";
 import { atomicDurableWrite, assertManagedSql, assertReadSql, synchronousResult } from "../durableFile.js";
 import { claimWriter } from "../writerOwnership.js";
 import { validateAccountingArtifacts } from "../accounting-coverage.js";
+import { createPersistedAccountingAuthority, readOnlyAuthorityReader } from "../persisted-accounting-authority.js";
 
 let SQL;
 async function loadSql() { return SQL ??= await initSqlJs(); }
@@ -24,6 +25,26 @@ export async function createSqlJsAdapter(filePath, suppliedOwner) {
   } catch (error) { db?.close(); owner.release(); throw error; }
   let dirty = false, timer = null, closed = false, released = false, poisoned = false, depth = 0;
   let closePublicationFailure;
+  const rawReader = image => readOnlyAuthorityReader((sql, params) => {
+    const stmt = image.prepare(sql);
+    try { stmt.bind(params); return stmt.step() ? stmt.getAsObject() : undefined; } finally { stmt.free(); }
+  }, (sql, params) => {
+    const stmt = image.prepare(sql), rows = [];
+    try { stmt.bind(params); while (stmt.step()) rows.push(stmt.getAsObject()); return rows; } finally { stmt.free(); }
+  });
+  const authority = createPersistedAccountingAuthority({ owner, current: rawReader(db),
+    health: () => adapter.health(), quiescent: () => depth === 0,
+    openReadOnly: () => {
+      const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+      let image;
+      try {
+        const stat = fs.fstatSync(fd);
+        if (!stat.isFile() || stat.nlink !== 1) throw new Error("Invalid persisted authority file");
+        image = new SQLLib.Database(fs.readFileSync(fd));
+      } finally { fs.closeSync(fd); }
+      return { reader: rawReader(image), close: () => image.close() };
+    },
+  });
   const cancel = () => { clearTimeout(timer); timer = null; };
   function assertHealthy() {
     owner.assertOwned();
@@ -32,8 +53,9 @@ export async function createSqlJsAdapter(filePath, suppliedOwner) {
   function poison() { poisoned = true; cancel(); }
   function persist() {
     assertHealthy(); cancel();
-    try { atomicDurableWrite(file, Buffer.from(db.export())); dirty = false; }
-    catch (error) { poison(); throw error; }
+    authority.prepare();
+    try { atomicDurableWrite(file, Buffer.from(db.export())); dirty = false; authority.acknowledge(); }
+    catch (error) { authority.fail(true); poison(); throw error; }
   }
   function schedule() {
     dirty = true; cancel();
@@ -70,14 +92,14 @@ export async function createSqlJsAdapter(filePath, suppliedOwner) {
     let releasing = false;
     try {
       const result = fn();
-      if (result && typeof result.then === "function") poison();
+      if (result && typeof result.then === "function") { authority.invalidate(); poison(); }
       synchronousResult(result); assertHealthy();
       releasing = true; db.exec(`RELEASE ${sp}`); schedule();
       return result;
     } catch (error) {
-      if (releasing) poison();
+      if (releasing) { authority.invalidate(); poison(); }
       try { db.exec(`ROLLBACK TO ${sp}`); db.exec(`RELEASE ${sp}`); dirty = previousDirty; }
-      catch { poison(); }
+      catch { authority.invalidate(); poison(); }
       throw error;
     } finally { depth--; }
   }
@@ -91,6 +113,7 @@ export async function createSqlJsAdapter(filePath, suppliedOwner) {
   function signal() { const closed = flush(); if (adapter.beforeClose) setImmediate(() => process.exit(closed ? 0 : 1)); }
   const adapter = {
     driver: "sql.js", run,
+    withPersistedAccountingAuthority: authority.read,
     get(sql, params = []) { assertReadSql(sql); return statement(sql, params, stmt => stmt.step() ? stmt.getAsObject() : undefined); },
     all(sql, params = []) { assertReadSql(sql); return statement(sql, params, stmt => { const rows = []; while (stmt.step()) rows.push(stmt.getAsObject()); return rows; }); },
     exec(sql) {
@@ -141,7 +164,7 @@ export async function createSqlJsAdapter(filePath, suppliedOwner) {
       // discards RAM rather than overwriting a replacement owner's database.
       if (dirty && !poisoned) { try { persist(); } catch (error) { closePublicationFailure = error; } }
       try { db.close(); closed = true; }
-      catch (error) { poison(); throw error; }
+      catch (error) { authority.invalidate(); poison(); throw error; }
       if (closePublicationFailure) throw closePublicationFailure; // retain exclusion on failed close publication
       owner.release(); released = true;
     },
