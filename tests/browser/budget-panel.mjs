@@ -1,0 +1,16 @@
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+import path from 'node:path';
+import os from 'node:os';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'9router-budget-panel-'));
+const engine=process.argv.includes('--engine=sqljs')?'sqljs':'node';
+const fixture=fileURLToPath(new URL('../fixtures/accounting/budget-web-fixture.mjs',import.meta.url));
+const loader=fileURLToPath(new URL('../fixtures/accounting/budget-web-loader.mjs',import.meta.url));
+const child=spawn(process.execPath,['--import',loader,fixture,path.join(root,'result.json'),`--engine=${engine}`,'--panel'],{env:process.env,stdio:'inherit'});
+let killAfter;
+const bound=setTimeout(()=>{child.kill('SIGTERM');killAfter=setTimeout(()=>child.kill('SIGKILL'),5000);},240000);
+const [code,signal]=await once(child,'exit');clearTimeout(bound);clearTimeout(killAfter);
+console.log(`Budget panel evidence: ${root}`);
+if(code!==0||signal)process.exitCode=1;

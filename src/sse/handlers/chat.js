@@ -1,4 +1,5 @@
 import { captureChatAccounting } from "../services/chat-accounting.js";
+import { budgetErrorResponse, isBudgetError } from "../../lib/accounting/budget-errors.js";
 import { isAccountingRefusal, accountingRefusal } from "open-sse/utils/accounting-transport.js";
 import "open-sse/index.js";
 
@@ -40,10 +41,20 @@ export async function handleChat(request, clientRawRequest = null) {
   let accounting;
   try {
     accounting = captureChatAccounting(request);
-    return await handleChatRequest(request, clientRawRequest, accounting);
+    const response = await handleChatRequest(request, clientRawRequest, accounting);
+    if (!accounting) return response;
+    const headers = new Headers(response.headers);
+    for (const [name, value] of Object.entries(accounting.responseHeaders)) {
+      if (name.toLowerCase() === 'access-control-expose-headers') {
+        const values = new Set((headers.get(name) || '').split(',').map(item => item.trim()).filter(Boolean));
+        for (const item of value.split(',')) values.add(item.trim());
+        headers.set(name, [...values].join(', '));
+      } else headers.set(name, value);
+    }
+    return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
   } catch (error) {
     if (!isAccountingRefusal(error) && !accounting) throw error;
-    return errorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, "Chat accounting authority unavailable");
+    return budgetErrorResponse(error);
   } finally { accounting?.dispose(); }
 }
 
@@ -325,7 +336,9 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     // Use shared chatCore
     const chatSettings = accounting?.degraded ? accounting.settings() : await getSettings();
     const providerThinking = (chatSettings.providerThinking || {})[provider] || null;
-    const result = await handleChatCore({
+    let result;
+    try {
+      result = await handleChatCore({
       body: { ...body, model: `${provider}/${model}` },
       modelInfo: { provider, model },
       credentials: refreshedCredentials,
@@ -373,6 +386,12 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       }
     });
 
+    } catch (error) {
+      // Candidate-local pricing only; other trusted accounting failures remain
+      // terminal and cannot enter account/model fallback or cooldown.
+      if (isBudgetError(error) && error.code === 'model_pricing_unavailable') return budgetErrorResponse(error);
+      throw error;
+    }
     if (result.success) return result.response;
     if (accounting?.degraded) throw accountingRefusal(new Error("Degraded chat upstream failed"));
 

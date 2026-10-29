@@ -5,6 +5,8 @@ import { isDeepStrictEqual } from "node:util";
 import { createHash } from "node:crypto";
 import { readPersistedAccountingIdentity } from "./persisted-request-authority.js";
 import { unavailable } from "./attempt-payload.js";
+import { BUDGET_CALENDAR_REVISION } from "./budget-windows.js";
+import { budgetError } from "./budget-errors.js";
 import { rowToConn } from "../db/repos/connectionsRepo.js";
 import { rowToNode } from "../db/repos/nodesRepo.js";
 import { mergeWithDefaults } from "../db/repos/settingsRepo.js";
@@ -33,7 +35,7 @@ function projection(reader, db, credential) {
     return stable;
   });
   const material = [key, policy, nodes, stableConnections, pools, settings, combos, kv, coverage.id, coverage.bindingKeyId, binding,
-    reader.get("SELECT value FROM _meta WHERE key='ledgerStartedAt'")?.value ?? null];
+    reader.get("SELECT value FROM _meta WHERE key='ledgerStartedAt'")?.value ?? null, BUDGET_CALENDAR_REVISION];
   return { key, policy, coverage, nodes, connections, pools, settings, combos, aliases, material, revision: digest(material) };
 }
 
@@ -59,6 +61,7 @@ export function createPersistedChatAuthority(db, credential) {
     return unchanged(value);
   }
   function unchanged(value) {
+    if (!isDeepStrictEqual(value.policy, initial.policy)) throw budgetError('api_key_accounting_unavailable', { reason: 'policy_changed' });
     if (value.revision !== initial.revision || value.coverage.generation !== generation || value.coverage.maintenance) throw unavailable("Chat request authority changed");
     return value;
   }
@@ -108,8 +111,9 @@ export function createPersistedChatAuthority(db, credential) {
   }
   function assertAgainst(view, { provider, model, connectionId }, credentials) {
     const node = view.nodes.find(node => node.id === provider);
+    if (!model) throw unavailable('Chat model authority missing');
     if (!/^openai-compatible-/.test(provider) || node?.type !== "openai-compatible" ||
-        (node.apiType || "chat") !== "chat" || resolveOpenAICompatibleApiType(provider, credentials) !== "chat" || !model) throw unavailable("Unsupported exact chat profile");
+        (node.apiType || "chat") !== "chat" || resolveOpenAICompatibleApiType(provider, credentials) !== "chat") throw budgetError('model_accounting_unsupported');
     const connection = view.connections.find(c => c.id === connectionId);
     if (!connection?.isActive || connection.provider !== provider || isModelLockActive(connection, model)) throw unavailable("Chat selection unavailable");
     const expected = resolveCredentialsFromView(view, connection);

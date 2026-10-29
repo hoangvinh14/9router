@@ -21,14 +21,14 @@ Actual P3 attempts obey weekly/monthly recorded-spend threshold, remain durable/
 
 ## Tasks / hard preflight
 
-- [ ] Re-read P3 final receipt, current schema/persisted authority/health/transport and tests. Record revision/adapter/commands, feature branch từ develop khi được authorize implementation; không code trực tiếp master.
-- [ ] **Harness feasibility spike trước feature mutation:** dùng tests-only loopback runner chứng minh actual HTTP Request→private fixture association→actual `handleChat` và actual budget-route composition có thể cùng module/DB lifetime; static actual dashboard artifact qua browser và authenticated management boundary không mock. Budget route chưa có thì spike dùng existing guarded route để prove guard/HTTP seam, không gọi đó là budget acceptance. Ghi exact artifact/import/socket wiring và future file map trong receipt. Không thêm shipping header/env/route activation. Không prove được thì STOP/review, không đánh dấu preflight done.
-- [ ] Chuẩn bị clock fixture riêng, chỉ điều khiển domain instant, không network timers/deadline. Verify two keys và disposable DB không chạm `~/.9router`; capture baseline focused/affected tests theo phase3.
-- [ ] Test-first calendar matrix: exact boundary −1ms/at/+1ms; UTC khác HCM, Monday và day1, overlap Monday/day1, February28/29, 30/31 ngày, Dec→Jan; đổi `TZ` server không đổi result. Reject invalid clock/unsupported timezone.
-- [ ] Add exact validation/CAS + projection tests: null/0/positive/9-decimal/max; reject Number/exponent/extra/precision/negative/overflow; no-op/current vs stale version; sums > safe Number; unknown/missing policy fail closed. No new default/upsert/migration timestamp.
-- [ ] Test-first actual budget gate; capture admitted instant trong coordinator member transaction, policy+spend/count read và insert chung boundary. Không dùng stale quick check/queued time. Gate final sync trước permission consume, no await before actual invoke.
-- [ ] Preserve terminal-independent-of-policy/snapshot; final local refusal `not_dispatched` chỉ khi no exposure với own terminal ACK. Typed budget cause không mất trong catch; failed terminal durability →unavailable. Policy/key/ACL drift và rollover refuse, không tự retry/re-date/rebind.
-- [ ] Error propagation selected JSON/SSE giữ local provenance và terminal-only failure semantics; no-store/requestId/Retry-After/CORS, upstream lookalike không trusted. Không mở native formats ngoài selected profile.
+- [x] Re-read P3 final receipt, current schema/persisted authority/health/transport and tests. Record revision/adapter/commands, feature branch từ develop khi được authorize implementation; không code trực tiếp master.
+- [x] **Harness feasibility spike trước feature mutation:** dùng tests-only loopback runner chứng minh actual HTTP Request→private fixture association→actual `handleChat` và actual budget-route composition có thể cùng module/DB lifetime; static actual dashboard artifact qua browser và authenticated management boundary không mock. Budget route chưa có thì spike dùng existing guarded route để prove guard/HTTP seam, không gọi đó là budget acceptance. Ghi exact artifact/import/socket wiring và future file map trong receipt. Không thêm shipping header/env/route activation. Không prove được thì STOP/review, không đánh dấu preflight done.
+- [x] Chuẩn bị clock fixture riêng, chỉ điều khiển domain instant, không network timers/deadline. Verify two keys và disposable DB không chạm `~/.9router`; capture baseline focused/affected tests theo phase3.
+- [x] Test-first calendar matrix: exact boundary −1ms/at/+1ms; UTC khác HCM, Monday và day1, overlap Monday/day1, February28/29, 30/31 ngày, Dec→Jan; đổi `TZ` server không đổi result. Reject invalid clock/unsupported timezone.
+- [x] Add exact validation/CAS + projection tests: null/0/positive/9-decimal/max; reject Number/exponent/extra/precision/negative/overflow; no-op/current vs stale version; sums > safe Number; unknown/missing policy fail closed. No new default/upsert/migration timestamp.
+- [x] Test-first actual budget gate; capture admitted instant trong coordinator member transaction, policy+spend/count read và insert chung boundary. Không dùng stale quick check/queued time. Gate final sync trước permission consume, no await before actual invoke.
+- [x] Preserve terminal-independent-of-policy/snapshot; final local refusal `not_dispatched` chỉ khi no exposure với own terminal ACK. Typed budget cause không mất trong catch; failed terminal durability →unavailable. Policy/key/ACL drift và rollover refuse, không tự retry/re-date/rebind.
+- [x] Error propagation selected JSON/SSE giữ local provenance và terminal-only failure semantics; no-store/requestId/Retry-After/CORS, upstream lookalike không trusted. Không mở native formats ngoài selected profile.
 
 ## Verification matrix bắt buộc
 
@@ -50,7 +50,7 @@ Run focused proposed files và existing accounting/chat suites bằng commands p
 
 ## Exit
 
-- [ ] Harness seam proven và test-only; exact executable runner commands/artifact wiring được chốt trước phase2.
-- [ ] Focused + actual JSON/SSE threshold, drift/rollover/concurrency/reopen controls pass; retained ledger/policy/identity verified trên Node SQLite/SQL.js.
-- [ ] No production activation/coverage timestamp, no new counters/job, no singleton per-key state, no regressions selected P3 ACK/authority behavior.
-- [ ] Receipt chỉ rõ support limits và baseline failures; phase2 mới được bắt đầu sau closure này.
+- [x] Harness seam proven và test-only; exact executable runner commands/artifact wiring được chốt trước phase2.
+- [x] Focused + actual JSON/SSE threshold, drift/rollover/concurrency/reopen controls pass; retained ledger/policy/identity verified trên Node SQLite/SQL.js.
+- [x] No production activation/coverage timestamp, no new counters/job, no singleton per-key state, no regressions selected P3 ACK/authority behavior.
+- [x] Receipt chỉ rõ support limits và baseline failures; phase2 mới được bắt đầu sau closure này.

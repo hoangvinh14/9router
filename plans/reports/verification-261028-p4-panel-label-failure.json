@@ -1,0 +1,122 @@
+{
+  "engine": "node",
+  "node": "v24.21.0",
+  "artifact": "/home/gmo/projects/9router/.next-budget-acceptance/standalone",
+  "complete": false,
+  "checks": [
+    "unauthenticated guarded HTTP rejected with no-store",
+    "real compiled login hydrates and actual source login sets verified session"
+  ],
+  "root": "/tmp/9router-budget-web-CD31W8",
+  "diagnostics": {
+    "invocations": [
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/auth/login",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/auth/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/tunnel/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      }
+    ],
+    "handlerFailures": [],
+    "browserErrors": [],
+    "assetFailures": [
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/dashboard/providers",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/combos",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/usage",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/quota",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/token-saver",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/cli-tools",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/proxy-pools",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/skills",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/console-log",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/profile",
+        "error": "net::ERR_ABORTED"
+      }
+    ]
+  },
+  "buildId": "cgHJhZsv7Eo9gVM2PsIt0",
+  "pricingHtmlSha256": "c0b5cc0b58be25f2a59437056ee4d10781dbaa4cabc010f587d20e1fdf38fb65",
+  "failure": {
+    "message": "expect(locator).toBeChecked() failed\n\nLocator: getByTestId('budget-key-one').getByLabel('Weekly unlimited', { exact: true })\nExpected: checked\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeChecked\" getByTestId('budget-key-one').getByLabel('Weekly unlimited', { exact: true }) with timeout 5000ms\n  - waiting for getByTestId('budget-key-one').getByLabel('Weekly unlimited', { exact: true })\n",
+    "stack": "Error: expect(locator).toBeChecked() failed\n\nLocator: getByTestId('budget-key-one').getByLabel('Weekly unlimited', { exact: true })\nExpected: checked\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeChecked\" getByTestId('budget-key-one').getByLabel('Weekly unlimited', { exact: true }) with timeout 5000ms\n  - waiting for getByTestId('budget-key-one').getByLabel('Weekly unlimited', { exact: true })\n\n    at captureRawStack (/home/gmo/projects/9router/tests/node_modules/playwright-core/lib/coreBundle.js:9282:17)\n    at callMatcherAsStep (/home/gmo/projects/9router/tests/node_modules/playwright/lib/matchers/expect.js:13316:57)\n    at Object.toBeChecked (/home/gmo/projects/9router/tests/node_modules/playwright/lib/matchers/expect.js:13308:23)\n    at /home/gmo/projects/9router/tests/browser/budget-panel-checks.mjs:8:69\n    at async check (/home/gmo/projects/9router/tests/fixtures/accounting/budget-web-fixture.mjs:133:38)\n    at async runBudgetPanelChecks (/home/gmo/projects/9router/tests/browser/budget-panel-checks.mjs:5:3)\n    at async file:///home/gmo/projects/9router/tests/fixtures/accounting/budget-web-fixture.mjs:207:5"
+  }
+}

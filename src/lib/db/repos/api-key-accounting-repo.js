@@ -86,6 +86,19 @@ export function recoverPendingSync(db, ownerInstanceId = null) {
       [new Date().toISOString(), ...(ownerInstanceId ? [ownerInstanceId] : [])]);
   });
 }
+export function countAttemptStatesSync(db, apiKeyId, start = null, end = null) {
+  if ((start === null) !== (end === null)) throw new Error('Complete accounting window required');
+  if (start !== null) { timestamp(start); timestamp(end); }
+  const rows = db.all("SELECT state,count(*) AS count FROM apiKeyAccounting WHERE apiKeyId=? AND state IN ('pending','unresolved')" +
+    (start === null ? '' : ' AND startedAt>=? AND startedAt<?') + ' GROUP BY state', [apiKeyId, ...(start === null ? [] : [start, end])]);
+  const counts = { pendingCount: 0, unresolvedCount: 0 };
+  for (const row of rows) {
+    if (!Number.isSafeInteger(row.count) || row.count < 0) throw new Error('Invalid accounting count');
+    counts[row.state === 'pending' ? 'pendingCount' : 'unresolvedCount'] = row.count;
+  }
+  return counts;
+}
+
 export function sumSpendSync(db, apiKeyId, start, end) {
   timestamp(start); timestamp(end);
   return db.all("SELECT costNanoUsd FROM apiKeyAccounting WHERE apiKeyId=? AND startedAt>=? AND startedAt<? AND state IN ('settled','waived')", [apiKeyId, start, end])

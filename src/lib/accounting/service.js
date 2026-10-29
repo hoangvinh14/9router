@@ -5,6 +5,10 @@ import { resolveReferencePriceSync } from "../pricing/referenceResolver.js";
 import { getWriteCoordinator, WRITE_LIMITS } from "./write-coordinator.js";
 import { synchronousResult } from "../db/durableFile.js";
 import { insertAttemptMutation, finalizeAttemptMutation, getAttemptSync, resolveAttemptSync } from "../db/repos/api-key-accounting-repo.js";
+import { readAccountingPolicy } from "../db/helpers/accounting-policy.js";
+import { assertBudgetEligibility } from "./budget-gate.js";
+import { budgetInstant, serverBudgetClock, BUDGET_CALENDAR_REVISION } from "./budget-windows.js";
+import { budgetError } from "./budget-errors.js";
 
 const services = new WeakMap();
 const hash = value => createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -25,25 +29,31 @@ export function createAccountingService(db) {
     validateKeyBindings(db, db.coverage, [key]);
     const binding = db.get("SELECT * FROM apiKeyBindings WHERE apiKeyId=?", [id]);
     if (!binding || binding.retiredAt || binding.fingerprint !== db.coverage.fingerprint(key.key)) throw unavailable("Retained key binding unavailable");
-    return { id: key.id, fingerprint: db.coverage.fingerprint(key.key), accessRestricted: key.accessRestricted, accessAllow: key.accessAllow };
+    return { id: key.id, fingerprint: db.coverage.fingerprint(key.key), accessRestricted: key.accessRestricted, accessAllow: key.accessAllow,
+      policy: readAccountingPolicy(db, id), calendarRevision: BUDGET_CALENDAR_REVISION };
   }
-  function createContext({ apiKeyId, validateAuthoritySync }) {
+  function createContext({ apiKeyId, validateAuthoritySync, clock = serverBudgetClock }) {
     live(); text(apiKeyId, "key ID", 200);
     if (typeof validateAuthoritySync !== "function" || validateAuthoritySync.constructor?.name === "AsyncFunction") throw new Error("Synchronous request authority capability required");
+    budgetInstant(clock);
     const context = Object.freeze({ requestId: randomUUID() });
-    contexts.set(context, { apiKeyId, validateAuthoritySync, key: keyAuthority(apiKeyId), revision: configRevision(db), generation: db.coverage.status(apiKeyId).generation });
+    contexts.set(context, { apiKeyId, validateAuthoritySync, clock, key: keyAuthority(apiKeyId), revision: configRevision(db), generation: db.coverage.status(apiKeyId).generation });
     return context;
   }
-  function authorize(context, candidate, expectedPrice) {
+  function authorize(context, candidate, expectedPrice, startedAt) {
     live();
     const authority = contexts.get(context);
     if (!authority) throw unavailable("Unknown request authority");
     const key = keyAuthority(authority.apiKeyId), coverage = db.coverage.status(authority.apiKeyId);
+    if (canonical(key.policy) !== canonical(authority.key.policy)) throw budgetError('api_key_accounting_unavailable', { requestId: context.requestId, reason: 'policy_changed' });
     if (canonical(key) !== canonical(authority.key) || configRevision(db) !== authority.revision || coverage.generation !== authority.generation || coverage.maintenance || coverage.gaps.some(g => !g.resolvedAt)) throw unavailable("Accounting authority changed");
-    const price = resolveReferencePriceSync(db, candidate.provider, candidate.model, candidate.endpoint);
-    if (price.status !== "priced" || expectedPrice && price.snapshot.revision !== expectedPrice.revision) throw unavailable("Accounting original price authority changed");
     if (synchronousResult(authority.validateAuthoritySync(Object.freeze({ apiKeyId: authority.apiKeyId, candidate: snapshotPayload(candidate), keyAccess: { restricted: key.accessRestricted === 1, allow: key.accessAllow } }))) !== true) throw unavailable("Request authority refused");
-    return { apiKeyId: authority.apiKeyId, snapshot: price.snapshot };
+    const admittedAt = budgetInstant(authority.clock);
+    assertBudgetEligibility(db, authority.apiKeyId, admittedAt, { requestId: context.requestId, startedAt });
+    const price = resolveReferencePriceSync(db, candidate.provider, candidate.model, candidate.endpoint);
+    if (price.status !== "priced") throw budgetError('model_pricing_unavailable', { requestId: context.requestId });
+    if (expectedPrice && price.snapshot.revision !== expectedPrice.revision) throw unavailable("Accounting original price authority changed");
+    return { apiKeyId: authority.apiKeyId, snapshot: price.snapshot, admittedAt };
   }
   const coordinator = getWriteCoordinator(db, commands => db.durableTransaction(() => commands.map(command => {
     try {
@@ -54,7 +64,7 @@ export function createAccountingService(db) {
         if (retained.type === "intent") {
           const verified = authorize(context, retained.candidate, retained.priceSnapshot);
           return { ok: true, value: insertAttemptMutation(db, { attemptId: randomUUID(), requestId: context.requestId, apiKeyId: verified.apiKeyId,
-            ownerInstanceId: lifetime, startedAt: new Date().toISOString(), ...retained.candidate, priceSnapshot: verified.snapshot }) };
+            ownerInstanceId: lifetime, startedAt: verified.admittedAt, ...retained.candidate, priceSnapshot: verified.snapshot }) };
         }
         if (retained.type === "terminal") {
           live();
@@ -84,13 +94,13 @@ export function createAccountingService(db) {
     const value = await queued(context, { type: "intent", candidate, priceSnapshot: verified.snapshot }, signal);
     live();
     const receipt = Object.freeze({ attemptId: value.attemptId, kind: "intent" });
-    receipts.set(receipt, { context, candidate, snapshot: value.priceSnapshot, dispatched: false });
+    receipts.set(receipt, { context, candidate, snapshot: value.priceSnapshot, startedAt: value.startedAt, dispatched: false });
     return receipt;
   }
   function assertDispatchAuthority(receipt, context) {
     const owned = receipts.get(receipt);
     if (!owned || owned.context !== context || owned.dispatched) throw unavailable("Intent ACK is absent or already consumed");
-    authorize(context, owned.candidate, owned.snapshot);
+    authorize(context, owned.candidate, owned.snapshot, owned.startedAt);
     const row = getAttemptSync(db, receipt.attemptId);
     if (!row || row.state !== "pending" || row.ownerInstanceId !== lifetime) throw unavailable("Intent no longer dispatchable");
     owned.dispatched = true;

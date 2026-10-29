@@ -1,0 +1,14 @@
+{
+  "engine": "node",
+  "node": "v24.21.0",
+  "artifact": "/home/gmo/projects/9router/.next-chat-final-261028/standalone",
+  "complete": false,
+  "checks": [],
+  "root": "/tmp/9router-budget-web-RzeWPv",
+  "buildId": "C6Qw38PdE4PkZDhNz-ODM",
+  "pricingHtmlSha256": "a86b336c1fe148e63ca7febd94de22cc79cc3d4246dc21128b8bd9a5bc5a75f0",
+  "failure": {
+    "message": "browserType.launch: Executable doesn't exist at /tmp/9router-budget-web-RzeWPv/home/.cache/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝",
+    "stack": "browserType.launch: Executable doesn't exist at /tmp/9router-budget-web-RzeWPv/home/.cache/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝\n    at /home/gmo/projects/9router/tests/fixtures/accounting/budget-web-fixture.mjs:91:28"
+  }
+}

@@ -231,7 +231,11 @@ export async function proxy(request) {
     if (isPublicApi(pathname)) return NextResponse.next();
     if (await hasValidCliToken(request) || await isAuthenticated(request))
       return NextResponse.next();
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const keyManagement = pathname === "/api/keys" || pathname.startsWith("/api/keys/");
+    return NextResponse.json({ error: "Unauthorized" }, {
+      status: 401,
+      ...(keyManagement ? { headers: { "Cache-Control": "no-store" } } : {}),
+    });
   }
 
   // Protect all dashboard routes

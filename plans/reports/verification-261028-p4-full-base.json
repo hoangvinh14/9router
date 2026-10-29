@@ -1,0 +1,182 @@
+{
+  "revision": "b41dca0a791bd464070e4d65c667381613ed5c8d",
+  "tests": 4817,
+  "passed": 4746,
+  "failed": 39,
+  "pending": 31,
+  "files": 436,
+  "failures": [
+    {
+      "file": "tests/translator/golden-url-header.test.js",
+      "test": "GOLDEN buildHeaders (default executor providers) cline → headers (apiKey / oauth)"
+    },
+    {
+      "file": "tests/translator/golden-url-header.test.js",
+      "test": "GOLDEN buildHeaders (default executor providers) clinepass → headers (apiKey / oauth)"
+    },
+    {
+      "file": "tests/translator/golden-url-header.test.js",
+      "test": "GOLDEN buildHeaders (default executor providers) kimi → headers (apiKey / oauth)"
+    },
+    {
+      "file": "tests/translator/golden-url-header.test.js",
+      "test": "GOLDEN buildHeaders (default executor providers) minimax-code → headers (apiKey / oauth)"
+    },
+    {
+      "file": "tests/translator/golden-url-header.test.js",
+      "test": "GOLDEN buildHeaders (default executor providers) minimax-code-global → headers (apiKey / oauth)"
+    },
+    {
+      "file": "tests/unit/claude-header-forwarding.test.js",
+      "test": "proxyAwareFetch — api.anthropic.com routing routes api.anthropic.com to gotScraping (non-streaming) and returns ok response"
+    },
+    {
+      "file": "tests/unit/codebuddy-block-backoff.test.js",
+      "test": "CodeBuddy Intl block backoff (#5024) keeps the same text request-scoped for provider openai"
+    },
+    {
+      "file": "tests/unit/codebuddy-block-backoff.test.js",
+      "test": "CodeBuddy Intl block backoff (#5024) keeps the same text request-scoped for provider codebuddy-cn"
+    },
+    {
+      "file": "tests/unit/codebuddy-block-backoff.test.js",
+      "test": "CodeBuddy Intl block backoff (#5024) keeps the same text request-scoped for provider null"
+    },
+    {
+      "file": "tests/unit/codebuddy-block-backoff.test.js",
+      "test": "CodeBuddy Intl block backoff (#5024) does not classify every 11128 code as a block"
+    },
+    {
+      "file": "tests/unit/codebuddy-block-backoff.test.js",
+      "test": "CodeBuddy Intl block backoff (#5024) still stops a combo on a malformed CodeBuddy request"
+    },
+    {
+      "file": "tests/unit/codex-refresh-token.test.js",
+      "test": "Codex Refresh Token refreshCodexToken should return new refresh_token when server provides one (token rotation)"
+    },
+    {
+      "file": "tests/unit/codex-stt-persisted-refresh.test.js",
+      "test": "uses the real persisted refresh service before sending expired-account OAuth audio"
+    },
+    {
+      "file": "tests/unit/codex-stt-transport.test.js",
+      "test": "converts real stereo 48k WAV to mono24k PCM16 and removes temporary files"
+    },
+    {
+      "file": "tests/unit/codex-stt-transport.test.js",
+      "test": "rejects malformed and overlong audio and cleans up"
+    },
+    {
+      "file": "tests/unit/codex-stt-transport.test.js",
+      "test": "sends only the converted file and projects upstream metadata out of the response through a local relay"
+    },
+    {
+      "file": "tests/unit/combo-autoswitch.test.js",
+      "test": "detectRequiredCapabilities web_search tool -> search"
+    },
+    {
+      "file": "tests/unit/combo-autoswitch.test.js",
+      "test": "reorderByCapabilities keeps order when no model matches"
+    },
+    {
+      "file": "tests/unit/combo-credit-fallback.test.js",
+      "test": "combo credit fallback routes a 400 response correctly: Bad request"
+    },
+    {
+      "file": "tests/unit/compatible-provider-connections.test.js",
+      "test": "compatible provider connections API creates one API-key connection for an Anthropic-compatible node"
+    },
+    {
+      "file": "tests/unit/compatible-provider-connections.test.js",
+      "test": "compatible provider connections API allows multiple connections on the same compatible node"
+    },
+    {
+      "file": "tests/unit/db-benchmark.test.js",
+      "test": "<suite failed to load>",
+      "message": "Cannot find package 'lowdb' imported from /tmp/9router-p4-full-base-D4RYZp/tests/unit/db-benchmark.test.js"
+    },
+    {
+      "file": "tests/unit/embeddings.cloud.test.js",
+      "test": "<suite failed to load>",
+      "message": "Cannot find module '/cloud/src/handlers/embeddings.js' imported from /tmp/9router-p4-full-base-D4RYZp/tests/unit/embeddings.cloud.test.js"
+    },
+    {
+      "file": "tests/unit/headroom-responses-format.test.js",
+      "test": "compressWithHeadroom openai-responses format (#1998) skips Responses tool/reasoning history instead of collapsing it into a message (#2132)"
+    },
+    {
+      "file": "tests/unit/key-access-migration.test.js",
+      "test": "apiKeys access columns: upgrade from the previous schema adds the columns, keeps every row, and reads every existing key as unrestricted"
+    },
+    {
+      "file": "tests/unit/model-routing.test.js",
+      "test": "model routing still routes non-reserved compatible node prefixes"
+    },
+    {
+      "file": "tests/unit/nous-attribution.test.js",
+      "test": "Nous API-key attribution sends tagged requests through the existing executor without changing authentication"
+    },
+    {
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "test": "GET /api/oauth/cursor/auto-import returns not-found when no macOS cursor db paths are accessible"
+    },
+    {
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "test": "GET /api/oauth/cursor/auto-import returns descriptive error if macOS db file exists but cannot be opened"
+    },
+    {
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "test": "GET /api/oauth/cursor/auto-import extracts tokens using exact keys"
+    },
+    {
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "test": "GET /api/oauth/cursor/auto-import unwraps JSON-encoded string values"
+    },
+    {
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "test": "GET /api/oauth/cursor/auto-import falls back to fuzzy key matching on macOS when exact keys are missing"
+    },
+    {
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "test": "GET /api/oauth/cursor/auto-import returns login-prompt error when tokens are missing even after fallback"
+    },
+    {
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "test": "GET /api/oauth/cursor/auto-import linux uses single hardcoded path and original error message"
+    },
+    {
+      "file": "tests/unit/oauth-cursor-auto-import.test.js",
+      "test": "GET /api/oauth/cursor/auto-import unsupported platform returns 400"
+    },
+    {
+      "file": "tests/unit/openai-to-claude.test.js",
+      "test": "openaiToClaudeResponse omits empty Read pages tool argument before emitting Claude input deltas"
+    },
+    {
+      "file": "tests/unit/security-audit.test.js",
+      "test": "AUDIT-002: API key masking byApiKey object keys should use masked key, not raw key"
+    },
+    {
+      "file": "tests/unit/translator-request-normalization.test.js",
+      "test": "request normalization claudeToOpenAIRequest flattens text-only content arrays into string"
+    },
+    {
+      "file": "tests/unit/translator-request-normalization.test.js",
+      "test": "request normalization filterToOpenAIFormat flattens text-only arrays to string"
+    },
+    {
+      "file": "tests/unit/translator-request-normalization.test.js",
+      "test": "request normalization translateRequest keeps /v1/messages Claude->OpenAI text payloads string-safe"
+    },
+    {
+      "file": "tests/unit/translator-request-normalization.test.js",
+      "test": "request normalization parseSSELine supports provider raw NDJSON stream lines"
+    }
+  ],
+  "options": [
+    "--exclude **/*.real.test.js",
+    "--exclude **/*.live.test.js"
+  ],
+  "raw": "/tmp/9router-p4-full-base.json",
+  "normalization": "repository-relative tests/ path; assertion failures and suite-load failures included"
+}

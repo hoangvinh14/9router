@@ -1,0 +1,20 @@
+{
+  "engine": "node",
+  "trace": [
+    "ack-enter",
+    {
+      "first": {
+        "bytes": 197,
+        "error": false,
+        "finish": false,
+        "doneMarker": false,
+        "dataFrames": 1,
+        "role": true,
+        "content": true
+      }
+    },
+    {
+      "preAckDelivered": false
+    }
+  ]
+}

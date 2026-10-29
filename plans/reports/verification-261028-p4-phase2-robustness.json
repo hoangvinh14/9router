@@ -1,0 +1,34 @@
+{
+  "tests": 63,
+  "passed": 63,
+  "failed": 0,
+  "success": true,
+  "source": "/tmp/9router-p4-phase2-robustness.json",
+  "files": [
+    {
+      "name": "tests/unit/accounting-budget-management.test.js",
+      "status": "passed",
+      "tests": 16
+    },
+    {
+      "name": "tests/unit/budget-management-draft.test.js",
+      "status": "passed",
+      "tests": 4
+    },
+    {
+      "name": "tests/unit/cli-connect.test.js",
+      "status": "passed",
+      "tests": 30
+    },
+    {
+      "name": "tests/unit/cli-management-session.test.js",
+      "status": "passed",
+      "tests": 5
+    },
+    {
+      "name": "tests/unit/key-budget-management-security.test.js",
+      "status": "passed",
+      "tests": 8
+    }
+  ]
+}

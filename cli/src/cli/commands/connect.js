@@ -142,9 +142,10 @@ async function request(url, { method = "GET", body, cookie, apiKey } = {}) {
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
   let res;
   try {
+    if (cookie && !['GET', 'HEAD'].includes(method)) headers.Origin = new URL(url).origin;
     res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined, redirect: "manual" });
   } catch (err) {
-    throw new Error(`Cannot reach ${new URL(url).origin}: ${err.cause?.code || err.message}`);
+    throw new Error(`Cannot reach configured server: ${err.cause?.code || err.message}`);
   }
   let data = null;
   try { data = await res.json(); } catch { /* non-JSON */ }

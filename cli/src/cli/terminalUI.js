@@ -18,7 +18,7 @@ const COLORS = {
 let cachedHeader = "";
 let fetchingHeader = false;
 
-function renderHeader(port, keys, tunnel) {
+function renderHeader(port, keys, tunnel, keyStatus = null) {
   const tunnelEnabled = tunnel && tunnel.enabled === true;
   const lines = [];
   if (tunnelEnabled && tunnel.publicUrl) {
@@ -28,7 +28,9 @@ function renderHeader(port, keys, tunnel) {
     lines.push(`Endpoint: http://localhost:${port}/v1`);
     lines.push(`Tunnel:   ${COLORS.red}OFF${COLORS.reset} ${COLORS.dim}(local only)${COLORS.reset}`);
   }
-  if (!keys || keys.length === 0) {
+  if (keyStatus) {
+    lines.push(`Key:      ${COLORS.dim}${keyStatus}${COLORS.reset}`);
+  } else if (!keys || keys.length === 0) {
     lines.push(`Key:      ${COLORS.dim}No API keys yet${COLORS.reset}`);
   } else {
     lines.push(`Key:      ${COLORS.cyan}${keys[0].key}${COLORS.reset}`);
@@ -47,7 +49,8 @@ async function refreshHeaderBg(port) {
     ]);
     const keys = keysResult.success ? (keysResult.data.keys || []) : [];
     const tunnel = tunnelResult.success ? (tunnelResult.data || {}) : {};
-    cachedHeader = renderHeader(port, keys, tunnel);
+    const keyStatus = keysResult.success ? null : keysResult.statusCode === 401 ? 'Dashboard authentication required' : 'Key list unavailable';
+    cachedHeader = renderHeader(port, keys, tunnel, keyStatus);
   } finally {
     fetchingHeader = false;
   }

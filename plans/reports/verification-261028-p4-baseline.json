@@ -1,0 +1,131 @@
+{
+  "revision": "b41dca0a791bd464070e4d65c667381613ed5c8d",
+  "node": "v24.21.0",
+  "tests": 488,
+  "passed": 488,
+  "failed": 0,
+  "success": true,
+  "files": [
+    {
+      "name": "tests/unit/accounting-coordinator.test.js",
+      "status": "passed",
+      "assertions": 31
+    },
+    {
+      "name": "tests/unit/accounting-coverage.test.js",
+      "status": "passed",
+      "assertions": 22
+    },
+    {
+      "name": "tests/unit/accounting-crash.test.js",
+      "status": "passed",
+      "assertions": 23
+    },
+    {
+      "name": "tests/unit/accounting-exact-money.test.js",
+      "status": "passed",
+      "assertions": 5
+    },
+    {
+      "name": "tests/unit/accounting-identity.test.js",
+      "status": "passed",
+      "assertions": 8
+    },
+    {
+      "name": "tests/unit/accounting-import.test.js",
+      "status": "passed",
+      "assertions": 2
+    },
+    {
+      "name": "tests/unit/accounting-ledger.test.js",
+      "status": "passed",
+      "assertions": 4
+    },
+    {
+      "name": "tests/unit/accounting-lifecycle.test.js",
+      "status": "passed",
+      "assertions": 6
+    },
+    {
+      "name": "tests/unit/accounting-migration.test.js",
+      "status": "passed",
+      "assertions": 4
+    },
+    {
+      "name": "tests/unit/accounting-persisted-authority.test.js",
+      "status": "passed",
+      "assertions": 25
+    },
+    {
+      "name": "tests/unit/accounting-policy-classification.test.js",
+      "status": "passed",
+      "assertions": 14
+    },
+    {
+      "name": "tests/unit/accounting-request-authority.test.js",
+      "status": "passed",
+      "assertions": 32
+    },
+    {
+      "name": "tests/unit/accounting-transport-boundary.test.js",
+      "status": "passed",
+      "assertions": 46
+    },
+    {
+      "name": "tests/unit/chat-accounting-final-controls.test.js",
+      "status": "passed",
+      "assertions": 26
+    },
+    {
+      "name": "tests/unit/chat-accounting-json.test.js",
+      "status": "passed",
+      "assertions": 20
+    },
+    {
+      "name": "tests/unit/chat-accounting-loopback.test.js",
+      "status": "passed",
+      "assertions": 78
+    },
+    {
+      "name": "tests/unit/chat-accounting-stream-loopback.test.js",
+      "status": "passed",
+      "assertions": 40
+    },
+    {
+      "name": "tests/unit/chat-accounting-stream.test.js",
+      "status": "passed",
+      "assertions": 21
+    },
+    {
+      "name": "tests/unit/dashboard-guard.test.js",
+      "status": "passed",
+      "assertions": 24
+    },
+    {
+      "name": "tests/unit/default-executor-accounting-compatibility.test.js",
+      "status": "passed",
+      "assertions": 2
+    },
+    {
+      "name": "tests/unit/pricing-crud-management.test.js",
+      "status": "passed",
+      "assertions": 9
+    },
+    {
+      "name": "tests/unit/pricing-management-integration.test.js",
+      "status": "passed",
+      "assertions": 4
+    },
+    {
+      "name": "tests/unit/pricing-management-peer.test.js",
+      "status": "passed",
+      "assertions": 4
+    },
+    {
+      "name": "tests/unit/pricing-management-route.test.js",
+      "status": "passed",
+      "assertions": 38
+    }
+  ],
+  "normalizationWarning": "verify-no-regression.mjs /app/ split does not match this checkout; raw JSON retained at /tmp/9router-p4-baseline.json"
+}

@@ -1,0 +1,16 @@
+{
+  "tests": 368,
+  "passed": 366,
+  "failed": 2,
+  "failures": [
+    {
+      "file": "unit/chat-accounting-stream-loopback.test.js",
+      "test": "node actual app SSE accounting passes deltas while holding successful terminal for its own settlement ACK"
+    },
+    {
+      "file": "unit/chat-accounting-stream-loopback.test.js",
+      "test": "sqljs actual app SSE accounting passes deltas while holding successful terminal for its own settlement ACK"
+    }
+  ],
+  "diagnosis": "One-byte framing read before held ACK; no success finish/DONE/EOF seen. Additional async wrapper for candidate-local pricing changed scheduling. Removing Response wrapper did not fix; localized pricing catch restores unchanged tests in52-test control. Repeat/consolidation pending."
+}

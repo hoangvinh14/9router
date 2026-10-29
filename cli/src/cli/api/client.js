@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
 const { machineIdSync } = require("node-machine-id");
+const managementSession = require('./managementSession');
 
 // Default configuration
 const DEFAULT_CONFIG = {
@@ -30,6 +31,7 @@ const AUTH_DIR = path.join(getDataDir(), "auth");
 const CLI_SECRET_FILE = path.join(AUTH_DIR, "cli-secret");
 
 let config = { ...DEFAULT_CONFIG };
+managementSession.configure(config);
 let cachedCliToken = null;
 let cachedCliSecret = null;
 
@@ -73,7 +75,9 @@ function getCliToken() {
  * @param {string} options.protocol - Protocol (http: or https:)
  */
 function configure(options = {}) {
-  config = { ...config, ...options };
+  const next = { ...config, ...options };
+  managementSession.configure(next);
+  config = next;
 }
 
 /**
@@ -287,7 +291,7 @@ async function updateConnection(id, data) {
  * @returns {Promise<Object>} { success, data: { keys } }
  */
 async function getApiKeys() {
-  return makeRequest("GET", "/api/keys");
+  return managementSession.request('GET', '/api/keys');
 }
 
 /**
@@ -296,7 +300,7 @@ async function getApiKeys() {
  * @returns {Promise<Object>} { success, data: { key, name, id, machineId } }
  */
 async function createApiKey(name) {
-  return makeRequest("POST", "/api/keys", { name });
+  return managementSession.request('POST', '/api/keys', { name });
 }
 
 /**
@@ -305,7 +309,7 @@ async function createApiKey(name) {
  * @returns {Promise<Object>} { success, data: { success } }
  */
 async function deleteApiKey(id) {
-  return makeRequest("DELETE", `/api/keys/${id}`);
+  return managementSession.request('DELETE', `/api/keys/${encodeURIComponent(id)}`);
 }
 
 // ============================================================================
@@ -528,7 +532,8 @@ module.exports = {
   pollOAuthToken,
   createApiKeyProvider,
   
-  // API Keys
+  // API Keys: explicit dashboard login, memory-only origin-bound session.
+  loginManagement: managementSession.login,
   getApiKeys,
   createApiKey,
   deleteApiKey,

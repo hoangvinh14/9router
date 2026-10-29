@@ -1,4 +1,5 @@
 const api = require("../api/client");
+const { withManagementLogin } = require('../utils/managementLogin');
 const { pause, confirm, select } = require("../utils/input");
 const { showStatus } = require("../utils/display");
 const { selectModelFromList } = require("../utils/modelSelector");
@@ -27,8 +28,12 @@ const CLAUDE_MODEL_TYPES = [
  * @returns {Promise<string|null>}
  */
 async function getFirstApiKey() {
-  const result = await api.getApiKeys();
-  const keys = result.success ? (result.data.keys || []) : [];
+  const result = await withManagementLogin(() => api.getApiKeys());
+  if (!result.success) {
+    showStatus(`API key list unavailable: ${result.error}`, 'error');
+    return null;
+  }
+  const keys = result.data.keys || [];
   return keys.length > 0 ? keys[0].key : null;
 }
 

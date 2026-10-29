@@ -1,0 +1,93 @@
+{
+  "engine": "node",
+  "node": "v24.21.0",
+  "artifact": "/home/gmo/projects/9router/.next-chat-final-261028/standalone",
+  "complete": false,
+  "checks": [
+    "unauthenticated guarded HTTP rejected with no-store",
+    "real compiled login hydrates and actual source login sets verified session",
+    "compiled pricing UI reads actual route and saves exact override to same adapter"
+  ],
+  "root": "/tmp/9router-budget-web-u6H4Di",
+  "diagnostics": {
+    "invocations": [
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/auth/login",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing/sync",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "PATCH",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing/sync",
+        "method": "GET",
+        "status": 200
+      }
+    ],
+    "handlerFailures": [],
+    "browserErrors": [],
+    "assetFailures": [
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      }
+    ]
+  },
+  "buildId": "C6Qw38PdE4PkZDhNz-ODM",
+  "pricingHtmlSha256": "a86b336c1fe148e63ca7febd94de22cc79cc3d4246dc21128b8bd9a5bc5a75f0",
+  "failure": {
+    "message": "Unexpected non-whitespace character after JSON at position 327 (line 1 column 328)",
+    "stack": "SyntaxError: Unexpected non-whitespace character after JSON at position 327 (line 1 column 328)\n    at JSON.parse (<anonymous>)\n    at APIResponse.json (/home/gmo/projects/9router/tests/node_modules/playwright-core/lib/coreBundle.js:60966:21)\n    at async file:///home/gmo/projects/9router/tests/fixtures/accounting/budget-web-fixture.mjs:148:49\n    at async check (file:///home/gmo/projects/9router/tests/fixtures/accounting/budget-web-fixture.mjs:115:38)\n    at async file:///home/gmo/projects/9router/tests/fixtures/accounting/budget-web-fixture.mjs:146:3"
+  }
+}

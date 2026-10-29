@@ -24,7 +24,7 @@ cover Linux Node SQLite/SQL.js only; activation remains OFF.
 
 Create one service per initialized adapter using `createAccountingService(db)`. Private WeakMaps bind contexts and receipts to that adapter lifetime; copying a receipt or reading a visible row cannot manufacture an acknowledgement.
 
-1. `createContext({ apiKeyId, validateAuthoritySync })` captures stable key/ACL, configuration and coverage generation. The required synchronous callback must validate the request's current routing/access authority for the supplied candidate and return exactly `true`; async/thenable authority refuses. P3 owns that capability and its actual protocol/routing evidence.
+1. `createContext({ apiKeyId, validateAuthoritySync, clock? })` captures stable key/ACL, budget policy/calendar revision, configuration and coverage generation. The internal synchronous clock defaults to server time; only disposable test composition supplies a controlled clock. The required synchronous callback must validate the request's current routing/access authority for the supplied candidate and return exactly `true`; async/thenable authority refuses. P3 owns that capability and its actual protocol/routing evidence.
 2. `await beginAttempt(context, { provider, model, endpoint, connectionId? }, { signal? })` records intent using the current original P1 price snapshot. After queue admission, the actual mutation rechecks key/binding/ACL, configuration, coverage, price, owner and request authority. Only the successful outer durable transaction creates an own intent receipt.
 3. Call `assertDispatchAuthority(receipt, context)` immediately before the actual upstream POST. This rechecks fresh authority and consumes dispatch permission once. Do not add an await between this check and POST. Each retry/fallback/panel/judge/successor POST needs its own attempt and receipt; persisted visibility and replay are never dispatch permission.
 4. `await completeAttempt(receipt, terminal, { signal? })` persists an outcome using the original snapshot. Keep the receipt and sink alive for late usage/errors even after request configuration changes or context disposal. Terminal fields are `state`, `outcome`, `finishedAt` (canonical ISO timestamp), optional exact `usage`, or `notDispatchedEvidence`. Missing/estimated settlement usage becomes unresolved/null cost. A dispatched receipt cannot claim `not_dispatched`.
@@ -75,8 +75,9 @@ complete usage, protocol completion and the attempt's own terminal ACK. A mixed
 delta/finish frame is split. DONE defines the selected protocol boundary;
 already-read trailing evidence is refused and the raw reader is cancelled.
 Missing/conflicting usage, premature EOF, stall, cancellation or failed ACK
-cannot become a successful translator flush. Existing native error-terminal
-formatting handles failures after headers. Raw byte activity feeds the existing
+cannot become a successful translator flush. A private selected-accounting callback
+formats local own-ACK failures after headers as error-only SSE without finish/DONE;
+ordinary transport failures retain the existing formatter. Raw byte activity feeds the existing
 stall watchdog, including fragmented frames; upstream completion clears that
 watchdog while the terminal ACK is pending.
 
@@ -87,6 +88,66 @@ existing ledger rules. Tests and finite measurement evidence belong to the
 [P3 execution record](../plans/261018-0213-durable-chat-accounting/plan.md), not
 production activation authority.
 
+## Weekly/monthly budget management (P4, acceptance in progress)
+
+Budgets are exact ledger-derived **soft recorded-spend thresholds**, not reservations
+or hard invoice caps. `null` means unlimited and `0` blocks until policy changes;
+concurrent in-flight requests may overshoot without a one-request bound. Both
+weekly and monthly limits apply. Windows use fixed `Asia/Ho_Chi_Minh`: Monday
+00:00 for weeks and day1 00:00 for months. Immutable attempt `startedAt` attributes
+late settlements to their original windows. Reset never deletes spend, unknown
+usage, retained identities or audited history. All-lifetime unresolved exposure
+blocks finite budgets, including after reset/restart; null/null does not waive it.
+
+The existing intent and fresh pre-POST boundaries verify policy, calendar,
+identity, coverage and recorded spend. A finite-dimension rollover after intent
+refuses dispatch as `budget_window_changed`; a policy edit refuses stale request
+authority. Already-dispatched terminal sinks still settle their original snapshots.
+Local trusted budget failures preserve native code/requestId/no-store/CORS metadata;
+429 uses the latest blocked reset for Retry-After. Zero-limit Retry-After is advisory,
+not a promise of automatic unblock. Upstream lookalike error codes are not authority.
+
+`GET /api/keys/:id/budget` projects exact decimal strings for current/previous
+windows, remaining/overshoot, pending/unresolved, health and explicit inactive scope.
+`PUT` is full replacement:
+
+```json
+{"weeklyLimitUsd":"1.000000001","monthlyLimitUsd":null,"expectedVersion":1}
+```
+
+Amounts must be plain nonnegative decimal strings with at most9 fractional places
+and within the existing nanoUSD policy bound; numbers, empty strings, exponent
+notation, overflow, missing/extra fields and invalid versions are rejected. CAS
+is inside the same durable identity/readiness transaction; unchanged policy keeps
+its version. No missing policy is silently recreated. Retained tombstones are
+read-only and expose no credential. Maintenance blocks policy writes.
+
+**Production finite PUT returns409 `accounting_not_ready`; production enforcement
+remains OFF.** Healthy active identity/current version may save null/null; no public
+request/header/body/environment/setting can grant fixture readiness or stamp
+`ledgerStartedAt`. Exact-Request WeakMap associations belong only to disposable
+fixtures. The Endpoint editor is truthful about inactive production, virtual
+reference cost, unknown usage, and soft-threshold semantics; it offers no reset-spend,
+waive or fake recovery action. Drafts preserve their original CAS base through
+refresh and require explicit reconciliation after conflicts or ambiguous save
+outcomes. Cached allowance/health stays unknown until an owned fresh API projection;
+editing a draft is not a freshness event.
+
+Key CRUD and budget routes share auth-first dashboard management guards. Mutations
+require the supported same-Origin boundary; inference API keys/CLI tokens are not
+management credentials. CLI key management uses an explicit dashboard login and a
+memory-only, exact-origin session cookie, with no redirects or token exemption.
+Background CLI status never prompts for a password or disguises an auth failure as
+an empty key list. `connect --password` is supported for explicit management login;
+like any command-line secret, supplying it on argv can expose it to shell history or
+process listings—prefer the interactive password prompt where available.
+
+See [P4 acceptance trace](../plans/reports/verification-261028-p4-acceptance-trace.md)
+for scoped evidence and gaps. Hybrid browser acceptance is distinct from detached
+shipping-server acceptance. Performance review documents the observed added cost
+and scoped retain-design decision; it is not a production bound or SLO. Passing
+fixture flows are not production activation approval.
+
 ## Remaining owners
 
-P3 owns acceptance of the selected dispatch/protocol integration, all successor/fresh gates, coverage-gap continuation eligibility and late sinks. Broader provider and transport inventory remains separate. P4 owns policy, calendars and budgets. P5 owns authenticated management/recovery UX and managed physical restore. Bun/better/Windows accounting validation remains a P5/R release blocker. Activation requires complete dispatch coverage and its own acceptance; the existence of this core does not establish that coverage.
+P3 owns acceptance of the selected dispatch/protocol integration, all successor/fresh gates, coverage-gap continuation eligibility and late sinks. Broader provider and transport inventory remains separate. P4 owns policy, calendars, guarded budget/key management and their acceptance. P5 owns recovery/restore UX and managed physical restore; P4's management prerequisite does not complete recovery. Bun/better/Windows accounting validation remains a P5/R release blocker. Activation requires complete dispatch coverage and its own acceptance; the existence of this core does not establish that coverage.

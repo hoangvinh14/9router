@@ -1,0 +1,30 @@
+{
+  "source": "/tmp/9router-p4-phase1-final-controls.json",
+  "tests": 106,
+  "passed": 106,
+  "failed": 0,
+  "pending": 0,
+  "files": [
+    {
+      "name": "tests/unit/accounting-policy-classification.test.js",
+      "status": "passed",
+      "tests": 14
+    },
+    {
+      "name": "tests/unit/accounting-request-authority.test.js",
+      "status": "passed",
+      "tests": 32
+    },
+    {
+      "name": "tests/unit/chat-accounting-stream-loopback.test.js",
+      "status": "passed",
+      "tests": 40
+    },
+    {
+      "name": "tests/unit/chat-budget-failure-controls.test.js",
+      "status": "passed",
+      "tests": 20
+    }
+  ],
+  "success": true
+}

@@ -1,3 +1,12 @@
+# Unreleased — P4 budget work (scoped acceptance)
+
+## Features
+- **Budgets**: add exact ledger-derived weekly/monthly soft thresholds on the selected disposable chat-accounting fixture, guarded per-key policy/projection APIs, and an Endpoint editor. Fixed Asia/Ho_Chi_Minh calendar windows, immutable attempt attribution, unresolved exposure and durable CAS preserve history across edits and restart. **Production accounting/enforcement remains OFF**; finite production saves are rejected and no public activation flag is provided. Measured overhead and the fixture-only performance disposition are documented; this is not a production SLO or activation approval.
+
+## Security and compatibility
+- **Key management**: apply auth-first dashboard management guards and mutation Origin checks to key CRUD/budget routes; proxy-generated anonymous key denials are no-store. CLI key management uses explicit dashboard sessions scoped to one origin rather than an inference-token exemption.
+- **Budget editor**: preserve dirty drafts and base versions through refresh/conflicts; require explicit reconciliation after uncertain save outcomes. Separate stale projection state from editable errors so editing cannot make cached allowance appear current. Freshness-artifact browser verification passed on Node SQLite and SQL.js.
+
 # v0.5.111 (2026-10-26)
 
 ## Features
