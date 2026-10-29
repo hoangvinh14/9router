@@ -6,13 +6,16 @@ import { createAccountingService } from "../../lib/accounting/service.js";
 import { unavailable } from "../../lib/accounting/attempt-payload.js";
 import { accountingRefusal, captureTransportEnvironment } from "../../../open-sse/utils/accounting-transport.js";
 import { OPENAI_EXPLICIT_USAGE_PROFILE } from "../../../open-sse/utils/accounting-openai-usage.js";
+import { budgetInstant, serverBudgetClock } from "../../lib/accounting/budget-windows.js";
+import { budgetError, isBudgetError } from "../../lib/accounting/budget-errors.js";
 
 const fixtures = new WeakMap();
 // Internal disposable-fixture association only. No header, body, environment,
 // settings flag or production call site activates accounting in this slice.
-export function associateChatAccountingFixture(request, db, hooks = {}) {
+export function associateChatAccountingFixture(request, db, hooks = {}, { clock = serverBudgetClock } = {}) {
   if (fixtures.has(request) || !db?.ownerInstanceId || !db.coverage) throw unavailable("Invalid chat fixture association");
-  fixtures.set(request, { db, hooks });
+  budgetInstant(clock);
+  fixtures.set(request, { db, hooks, clock });
 }
 
 export function captureChatAccounting(request) {
@@ -23,10 +26,16 @@ export function captureChatAccounting(request) {
   catch (error) { throw accountingRefusal(error); }
 }
 
-function createSession(request, { db, hooks }) {
+function createSession(request, { db, hooks, clock }) {
   const authority = createPersistedChatAuthority(db, extractClientApiKey(request));
   const service = db.health().healthy ? createAccountingService(db) : null;
   const environment = captureTransportEnvironment(), contexts = new Set();
+  const requestId = randomUUID();
+  const safeStreamError = budgetError('api_key_accounting_unavailable', { requestId });
+  const errorBytes = error => new TextEncoder().encode(`data: ${JSON.stringify({ error: {
+    message: error.message, type: 'invalid_request_error', code: error.code, param: null, ...error.metadata,
+  } })}\n\n`);
+  const fallbackTerminalBytes = errorBytes(safeStreamError);
   let disposed = false, requested = null, targets = null;
   function live() {
     if (disposed || environment !== captureTransportEnvironment()) throw unavailable("Chat request authority unavailable");
@@ -60,7 +69,7 @@ function createSession(request, { db, hooks }) {
     live();
     if (!requested || !targets.some(info => info.provider === candidate.provider && info.model === candidate.model)) throw unavailable("Accounting route outside request authority");
     authority.assertSelection(candidate, credentials);
-    const context = service && db.health().healthy ? service.createContext({ apiKeyId: authority.apiKeyId,
+    const context = service && db.health().healthy ? service.createContext({ apiKeyId: authority.apiKeyId, clock,
       validateAuthoritySync: ({ candidate: current }) => {
         if (!isDeepStrictEqual(current, candidate) || disposed || environment !== captureTransportEnvironment()) return false;
         return authority.assertSelection(candidate, credentials, db);
@@ -73,7 +82,7 @@ function createSession(request, { db, hooks }) {
           const expectedUrl = `${credentials.providerSpecificData.baseUrl.replace(/\/$/, "")}/chat/completions`;
           if (wire.targetUrl !== expectedUrl || wire.method !== "POST" || JSON.parse(wire.body).model !== candidate.model) throw unavailable("Chat wire outside selected authority");
           const retainedWire = JSON.stringify(wire);
-          let receipt = null, gapAck = null, consumed = false, terminal = null;
+          let receipt = null, gapAck = null, consumed = false, terminal = null, terminalFailure = null;
           if (context && db.health().healthy) {
             try { receipt = await service.beginAttempt(context, candidate, { signal: request.signal }); }
             catch (error) { if (db.health().healthy) throw error; }
@@ -93,17 +102,24 @@ function createSession(request, { db, hooks }) {
             terminal = (async () => {
               if (!receipt) return gapAck;
               const evidence = { state: exposed ? usage ? "settled" : "unresolved" : "not_dispatched",
-                outcome, finishedAt: new Date().toISOString(), ...(usage && exposed ? { usage } : {}),
+                outcome, finishedAt: budgetInstant(clock), ...(usage && exposed ? { usage } : {}),
                 ...(!exposed ? { notDispatchedEvidence: "Transport refused before invocation" } : {}) };
               let ack;
               try { ack = await service.completeAttempt(receipt, evidence); }
               catch (error) { if (db.health().healthy) throw error; return gap(); }
               await hooks.terminalAck?.(ack, evidence);
               return ack;
-            })().catch(error => { throw accountingRefusal(error); });
+            })().catch(error => {
+              // Only this operation's failure marks accounting terminal failure.
+              // A provider code/message cannot acquire this private state.
+              terminalFailure = isBudgetError(error) ? error : safeStreamError;
+              throw accountingRefusal(terminalFailure);
+            });
             return terminal;
           };
           return Object.freeze({ assertDispatch, finish,
+            terminalError: () => terminalFailure ? errorBytes(terminalFailure) : null,
+            fallbackTerminalBytes,
             failed: (error, { exposed }) => finish(null, exposed ? "network_unknown" : "local_refusal", exposed) });
         } catch (error) { throw accountingRefusal(error); }
       },
@@ -111,6 +127,8 @@ function createSession(request, { db, hooks }) {
   }
   return Object.freeze({
     get degraded() { return !db.health().healthy; },
+    responseHeaders: Object.freeze({ 'Cache-Control': 'no-store', 'X-Request-Id': requestId,
+      'Access-Control-Expose-Headers': 'X-Request-Id, Retry-After' }),
     settings: authority.settings, modelInfo: authority.modelInfo, comboModels: authority.comboModels,
     credentials: authority.resolveCredentials,
     authorizeTarget(target) { live(); authority.authorizeTarget(target); requested = target; targets = reachable(target); },

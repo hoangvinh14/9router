@@ -1,4 +1,5 @@
 const api = require("../api/client");
+const { withManagementLogin } = require('../utils/managementLogin');
 const { prompt, confirm, pause } = require("../utils/input");
 const { clearScreen, showStatus, showHeader } = require("../utils/display");
 const { maskKey, formatDate, getRelativeTime } = require("../utils/format");
@@ -68,7 +69,7 @@ async function handleCreateKey() {
     return false;
   }
   
-  const result = await api.createApiKey(name);
+  const result = await withManagementLogin(() => api.createApiKey(name));
   
   if (!result.success) {
     showStatus(`Failed to create key: ${result.error}`, "error");
@@ -148,7 +149,7 @@ async function handleDeleteKey(key) {
     return false;
   }
   
-  const result = await api.deleteApiKey(key.id);
+  const result = await withManagementLogin(() => api.deleteApiKey(key.id));
   
   if (!result.success) {
     showStatus(`Failed to delete key: ${result.error}`, "error");
@@ -206,7 +207,7 @@ async function showApiKeysMenu(port, breadcrumb = []) {
     breadcrumb,
     headerContent: `Endpoint: ${endpoint}`,
     fetchItems: async () => {
-      const result = await api.getApiKeys();
+      const result = await withManagementLogin(() => api.getApiKeys());
       if (!result.success) {
         clearScreen();
         showStatus(`Failed to fetch API keys: ${result.error}`, "error");

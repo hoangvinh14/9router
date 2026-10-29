@@ -235,6 +235,21 @@ describe("connect run()", () => {
     });
   }
 
+  it('new key creation sends dashboard cookie and exact Origin without following redirects',async()=>{
+    const fetchSpy=vi.spyOn(globalThis,'fetch').mockImplementation((url,options={})=>{
+      const u=String(url),headers={'content-type':'application/json'};
+      if(u.endsWith('/api/auth/login'))return Promise.resolve(new Response(JSON.stringify({success:true}),{headers:{...headers,'set-cookie':'auth_token=management; Path=/'}}));
+      if(u.endsWith('/api/keys')&&options.method==='POST'){
+        expect(options.headers.Cookie).toBe('auth_token=management');expect(options.headers.Origin).toBe('http://gw.test');expect(options.redirect).toBe('manual');
+        return Promise.resolve(new Response(JSON.stringify({key:MY_KEY,id:'created-key'}),{status:201,headers}));
+      }
+      if(u.endsWith('/api/keys'))return Promise.resolve(new Response('{"keys":[]}',{headers}));
+      return Promise.resolve(new Response('{"data":[]}',{headers}));
+    });
+    expect(await connect.run(['http://gw.test','--password','explicit','--tools','claude'])).toBe(0);
+    expect(fetchSpy.mock.calls.some(([url,options])=>String(url).endsWith('/api/keys')&&options.method==='POST')).toBe(true);
+  });
+
   it("takes models from the server — nothing hardcoded", async () => {
     mockServer();
     expect(await connect.run(["http://gw.test", "--password", "x", "--tools", "claude,opencode"])).toBe(0);

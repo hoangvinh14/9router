@@ -63,6 +63,26 @@ describe("dashboard guard public LLM API access", () => {
     mocks.verifyDashboardAuthToken.mockResolvedValue(false);
   });
 
+  it.each(['/api/keys','/api/keys/','/api/keys/key-one','/api/keys/key-one/budget','/api/keys/key-one/budget?refresh=1'])("never caches anonymous or invalid-session key management denial: %s", async (target) => {
+    const url=new URL(target,'http://localhost');
+    for(const invalid of [false,true]){
+      const req=request(url.pathname);req.nextUrl.searchParams=url.searchParams;
+      if(invalid)req.cookies.get.mockReturnValue({value:'invalid-session'});
+      const response=await proxy(req);
+      expect(response.status).toBe(401);expect(response.body).toEqual({error:'Unauthorized'});
+      expect(mocks.jsonResponse.mock.calls.at(-1)[1].headers).toEqual({'Cache-Control':'no-store'});
+    }
+  });
+
+  it('keeps near-prefix and other API authentication behavior unchanged',async()=>{
+    for(const target of ['/api/keys-extra','/api/other']){
+      expect((await proxy(request(target))).status).toBe(401);
+      expect(mocks.jsonResponse.mock.calls.at(-1)[1]).toEqual({status:401});
+    }
+    mocks.verifyDashboardAuthToken.mockResolvedValue(true);
+    expect(await proxy(request('/api/keys/key-one/budget'))).toBe(mocks.nextResponse);
+  });
+
   it("allows loopback public LLM API without API key", async () => {
     const response = await proxy(localRequest("/v1/chat/completions", { host: "localhost:20128" }));
 

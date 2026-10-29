@@ -106,11 +106,11 @@ export function createDisconnectAwareStream(transformStream, streamController, o
   let terminalEmitted = false;
 
   // Emit a synthesized terminal payload (e.g. Responses response.failed + [DONE]) once
-  const emitTerminal = (controller) => {
+  const emitTerminal = (controller, error) => {
     if (terminalEmitted || !onAbortTerminal) return;
     terminalEmitted = true;
     try {
-      const bytes = onAbortTerminal();
+      const bytes = onAbortTerminal(error);
       if (bytes) controller.enqueue(bytes);
     } catch { /* best-effort terminal */ }
   };
@@ -160,7 +160,7 @@ export function createDisconnectAwareStream(transformStream, streamController, o
         // (Responses passthrough prefers response.failed + [DONE] over a raw transport error)
         try {
           if (!wasConnected || isNetworkClose || onAbortTerminal) {
-            emitTerminal(controller);
+            emitTerminal(controller, error);
             controller.close();
           } else {
             controller.error(error);
@@ -263,7 +263,10 @@ export function pipeWithDisconnect(providerResponse, transformStream, streamCont
   return createDisconnectAwareStream(
     { readable: transformedBody, writable: { getWriter: () => ({ abort: () => Promise.resolve() }) } },
     wrappedController,
-    onAbortTerminal ? () => onAbortTerminal(abortMessage) : null
+    rawActivity || onAbortTerminal ? error => {
+      const accountingTerminal = rawActivity?.terminalError?.(error);
+      return accountingTerminal || onAbortTerminal?.(abortMessage);
+    } : null
   );
 }
 

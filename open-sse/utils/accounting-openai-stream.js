@@ -15,6 +15,13 @@ export function createAccountedStream(response, ticket, { profile, signal }) {
   const listeners = new Set();
   let rawComplete = false, stopped = false, released = false;
   const activity = {
+    // The application ticket owns failure provenance and native formatting.
+    // Null declines ordinary transport/parser errors; never inspect error.code.
+    terminalError(error) {
+      if (typeof ticket.terminalError !== 'function') return null;
+      try { return ticket.terminalError(error); }
+      catch { return ticket.fallbackTerminalBytes ?? null; }
+    },
     subscribe(listener) { listeners.add(listener); if (rawComplete) listener(0, true); return () => listeners.delete(listener); },
   };
   const notify = (size, done = false) => { rawComplete ||= done; for (const listener of listeners) listener(size, done); };

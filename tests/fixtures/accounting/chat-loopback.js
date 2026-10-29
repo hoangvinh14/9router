@@ -68,10 +68,10 @@ export async function openChatFixture(engine, { rates = {input:'1',output:'2',ca
     });
     backupFixture(db,fixture.file);
     return { ...fixture, requests, get posts(){return posts;},get connects(){return connects;},
-      request({stream=false,model='fixture-node/fixture',key='fixture-secret',hooks={},signal,accounting=true,body={}} = {}) {
+      request({stream=false,model='fixture-node/fixture',key='fixture-secret',hooks={},clock,signal,accounting=true,body={}} = {}) {
         const request = new Request('http://localhost/v1/chat/completions', {method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`},
           body:JSON.stringify({model,messages:[{role:'user',content:'hello'}],stream,...body}),signal});
-        if (accounting) associateChatAccountingFixture(request,db,hooks);
+        if (accounting) associateChatAccountingFixture(request,db,hooks,{clock});
         return handleChat(request);
       },
       async close() {
