@@ -1,0 +1,27 @@
+{
+  "complete": true,
+  "artifact": "/home/gmo/projects/9router/.next-budget-repaired/standalone",
+  "checks": [
+    "detached packaged SQL.js/WASM reopen",
+    "detached package starts",
+    "anonymous key management denied with no-store",
+    "production inactive; finite PUT409 even forged activation headers; unlimited no-op",
+    "actual server Origin guard",
+    "actual standalone Endpoint shell and linked CSS serve",
+    "actual detached browser hydrates expected key and truthfully disables finite save",
+    "native database reopens without activation or ledger rows"
+  ],
+  "buildId": "kwKOWZ6Vkie7GcbAulq_L",
+  "endpointHtmlSha256": "b84978b5e91327b126600d1aeaecd8f7c365f9a1ac88ee5b5fd5b8cd429181c7",
+  "browser": {
+    "errors": [],
+    "assetFailures": [],
+    "blockedExternal": [
+      "/gtag/js"
+    ]
+  },
+  "exit": {
+    "code": 0,
+    "signal": null
+  }
+}

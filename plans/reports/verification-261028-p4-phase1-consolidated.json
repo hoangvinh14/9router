@@ -1,0 +1,115 @@
+{
+  "source": "/tmp/9router-p4-phase1-revalidated.json",
+  "tests": 386,
+  "passed": 386,
+  "failed": 0,
+  "pending": 0,
+  "files": [
+    {
+      "name": "tests/unit/accounting-budget-errors.test.js",
+      "status": "passed",
+      "tests": 6
+    },
+    {
+      "name": "tests/unit/accounting-budget-gate.test.js",
+      "status": "passed",
+      "tests": 24
+    },
+    {
+      "name": "tests/unit/accounting-budget-policy.test.js",
+      "status": "passed",
+      "tests": 41
+    },
+    {
+      "name": "tests/unit/accounting-budget-projection.test.js",
+      "status": "passed",
+      "tests": 4
+    },
+    {
+      "name": "tests/unit/accounting-budget-windows.test.js",
+      "status": "passed",
+      "tests": 20
+    },
+    {
+      "name": "tests/unit/accounting-coordinator.test.js",
+      "status": "passed",
+      "tests": 31
+    },
+    {
+      "name": "tests/unit/accounting-policy-classification.test.js",
+      "status": "passed",
+      "tests": 14
+    },
+    {
+      "name": "tests/unit/accounting-stream-terminal.test.js",
+      "status": "passed",
+      "tests": 5
+    },
+    {
+      "name": "tests/unit/chat-accounting-final-controls.test.js",
+      "status": "passed",
+      "tests": 26
+    },
+    {
+      "name": "tests/unit/chat-accounting-json.test.js",
+      "status": "passed",
+      "tests": 20
+    },
+    {
+      "name": "tests/unit/chat-accounting-loopback.test.js",
+      "status": "passed",
+      "tests": 78
+    },
+    {
+      "name": "tests/unit/chat-accounting-stream-loopback.test.js",
+      "status": "passed",
+      "tests": 40
+    },
+    {
+      "name": "tests/unit/chat-accounting-stream.test.js",
+      "status": "passed",
+      "tests": 21
+    },
+    {
+      "name": "tests/unit/chat-budget-failure-controls.test.js",
+      "status": "passed",
+      "tests": 14
+    },
+    {
+      "name": "tests/unit/chat-budget-held-ack-diagnostic.test.js",
+      "status": "passed",
+      "tests": 2
+    },
+    {
+      "name": "tests/unit/chat-budget-integrity.test.js",
+      "status": "passed",
+      "tests": 12
+    },
+    {
+      "name": "tests/unit/chat-budget-loopback.test.js",
+      "status": "passed",
+      "tests": 12
+    },
+    {
+      "name": "tests/unit/chat-budget-pricing-fallback.test.js",
+      "status": "passed",
+      "tests": 4
+    },
+    {
+      "name": "tests/unit/chat-budget-reopen.test.js",
+      "status": "passed",
+      "tests": 4
+    },
+    {
+      "name": "tests/unit/chat-budget-stream.test.js",
+      "status": "passed",
+      "tests": 6
+    },
+    {
+      "name": "tests/unit/default-executor-accounting-compatibility.test.js",
+      "status": "passed",
+      "tests": 2
+    }
+  ],
+  "success": true
+}

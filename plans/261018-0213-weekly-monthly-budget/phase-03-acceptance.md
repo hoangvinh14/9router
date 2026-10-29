@@ -1,24 +1,24 @@
 ---
 title: "Actual end-to-end và affected acceptance"
-status: todo
+status: completed
 ---
 
 # Phase 3 — Actual end-to-end và affected acceptance
 
-Depends on [phase2](./phase-02-management-ui.md). Tất cả commands/matrix dưới đây là **planned validation, chưa chạy**. Không thay actual HTTP/browser bằng helper acceptance.
+Depends on completed [phase2](./phase-02-management-ui.md). The original command matrix below is retained as the planned contract; actual commands/results are reconciled in the [acceptance trace](../reports/verification-261028-p4-acceptance-trace.md) and [phase2 receipt](../reports/implementation-261028-p4-phase2-progress.md). Latest build uses `NEXT_DIST_DIR=.next-budget-freshness`, browser commands set `BUDGET_STANDALONE=$PWD/.next-budget-freshness/standalone` and `PLAYWRIGHT_BROWSERS_PATH=/home/gmo/.cache/ms-playwright`. Both adapters passed19 final checks, including actual concurrent POST overshoot and null-cost unresolved usage screenshots; separate actual detached shipping smoke passed8. Full same-base CI comparison includes import failures and has no newly unexplained failure; suites remain red. The [performance review](../reports/verification-261028-p4-performance-review.md) records observed overhead and the scoped retain-design decision after the480-request ABBA repeat; it is not a production bound. Final affected controls passed726/726 across45 files with zero skips. Security-first parent source review, advisory review with disclosure limits, trace and P5 handoff are reconciled in the [completion receipt](../reports/implementation-261028-p4-completion.md). Phase3 is complete within these boundaries; production remains OFF. Do not substitute helper-only proof for actual HTTP/browser.
 
 ## Complete vertical flow
 
-- [ ] Disposable DATA_DIR và selected-profile loopback dummy only; clean owner/sidecar, hai keys với policies khác nhau, exact pricing fixture. Block external network, redact artifacts; không dùng live credentials/upstream hoặc real `~/.9router`.
-- [ ] Actual browser login → Endpoint UI → guarded finite PUT/version → actual chat HTTP handler/core/transport → dummy generation POST → own durable terminal ACK → panel GET exact spent/remaining → next request429 trước POST. Assert ledger reload, original price, key-ID attribution, counts và actual upstream POST count.
-- [ ] Repeat JSON/SSE, Node SQLite và SQL.js. Both-window cases: weekly-only exhausted, monthly-only, both với different reset; zero policy requiresPolicyChange/advisory Retry-After; no-store/native code/requestId/CORS và no false successful stream terminal.
-- [ ] Two-key concurrent traffic: keyA exhausted/unresolved không block/charge keyB. Same-key live pending may both POST; exact overshoot hiển thị và next blocked. Không reservation hoặc tiền lấy từ usage projection.
-- [ ] Browser lower/raise/null/re-enable và key disable/re-enable không reset spend. Policy hold race refuses stale request; existing terminal sinks persist exact usage theo old snapshot bất kể edits. ACL allowed/denied vẫn đúng; concurrent ACL/budget dirty state không mất.
-- [ ] Restart **cùng** DB/policy/sidecar/binding material và process mới: threshold vẫn block; pending từ owner đã chết được recover unresolved; không tạo clean artifact hoặc stamp ledgerStartedAt để pass. Không force-orphan process còn live.
-- [ ] Clock-controlled week/month boundary: POST-before-reset/settlement-after-reset → previous-window charge/overshoot; next-window remaining đúng. Held finite intent trước reset/chưa POST → not_dispatched/budget_window_changed; rollover chỉ ở unlimited dimension/null-null không calendar-deny; new request window mới. Matrix tháng ngắn/leap/year/timezone không sleep dài. Restart với clock control phải preserve fixture recording lifetime, không reset policy/history.
-- [ ] Unknown usage→null-cost/unresolved, finite blocked qua reset/restart; null/null continuation theo đúng P3 guard, bật limit lại vẫn blocked. Internal audited resolver chỉ dùng trong disposable fixture để prove reopening sau correction/waiver; không claim recovery UI/P5 complete.
-- [ ] Auth/Origin/peer security matrix phase2 qua real HTTP; no bypass bằng forged budget code/headers hoặc key/CLI token. Native other protocols vẫn outside selected acceptance, không báo all13AC green.
-- [ ] Keyboard/mobile screenshots với labels/focus/errors, inactive/null/0/overshoot/unresolved; no browser console error, no secrets/prompt trong budget artifacts. Production standalone riêng không có fixture association, finite PUT409/no public enable và normal no-key behavior còn đúng.
+- [x] Disposable DATA_DIR và selected-profile loopback dummy only; clean owner/sidecar, hai keys với policies khác nhau, exact pricing fixture. Block external network, redact artifacts; không dùng live credentials/upstream hoặc real `~/.9router`.
+- [x] Actual browser login → Endpoint UI → guarded finite PUT/version → actual chat HTTP handler/core/transport → dummy generation POST → own durable terminal ACK → panel GET exact spent/remaining → next request429 trước POST. Assert ledger reload, original price, key-ID attribution, counts và actual upstream POST count.
+- [x] Repeat JSON/SSE, Node SQLite và SQL.js. Both-window cases: weekly-only exhausted, monthly-only, both với different reset; zero policy requiresPolicyChange/advisory Retry-After; no-store/native code/requestId/CORS và no false successful stream terminal.
+- [x] Two-key concurrent traffic: keyA exhausted/unresolved không block/charge keyB. Same-key live pending may both POST; exact overshoot hiển thị và next blocked. Không reservation hoặc tiền lấy từ usage projection.
+- [x] Browser lower/raise/null/re-enable và key disable/re-enable không reset spend. Policy hold race refuses stale request; existing terminal sinks persist exact usage theo old snapshot bất kể edits. ACL allowed/denied vẫn đúng; concurrent ACL/budget dirty state không mất.
+- [x] Restart **cùng** DB/policy/sidecar/binding material và process mới: threshold vẫn block; pending từ owner đã chết được recover unresolved; không tạo clean artifact hoặc stamp ledgerStartedAt để pass. Không force-orphan process còn live.
+- [x] Clock-controlled week/month boundary: POST-before-reset/settlement-after-reset → previous-window charge/overshoot; next-window remaining đúng. Held finite intent trước reset/chưa POST → not_dispatched/budget_window_changed; rollover chỉ ở unlimited dimension/null-null không calendar-deny; new request window mới. Matrix tháng ngắn/leap/year/timezone không sleep dài. Restart với clock control phải preserve fixture recording lifetime, không reset policy/history.
+- [x] Unknown usage→null-cost/unresolved, finite blocked qua reset/restart; null/null continuation theo đúng P3 guard, bật limit lại vẫn blocked. Internal audited resolver chỉ dùng trong disposable fixture để prove reopening sau correction/waiver; không claim recovery UI/P5 complete.
+- [x] Auth/Origin/peer security matrix phase2 qua real HTTP; no bypass bằng forged budget code/headers hoặc key/CLI token. Native other protocols vẫn outside selected acceptance, không báo all13AC green.
+- [x] Keyboard/mobile screenshots với labels/focus/errors, inactive/null/0/overshoot/unresolved; no browser console error, no secrets/prompt trong budget artifacts. Production standalone riêng không có fixture association, finite PUT409/no public enable và normal no-key behavior còn đúng.
 
 ## Planned commands / evidence discipline
 
@@ -50,14 +50,14 @@ Full-suite regression khi implementation chạm shared key/authority/service: xu
 
 ## Measurement / release boundary
 
-- [ ] Vì thêm synchronous spend reads vào each intent/final gate, so selected P3 controls với cùng workload, concurrency/deadline/guards. Ghi ledger size/window population, Node/SQL.js, latency/throughput/stages và overhead; dùng existing `tests/fixtures/accounting/measure-chat-accounting.mjs` làm baseline pattern, thêm budget workload riêng nếu cần, không tuyên bố số P3 cũ là P4 evidence.
-- [ ] Không có fixed performance budget mới được chốt trong plan này: regression đáng kể hoặc muốn cache/rollup → stop/review data trước kiến trúc khác, không silently relax deadlines/serialized-network behavior.
-- [ ] Full build + production standalone inactive smoke, dependency traces assets và guards pass. Browser harness acceptance ghi riêng, không thay standalone shipping smoke.
-- [ ] Review security-first: auth/CSRF/peer spoofing, state/identity/money isolation, no secret leak, fixture activation inaccessible, no routing workaround. Independent/advisory review không thay test/build.
+- [x] Vì thêm synchronous spend reads vào each intent/final gate, so selected P3 controls với cùng workload, concurrency/deadline/guards. Ghi ledger size/window population, Node/SQL.js, latency/throughput/stages và overhead; dùng existing `tests/fixtures/accounting/measure-chat-accounting.mjs` làm baseline pattern, thêm budget workload riêng nếu cần, không tuyên bố số P3 cũ là P4 evidence.
+- [x] Không có fixed performance budget mới được chốt trong plan này: regression đáng kể hoặc muốn cache/rollup → stop/review data trước kiến trúc khác, không silently relax deadlines/serialized-network behavior.
+- [x] Full build + production standalone inactive smoke, dependency traces assets và guards pass. Browser harness acceptance ghi riêng, không thay standalone shipping smoke.
+- [x] Review security-first: auth/CSRF/peer spoofing, state/identity/money isolation, no secret leak, fixture activation inaccessible, no routing workaround. Independent/advisory review không thay test/build.
 
 ## DONE / handoff
 
-- [ ] Trace từng obligation plan.md/solution vào actual test/assertion/receipt; liệt kê chính xác adapter, selected profile và assertions chưa reached. Mọi gate red giữ P4 open; failed evidence không bị overwrite.
-- [ ] Summary receipt dưới `plans/reports/` theo convention, cập nhật phase/plan status thật, roadmap P4 state nếu implementation accepted. Hiện tại clarification chỉ làm roadmap trỏ detailed plan, không mark implementation complete.
-- [ ] Production OFF, public coverage timestamp không stamp, recovery/restore P5 và X1–X6/R vẫn open. No whole-product AC2/3/12 hoặc all-protocol budget claim.
-- [ ] Handoff P5 với current policy/API/UI/error/fixture constraints và unresolved risks; không tự commit/push/merge/deploy/activate.
+- [x] Trace từng obligation plan.md/solution vào actual test/assertion/receipt; liệt kê chính xác adapter, selected profile và assertions chưa reached. Mọi gate red giữ P4 open; failed evidence không bị overwrite.
+- [x] Summary receipt dưới `plans/reports/` theo convention, cập nhật phase/plan status thật, roadmap P4 state nếu implementation accepted. Hiện tại clarification chỉ làm roadmap trỏ detailed plan, không mark implementation complete.
+- [x] Production OFF, public coverage timestamp không stamp, recovery/restore P5 và X1–X6/R vẫn open. No whole-product AC2/3/12 hoặc all-protocol budget claim.
+- [x] Handoff P5 với current policy/API/UI/error/fixture constraints và unresolved risks; không tự commit/push/merge/deploy/activate.

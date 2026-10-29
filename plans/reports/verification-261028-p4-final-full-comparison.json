@@ -1,0 +1,92 @@
+{
+  "base": {
+    "tests": 4817,
+    "passed": 4734,
+    "failed": 51,
+    "pending": 31,
+    "files": 436
+  },
+  "current": {
+    "tests": 5025,
+    "passed": 4942,
+    "failed": 51,
+    "pending": 31,
+    "files": 456
+  },
+  "introduced": [
+    {
+      "file": "tests/unit/key-access-handlers.test.js",
+      "test": "/v1/models routes filter by key unrestricted sees the full catalog; restricted keys see only their entries",
+      "messages": [
+        "Error: STACK_TRACE_ERROR\n    at task (file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.<anonymous> (file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.<anonymous> (file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at chain (file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at /home/gmo/projects/9router/tests/unit/key-access-handlers.test.js:213:3\n    at file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:40\n    at runWithSuite (file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:2258:8)\n    at Object.collect (file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:10)\n    at Object.collect (file:///home/gmo/projects/9router/tests/node_modules/@vitest/runner/dist/chunk-artifact.js:1893:54)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+      ],
+      "reproducedOnOrderedBase": true
+    }
+  ],
+  "notReproduced": [
+    {
+      "file": "tests/unit/model-routing.test.js",
+      "test": "model routing still routes non-reserved compatible node prefixes",
+      "messages": [
+        "Error: Invalid database writer lease\n    at claimWriter (/tmp/9router-p4-full-base-D4RYZp/src/lib/db/writerOwnership.js:90:176)\n    at createNodeSqliteAdapter (/tmp/9router-p4-full-base-D4RYZp/src/lib/db/adapters/nodeSqliteAdapter.js:6:27)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at selectAdapter (/tmp/9router-p4-full-base-D4RYZp/src/lib/db/driver.js:31:23)\n    at initAdapter (/tmp/9router-p4-full-base-D4RYZp/src/lib/db/driver.js:60:38)"
+      ]
+    }
+  ],
+  "retained": [
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildUrl (default executor providers) chatgpt-web → url (stream + non-stream)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildUrl (default executor providers) deepseek-web → url (stream + non-stream)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildUrl (default executor providers) gemini-web → url (stream + non-stream)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildUrl (default executor providers) muse-web → url (stream + non-stream)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildUrl (default executor providers) sensenova → url (stream + non-stream)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildUrl (default executor providers) uc-web → url (stream + non-stream)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) chatgpt-web → headers (apiKey / oauth)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) cline → headers (apiKey / oauth)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) clinepass → headers (apiKey / oauth)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) deepseek-web → headers (apiKey / oauth)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) gemini-web → headers (apiKey / oauth)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) kimi → headers (apiKey / oauth)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) minimax-code → headers (apiKey / oauth)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) minimax-code-global → headers (apiKey / oauth)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) muse-web → headers (apiKey / oauth)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) sensenova → headers (apiKey / oauth)",
+    "tests/translator/golden-url-header.test.js :: GOLDEN buildHeaders (default executor providers) uc-web → headers (apiKey / oauth)",
+    "tests/unit/claude-header-forwarding.test.js :: proxyAwareFetch — api.anthropic.com routing routes api.anthropic.com to gotScraping (non-streaming) and returns ok response",
+    "tests/unit/codebuddy-block-backoff.test.js :: CodeBuddy Intl block backoff (#5024) keeps the same text request-scoped for provider openai",
+    "tests/unit/codebuddy-block-backoff.test.js :: CodeBuddy Intl block backoff (#5024) keeps the same text request-scoped for provider codebuddy-cn",
+    "tests/unit/codebuddy-block-backoff.test.js :: CodeBuddy Intl block backoff (#5024) keeps the same text request-scoped for provider null",
+    "tests/unit/codebuddy-block-backoff.test.js :: CodeBuddy Intl block backoff (#5024) does not classify every 11128 code as a block",
+    "tests/unit/codebuddy-block-backoff.test.js :: CodeBuddy Intl block backoff (#5024) still stops a combo on a malformed CodeBuddy request",
+    "tests/unit/codex-stt-persisted-refresh.test.js :: uses the real persisted refresh service before sending expired-account OAuth audio",
+    "tests/unit/codex-stt-transport.test.js :: converts real stereo 48k WAV to mono24k PCM16 and removes temporary files",
+    "tests/unit/codex-stt-transport.test.js :: rejects malformed and overlong audio and cleans up",
+    "tests/unit/codex-stt-transport.test.js :: sends only the converted file and projects upstream metadata out of the response through a local relay",
+    "tests/unit/combo-autoswitch.test.js :: detectRequiredCapabilities web_search tool -> search",
+    "tests/unit/combo-autoswitch.test.js :: reorderByCapabilities keeps order when no model matches",
+    "tests/unit/combo-credit-fallback.test.js :: combo credit fallback routes a 400 response correctly: Bad request",
+    "tests/unit/compatible-provider-connections.test.js :: compatible provider connections API creates one API-key connection for an OpenAI-compatible node",
+    "tests/unit/compatible-provider-connections.test.js :: compatible provider connections API allows multiple connections on the same compatible node",
+    "tests/unit/db-benchmark.test.js :: <suite failed to load>",
+    "tests/unit/embeddings.cloud.test.js :: <suite failed to load>",
+    "tests/unit/headroom-responses-format.test.js :: compressWithHeadroom openai-responses format (#1998) skips Responses tool/reasoning history instead of collapsing it into a message (#2132)",
+    "tests/unit/key-access-migration.test.js :: apiKeys access columns: upgrade from the previous schema adds the columns, keeps every row, and reads every existing key as unrestricted",
+    "tests/unit/model-routing.test.js :: model routing keeps built-in provider aliases ahead of compatible node prefixes",
+    "tests/unit/nous-attribution.test.js :: Nous API-key attribution sends tagged requests through the existing executor without changing authentication",
+    "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import returns not-found when no macOS cursor db paths are accessible",
+    "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import returns descriptive error if macOS db file exists but cannot be opened",
+    "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import extracts tokens using exact keys",
+    "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import unwraps JSON-encoded string values",
+    "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import falls back to fuzzy key matching on macOS when exact keys are missing",
+    "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import returns login-prompt error when tokens are missing even after fallback",
+    "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import linux uses single hardcoded path and original error message",
+    "tests/unit/oauth-cursor-auto-import.test.js :: GET /api/oauth/cursor/auto-import unsupported platform returns 400",
+    "tests/unit/openai-to-claude.test.js :: openaiToClaudeResponse omits empty Read pages tool argument before emitting Claude input deltas",
+    "tests/unit/security-audit.test.js :: AUDIT-002: API key masking byApiKey object keys should use masked key, not raw key",
+    "tests/unit/translator-request-normalization.test.js :: request normalization claudeToOpenAIRequest flattens text-only content arrays into string",
+    "tests/unit/translator-request-normalization.test.js :: request normalization filterToOpenAIFormat flattens text-only arrays to string",
+    "tests/unit/translator-request-normalization.test.js :: request normalization translateRequest keeps /v1/messages Claude->OpenAI text payloads string-safe",
+    "tests/unit/translator-request-normalization.test.js :: request normalization parseSSELine supports provider raw NDJSON stream lines"
+  ],
+  "rawBase": "/tmp/9router-p4-final-full-base.json",
+  "rawCurrent": "/tmp/9router-p4-final-full-current.json",
+  "normalization": "tests/ relative paths, assertion and suite-load failures; matched CI=1 no live tests"
+}

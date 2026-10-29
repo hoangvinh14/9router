@@ -1,0 +1,334 @@
+{
+  "engine": "node",
+  "node": "v24.21.0",
+  "artifact": "/home/gmo/projects/9router/.next-budget-repaired/standalone",
+  "complete": false,
+  "checks": [
+    "unauthenticated guarded HTTP rejected with no-store",
+    "real compiled login hydrates and actual source login sets verified session",
+    "actual Endpoint renders independent per-key budget panels",
+    "browser saves finite string policy through guarded durable API",
+    "actual inference debit shown by panel and next request refused before POST",
+    "dirty budget survives ACL save and refresh, then higher policy preserves spend",
+    "stale policy409 preserves draft/base until explicit reconciliation",
+    "zero blocks across reset and UI warns policy change required",
+    "mobile keyboard editor is labelled and exact state survives reload",
+    "monthly-only and both-window SSE flow consumes own durable terminal then refuses without POST",
+    "committed PUT with lost reply requires explicit reconciliation without silent draft rebase"
+  ],
+  "root": "/tmp/9router-budget-web-s8jYqm",
+  "diagnostics": {
+    "invocations": [
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/auth/login",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/auth/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/tunnel/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 429
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 409
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 429
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/auth/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/tunnel/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 429
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 429
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 409
+      }
+    ],
+    "handlerFailures": [],
+    "browserErrors": [],
+    "assetFailures": [
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/dashboard/providers",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/combos",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/usage",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/quota",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/cli-tools",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/token-saver",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/proxy-pools",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/skills",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/console-log",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/profile",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/dashboard/providers",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/combos",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/usage",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/quota",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/token-saver",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/cli-tools",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/proxy-pools",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/skills",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/console-log",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/profile",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "error": "net::ERR_CONNECTION_RESET"
+      }
+    ]
+  },
+  "buildId": "kwKOWZ6Vkie7GcbAulq_L",
+  "sourceSha256": {
+    "src/shared/components/ApiKeyBudgetPanel.js": "22473a9f01771b0ede6c56ba97565449ed76a2de32a664d7a5e93b9c5403b473",
+    "src/app/(dashboard)/dashboard/endpoint/EndpointPageClient.js": "416e83c3728950c0e4f40c05d564b684321d960ef16bf3c102cc84691800a543",
+    "src/dashboardGuard.js": "846a502dd0e785150d8b9392d01b226662663df802d93e3fe0d62424e02c21cf",
+    "src/lib/accounting/budget-management.js": "56197c31790f5ca187f128fb21bfd434503410fb8dbb8cca2d3d64f16a59d939",
+    "src/app/api/keys/[id]/budget/route.js": "2417b27fc0d7f542a4dd1d80c9627cc38c1ca1298fa14bdd91df8af78b0c8d52",
+    "tests/browser/budget-panel-checks.mjs": "5a3d7451be79c31ff46cae12fa359ce5fab18568cadf13275ef996f521b3189c",
+    "tests/browser/budget-cli-checks.mjs": "ac5ec7bbc55745d5dab1d6f1e4a0fbae92554e7c7345e2204f97bcca88cde01f"
+  },
+  "endpointHtmlSha256": "b84978b5e91327b126600d1aeaecd8f7c365f9a1ac88ee5b5fd5b8cd429181c7",
+  "pricingHtmlSha256": "03dd28414a5c6466729160420a686d665855732d27e9d7d9e9e06b5e3ad1d323",
+  "failure": {
+    "message": "expect(locator).toBeDisabled() failed\n\nLocator: getByTestId('budget-key-one').getByRole('button', { name: 'Save budget', exact: true })\nExpected: disabled\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeDisabled\" getByTestId('budget-key-one').getByRole('button', { name: 'Save budget', exact: true }) with timeout 5000ms\n  - waiting for getByTestId('budget-key-one').getByRole('button', { name: 'Save budget', exact: true })\n",
+    "stack": "Error: expect(locator).toBeDisabled() failed\n\nLocator: getByTestId('budget-key-one').getByRole('button', { name: 'Save budget', exact: true })\nExpected: disabled\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeDisabled\" getByTestId('budget-key-one').getByRole('button', { name: 'Save budget', exact: true }) with timeout 5000ms\n  - waiting for getByTestId('budget-key-one').getByRole('button', { name: 'Save budget', exact: true })\n\n    at captureRawStack (/home/gmo/projects/9router/tests/node_modules/playwright-core/lib/coreBundle.js:9282:17)\n    at callMatcherAsStep (/home/gmo/projects/9router/tests/node_modules/playwright/lib/matchers/expect.js:13316:57)\n    at Object.toBeDisabled (/home/gmo/projects/9router/tests/node_modules/playwright/lib/matchers/expect.js:13308:23)\n    at /home/gmo/projects/9router/tests/browser/budget-panel-checks.mjs:88:79\n    at async check (/home/gmo/projects/9router/tests/fixtures/accounting/budget-web-fixture.mjs:140:38)\n    at async runBudgetPanelChecks (/home/gmo/projects/9router/tests/browser/budget-panel-checks.mjs:78:3)\n    at async file:///home/gmo/projects/9router/tests/fixtures/accounting/budget-web-fixture.mjs:214:5"
+  }
+}

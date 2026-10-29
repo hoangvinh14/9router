@@ -1,0 +1,77 @@
+{
+  "complete": true,
+  "order": [
+    "base",
+    "current",
+    "current",
+    "base"
+  ],
+  "cells": [
+    "node/json/true/4/0",
+    "node/json/false/4/0",
+    "node/sse/false/16/1000",
+    "node/sse/true/16/1000",
+    "sqljs/json/true/4/1000",
+    "sqljs/json/false/4/1000"
+  ],
+  "plannedRequests": 480,
+  "runs": [
+    {
+      "which": "base",
+      "index": 0,
+      "report": "/tmp/9router-p4-measure-abba.json.0-base.json",
+      "code": 0,
+      "signal": null,
+      "completedRequests": 120,
+      "runnerSha256": "2f7005e8258c0cd9004e642347214454a68ddb54731f6d9ed4462f0a2522605c",
+      "sourceSha256": "b98846245ea64006fbf8537811e2ed0cf610f812c42b225af8df9194c5213bd8"
+    },
+    {
+      "which": "current",
+      "index": 1,
+      "report": "/tmp/9router-p4-measure-abba.json.1-current.json",
+      "code": 0,
+      "signal": null,
+      "completedRequests": 120,
+      "runnerSha256": "2f7005e8258c0cd9004e642347214454a68ddb54731f6d9ed4462f0a2522605c",
+      "sourceSha256": "16d7ab4b14460634e60b5ae601eadbabcf2e3ebea0cbaaebc9f56505cc4b0440"
+    },
+    {
+      "which": "current",
+      "index": 2,
+      "report": "/tmp/9router-p4-measure-abba.json.2-current.json",
+      "code": 0,
+      "signal": null,
+      "completedRequests": 120,
+      "runnerSha256": "2f7005e8258c0cd9004e642347214454a68ddb54731f6d9ed4462f0a2522605c",
+      "sourceSha256": "16d7ab4b14460634e60b5ae601eadbabcf2e3ebea0cbaaebc9f56505cc4b0440"
+    },
+    {
+      "which": "base",
+      "index": 3,
+      "report": "/tmp/9router-p4-measure-abba.json.3-base.json",
+      "code": 0,
+      "signal": null,
+      "completedRequests": 120,
+      "runnerSha256": "2f7005e8258c0cd9004e642347214454a68ddb54731f6d9ed4462f0a2522605c",
+      "sourceSha256": "b98846245ea64006fbf8537811e2ed0cf610f812c42b225af8df9194c5213bd8"
+    }
+  ],
+  "instrumentation": "identical runner bytes; fresh process/fixtures per run; no warmup; 20 samples/cell; overlapping SQL/commit/ACK times not additive",
+  "hostStart": {
+    "load": [
+      2.83,
+      3.55,
+      3.62
+    ],
+    "freeMemory": 7130402816
+  },
+  "hostEnd": {
+    "load": [
+      3.74,
+      3.77,
+      3.7
+    ],
+    "freeMemory": 7134048256
+  }
+}

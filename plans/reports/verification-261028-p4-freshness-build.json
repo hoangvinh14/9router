@@ -1,0 +1,13 @@
+{
+  "buildId": "PAbPyLpr4xQerMRevrlP5",
+  "artifact": ".next-budget-freshness/standalone",
+  "buildLog": "/tmp/9router-p4-freshness-build.log",
+  "buildExitCode": 0,
+  "panelSha256": "4c09550ebf9c839c104927d9c39888d9879c699a1553463499bc61fd9b5a8190",
+  "panelMatchesBuildCapture": true,
+  "scope": "hybrid browser19 checks each adapter; separate detachedshipping8; production OFF",
+  "warnings": [
+    "existing lazyRuntime tracing warnings",
+    "build-worker writer exclusion diagnostics; actual detached runtime passed"
+  ]
+}

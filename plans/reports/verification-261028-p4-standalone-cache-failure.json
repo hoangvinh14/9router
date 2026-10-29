@@ -1,0 +1,12 @@
+{
+  "complete": false,
+  "artifact": "/home/gmo/projects/9router/.next-budget-acceptance/standalone",
+  "checks": [
+    "detached package starts"
+  ],
+  "failure": {
+    "message": "Expected values to be strictly equal:\n\nnull !== 'no-store'\n",
+    "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nnull !== 'no-store'\n\n    at file:///home/gmo/projects/9router/tests/browser/budget-standalone-smoke.mjs:25:84\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+  },
+  "retainedData": "/tmp/9router-budget-standalone-y7mFbO"
+}

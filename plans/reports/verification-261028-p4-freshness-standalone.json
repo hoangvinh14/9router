@@ -1,0 +1,27 @@
+{
+  "complete": true,
+  "artifact": "/home/gmo/projects/9router/.next-budget-freshness/standalone",
+  "checks": [
+    "detached packaged SQL.js/WASM reopen",
+    "detached package starts",
+    "anonymous key management denied with no-store",
+    "production inactive; finite PUT409 even forged activation headers; unlimited no-op",
+    "actual server Origin guard",
+    "actual standalone Endpoint shell and linked CSS serve",
+    "actual detached browser hydrates expected key and truthfully disables finite save",
+    "native database reopens without activation or ledger rows"
+  ],
+  "buildId": "PAbPyLpr4xQerMRevrlP5",
+  "endpointHtmlSha256": "5f001e653be7e47905b90e9570f3279760741e8763f0a728cccd48f7caf0868c",
+  "browser": {
+    "errors": [],
+    "assetFailures": [],
+    "blockedExternal": [
+      "/gtag/js"
+    ]
+  },
+  "exit": {
+    "code": 0,
+    "signal": null
+  }
+}

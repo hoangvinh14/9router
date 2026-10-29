@@ -1,0 +1,209 @@
+{
+  "engine": "node",
+  "node": "v24.21.0",
+  "artifact": "/home/gmo/projects/9router/.next-chat-final-261028/standalone",
+  "complete": true,
+  "checks": [
+    "unauthenticated guarded HTTP rejected with no-store",
+    "real compiled login hydrates and actual source login sets verified session",
+    "compiled pricing UI reads actual route and saves exact override to same adapter",
+    "actual HTTP private association reaches source app/core/transport and durable ledger",
+    "concurrent associated/unassociated HTTP requests preserve private request and key identity",
+    "independent persisted image contains UI price and exact key-attributed terminal rows",
+    "actual production socket wrapper rejects hostile mutation and forged authority"
+  ],
+  "root": "/tmp/9router-budget-web-cblqyg",
+  "diagnostics": {
+    "invocations": [
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/auth/login",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing/sync",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "PATCH",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing/sync",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/fixture/unassociated/chat",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "PATCH",
+        "status": 403
+      },
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 401
+      }
+    ],
+    "handlerFailures": [],
+    "browserErrors": [],
+    "assetFailures": [
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      }
+    ],
+    "chatResponse": {
+      "status": 200,
+      "contentType": "application/json",
+      "bytes": 348,
+      "sseFraming": false,
+      "doneMarker": false
+    }
+  },
+  "buildId": "C6Qw38PdE4PkZDhNz-ODM",
+  "pricingHtmlSha256": "a86b336c1fe148e63ca7febd94de22cc79cc3d4246dc21128b8bd9a5bc5a75f0",
+  "persisted": {
+    "adapter": "node:sqlite",
+    "rows": 2,
+    "keyIds": [
+      "key-one",
+      "key-two"
+    ],
+    "costNanoUsd": [
+      "1200000",
+      "1200000"
+    ]
+  },
+  "invocations": [
+    {
+      "path": "/api/pricing",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "path": "/api/auth/status",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/auth/login",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/pricing",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/pricing",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/pricing/sync",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/pricing",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/pricing",
+      "method": "PATCH",
+      "status": 200
+    },
+    {
+      "path": "/v1/chat/completions",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/pricing",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/pricing/sync",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/v1/chat/completions",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/fixture/unassociated/chat",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/pricing",
+      "method": "PATCH",
+      "status": 403
+    },
+    {
+      "path": "/api/pricing",
+      "method": "GET",
+      "status": 401
+    }
+  ]
+}

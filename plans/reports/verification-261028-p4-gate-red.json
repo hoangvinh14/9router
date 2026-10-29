@@ -1,0 +1,20 @@
+{
+  "stage": "pre-service-budget-implementation",
+  "command": "cd tests && npx vitest run unit/accounting-budget-gate.test.js",
+  "tests": 20,
+  "failed": 20,
+  "adapters": [
+    "node",
+    "sqljs"
+  ],
+  "evidence": [
+    "exhausted/zero resolved instead of rejecting",
+    "held peer settlement not rechecked",
+    "startedAt used wall clock not supplied domain clock",
+    "policy drift not rejected",
+    "old unresolved did not block finite after reset",
+    "budget precedence absent before missing price"
+  ],
+  "rawLog": "/tmp/9router-p4-gate-red.log",
+  "calendarPolicyRedWarning": "Earlier calendar/policy red also contained a syntax error, so it is not valid policy behavior red evidence."
+}

@@ -29,7 +29,7 @@ created: 2026-10-18
 
 | # | Phase | Status |
 |---|-------|--------|
-| 1 | [Điều phối các plan con](./phase-01-start.md) | In progress — P1/P2/P3 complete within recorded boundaries; P4 next |
+| 1 | [Điều phối các plan con](./phase-01-start.md) | In progress — P1–P4 complete within recorded boundaries; P5 next |
 
 ## Các plan con và thứ tự
 
@@ -38,7 +38,7 @@ created: 2026-10-18
 | P1 | [Reference pricing](../261018-0213-reference-pricing-port/plan.md) | Nền đã pull; dependency check trong phase 1 | Complete — conditional Linux acceptance |
 | P2 | [Ledger/durability tối thiểu](../261018-0214-accounting-foundation/plan.md) | P1 | Complete — Node/SQL.js foundation; activation OFF |
 | P3 | [Một luồng chat khép kín](../261018-0213-durable-chat-accounting/plan.md) | P2; named prerequisite below | Complete October 28 — selected JSON/SSE, Node/SQL.js; activation OFF |
-| P4 | [Weekly/monthly budget + UI](../261018-0213-weekly-monthly-budget/plan.md) | P3 | Detailed solution + 3 sequential phases; harness feasibility is first stop gate; implementation pending |
+| P4 | [Weekly/monthly budget + UI](../261018-0213-weekly-monthly-budget/plan.md) | P3 | Complete October28 — selected fixture Node/SQL.js, guarded UI/API/CLI; production OFF |
 | P5 | [Recovery/vận hành](../261018-0213-accounting-recovery/plan.md) | P4; dùng primitives P2 | Contract, chưa executable |
 | X1 | [Responses và embeddings](../261018-0215-responses-embeddings-accounting/plan.md) | P3; pricing/schema phù hợp | Envelope: tách owner trước làm |
 | X2 | [Messages](../261018-0215-messages-accounting/plan.md) | P3; pricing/schema phù hợp | Envelope: tách owner trước làm |
@@ -66,7 +66,7 @@ giữ test/measurement/build/standalone evidence và scope limits. Không produc
 - User selected `master` for upstream synchronization and `develop` for integrating local features. New feature branches start from `develop`; completed features merge back into `develop`. Upstream updates enter `master` first, then merge into `develop` with affected checks.
 - The P1 integration request authorized local commits and merging `feat/reference-pricing-port` into `develop`. That historical authorization covered P1 only. The subsequent explicit user request authorizes committing/pushing `feat/accounting-foundation` and merging/pushing it into `develop`; production deployment and changes to `master` remain outside this delivery. The only configured remote is `origin`; an `upstream` remote has not been configured or verified.
 - P1 and its DB safety prerequisite are closed within the recorded conditional Linux boundary. P2 is complete on `feat/accounting-foundation`, with 3/3 phases and 22/22 tasks; implementation is committed at `e5e111f0`, with standalone tracing fix at `16754067`. Remote publication and integration follow the explicit Git delivery request; the receipt preserves its historical pre-Git capture state. Its [execution receipt](../reports/implementation-261022-accounting-foundation.md) records 311 focused/affected tests, lint, production build and detached standalone acceptance. Independent full-source review and Bun/better/Windows accounting parity remain P5/R release blockers.
-- The historical next step above has been superseded: P3 completed October 28 within its selected fixture-only boundary. P4 is next, now with a [detailed solution](../261018-0213-weekly-monthly-budget/solution-design.md) and three sequential phases; its first gate proves isolated web-fixture feasibility before implementation proceeds. P4/P5, X1–X6 and R remain open. No accounting, enforcement or public activation follows from these planning updates or scoped acceptance.
+- The historical next step above has been superseded: P3 and P4 completed October28 within their selected fixture-only boundaries. [P4 completion](../reports/implementation-261028-p4-completion.md) records726 affected tests,19 browser checks per Node/SQL.js adapter,8 detached shipping checks, process crash/restart controls and scoped performance disposition with observed overhead. Full CI remains baseline-red; existing Endpoint lint debt and independent-review limits are disclosed. [P5 handoff](../reports/handoff-261028-p4-budget-to-p5.md) preserves recovery/restore constraints. P5, X1–X6 and R remain open. No accounting, enforcement or public activation follows; P4 did not authorize or perform Git publication/deployment.
 
 ## Historical intake status / authorization
 - Chỉ tạo plans; chưa triển khai slice nào. Đồng bộ Git hoàn tất, **baseline tests mới chưa chạy**.

@@ -1,0 +1,22 @@
+{
+  "tests": 2,
+  "passed": 2,
+  "failed": 0,
+  "files": [
+    {
+      "name": "tests/unit/chat-budget-process-restart.test.js",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "node actual process restart budget retains exact threshold/identity and new calendar allowance in a new writer process",
+          "status": "passed"
+        },
+        {
+          "name": "sqljs actual process restart budget retains exact threshold/identity and new calendar allowance in a new writer process",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "source": "/tmp/9router-p4-process-restart.json"
+}

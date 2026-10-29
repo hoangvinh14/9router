@@ -1,0 +1,384 @@
+{
+  "engine": "node",
+  "node": "v24.21.0",
+  "artifact": "/home/gmo/projects/9router/.next-budget-repaired/standalone",
+  "complete": false,
+  "checks": [
+    "unauthenticated guarded HTTP rejected with no-store",
+    "real compiled login hydrates and actual source login sets verified session",
+    "actual Endpoint renders independent per-key budget panels",
+    "browser saves finite string policy through guarded durable API",
+    "actual inference debit shown by panel and next request refused before POST",
+    "dirty budget survives ACL save and refresh, then higher policy preserves spend",
+    "stale policy409 preserves draft/base until explicit reconciliation",
+    "zero blocks across reset and UI warns policy change required",
+    "mobile keyboard editor is labelled and exact state survives reload",
+    "monthly-only and both-window SSE flow consumes own durable terminal then refuses without POST",
+    "committed PUT with lost reply requires explicit reconciliation without silent draft rebase",
+    "automatic reopen refresh cannot supersede an acknowledged pending policy save",
+    "actual ACL UI denies inference while retaining dirty budget and durable history",
+    "actual key pause and resume preserves policy, exact spend and budget editor identity"
+  ],
+  "root": "/tmp/9router-budget-web-OHqNNr",
+  "diagnostics": {
+    "invocations": [
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 401,
+        "code": "management_unauthorized"
+      },
+      {
+        "path": "/api/auth/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/auth/login",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/auth/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/tunnel/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 429
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 409,
+        "code": "budget_policy_conflict"
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 429
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/auth/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/tunnel/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 429
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 429
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 503
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 503
+      },
+      {
+        "path": "/api/keys/key-one",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      }
+    ],
+    "handlerFailures": [],
+    "browserErrors": [],
+    "assetFailures": [
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/dashboard/providers",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/combos",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/usage",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/quota",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/token-saver",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/cli-tools",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/proxy-pools",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/skills",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/console-log",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/profile",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/dashboard/providers",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/combos",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/usage",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/quota",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/token-saver",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/cli-tools",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/proxy-pools",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/skills",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/console-log",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/profile",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "error": "net::ERR_CONNECTION_RESET"
+      }
+    ]
+  },
+  "buildId": "kwKOWZ6Vkie7GcbAulq_L",
+  "sourceSha256": {
+    "src/shared/components/ApiKeyBudgetPanel.js": "22473a9f01771b0ede6c56ba97565449ed76a2de32a664d7a5e93b9c5403b473",
+    "src/app/(dashboard)/dashboard/endpoint/EndpointPageClient.js": "416e83c3728950c0e4f40c05d564b684321d960ef16bf3c102cc84691800a543",
+    "src/dashboardGuard.js": "846a502dd0e785150d8b9392d01b226662663df802d93e3fe0d62424e02c21cf",
+    "src/lib/accounting/budget-management.js": "56197c31790f5ca187f128fb21bfd434503410fb8dbb8cca2d3d64f16a59d939",
+    "src/app/api/keys/[id]/budget/route.js": "2417b27fc0d7f542a4dd1d80c9627cc38c1ca1298fa14bdd91df8af78b0c8d52",
+    "tests/browser/budget-panel-checks.mjs": "3d6801394400892c77dcc98689917a3ef2c202437b48f53dd80f06beea8674bb",
+    "tests/browser/budget-cli-checks.mjs": "ac5ec7bbc55745d5dab1d6f1e4a0fbae92554e7c7345e2204f97bcca88cde01f"
+  },
+  "endpointHtmlSha256": "b84978b5e91327b126600d1aeaecd8f7c365f9a1ac88ee5b5fd5b8cd429181c7",
+  "pricingHtmlSha256": "03dd28414a5c6466729160420a686d665855732d27e9d7d9e9e06b5e3ad1d323",
+  "failure": {
+    "message": "expect(locator).toContainText(expected) failed\n\nLocator: getByTestId('budget-key-one').locator('[aria-label=\"weekly budget summary\"]')\nExpected substring: \"Remaining: Unknown\"\nReceived string:    \"weeklyLimit: $0.03 · Known spent: $0.0012Remaining: $0.0288 · Overshoot: $02026-10-25T17:00:00.000Z → reset 2026-11-01T17:00:00.000ZCurrent pending: 0; unknown: 0.Previous window known spent: $0.0012; overshoot against current policy: $0. Late settlements retain their original window.\"\nTimeout: 5000ms\n\nCall log:\n  - Expect \"toContainText\" getByTestId('budget-key-one').locator('[aria-label=\"weekly budget summary\"]') with timeout 5000ms\n  - waiting for getByTestId('budget-key-one').locator('[aria-label=\"weekly budget summary\"]')\n    14 × locator resolved to <div aria-label=\"weekly budget summary\" class=\"rounded border border-border p-3 space-y-1\">…</div>\n       - unexpected value \"weeklyLimit: $0.03 · Known spent: $0.0012Remaining: $0.0288 · Overshoot: $02026-10-25T17:00:00.000Z → reset 2026-11-01T17:00:00.000ZCurrent pending: 0; unknown: 0.Previous window known spent: $0.0012; overshoot against current policy: $0. Late settlements retain their original window.\"\n",
+    "stack": "Error: expect(locator).toContainText(expected) failed\n\nLocator: getByTestId('budget-key-one').locator('[aria-label=\"weekly budget summary\"]')\nExpected substring: \"Remaining: Unknown\"\nReceived string:    \"weeklyLimit: $0.03 · Known spent: $0.0012Remaining: $0.0288 · Overshoot: $02026-10-25T17:00:00.000Z → reset 2026-11-01T17:00:00.000ZCurrent pending: 0; unknown: 0.Previous window known spent: $0.0012; overshoot against current policy: $0. Late settlements retain their original window.\"\nTimeout: 5000ms\n\nCall log:\n  - Expect \"toContainText\" getByTestId('budget-key-one').locator('[aria-label=\"weekly budget summary\"]') with timeout 5000ms\n  - waiting for getByTestId('budget-key-one').locator('[aria-label=\"weekly budget summary\"]')\n    14 × locator resolved to <div aria-label=\"weekly budget summary\" class=\"rounded border border-border p-3 space-y-1\">…</div>\n       - unexpected value \"weeklyLimit: $0.03 · Known spent: $0.0012Remaining: $0.0288 · Overshoot: $02026-10-25T17:00:00.000Z → reset 2026-11-01T17:00:00.000ZCurrent pending: 0; unknown: 0.Previous window known spent: $0.0012; overshoot against current policy: $0. Late settlements retain their original window.\"\n\n    at captureRawStack (/home/gmo/projects/9router/tests/node_modules/playwright-core/lib/coreBundle.js:9282:17)\n    at callMatcherAsStep (/home/gmo/projects/9router/tests/node_modules/playwright/lib/matchers/expect.js:13316:57)\n    at Object.toContainText (/home/gmo/projects/9router/tests/node_modules/playwright/lib/matchers/expect.js:13308:23)\n    at /home/gmo/projects/9router/tests/browser/budget-panel-checks.mjs:139:101\n    at async check (/home/gmo/projects/9router/tests/fixtures/accounting/budget-web-fixture.mjs:142:38)\n    at async runBudgetPanelChecks (/home/gmo/projects/9router/tests/browser/budget-panel-checks.mjs:129:3)\n    at async file:///home/gmo/projects/9router/tests/fixtures/accounting/budget-web-fixture.mjs:216:5"
+  }
+}

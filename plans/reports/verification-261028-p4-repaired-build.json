@@ -1,0 +1,21 @@
+{
+  "artifact": ".next-budget-repaired/standalone",
+  "buildId": "kwKOWZ6Vkie7GcbAulq_L",
+  "command": "NEXT_DIST_DIR=.next-budget-repaired npm run build (isolated HOME/APPDATA/DATA_DIR)",
+  "exitCode": 0,
+  "log": "/tmp/9router-p4-repaired-final-build.log",
+  "sourceSha256": {
+    "src/shared/components/ApiKeyBudgetPanel.js": "22473a9f01771b0ede6c56ba97565449ed76a2de32a664d7a5e93b9c5403b473",
+    "src/app/(dashboard)/dashboard/endpoint/EndpointPageClient.js": "416e83c3728950c0e4f40c05d564b684321d960ef16bf3c102cc84691800a543",
+    "src/dashboardGuard.js": "846a502dd0e785150d8b9392d01b226662663df802d93e3fe0d62424e02c21cf",
+    "src/lib/accounting/budget-management.js": "56197c31790f5ca187f128fb21bfd434503410fb8dbb8cca2d3d64f16a59d939",
+    "src/app/api/keys/[id]/budget/route.js": "2417b27fc0d7f542a4dd1d80c9627cc38c1ca1298fa14bdd91df8af78b0c8d52"
+  },
+  "sourceHashesMatchAfterBuild": true,
+  "endpointHtmlSha256": "b84978b5e91327b126600d1aeaecd8f7c365f9a1ac88ee5b5fd5b8cd429181c7",
+  "warnings": [
+    "lazyRuntime dynamic dependency tracing",
+    "build workers: Database writer already active (10 messages)"
+  ],
+  "limitations": "Build success is not standalone runtime proof; separate detached smoke and hybrid browser acceptance required. Production remains OFF."
+}

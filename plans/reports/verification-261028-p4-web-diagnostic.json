@@ -1,0 +1,48 @@
+{
+  "engine": "node",
+  "node": "v24.21.0",
+  "artifact": "/home/gmo/projects/9router/.next-chat-final-261028/standalone",
+  "complete": false,
+  "checks": [
+    "unauthenticated guarded HTTP rejected with no-store"
+  ],
+  "root": "/tmp/9router-budget-web-hSBAIl",
+  "diagnostics": {
+    "invocations": [
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/auth/login",
+        "method": "POST",
+        "status": 500
+      }
+    ],
+    "handlerFailures": [],
+    "browserErrors": [],
+    "assetFailures": [
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      }
+    ],
+    "loginFailure": {
+      "path": "/api/auth/login",
+      "status": 500,
+      "error": "`cookies` was called outside a request scope. Read more: https://nextjs.org/docs/messages/next-dynamic-api-wrong-context"
+    }
+  },
+  "buildId": "C6Qw38PdE4PkZDhNz-ODM",
+  "pricingHtmlSha256": "a86b336c1fe148e63ca7febd94de22cc79cc3d4246dc21128b8bd9a5bc5a75f0",
+  "failure": {
+    "message": "expect(received).toBe(expected) // Object.is equality\n\nExpected: 200\nReceived: 500",
+    "stack": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 200\nReceived: 500\n    at captureRawStack (/home/gmo/projects/9router/tests/node_modules/playwright-core/lib/coreBundle.js:9282:17)\n    at callMatcherAsStep (/home/gmo/projects/9router/tests/node_modules/playwright/lib/matchers/expect.js:13316:57)\n    at Object.toBe (/home/gmo/projects/9router/tests/node_modules/playwright/lib/matchers/expect.js:13308:23)\n    at /home/gmo/projects/9router/tests/fixtures/accounting/budget-web-fixture.mjs:118:34\n    at async check (/home/gmo/projects/9router/tests/fixtures/accounting/budget-web-fixture.mjs:104:38)\n    at async file:///home/gmo/projects/9router/tests/fixtures/accounting/budget-web-fixture.mjs:108:3"
+  }
+}

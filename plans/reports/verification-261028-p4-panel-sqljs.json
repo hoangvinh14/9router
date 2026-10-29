@@ -1,0 +1,487 @@
+{
+  "engine": "sqljs",
+  "node": "v24.21.0",
+  "artifact": "/home/gmo/projects/9router/.next-budget-acceptance/standalone",
+  "complete": true,
+  "checks": [
+    "unauthenticated guarded HTTP rejected with no-store",
+    "real compiled login hydrates and actual source login sets verified session",
+    "actual Endpoint renders independent per-key budget panels",
+    "browser saves finite string policy through guarded durable API",
+    "actual inference debit shown by panel and next request refused before POST",
+    "dirty budget survives ACL save and refresh, then higher policy preserves spend",
+    "stale policy409 preserves draft/base until explicit reconciliation",
+    "zero blocks across reset and UI warns policy change required",
+    "mobile keyboard editor is labelled and exact state survives reload",
+    "actual CLI management requires dashboard session and round-trips key CRUD"
+  ],
+  "root": "/tmp/9router-budget-web-5OYbcz",
+  "diagnostics": {
+    "invocations": [
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/auth/login",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/pricing",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/auth/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/tunnel/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 429
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 409
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/v1/chat/completions",
+        "method": "POST",
+        "status": 429
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/auth/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/tunnel/status",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/key-one/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys",
+        "method": "GET",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/login",
+        "method": "POST",
+        "status": 200
+      },
+      {
+        "path": "/api/keys",
+        "method": "POST",
+        "status": 201
+      },
+      {
+        "path": "/api/keys",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/219aec62-15cc-435b-ba24-5e87a7a3fb87",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/219aec62-15cc-435b-ba24-5e87a7a3fb87",
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/219aec62-15cc-435b-ba24-5e87a7a3fb87",
+        "method": "DELETE",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/219aec62-15cc-435b-ba24-5e87a7a3fb87/budget",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/keys/219aec62-15cc-435b-ba24-5e87a7a3fb87",
+        "method": "GET",
+        "status": 404
+      }
+    ],
+    "handlerFailures": [],
+    "browserErrors": [],
+    "assetFailures": [
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/dashboard/providers",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/combos",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/usage",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/quota",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/token-saver",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/cli-tools",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/proxy-pools",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/skills",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/console-log",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/profile",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/gtag/js",
+        "error": "net::ERR_FAILED"
+      },
+      {
+        "path": "/dashboard/providers",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/combos",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/usage",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/quota",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/token-saver",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/cli-tools",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/proxy-pools",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/skills",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/console-log",
+        "error": "net::ERR_ABORTED"
+      },
+      {
+        "path": "/dashboard/profile",
+        "error": "net::ERR_ABORTED"
+      }
+    ]
+  },
+  "buildId": "cgHJhZsv7Eo9gVM2PsIt0",
+  "pricingHtmlSha256": "c0b5cc0b58be25f2a59437056ee4d10781dbaa4cabc010f587d20e1fdf38fb65",
+  "invocations": [
+    {
+      "path": "/api/pricing",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "path": "/api/auth/status",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/auth/login",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/pricing",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/settings",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/auth/status",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/keys",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/tunnel/status",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/key-one/budget",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/key-one/budget",
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "path": "/v1/chat/completions",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/key-one/budget",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/v1/chat/completions",
+      "method": "POST",
+      "status": 429
+    },
+    {
+      "path": "/v1/chat/completions",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/key-one",
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/key-one/budget",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/key-one/budget",
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/key-one/budget",
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/key-one/budget",
+      "method": "PUT",
+      "status": 409
+    },
+    {
+      "path": "/api/keys/key-one/budget",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/key-one/budget",
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "path": "/v1/chat/completions",
+      "method": "POST",
+      "status": 429
+    },
+    {
+      "path": "/api/settings",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/auth/status",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/tunnel/status",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/keys",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/key-one/budget",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/keys",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "path": "/api/auth/login",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/keys",
+      "method": "POST",
+      "status": 201
+    },
+    {
+      "path": "/api/keys",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/219aec62-15cc-435b-ba24-5e87a7a3fb87",
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/219aec62-15cc-435b-ba24-5e87a7a3fb87",
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/219aec62-15cc-435b-ba24-5e87a7a3fb87",
+      "method": "DELETE",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/219aec62-15cc-435b-ba24-5e87a7a3fb87/budget",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/keys/219aec62-15cc-435b-ba24-5e87a7a3fb87",
+      "method": "GET",
+      "status": 404
+    }
+  ]
+}
