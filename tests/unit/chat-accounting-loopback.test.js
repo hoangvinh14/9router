@@ -172,11 +172,11 @@ for(const engine of ['node','sqljs'])describe(`${engine} actual app JSON account
     await expect(service.completeAttempt(receipt,{...evidence,usage:normalizeOpenAIUsage(rawUsage(401),OPENAI_EXPLICIT_USAGE_PROFILE)})).rejects.toThrow(/conflict/);
     expect(f.db.all('SELECT * FROM apiKeyAccounting')).toHaveLength(1);expect(f.db.get('SELECT costNanoUsd FROM apiKeyAccounting').costNanoUsd).toBe(900000);
   });
-  it('recovers an unacknowledged persisted intent as unresolved after restart',async()=>{
+  it('retains an unacknowledged evidence-free intent without unknown work after restart',async()=>{
     const f=await setup(engine);expect((await f.request({hooks:{intentAck:()=>{throw new Error('ACK lost');}}})).status).toBe(503);expect(f.posts).toBe(0);
     const before=f.db.get('SELECT apiKeyId,priceSnapshotJson FROM apiKeyAccounting');f.db.close();
     const reopened=await openFixture(engine,f.file);
-    try{expect(reopened.db.get('SELECT apiKeyId,priceSnapshotJson,state,costNanoUsd FROM apiKeyAccounting')).toEqual({...before,state:'unresolved',costNanoUsd:null});}
+    try{expect(reopened.db.get('SELECT apiKeyId,priceSnapshotJson,state,costNanoUsd FROM apiKeyAccounting')).toEqual({...before,state:'unrecorded',costNanoUsd:null});}
     finally{reopened.db.close();}
   });
   it('verifies persisted authority immediately before every healthy POST',async()=>{
@@ -198,10 +198,10 @@ for(const engine of ['node','sqljs'])describe(`${engine} actual app JSON account
     const f=await setup(engine);f.db.durableTransaction(()=>f.db.run('DROP TRIGGER accounting_audit_no_update'));
     expect((await f.request()).status).toBe(503);expect(f.posts).toBe(0);
   });
-  it('records unresolved exposure after abort following the native POST',async()=>{
+  it('records no debit or unknown work after absent-usage native POST interruption',async()=>{
     const ctrl=new AbortController(),f=await setup(engine,{respond:(_req,res)=>{res.setHeader('content-type','application/json');res.flushHeaders();res.write('{');ctrl.abort();res.end();}});
     const response=await f.request({signal:ctrl.signal});expect([499,503]).toContain(response.status);expect(f.posts).toBe(1);
-    expect(f.db.get('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual({state:'unresolved',costNanoUsd:null});
+    expect(f.db.get('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual({state:'unrecorded',costNanoUsd:null});
   });
   it('bounds oversized raw JSON and records unknown cost',async()=>{
     const f=await setup(engine,{respond:(_req,res)=>{res.setHeader('content-type','application/json');res.end(JSON.stringify({padding:'x'.repeat(8*1024*1024),...jsonReply()}));}});
@@ -226,8 +226,8 @@ for(const engine of ['node','sqljs'])describe(`${engine} actual app JSON account
     const injected=recordingFault(engine);expect(()=>insertAttemptSync(f.db,intent(f.db))).toThrow();injected();
     expect((await f.request()).status).toBe(503);expect(f.posts).toBe(0);
   });
-  it('retains unknown exposure when a native JSON body is truncated',async()=>{
-    const f=await setup(engine,{respond:(_req,res)=>{res.setHeader('content-type','application/json');res.setHeader('content-length','999');res.flushHeaders();res.write('{"usage":');res.destroy();}});const response=await f.request();expect(response.status).toBe(503);expect(f.posts).toBe(1);expect(f.db.get('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual({state:'unresolved',costNanoUsd:null});
+  it('retains null cost without unknown work when transport truncates JSON before usable usage',async()=>{
+    const f=await setup(engine,{respond:(_req,res)=>{res.setHeader('content-type','application/json');res.setHeader('content-length','999');res.flushHeaders();res.write('{"usage":');res.destroy();}});const response=await f.request();expect(response.status).toBe(503);expect(f.posts).toBe(1);expect(f.db.get('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual({state:'unrecorded',costNanoUsd:null});
   });
 
 });

@@ -63,7 +63,15 @@ describe("apiKeys access columns: upgrade from the previous schema", () => {
 
     // The schema bump took the pre-change safety backup.
     const backups = fs.readdirSync(path.join(tempDir, "db", "backups"));
-    expect(backups.some((d) => d.startsWith("schema-1-to-3"))).toBe(true);
+    const { SCHEMA_VERSION } = await import('@/lib/db/schema.js');
+    const backup = backups.find(d => d.startsWith(`schema-1-to-${SCHEMA_VERSION}`));
+    expect(backup).toBeTruthy();
+    const original = new DatabaseSync(path.join(tempDir,'db','backups',backup,'data.sqlite'),{readOnly:true});
+    try {
+      expect(original.prepare("SELECT value FROM _meta WHERE key='backupSchemaVersion'").get().value).toBe('1');
+      expect(original.prepare('SELECT count(*) AS n FROM apiKeys').get().n).toBe(2);
+      expect(original.prepare('PRAGMA table_info(apiKeys)').all().map(row=>row.name)).not.toContain('accessRestricted');
+    } finally { original.close(); }
   });
 
   it("persists access through update, new keys default to unrestricted", async () => {

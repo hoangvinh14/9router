@@ -2,10 +2,14 @@ import { randomUUID } from "node:crypto";
 import { canonical, conflict, snapshotPayload, text, timestamp } from "../../accounting/attempt-payload.js";
 import { costFromExactUsageSnapshot, nanoUsd, validatePriceSnapshot } from "../../accounting/exact-money.js";
 
+function persistedJson(value) {
+  try { return JSON.parse(value); }
+  catch (cause) { throw new Error('Invalid persisted accounting evidence', { cause }); }
+}
 function attempt(row) {
   if (!row) return null;
   const { priceSnapshotJson, usageJson, terminalJson: _terminal, intentJson: _intent, ...rest } = row;
-  return { ...rest, costNanoUsd: row.costNanoUsd === null ? null : String(row.costNanoUsd), priceSnapshot: JSON.parse(priceSnapshotJson), usage: usageJson ? JSON.parse(usageJson) : null };
+  return { ...rest, costNanoUsd: row.costNanoUsd === null ? null : String(row.costNanoUsd), priceSnapshot: persistedJson(priceSnapshotJson), usage: usageJson ? persistedJson(usageJson) : null };
 }
 export function getAttemptSync(db, id) { return attempt(db.get("SELECT * FROM apiKeyAccounting WHERE attemptId=?", [id])); }
 export function insertAttemptMutation(db, input) {
@@ -29,18 +33,24 @@ export function insertAttemptSync(db, input) { return db.durableTransaction(() =
 
 export function finalizeAttemptMutation(db, id, terminal) {
   terminal = snapshotPayload(terminal);
-  if (!terminal || Object.keys(terminal).some(k => !["state", "outcome", "finishedAt", "usage", "notDispatchedEvidence"].includes(k)) || !["settled", "unresolved", "not_dispatched"].includes(terminal.state)) throw new Error("Invalid terminal state/fields");
+  if (!terminal || Object.keys(terminal).some(k => !["state", "outcome", "finishedAt", "usage", "notDispatchedEvidence", "evidence"].includes(k)) || !["settled", "unresolved", "not_dispatched", "unrecorded"].includes(terminal.state)) throw new Error("Invalid terminal state/fields");
   timestamp(terminal.finishedAt); text(terminal.outcome, "outcome");
+  if (terminal.evidence !== undefined) {
+    const e = terminal.evidence;
+    if (!e || Object.keys(e).some(k => !['kind', 'interrupted'].includes(k)) || !['absent','valid','malformed','conflicting'].includes(e.kind) || typeof e.interrupted !== 'boolean') throw new Error('Invalid terminal evidence');
+  }
+  if (terminal.state === 'unrecorded' && (terminal.evidence?.kind !== 'absent' || terminal.evidence.interrupted !== true)) throw new Error('Unrecorded requires interrupted absent evidence');
+  if (terminal.evidence && terminal.state === 'settled' && terminal.evidence.kind !== 'valid') throw new Error('Settlement requires valid evidence');
   const row = db.get("SELECT * FROM apiKeyAccounting WHERE attemptId=?", [id]);
   if (!row) throw new Error("Unknown attempt");
   const payload = canonical(terminal);
   if (row.terminalJson === payload) return getAttemptSync(db, id);
   let cost = null;
-  if (terminal.state === "settled") cost = costFromExactUsageSnapshot(terminal.usage, JSON.parse(row.priceSnapshotJson));
+  if (terminal.state === "settled") cost = costFromExactUsageSnapshot(terminal.usage, persistedJson(row.priceSnapshotJson));
   else if (terminal.usage !== undefined) throw new Error("Non-settlement cannot claim exact usage");
   if (terminal.state === "not_dispatched") text(terminal.notDispatchedEvidence, "not-dispatched evidence");
   else if (terminal.notDispatchedEvidence !== undefined) throw new Error("Invalid not-dispatched evidence");
-  if (row.manuallyResolved || row.state !== "pending" && !(row.state === "unresolved" && terminal.state === "settled")) {
+  if (row.manuallyResolved || row.state !== "pending" && !(['unresolved', 'unrecorded'].includes(row.state) && terminal.state === "settled")) {
     const operationId = `observation:${id}:${payload}`;
     db.run("INSERT OR IGNORE INTO apiKeyAccountingAudit(id,attemptId,apiKeyId,operationId,actor,reason,action,beforeJson,afterJson,createdAt) VALUES(?,?,?,?,? ,?,'observation_conflict',?,?,?)",
       [randomUUID(), id, row.apiKeyId, operationId, "accounting_callback", "Conflicting terminal observation", canonical(attempt(row)), payload, new Date().toISOString()]);
@@ -71,7 +81,7 @@ export function resolveAttemptSync(db, id, input) {
     }
     const row = db.get("SELECT * FROM apiKeyAccounting WHERE attemptId=?", [id]);
     if (!row || row.state !== "unresolved" || row.resolutionVersion !== operation.expectedVersion) throw conflict("Recovery resolution version/state conflict");
-    const cost = operation.action === "exact_usage" ? costFromExactUsageSnapshot(operation.usage, JSON.parse(row.priceSnapshotJson)) : operation.action === "waive" ? "0" : nanoUsd(operation.costNanoUsd);
+    const cost = operation.action === "exact_usage" ? costFromExactUsageSnapshot(operation.usage, persistedJson(row.priceSnapshotJson)) : operation.action === "waive" ? "0" : nanoUsd(operation.costNanoUsd);
     const result = db.run("UPDATE apiKeyAccounting SET state=?,costNanoUsd=?,usageJson=?,manuallyResolved=1,resolutionVersion=resolutionVersion+1 WHERE attemptId=? AND resolutionVersion=?",
       [operation.action === "waive" ? "waived" : "settled", Number(cost), operation.usage ? canonical(operation.usage) : row.usageJson, id, operation.expectedVersion]);
     if (Number(result.changes) !== 1) throw conflict();
@@ -82,7 +92,17 @@ export function resolveAttemptSync(db, id, input) {
 }
 export function recoverPendingSync(db, ownerInstanceId = null) {
   return db.durableTransaction(() => {
-    db.run("UPDATE apiKeyAccounting SET state='unresolved',outcome='network_unknown',finishedAt=?,resolutionVersion=resolutionVersion+1 WHERE state='pending'" + (ownerInstanceId ? " AND ownerInstanceId=?" : ""),
+    // Coverage is loaded before lifecycle recovery. Never infer absence from
+    // unavailable sidecar evidence or from a detected recording failure.
+    const candidates = db.all("SELECT attemptId,apiKeyId FROM apiKeyAccounting WHERE state='pending' AND usageJson IS NULL AND costNanoUsd IS NULL AND terminalJson IS NULL AND NOT EXISTS (SELECT 1 FROM apiKeyAccountingAudit a WHERE a.attemptId=apiKeyAccounting.attemptId)" + (ownerInstanceId ? " AND ownerInstanceId=?" : ""), ownerInstanceId ? [ownerInstanceId] : []);
+    for (const row of candidates) {
+      const coverage = db.coverage?.status(row.apiKeyId);
+      if (!coverage || coverage.maintenance || coverage.gaps.some(gap => !gap.resolvedAt)) continue;
+      db.run("UPDATE apiKeyAccounting SET state='unrecorded',outcome='network_unknown',finishedAt=?,resolutionVersion=resolutionVersion+1 WHERE attemptId=? AND state='pending'", [new Date().toISOString(), row.attemptId]);
+    }
+    // Contrary persisted evidence is an accounting obligation, never a live
+    // pending allowance after this owner is gone. Preserve its usage/cost.
+    db.run("UPDATE apiKeyAccounting SET state='unresolved',outcome='persisted_evidence_pending',finishedAt=?,resolutionVersion=resolutionVersion+1 WHERE state='pending'" + (ownerInstanceId ? " AND ownerInstanceId=?" : ""),
       [new Date().toISOString(), ...(ownerInstanceId ? [ownerInstanceId] : [])]);
   });
 }

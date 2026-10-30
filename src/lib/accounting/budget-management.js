@@ -59,6 +59,7 @@ function project(capability,id,view,now) {
     coverageStartedAt:capability.coverageStartedAt,enforcementActive,canSetFinite:enforcementActive&&view.active&&healthy&&!gapCount&&!view.coverage.maintenance,
     scope:enforcementActive?'selected compatible chat fixture':'inactive; no production accounting coverage',
     referenceLabel:'Virtual reference cost, not an invoice',softThreshold:true,
+    accountingPolicy:'durable-evidence-recorded-spend',mayUndercount:true,
     eligibility:{eligible:enforcementActive&&!blockReason,blockReason:!enforcementActive?'accounting_not_ready':blockReason}};
 }
 export function getBudgetManagement(capability,id) {

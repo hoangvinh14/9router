@@ -97,19 +97,31 @@ function createSession(request, { db, hooks, clock }) {
             consumed = true;
             return true;
           };
-          const finish = (usage, outcome, exposed = true) => {
-            if (terminal) return terminal;
-            terminal = (async () => {
+          let terminalDisposition = null, terminalUsage = null;
+          const finish = (usage, outcome, observation = null, exposed = true) => {
+            const classified = observation && { kind: observation.kind, interrupted: observation.interrupted };
+            const state = !exposed ? 'not_dispatched' : usage ? 'settled' : classified?.kind === 'absent' && classified.interrupted === true ? 'unrecorded' : 'unresolved';
+            const persist = async () => {
               if (!receipt) return gapAck;
-              const evidence = { state: exposed ? usage ? "settled" : "unresolved" : "not_dispatched",
+              const evidence = { state,
                 outcome, finishedAt: budgetInstant(clock), ...(usage && exposed ? { usage } : {}),
+                ...(classified ? { evidence: classified } : {}),
                 ...(!exposed ? { notDispatchedEvidence: "Transport refused before invocation" } : {}) };
               let ack;
               try { ack = await service.completeAttempt(receipt, evidence); }
               catch (error) { if (db.health().healthy) throw error; return gap(); }
               await hooks.terminalAck?.(ack, evidence);
               return ack;
-            })().catch(error => {
+            };
+            if (terminal) {
+              if (state !== 'settled') return terminal;
+              if (terminalDisposition === 'settled' && isDeepStrictEqual(terminalUsage, usage)) return terminal;
+              if (!['unrecorded','unresolved','settled'].includes(terminalDisposition)) return terminal;
+            }
+            const previous = terminal;
+            terminalDisposition = state;
+            terminalUsage = usage;
+            terminal = (previous ? previous.then(persist) : persist()).catch(error => {
               // Only this operation's failure marks accounting terminal failure.
               // A provider code/message cannot acquire this private state.
               terminalFailure = isBudgetError(error) ? error : safeStreamError;
@@ -118,9 +130,11 @@ function createSession(request, { db, hooks, clock }) {
             return terminal;
           };
           return Object.freeze({ assertDispatch, finish,
-            terminalError: () => terminalFailure ? errorBytes(terminalFailure) : null,
+            // A selected raw protocol failure is never a successful terminal,
+            // even when accounting itself durably settled valid usage.
+            terminalError: () => errorBytes(terminalFailure || safeStreamError),
             fallbackTerminalBytes,
-            failed: (error, { exposed }) => finish(null, exposed ? "network_unknown" : "local_refusal", exposed) });
+            failed: (_error, { exposed }) => finish(null, exposed ? "network_unknown" : "local_refusal", { kind: 'absent', interrupted: true }, exposed) });
         } catch (error) { throw accountingRefusal(error); }
       },
     });

@@ -33,11 +33,15 @@ for(const engine of ['node','sqljs'])describe(`${engine} actual app SSE accounti
   });
   it.each([
     event(streamDelta)+event(streamFinish)+event('[DONE]'),
-    event(streamDelta)+event(streamFinish)+event({choices:[],usage:rawUsage()}),
     event(streamDelta)+event(streamFinish)+event({choices:[],usage:rawUsage(400)})+event({choices:[],usage:rawUsage(401)})+event('[DONE]'),
     event(streamDelta)+event(streamFinish)+event({choices:[],usage:{...rawUsage(),prompt_tokens_details:{}}})+event('[DONE]'),
   ])('keeps missing or conflicting protocol evidence unresolved (%#)',async text=>{
     const f=await setup(engine,{respond:respondStream(text)});const response=await f.request({stream:true});const output=await response.text();expect(output).toContain('"error"');expect(output).not.toContain('"finish_reason":"stop"');expect(f.db.get('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual({state:'unresolved',costNanoUsd:null});
+  });
+  it('charges authoritative usage before EOF without claiming protocol success',async()=>{
+    const f=await setup(engine,{respond:respondStream(event(streamDelta)+event(streamFinish)+event({choices:[],usage:rawUsage()}))});
+    const response=await f.request({stream:true}),text=await response.text();expect(text).toContain('"error"');expect(text).not.toContain('[DONE]');expect(text).not.toContain('"finish_reason":"stop"');
+    expect(f.db.get('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual({state:'settled',costNanoUsd:1200000});
   });
   it('preserves original cache rate through post-dispatch price drift',async()=>{
     const f=await setup(engine,{respond:(_req,res)=>{f.db.durableTransaction(()=>f.db.run("UPDATE kv SET value=? WHERE scope='pricing' AND key=?",[JSON.stringify({fixture:{input:'9',output:'9',cached:'9'}}),fixtureProvider]));respondStream(streamReply(rawUsage(400)))(_req,res);}});const response=await f.request({stream:true});await response.text();expect(f.db.get('SELECT costNanoUsd FROM apiKeyAccounting').costNanoUsd).toBe(900000);
@@ -46,7 +50,7 @@ for(const engine of ['node','sqljs'])describe(`${engine} actual app SSE accounti
     const f=await setup(engine,{respond:respondStream(streamReply())});const responses=await Promise.all([f.request({stream:true}),f.request({stream:true,key:'fixture-secret-two'})]);const texts=await Promise.all(responses.map(r=>r.text()));expect(texts.every(text=>text.includes('"finish_reason":"stop"'))).toBe(true);expect(f.posts).toBe(2);expect(f.db.all('SELECT apiKeyId,state,costNanoUsd FROM apiKeyAccounting ORDER BY apiKeyId')).toEqual([{apiKeyId:'key-one',state:'settled',costNanoUsd:1200000},{apiKeyId:'key-two',state:'settled',costNanoUsd:1200000}]);
   });
   it('streams through the actual saved HTTP proxy',async()=>{const f=await setup(engine,{proxy:true,respond:respondStream(streamReply())});const response=await f.request({stream:true});expect(await response.text()).toContain('"finish_reason":"stop"');expect(f.posts).toBe(1);expect(f.connects).toBeGreaterThan(0);});
-  it('aborts after native POST without releasing successful terminal',async()=>{const ctrl=new AbortController();const f=await setup(engine,{respond:(_req,res)=>{res.setHeader('content-type','text/event-stream');res.write(event(streamDelta));ctrl.abort();res.end();}});const response=await f.request({stream:true,signal:ctrl.signal});const text=await response.text();expect(text).not.toContain('"finish_reason":"stop"');expect(f.posts).toBe(1);expect(f.db.get('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual({state:'unresolved',costNanoUsd:null});});
+  it('aborts after native POST without releasing successful terminal',async()=>{const ctrl=new AbortController();const f=await setup(engine,{respond:(_req,res)=>{res.setHeader('content-type','text/event-stream');res.write(event(streamDelta));ctrl.abort();res.end();}});const response=await f.request({stream:true,signal:ctrl.signal});const text=await response.text();expect(text).not.toContain('"finish_reason":"stop"');expect(f.posts).toBe(1);expect(f.db.get('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual({state:'unrecorded',costNanoUsd:null});});
   it('does not emit completion when aborted during its own settlement ACK',async()=>{
     const entered=gate(),held=gate(),ctrl=new AbortController(),f=await setup(engine,{respond:respondStream(streamReply())});const response=await f.request({stream:true,signal:ctrl.signal,hooks:{terminalAck:async()=>{entered.release();await held.promise;}}});const reading=response.text();try{await entered.promise;ctrl.abort();const text=await reading;expect(text).not.toContain('"finish_reason":"stop"');expect(text).toContain('"error"');expect(f.db.get('SELECT state FROM apiKeyAccounting').state).toBe('settled');}finally{held.release();await reading;}
   });

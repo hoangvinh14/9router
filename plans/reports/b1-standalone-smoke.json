@@ -1,0 +1,27 @@
+{
+  "complete": true,
+  "artifact": "/home/gmo/projects/9router/.next-b1-recorded-spend/standalone",
+  "checks": [
+    "detached packaged SQL.js/WASM reopen",
+    "detached package starts",
+    "anonymous key management denied with no-store",
+    "production inactive; finite PUT409 even forged activation headers; unlimited no-op",
+    "actual server Origin guard",
+    "actual standalone Endpoint shell and linked CSS serve",
+    "actual detached browser hydrates expected key and truthfully disables finite save",
+    "native database reopens without activation or ledger rows"
+  ],
+  "buildId": "y-kR5qknFW8BhMBVv9Sku",
+  "endpointHtmlSha256": "71c0870c8af4770ef6855a5aee737d3c7901fc3d8539ff444e23a4f0e2b34bc9",
+  "browser": {
+    "errors": [],
+    "assetFailures": [],
+    "blockedExternal": [
+      "/gtag/js"
+    ]
+  },
+  "exit": {
+    "code": 0,
+    "signal": null
+  }
+}

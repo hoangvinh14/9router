@@ -5,6 +5,7 @@ import { openChatFixture, rawUsage, jsonReply, gate, observe, reach } from '../f
 import { openFixture } from '../fixtures/accounting/test-database.js';
 import { event, streamDelta, streamFinish, streamReply } from '../fixtures/accounting/chat-stream.js';
 import { createAccountingService } from '../../src/lib/accounting/service.js';
+import { getExecutor } from '../../open-sse/executors/index.js';
 import { normalizeOpenAIUsage, OPENAI_EXPLICIT_USAGE_PROFILE } from '../../open-sse/utils/accounting-openai-usage.js';
 
 let fixture;
@@ -80,6 +81,12 @@ for (const engine of ['node', 'sqljs']) for (const stream of [false, true]) desc
   });
 
   it.each(['status', 'network'])('settles the %s predecessor before an actual native retry', async failure => {
+    // This fixture asserts durable ordering across actual POSTs, not the
+    // production 2–3s backoff. Own a cloned config for this sequential test
+    // and restore the cached executor before another fixture can use it.
+    const executor=getExecutor('openai-compatible-chat-accounting-fixture'),originalConfig=executor.config;
+    executor.config={...originalConfig,retry:{...originalConfig.retry,502:{attempts:3,delayMs:1},503:{attempts:3,delayMs:1}}};
+    try {
     let predecessor;
     const f = await setup(engine, {respond:(_req,res,count) => {
       if (count === 1) {
@@ -89,11 +96,12 @@ for (const engine of ['node', 'sqljs']) for (const stream of [false, true]) desc
       }
       const rows = f.db.all('SELECT state,costNanoUsd FROM apiKeyAccounting ORDER BY startedAt');
       expect(rows).toHaveLength(2); predecessor = rows[0];
-      expect(predecessor).toEqual(failure === 'status' ? {state:'settled',costNanoUsd:900000} : {state:'unresolved',costNanoUsd:null});
+      expect(predecessor).toEqual(failure === 'status' ? {state:'settled',costNanoUsd:900000} : {state:'unrecorded',costNanoUsd:null});
       expect(rows[1].state).toBe('pending'); reply(res, stream);
     }});
     const result = await read(await f.request({stream}));expect(result.status).toBe(200);expect(result.text).toContain(stream ? '"finish_reason":"stop"' : 'hello');expect(f.posts).toBe(2);expect(predecessor).toBeDefined();
     await reopened(engine, f, db => expect(db.all('SELECT state,costNanoUsd FROM apiKeyAccounting ORDER BY startedAt')).toEqual([predecessor,{state:'settled',costNanoUsd:900000}]));
+    }finally{executor.config=originalConfig;}
   });
 
   it('reopens unknown usage and concurrent identities without inventing zero cost', async () => {

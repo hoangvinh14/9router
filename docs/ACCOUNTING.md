@@ -42,7 +42,7 @@ Base evidence requires `exact: true`, nonnegative safe-integer `input`, `output`
 
 Extended rates require `{ exact: true, provenance, components: [{ category, count, unit }] }`. Components must represent observed disjoint billable quantities. Each original required category must occur exactly once, including zero counts. Without a narrower immutable `usageSemantics.requiredCategories` contract, all categories in the original rates are required. Token units are USD/1M tokens; per-use fees require explicit original USD/1000 uses authority. Unknown/missing categories, units, tiers, unsafe values or overflow refuse exact settlement. P3/X owners must prove provider mapping and provenance; a string alone does not certify provider support.
 
-Attempts start pending and transition to settled, unresolved or proven not_dispatched. Unknown usage remains null cost. Exact late observations may settle unresolved rows. Identical intent/terminal replay is idempotent; conflicting terminal observations are audited and refuse a second debit. `resolveAttempt(id, { operationId, expectedVersion, actor, reason, evidence, action, ... })` supports internal CAS recovery of unresolved rows with `waive`, `exact_usage` or `cost_correction`. Waiver is explicit audited zero; manual resolution wins over late conflicting callbacks. No management route or historical debit is introduced.
+Attempts start pending and transition to settled, safety-unresolved, proven not_dispatched, or `unrecorded`. The latter is nonblocking idempotency/history metadata for interrupted absent usage or verified abandoned intents without recoverable evidence, not an unresolved work marker or audited zero-cost waiver. The approved B1 policy accepts possible undercount if a process dies after receiving usage but before durable evidence. Completed missing usage and observed malformed/conflicting evidence retain safety refusal. Stored valid usage and detected storage/coverage failures are never absence. Exact late observations may settle unresolved or unrecorded rows in the original period. Identical intent/terminal replay is idempotent; conflicting terminal observations are audited and refuse a second debit. `resolveAttempt(id, { operationId, expectedVersion, actor, reason, evidence, action, ... })` supports internal CAS recovery of unresolved rows with `waive`, `exact_usage` or `cost_correction`. Waiver is explicit audited zero; manual resolution wins over late conflicting callbacks. No management route or historical debit is introduced.
 
 ## Selected chat integration
 
@@ -76,8 +76,7 @@ delta/finish frame is split. DONE defines the selected protocol boundary;
 already-read trailing evidence is refused and the raw reader is cancelled.
 Missing/conflicting usage, premature EOF, stall, cancellation or failed ACK
 cannot become a successful translator flush. A private selected-accounting callback
-formats local own-ACK failures after headers as error-only SSE without finish/DONE;
-ordinary transport failures retain the existing formatter. Raw byte activity feeds the existing
+formats selected raw protocol and local own-ACK failures after headers as error-only SSE without finish/DONE. Authoritative valid usage observed before EOF/cancel still settles exactly once without claiming protocol success; unselected transport paths retain their existing formatter. Raw byte activity feeds the existing
 stall watchdog, including fragmented frames; upstream completion clears that
 watchdog while the terminal ACK is pending.
 
@@ -95,9 +94,7 @@ or hard invoice caps. `null` means unlimited and `0` blocks until policy changes
 concurrent in-flight requests may overshoot without a one-request bound. Both
 weekly and monthly limits apply. Windows use fixed `Asia/Ho_Chi_Minh`: Monday
 00:00 for weeks and day1 00:00 for months. Immutable attempt `startedAt` attributes
-late settlements to their original windows. Reset never deletes spend, unknown
-usage, retained identities or audited history. All-lifetime unresolved exposure
-blocks finite budgets, including after reset/restart; null/null does not waive it.
+late settlements to their original windows. Reset never deletes spend, retained identities or audited history. Interrupted absent/approved abandoned attempts do not block budget or require admin recovery. Independent safety-unresolved evidence still blocks finite budgets after reset/restart; null/null does not waive it. Neither policy promises invoice-exact spend or a hard cap.
 
 The existing intent and fresh pre-POST boundaries verify policy, calendar,
 identity, coverage and recorded spend. A finite-dimension rollover after intent
@@ -108,7 +105,7 @@ Local trusted budget failures preserve native code/requestId/no-store/CORS metad
 not a promise of automatic unblock. Upstream lookalike error codes are not authority.
 
 `GET /api/keys/:id/budget` projects exact decimal strings for current/previous
-windows, remaining/overshoot, pending/unresolved, health and explicit inactive scope.
+windows, remaining/overshoot, live pending/safety-unresolved counts, health and explicit inactive scope. `accountingPolicy: "durable-evidence-recorded-spend"` and `mayUndercount: true` describe the approved crash tradeoff; unrecorded attempts are excluded from those work/error counts.
 `PUT` is full replacement:
 
 ```json
@@ -150,4 +147,4 @@ fixture flows are not production activation approval.
 
 ## Remaining owners
 
-P3 owns acceptance of the selected dispatch/protocol integration, all successor/fresh gates, coverage-gap continuation eligibility and late sinks. Broader provider and transport inventory remains separate. P4 owns policy, calendars, guarded budget/key management and their acceptance. P5 owns recovery/restore UX and managed physical restore; P4's management prerequisite does not complete recovery. Bun/better/Windows accounting validation remains a P5/R release blocker. Activation requires complete dispatch coverage and its own acceptance; the existence of this core does not establish that coverage.
+P3 owns acceptance of the selected dispatch/protocol integration, all successor/fresh gates, coverage-gap continuation eligibility and late sinks. Broader provider and transport inventory remains separate. P4 owns policy, calendars, guarded budget/key management and their acceptance. B1 supersedes the former P5 unknown-usage recovery product; no recovery UI/API/CLI is introduced. Managed physical restore remains outside B1. Bun/better/Windows accounting validation remains a P5/R release blocker. Activation requires complete dispatch coverage and its own acceptance; the existence of this core does not establish that coverage.

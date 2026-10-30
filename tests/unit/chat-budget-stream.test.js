@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { openChatFixture, gate, observe, reach } from '../fixtures/accounting/chat-loopback.js';
-import { streamReply, respondStream } from '../fixtures/accounting/chat-stream.js';
+import { openChatFixture, rawUsage, gate, observe, reach } from '../fixtures/accounting/chat-loopback.js';
+import { streamReply, respondStream, event, streamDelta } from '../fixtures/accounting/chat-stream.js';
 import { updateAccountingPolicy } from '../../src/lib/db/helpers/accounting-policy.js';
 import { parseBudgetPolicy } from '../../src/lib/accounting/budget-policy.js';
 
@@ -10,6 +10,27 @@ for(const engine of ['node','sqljs'])describe(`${engine} selected SSE budget`,()
   async function setup(options={}){for(const name of ['HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY','http_proxy','https_proxy','all_proxy','no_proxy'])vi.stubEnv(name,'');fixture=await openChatFixture(engine,{respond:respondStream(streamReply()),...options});return fixture;}
   const policy=(f,w,m=null)=>updateAccountingPolicy(f.db,'key-one',parseBudgetPolicy({weeklyLimitUsd:w,monthlyLimitUsd:m,expectedVersion:1}),'2026-10-25T16:00:00.000Z');
   const clock=()=> '2026-10-25T16:00:00.000Z';
+  it('ignores interrupted absent usage without an unknown blocker on the next request',async()=>{
+    const f=await setup({respond:respondStream(event(streamDelta))});policy(f,'1');
+    const first=await f.request({stream:true,clock});const text=await first.text();
+    expect(text).not.toContain('[DONE]');expect(text).not.toContain('"finish_reason":"stop"');
+    expect(f.db.get('SELECT state,costNanoUsd FROM apiKeyAccounting')).toMatchObject({state:'unrecorded',costNanoUsd:null});
+    const next=await f.request({stream:true,clock});await next.text();expect(next.status).toBe(200);expect(f.posts).toBe(2);
+  });
+  it('charges authoritative usage before EOF without releasing protocol success',async()=>{
+    const incomplete=streamReply().replace(event('[DONE]'),'');expect(incomplete).not.toContain('[DONE]');
+    const f=await setup({respond:respondStream(incomplete)});policy(f,'0.0012');
+    const first=await f.request({stream:true,clock});const text=await first.text();expect(f.db.all('SELECT state,outcome,terminalJson FROM apiKeyAccounting')).toEqual(expect.arrayContaining([expect.objectContaining({state:'settled'})]));expect(text).not.toContain('[DONE]');expect(text).not.toContain('"finish_reason":"stop"');
+    expect(f.db.get('SELECT state,costNanoUsd FROM apiKeyAccounting')).toMatchObject({state:'settled',costNanoUsd:1200000});
+    const next=await f.request({stream:true,clock});expect(next.status).toBe(429);expect(f.posts).toBe(1);
+  });
+  it.each(['malformed','conflicting'])('does not exempt observed %s SSE usage on interruption',async mode=>{
+    const evidence=mode==='malformed'?event({choices:[],usage:{prompt_tokens:5}}):event({choices:[],usage:rawUsage(1)})+event({choices:[],usage:rawUsage(2)});
+    const f=await setup({respond:respondStream(event(streamDelta)+evidence)});policy(f,'1');
+    const first=await f.request({stream:true,clock});const text=await first.text();expect(text).not.toContain('[DONE]');
+    expect(f.db.get('SELECT state,costNanoUsd FROM apiKeyAccounting')).toMatchObject({state:'unresolved',costNanoUsd:null});
+    const next=await f.request({stream:true,clock});expect(next.status).toBe(503);expect(f.posts).toBe(1);
+  });
   it('settles SSE own terminal then successor gets native prestream429 no success marker',async()=>{
     const f=await setup();policy(f,'0.0012');const positive=await f.request({stream:true,clock});expect(positive.status).toBe(200);const text=await positive.text();expect(text).toContain('[DONE]');expect(text).toContain('"finish_reason":"stop"');
     const denied=await f.request({stream:true,clock});expect(denied.status).toBe(429);expect((await denied.json()).error.code).toBe('api_key_budget_exceeded');expect(denied.headers.get('cache-control')).toBe('no-store');expect(f.posts).toBe(1);expect(f.db.get('SELECT state,costNanoUsd FROM apiKeyAccounting')).toMatchObject({state:'settled',costNanoUsd:1200000});

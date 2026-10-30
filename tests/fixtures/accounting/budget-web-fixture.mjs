@@ -39,7 +39,7 @@ try {
   assert.equal(require('next/package.json').version, '16.4.3', 'Review lifecycle adapter when Next version changes');
   const { AppRouteRouteModule } = require('next/dist/server/route-modules/app-route/module.js');
   const { openChatFixture, jsonReply } = await import('./chat-loopback.js');
-  const { streamReply } = await import('./chat-stream.js');
+  const { streamReply, event, streamDelta } = await import('./chat-stream.js');
   const { associateChatAccountingFixture } = await import('../../../src/sse/services/chat-accounting.js');
   const chat = await import('../../../src/app/api/v1/chat/completions/route.js');
   const login = await import('../../../src/app/api/auth/login/route.js');
@@ -58,8 +58,9 @@ try {
   let domainNow = '2026-10-25T16:00:00.000Z';
   const clock = () => domainNow;
   const { chromium, expect } = await import('@playwright/test');
-  let omitUsage=false,heldResponses=null;
+  let omitUsage=false,heldResponses=null,interruptedMode=null;
   const upstreamControl={
+    interruption(mode){interruptedMode=mode;},
     unknown(value){omitUsage=value;},
     holdPair(){let release,arrived,count=0;const held=new Promise(resolve=>{release=resolve;}),ready=new Promise(resolve=>{arrived=resolve;});heldResponses=async()=>{if(++count===2)arrived();await held;};return {ready,release:()=>{heldResponses=null;release();}};},
   };
@@ -67,6 +68,7 @@ try {
     if(heldResponses)await heldResponses();
     response.setHeader('content-type',wire.body.stream?'text/event-stream':'application/json');
     const body=jsonReply();if(omitUsage)delete body.usage;
+    if(wire.body.stream&&interruptedMode){response.end(interruptedMode==='absent'?event(streamDelta):streamReply().replace(event('[DONE]'),''));return;}
     response.end(wire.body.stream?streamReply(omitUsage?null:body.usage):JSON.stringify(body));
   } });
   const distName = fs.readdirSync(artifact).find(name => name.startsWith('.next'));

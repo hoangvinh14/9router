@@ -208,18 +208,19 @@ describe("video: a body without a readable model is denied for restricted keys",
 });
 
 describe("/v1/models routes filter by key", () => {
-  const list = async (k) => (await (await modelsRoute.GET(new Request("http://localhost/v1/models", { headers: auth(k) }))).json()).data.map((m) => m.id);
+  const list = async (k) => (await (await modelsRoute.GET(new Request("http://localhost/v1/models", { headers: auth(k) }))).json()).data.map(m=>m.id);
 
-  it("unrestricted sees the full catalog; restricted keys see only their entries", async () => {
-    const all = await list("sk-open");
-    expect(all).toContain("Main");
-    const someModel = all.find((id) => id.startsWith("openai/"));
-    expect(someModel).toBeTruthy();
-    fx.keys["sk-mix"] = { id: "x", name: "mix", isActive: true, access: { restricted: true, allow: ["Main", someModel.toUpperCase()] } };
-    expect(await list("sk-mix")).toEqual(["Main", someModel]);
-    expect(await list("sk-combo")).toEqual(["Main"]);
-    expect(await list("sk-empty")).toEqual([]);
-    expect(await list(null)).toEqual(all); // no key: unchanged (middleware governs remote access)
+  // Independent policies each compare against the real full-catalog baseline.
+  // Avoid bundling five full enumerations (~4.9s measured) into one 5s test.
+  it.each(['mixed','combo','empty','anonymous'])('full catalog baseline and %s key filtering', async policy => {
+    const all=await list('sk-open');expect(all).toContain('Main');
+    const someModel=all.find(id=>id.startsWith('openai/'));expect(someModel).toBeTruthy();
+    if(policy==='mixed'){
+      fx.keys['sk-mix']={id:'x',name:'mix',isActive:true,access:{restricted:true,allow:['Main',someModel.toUpperCase()]}};
+      expect(await list('sk-mix')).toEqual(['Main',someModel]);
+    }else if(policy==='combo')expect(await list('sk-combo')).toEqual(['Main']);
+    else if(policy==='empty')expect(await list('sk-empty')).toEqual([]);
+    else expect(await list(null)).toEqual(all); // middleware governs remote access
   });
   it("/v1/models/{kind} and single-model lookup are filtered too", async () => {
     const kind = async (k, path) => modelsKindRoute.GET(new Request(`http://localhost/v1/models/${path.join("/")}`, { headers: auth(k) }), { params: Promise.resolve({ model: path }) });

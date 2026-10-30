@@ -59,8 +59,17 @@ for(const engine of ['node','sqljs'])describe(`${engine} exact recorded-spend ga
     expect(()=>f.service.assertDispatchAuthority(receipt,context)).toThrow();await f.finish(receipt);
     expect(f.db.get('SELECT costNanoUsd FROM apiKeyAccounting').costNanoUsd).toBe(1200000);
   });
+  it('interrupted absent disposition does not block finite policy across reset or reopen',async()=>{
+    const f=await setup('10'),receipt=await f.begin();
+    await f.service.completeAttempt(receipt,{state:'unrecorded',outcome:'stream_unknown',finishedAt:'2026-10-25T16:00:00.000Z',evidence:{kind:'absent',interrupted:true}});
+    f.setNow('2027-01-01T00:00:00.000Z');await f.finish(await f.begin());
+    const file=fixture.file;f.db.close();fixture=await openFixture(engine,file);
+    const service=createAccountingService(fixture.db),context=service.createContext({apiKeyId:'key-one',validateAuthoritySync:()=>true,clock:()=> '2027-01-01T00:00:00.000Z'});
+    await expect(service.beginAttempt(context,f.candidate)).resolves.toMatchObject({kind:'intent'});
+    expect(fixture.db.get("SELECT count(*) AS n FROM apiKeyAccounting WHERE state='unrecorded'").n).toBe(1);
+  });
   it('all-lifetime unresolved blocks finite across reset/reopen but not unlimited',async()=>{
-    const f=await setup('10'),receipt=await f.begin();await f.service.completeAttempt(receipt,{state:'unresolved',outcome:'network_unknown',finishedAt:'2026-10-25T16:00:00.000Z'});
+    const f=await setup('10'),receipt=await f.begin();await f.service.completeAttempt(receipt,{state:'unresolved',outcome:'invalid_usage',finishedAt:'2026-10-25T16:00:00.000Z',evidence:{kind:'malformed',interrupted:true}});
     f.setNow('2027-01-01T00:00:00.000Z');await expect(f.begin()).rejects.toMatchObject({code:'api_key_accounting_unresolved'});
     f.policy(null,null,2);await f.finish(await f.begin());f.policy('10',null,3);await expect(f.begin()).rejects.toMatchObject({code:'api_key_accounting_unresolved'});
     const file=fixture.file;f.db.close();fixture=await openFixture(engine,file);

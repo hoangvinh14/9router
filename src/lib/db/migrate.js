@@ -218,7 +218,11 @@ function importLegacyDetails(adapter, data) {
 // ─── Main entry ──────────────────────────────────────────────────────────
 export async function runMigrationOnce(adapter) {
   if (_migratedAdapters.has(adapter)) return;
+  await migrateAdapter(adapter);
   _migratedAdapters.add(adapter);
+}
+
+async function migrateAdapter(adapter) {
 
   // Capture freshness BEFORE migrations stamp _meta (otherwise we'd misclassify
   // a brand-new DB as non-fresh once schemaVersion is written).

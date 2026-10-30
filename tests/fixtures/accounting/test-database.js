@@ -7,6 +7,7 @@ import { createSqlJsAdapter } from '../../../src/lib/db/adapters/sqljsAdapter.js
 import initial from '../../../src/lib/db/migrations/001-initial.js';
 import accounting from '../../../src/lib/db/migrations/002-accounting-foundation.js';
 import policy from '../../../src/lib/db/migrations/003-accounting-policy.js';
+import recordedSpend from '../../../src/lib/db/migrations/004-recorded-spend.js';
 import { openAccountingCoverage } from '../../../src/lib/db/accounting-coverage.js';
 import { initializeKeyBindings } from '../../../src/lib/db/helpers/api-key-bindings.js';
 import { installAccountingLifecycle } from '../../../src/lib/db/accounting-lifecycle.js';
@@ -19,6 +20,7 @@ export async function openFixture(engine, file) {
   if (!db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='_meta'")) {
     db.durableTransaction(() => { initial.up(db); accounting.up(db); policy.up(db); });
   }
+  db.durableTransaction(() => recordedSpend.up(db));
   installPricingRevision(db);
   db.coverage = openAccountingCoverage(db, owner);
   db.ownerInstanceId = owner.instanceId;

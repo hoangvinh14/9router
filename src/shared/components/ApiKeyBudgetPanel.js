@@ -51,7 +51,7 @@ export default function ApiKeyBudgetPanel({apiKeyId,keyName,isActive=true}) {
   return <section className="mt-3 rounded-lg border border-border p-3 text-sm" aria-labelledby={title} data-testid={`budget-${apiKeyId}`}>
     <button type="button" id={title} aria-expanded={open} onClick={()=>setOpen(value=>!value)} className="font-medium text-primary py-1">{open?'Hide':'Manage'} budget for {keyName||apiKeyId}</button>
     {open&&<div className="mt-3 space-y-3">
-      <p className="text-text-muted">Virtual reference cost, not an invoice. Soft recorded-spend threshold, not a hard cap: concurrent in-flight requests may overshoot without a one-request bound.</p>
+      <p className="text-text-muted">Virtual reference cost, not an invoice. Budget uses durably recorded evidence and may undercount upstream charges after an interruption or crash. Soft recorded-spend threshold, not a hard cap: concurrent in-flight requests may overshoot without a one-request bound.</p>
       {loading&&<p role="status">Refreshing budget…</p>}
       {error&&<p role="alert" className="text-red-500">{error} {snapshot?'Displayed values may be stale; allowance is unknown until refreshed.':'Allowance and accounting health are unknown.'}</p>}
       {snapshot&&<>
@@ -59,8 +59,9 @@ export default function ApiKeyBudgetPanel({apiKeyId,keyName,isActive=true}) {
         <p role="status" className={snapshot.enforcementActive?'text-text-muted':'text-orange-600'}>{snapshot.enforcementActive?'Selected fixture enforcement only':'Not activated — production budget enforcement is OFF'}. Scope: {snapshot.scope}.</p>
         <p className="text-xs text-text-muted">Coverage start: {snapshot.coverageStartedAt||snapshot.ledgerStartedAt||'Not active'}. Timezone: {snapshot.timezone}. Server time: {snapshot.serverNow}.</p>
         <p>Health: {readStale?'unknown (stale projection)':snapshot.health.healthy?'recording available':'unavailable'}; unresolved coverage gaps: {snapshot.health.gapCount}; maintenance: {snapshot.health.maintenance?'yes':'no'}.</p>
-        <p>Live pending attempts: {snapshot.pendingCount}. Unknown / unresolved attempts: {snapshot.unresolvedCount}. Known spend is not a complete total when usage is unknown. Unknown usage is not $0 and does not expire at reset; audited recovery is required.</p>
-        {snapshot.eligibility.blockReason&&<p className="text-orange-600">Admission status: {readStale?'unknown (stale projection)':snapshot.eligibility.blockReason}. {snapshot.unresolvedCount>0?'There is no reset-spend or clear-unknown action here.':''}</p>}
+        <p>Live pending attempts: {snapshot.pendingCount}. Interrupted requests without recoverable usage do not add spend or require an admin action. Valid late usage is recorded once in its original period.</p>
+        {snapshot.unresolvedCount>0&&<p className="text-orange-600">Accounting safety errors: {snapshot.unresolvedCount}. Invalid or conflicting evidence is not treated as missing usage; safety restrictions remain in effect.</p>}
+        {snapshot.eligibility.blockReason&&<p className="text-orange-600">Admission status: {readStale?'unknown (stale projection)':snapshot.eligibility.blockReason}.</p>}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {['weekly','monthly'].map(dimension=>{const window=snapshot[dimension],previous=snapshot.previousWindows[dimension];
             // Rendering-only ratio is bounded; monetary admission never uses it.
@@ -71,7 +72,7 @@ export default function ApiKeyBudgetPanel({apiKeyId,keyName,isActive=true}) {
               <p>Remaining: {readStale?'Unknown (refresh required)':money(window.remainingUsd)} · Overshoot: {money(window.overshootUsd)}</p>
               <progress aria-label={`${dimension} recorded spend progress`} max="100" value={progress} className="w-full"/>
               <p className="text-xs break-all">{window.startAt} → reset {window.resetAt}</p>
-              <p className="text-xs">Current pending: {window.pendingCount}; unknown: {window.unresolvedCount}.</p>
+              <p className="text-xs">Current pending: {window.pendingCount}; accounting safety errors: {window.unresolvedCount}.</p>
               <p className="text-xs">Previous window known spent: {money(previous.spentUsd)}; overshoot against current policy: {money(previous.overshootUsd)}. Late settlements retain their original window.</p>
               {window.limitUsd==='0'&&<p className="text-orange-600">0 blocks until policy changes. Reset / Retry-After is advisory, not an automatic unblock.</p>}
             </div>;

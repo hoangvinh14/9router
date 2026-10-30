@@ -28,7 +28,7 @@ for(const engine of ['node','sqljs'])describe(`${engine} actual process restart 
     }finally{for(const socket of sockets)socket.destroy();await new Promise(resolve=>server.close(resolve));fs.rmSync(root,{recursive:true,force:true});}
   },100000);
 
-  it('dead owner pending becomes unresolved across reset; unlimited continuation never clears it',async()=>{
+  it('dead owner absent intent is nonblocking across reset and policy edits without waiver',async()=>{
     const root=fs.mkdtempSync(path.join(os.tmpdir(),'9router-budget-crash-'));let posts=0,child,bound;const sockets=new Set();
     const server=http.createServer(async(req,res)=>{for await(const _part of req){}posts++;res.setHeader('content-type','application/json');res.end(JSON.stringify(jsonReply()));});
     server.on('connection',socket=>{sockets.add(socket);socket.on('close',()=>sockets.delete(socket));});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -41,10 +41,10 @@ for(const engine of ['node','sqljs'])describe(`${engine} actual process restart 
       const exited=once(child,'exit');const message=once(child,'message');bound=setTimeout(()=>child.kill('SIGKILL'),45000);
       const checkpoint=await Promise.race([message.then(([value])=>value),exited.then(()=>{throw new Error('Owner exited before durable intent checkpoint');})]);
       expect(checkpoint.phase).toBe('durable-intent');expect(posts).toBe(0);child.kill('SIGKILL');expect(await exited).toEqual([null,'SIGKILL']);clearTimeout(bound);
-      start('crash-read');bound=setTimeout(()=>child.kill('SIGKILL'),45000);const [code,signal]=await once(child,'exit');clearTimeout(bound);expect({code,signal}).toEqual({code:0,signal:null});expect(posts).toBe(2);
+      start('crash-read');bound=setTimeout(()=>child.kill('SIGKILL'),45000);const [code,signal]=await once(child,'exit');clearTimeout(bound);if(code!==0)throw new Error(fs.readFileSync(path.join(root,'crash-read.log'),'utf8'));expect({code,signal}).toEqual({code:0,signal:null});expect(posts).toBe(3);
       const result=JSON.parse(fs.readFileSync(path.join(root,`${engine}-crash-read-result.json`),'utf8'));
-      expect(result).toMatchObject({fingerprint:checkpoint.fingerprint,coverageId:checkpoint.coverageId,policyVersion:4,deniedStatus:503,unlimitedStatus:200,reenabledStatus:503,afterWaiverStatus:200,auditCount:1});
-      expect(result.rows.map(row=>row.state)).toEqual(['waived','settled','settled']);expect(result.rows.map(row=>row.costNanoUsd)).toEqual([0,1200000,1200000]);
+      expect(result).toMatchObject({fingerprint:checkpoint.fingerprint,coverageId:checkpoint.coverageId,policyVersion:4,admittedStatus:200,unlimitedStatus:200,reenabledStatus:200,auditCount:0});
+      expect(result.rows.map(row=>row.state)).toEqual(['unrecorded','settled','settled','settled']);expect(result.rows.map(row=>row.costNanoUsd)).toEqual([null,1200000,1200000,1200000]);
     }finally{
       clearTimeout(bound);
       if(child&&child.exitCode===null&&child.signalCode===null){const exited=once(child,'exit');child.kill('SIGKILL');await exited;}

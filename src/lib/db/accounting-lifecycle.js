@@ -9,6 +9,10 @@ export function installAccountingLifecycle(db) {
   let finalized = false;
   db.beforeClose = () => {
     if (finalized) return;
+    // Synchronous final-close boundary, not a live-request timeout. Stop the
+    // sole write lane before retiring this adapter lifetime; subsequent
+    // callbacks cannot acquire an ACK from the closed adapter. Storage/coverage
+    // failures remain independent and are never cleared by this disposition.
     stopAccountingWrites(db);
     if (!db.health().healthy) throw unavailable("Uncertain accounting storage retains writer exclusion");
     recoverPendingSync(db, db.ownerInstanceId);

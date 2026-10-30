@@ -3,7 +3,7 @@ import { BUDGET_TIMEZONE } from './budget-windows.js';
 
 const trusted = new WeakSet();
 const messages = Object.freeze({api_key_budget_exceeded:'API key recorded-spend budget exceeded',
-  api_key_accounting_unresolved:'API key has unresolved accounting; recovery required',
+  api_key_accounting_unresolved:'API key accounting evidence failed safety checks',
   api_key_accounting_unavailable:'API key accounting unavailable',
   model_pricing_unavailable:'Exact reference model pricing unavailable',
   model_accounting_unsupported:'Model accounting profile unsupported'});

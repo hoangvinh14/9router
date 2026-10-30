@@ -1,4 +1,8 @@
-# Unreleased — P4 budget work (scoped acceptance)
+# Unreleased — budget work (scoped acceptance)
+
+## B1 recorded-evidence policy
+- **Budgets**: interrupted requests without recoverable usage and verified abandoned evidence-free intents no longer create unknown recovery work or block recorded-spend allowance. This deliberately accepts possible crash undercount, not zero actual upstream cost. Authoritative usage before SSE EOF/cancel still charges once in the original period without fake finish/DONE; malformed/conflicting/completed-missing evidence and independent storage failures retain safety controls.
+- **Storage**: add schema migration 4/declarative version 5 for nonblocking idempotency disposition, preserving ledger/audit/pricing/identity history. Detected recording failure gaps remain independent through reopen. Production accounting/enforcement stays OFF; B1 selected Linux Node SQLite/SQL.js fixture acceptance is complete (affected regression775/775; hybrid browser/CLI20 checks each; detached smoke8 checks), not production activation or all-platform release acceptance.
 
 ## Features
 - **Budgets**: add exact ledger-derived weekly/monthly soft thresholds on the selected disposable chat-accounting fixture, guarded per-key policy/projection APIs, and an Endpoint editor. Fixed Asia/Ho_Chi_Minh calendar windows, immutable attempt attribution, unresolved exposure and durable CAS preserve history across edits and restart. **Production accounting/enforcement remains OFF**; finite production saves are rejected and no public activation flag is provided. Measured overhead and the fixture-only performance disposition are documented; this is not a production SLO or activation approval.

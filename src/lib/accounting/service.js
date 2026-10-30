@@ -115,7 +115,18 @@ export function createAccountingService(db) {
       terminal = { state: "unresolved", outcome: terminal.outcome, finishedAt: terminal.finishedAt };
     }
     if (terminal.state === "not_dispatched" && owned.dispatched) throw conflict("Dispatched intent cannot be declared not-dispatched");
-    const value = await queued(owned.context, { type: "terminal", attemptId: receipt.attemptId, terminal }, signal);
+    let value;
+    try { value = await queued(owned.context, { type: "terminal", attemptId: receipt.attemptId, terminal }, signal); }
+    catch (error) {
+      // Healthy rejected terminal operations still need durable failure evidence
+      // before close/restart can classify a pending intent as mere absence.
+      // Poisoned publication remains owned by the app's own-gap ACK protocol.
+      if (db.health().healthy) {
+        const row = getAttemptSync(db, receipt.attemptId);
+        if (row?.state === 'pending' || row?.state === 'unrecorded') db.coverage.latchGap(row.apiKeyId, 'Detected accounting terminal recording failure');
+      }
+      throw error;
+    }
     return Object.freeze({ kind: "terminal", attemptId: receipt.attemptId, state: value.state, resolutionVersion: value.resolutionVersion });
   }
   function resolveAttempt(id, operation) { live(); return resolveAttemptSync(db, id, operation); }

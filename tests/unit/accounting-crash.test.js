@@ -57,7 +57,7 @@ for (const engine of ['node', 'sqljs']) describe(`${engine} actual process crash
       const row = reopened.db.get("SELECT * FROM apiKeyAccounting WHERE attemptId='attempt-one'");
       if (['before-intent', 'inside-intent'].includes(mode)) expect(row).toBeUndefined();
       else if (mode === 'after-terminal') { expect(row.state).toBe('settled'); expect(String(row.costNanoUsd)).toBe('1200000'); }
-      else { expect(row.state).toBe('unresolved'); expect(row.costNanoUsd).toBeNull(); }
+      else { expect(row.state).toBe('unrecorded'); expect(row.costNanoUsd).toBeNull(); }
     });
   }
   it('competing writer cannot mutate an active accounting file or sidecar', async () => {
@@ -75,7 +75,7 @@ for (const engine of ['node', 'sqljs']) describe(`${engine} actual process crash
     expect(code).toBe(0); expect(messages.some(message => message.phase === 'other-signal-owner')).toBe(true);
     expect(fs.existsSync(path.join(root, '.gateway-writer.lock'))).toBe(false);
     reopened = await openFixture(engine, file);
-    expect(reopened.db.get('SELECT state FROM apiKeyAccounting').state).toBe('unresolved');
+    expect(reopened.db.get('SELECT state FROM apiKeyAccounting').state).toBe('unrecorded');
   });
 });
 it('SQL.js crash after file fsync before rename keeps the last acknowledged file', async () => {

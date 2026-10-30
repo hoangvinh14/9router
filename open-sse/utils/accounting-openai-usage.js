@@ -17,13 +17,18 @@ export function normalizeOpenAIUsage(raw, profile) {
 }
 
 export function createUsageObservation(profile) {
-  let observed = null, invalid = false;
+  let observed = null, malformed = false, conflicting = false;
+  const kind = () => conflicting ? 'conflicting' : malformed ? 'malformed' : observed ? 'valid' : 'absent';
   return Object.freeze({
     observe(raw) {
       const next = normalizeOpenAIUsage(raw, profile);
-      if (!next || observed && JSON.stringify(observed) !== JSON.stringify(next)) invalid = true;
+      if (!next) malformed = true;
+      if (next && observed && JSON.stringify(observed) !== JSON.stringify(next)) conflicting = true;
       if (next && !observed) observed = next;
     },
-    value: () => invalid ? null : observed,
+    // Retain observed evidence privately even after invalidation; it must never
+    // become an unquestioned exact settlement or an absent-usage exemption.
+    value: () => kind() === 'valid' ? observed : null,
+    evidence: () => Object.freeze(kind() === 'valid' ? { kind: 'valid', usage: observed } : { kind: kind() }),
   });
 }

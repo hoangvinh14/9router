@@ -8,7 +8,7 @@ import { getWriteCoordinator } from '../../src/lib/accounting/write-coordinator.
 let fixture;
 afterEach(() => { vi.restoreAllMocks(); if (fixture) { try { fixture.db.close(); } catch {} fs.rmSync(fixture.root, { recursive: true, force: true }); fixture = null; } });
 for (const engine of ['node', 'sqljs']) describe(`${engine} explicit accounting lifetime`, () => {
-  it('stops queued work, marks pending unknown and rejects the old engine after clean reopen', async () => {
+  it('stops queued work, closes pending intent without a recovery obligation and rejects the old engine after reopen', async () => {
     fixture = await openFixture(engine); const { db, file } = fixture; addKey(db); insertAttemptSync(db, intent(db));
     const writer = getWriteCoordinator(db, () => { throw new Error('queue must not apply after stop'); });
     const pending = writer.enqueue({ operationId: 'queued' });
@@ -16,7 +16,7 @@ for (const engine of ['node', 'sqljs']) describe(`${engine} explicit accounting 
     db.close(); await rejected;
     expect(fs.existsSync(path.join(fixture.root, '.gateway-writer.lock'))).toBe(false);
     fixture = await openFixture(engine, file);
-    expect(fixture.db.get('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual({ state: 'unresolved', costNanoUsd: null });
+    expect(fixture.db.get('SELECT state,costNanoUsd FROM apiKeyAccounting')).toEqual({ state: 'unrecorded', costNanoUsd: null });
     expect(fixture.db.ownerInstanceId).not.toBe(db.ownerInstanceId);
     expect(() => db.get('SELECT 1')).toThrow();
   });

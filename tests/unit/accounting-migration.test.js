@@ -28,9 +28,12 @@ for (const engine of ['node', 'sqljs']) describe(`${engine} required migration b
     });
     const schema = db.all('SELECT * FROM sqlite_master ORDER BY name'), keys = db.all('SELECT * FROM apiKeys'), prices = db.all('SELECT * FROM kv');
     const backups = await import('@/lib/db/backup.js');
-    vi.spyOn(backups, 'backupDbLite').mockImplementationOnce(() => { throw new Error('fixture backup failure'); });
+    const backup = vi.spyOn(backups, 'backupDbLite').mockImplementation(() => { throw new Error('fixture backup failure'); });
     const { runMigrationOnce } = await import('@/lib/db/migrate.js');
     await expect(runMigrationOnce(db)).rejects.toThrow(/Required pre-schema backup failed/);
+    // A failed adapter must not be cached as successfully migrated.
+    await expect(runMigrationOnce(db)).rejects.toThrow(/Required pre-schema backup failed/);
+    expect(backup).toHaveBeenCalledTimes(2);
     expect(db.all('SELECT * FROM sqlite_master ORDER BY name')).toEqual(schema);
     expect(db.all('SELECT * FROM apiKeys')).toEqual(keys); expect(db.all('SELECT * FROM kv')).toEqual(prices);
     expect(fs.existsSync(path.join(root, 'db/.accounting-coverage.json'))).toBe(false);

@@ -17,14 +17,13 @@ describe('raw accounting SSE evidence',()=>{
   it('accepts identical usage once',async()=>{const {response,calls}=wrap(frame(delta)+frame(finish)+frame(trailer)+frame(trailer)+frame('[DONE]'));await response.text();expect(calls).toHaveLength(1);expect(calls[0].value.cacheRead).toBe(400);});
   it.each([
     frame(delta)+frame(finish)+frame('[DONE]'),
-    frame(delta)+frame(finish)+frame(trailer),
-    frame(delta)+frame(trailer)+frame('[DONE]'),
     frame(delta)+frame(finish)+frame(trailer)+frame({usage:{...usage,prompt_tokens_details:{cached_tokens:401}}})+frame('[DONE]'),
     complete+frame({usage}),
     frame(delta)+'data: '+ 'x'.repeat(256*1024),
     frame(delta)+frame({error:{message:'failed'}}),
     frame(delta)+'data: invalid\n\n',
   ])('fails incomplete, contradictory or unbounded protocol without successful close (%#)',async text=>{const {response,calls}=wrap(text);await expect(response.text()).rejects.toThrow();expect(calls).toHaveLength(1);expect(calls[0].value).toBeNull();});
+  it.each([frame(delta)+frame(finish)+frame(trailer),frame(delta)+frame(trailer)+frame('[DONE]')])('charges authoritative usage independently of incomplete protocol',async text=>{const {response,calls}=wrap(text);await expect(response.text()).rejects.toThrow();expect(calls).toHaveLength(1);expect(calls[0].value).toMatchObject({exact:true,input:1000,cacheRead:400});});
   it('rejects invalid UTF-8',async()=>{const response=createAccountedStream(new Response(new Uint8Array([0xff])),{finish:async()=>{}},{profile:OPENAI_EXPLICIT_USAGE_PROFILE});await expect(response.text()).rejects.toThrow();});
   it('does not release terminal after lost ACK',async()=>{const response=createAccountedStream(source(complete),{finish:async()=>{throw new Error('ACK lost');}},{profile:OPENAI_EXPLICIT_USAGE_PROFILE});await expect(response.text()).rejects.toThrow();});
   it('cancels its reader and records unknown evidence',async()=>{let cancelled=false;const calls=[];const response=createAccountedStream(new Response(new ReadableStream({pull(c){c.enqueue(new TextEncoder().encode(frame(delta)));},cancel(){cancelled=true;}})),{finish:async value=>{calls.push(value);}},{profile:OPENAI_EXPLICIT_USAGE_PROFILE});const reader=response.body.getReader();await reader.read();await reader.cancel();expect(cancelled).toBe(true);expect(calls).toEqual([null]);});

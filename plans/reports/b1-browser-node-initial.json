@@ -1,0 +1,30 @@
+{
+  "engine": "node",
+  "node": "v24.21.0",
+  "artifact": "/home/gmo/projects/9router/.next-b1-recorded-spend/standalone",
+  "complete": false,
+  "checks": [],
+  "root": "/tmp/9router-budget-web-RLUyzA",
+  "diagnostics": {
+    "invocations": [],
+    "handlerFailures": [],
+    "browserErrors": [],
+    "assetFailures": []
+  },
+  "buildId": "y-kR5qknFW8BhMBVv9Sku",
+  "sourceSha256": {
+    "src/shared/components/ApiKeyBudgetPanel.js": "5dc431411ea81e182c81d46798510e4a05e75bcd5ab37628965d8d694c36fc99",
+    "src/app/(dashboard)/dashboard/endpoint/EndpointPageClient.js": "416e83c3728950c0e4f40c05d564b684321d960ef16bf3c102cc84691800a543",
+    "src/dashboardGuard.js": "846a502dd0e785150d8b9392d01b226662663df802d93e3fe0d62424e02c21cf",
+    "src/lib/accounting/budget-management.js": "844605f4fc491d2a90fcba0d0a0753ec78a54c5b8d4165e3ec8f020ead68cf7f",
+    "src/app/api/keys/[id]/budget/route.js": "2417b27fc0d7f542a4dd1d80c9627cc38c1ca1298fa14bdd91df8af78b0c8d52",
+    "tests/browser/budget-panel-checks.mjs": "fbcbda3ced7b310ccfd5fbfbaca05fd3161c464645bf07a18ababd6ebc23d339",
+    "tests/browser/budget-cli-checks.mjs": "ac5ec7bbc55745d5dab1d6f1e4a0fbae92554e7c7345e2204f97bcca88cde01f"
+  },
+  "endpointHtmlSha256": "71c0870c8af4770ef6855a5aee737d3c7901fc3d8539ff444e23a4f0e2b34bc9",
+  "pricingHtmlSha256": "0209eaf08618077c3fe6eaf5615481190ca7955fef3e05c5046fc6c70101398d",
+  "failure": {
+    "message": "browserType.launch: Executable doesn't exist at /tmp/9router-budget-web-RLUyzA/home/.cache/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝",
+    "stack": "browserType.launch: Executable doesn't exist at /tmp/9router-budget-web-RLUyzA/home/.cache/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝\n    at /home/gmo/projects/9router/tests/fixtures/accounting/budget-web-fixture.mjs:144:28"
+  }
+}

@@ -30,13 +30,25 @@ export function createAccountedStream(response, ticket, { profile, signal }) {
     listeners.clear();
     if (!released) { released = true; reader.releaseLock(); }
   };
-  let controllerRef;
+  let controllerRef, terminalPromise;
+  let protocolComplete = false;
+  const finish = (outcome, interrupted) => {
+    if (!terminalPromise) {
+      const evidence = { ...observation.evidence(), interrupted }, usage = observation.value();
+      terminalPromise = Promise.resolve().then(() => ticket.finish(usage, outcome, evidence));
+    }
+    return terminalPromise;
+  };
+  const invalidate = () => observation.observe(null);
   const stop = async reason => {
     if (stopped) return;
     stopped = true;
     notify(0, true);
+    const terminal = finish('stream_unknown', !protocolComplete);
+    // Attach rejection handling before cancellation yields control.
+    const acknowledged = terminal.then(value => ({ value }), error => ({ error }));
     await reader.cancel(reason).catch(() => {});
-    try { await ticket.finish(null, "stream_unknown"); } finally { cleanup(); }
+    try { const result = await acknowledged; if (result.error) throw result.error; } finally { cleanup(); }
   };
   const abort = () => {
     const error = accountingRefusal(signal.reason || new Error("Stream aborted"));
@@ -51,26 +63,30 @@ export function createAccountedStream(response, ticket, { profile, signal }) {
     const retain = frame => {
       const bytes = encode(frame);
       terminalSize += bytes.byteLength;
-      if (terminalSize > ACCOUNTING_SSE_TERMINAL_MAX_BYTES) throw new Error("Accounting terminal evidence limit exceeded");
+      if (terminalSize > ACCOUNTING_SSE_TERMINAL_MAX_BYTES) { invalidate(); throw new Error("Accounting terminal evidence limit exceeded"); }
       terminal.push(bytes);
     };
     while (true) {
       const { done, value } = await reader.read();
+      if (stopped) return;
       if (done) {
-        decoder.decode(); // Reject incomplete UTF-8 even when protocol is incomplete.
+        try { decoder.decode(); } catch (error) { invalidate(); throw error; }
+        if (line.trim() || data.length) invalidate(); // Partial evidence is not absence.
         throw new Error("Accounting stream ended without protocol completion");
       }
       notify(value.byteLength);
       // Decode small pieces so arbitrary transport chunks cannot grow parser state.
       for (let offset = 0; offset < value.byteLength; offset += 4096) {
         const end = Math.min(offset + 4096, value.byteLength);
-        const text = decoder.decode(value.subarray(offset, end), { stream: true });
+        let text;
+        try { text = decoder.decode(value.subarray(offset, end), { stream: true }); }
+        catch (error) { invalidate(); throw error; }
         for (let i = 0; i < text.length; i++) {
           const char = text[i];
           if (previousCR && char === "\n") { previousCR = false; continue; }
           previousCR = false;
           frameSize += encoder.encode(char).byteLength;
-          if (frameSize > ACCOUNTING_SSE_FRAME_MAX_BYTES) throw new Error("Accounting SSE frame limit exceeded");
+          if (frameSize > ACCOUNTING_SSE_FRAME_MAX_BYTES) { invalidate(); throw new Error("Accounting SSE frame limit exceeded"); }
           if (char !== "\n" && char !== "\r") { line += char; continue; }
           previousCR = char === "\r";
           if (line !== "") {
@@ -84,22 +100,27 @@ export function createAccountedStream(response, ticket, { profile, signal }) {
           if (payload.trim() === "[DONE]") {
             // DONE is the selected protocol's final boundary. Reject already-read
             // trailing evidence, then cancel the sole reader instead of draining.
-            if (text.slice(i + 1).trim() || value.subarray(end).some(byte => ![9,10,13,32].includes(byte))) throw new Error("Evidence after stream completion");
-            decoder.decode();
+            protocolComplete = true;
+            if (text.slice(i + 1).trim() || value.subarray(end).some(byte => ![9,10,13,32].includes(byte))) { invalidate(); throw new Error("Evidence after stream completion"); }
+            try { decoder.decode(); } catch (error) { invalidate(); throw error; }
             notify(0, true);
             await reader.cancel();
             if (!sawFinish || !observation.value()) throw new Error("Incomplete accounting stream evidence");
-            await ticket.finish(observation.value(), `http_${response.status}`);
+            await finish(`http_${response.status}`, false);
             if (stopped || signal?.aborted) return;
             for (const bytes of terminal) yield bytes;
             yield encode("[DONE]");
             return;
           }
-          const frame = JSON.parse(payload);
-          if (!frame || typeof frame !== "object" || frame.error) throw new Error("Invalid accounting stream event");
+          let frame;
+          try { frame = JSON.parse(payload); } catch (error) { invalidate(); throw error; }
+          if (!frame || typeof frame !== "object" || Array.isArray(frame)) { invalidate(); throw new Error("Invalid accounting stream event"); }
+          // Null usage is conventional on delta frames; non-null declarations
+          // must satisfy the selected authoritative profile.
           if (frame.usage != null) observation.observe(frame.usage);
+          if (frame.error) throw new Error("Upstream accounting stream error");
           const choices = frame.choices;
-          if (choices !== undefined && !Array.isArray(choices)) throw new Error("Invalid accounting stream choices");
+          if (choices !== undefined && !Array.isArray(choices)) { invalidate(); throw new Error("Invalid accounting stream choices"); }
           const deltas = [], finishes = [];
           for (const choice of choices || []) {
             if (choice.finish_reason != null) {

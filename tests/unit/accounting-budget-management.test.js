@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { openFixture, addKey } from '../fixtures/accounting/test-database.js';
+import { openFixture, addKey, intent } from '../fixtures/accounting/test-database.js';
 import { getBudgetManagement, putBudgetManagement, associateBudgetManagementFixture, captureBudgetManagement } from '../../src/lib/accounting/budget-management.js';
+import { insertAttemptSync, finalizeAttemptSync } from '../../src/lib/db/repos/api-key-accounting-repo.js';
 import { retireKeyBindings } from '../../src/lib/db/helpers/api-key-bindings.js';
 let fixture;
 afterEach(()=>{if(fixture){fixture.db.close();fs.rmSync(fixture.root,{recursive:true,force:true});fixture=null;}});
@@ -14,6 +15,15 @@ for(const engine of ['node','sqljs'])describe(`${engine} budget management compo
     for(const w of ['0','1'])expect(()=>putBudgetManagement(cap,'key-one',body(w))).toThrow(/not ready/);
     expect(putBudgetManagement(cap,'key-one',body())).toMatchObject({version:1,enforcementActive:false});
     expect(cap.db.get('SELECT version FROM apiKeyBudgetPolicies').version).toBe(1);
+  });
+  it('projects interrupted absence as nonblocking without unknown work and retains malformed safety',async()=>{
+    const cap=await setup();putBudgetManagement(cap,'key-one',body('1'));
+    insertAttemptSync(cap.db,intent(cap.db));
+    finalizeAttemptSync(cap.db,'attempt-one',{state:'unrecorded',outcome:'stream_unknown',finishedAt:now,evidence:{kind:'absent',interrupted:true}});
+    expect(getBudgetManagement(cap,'key-one')).toMatchObject({unresolvedCount:0,pendingCount:0,weekly:{spentUsd:'0',remainingUsd:'1'},eligibility:{eligible:true,blockReason:null},accountingPolicy:'durable-evidence-recorded-spend',mayUndercount:true});
+    insertAttemptSync(cap.db,intent(cap.db,'bad-usage'));
+    finalizeAttemptSync(cap.db,'bad-usage',{state:'unresolved',outcome:'invalid_usage',finishedAt:now,evidence:{kind:'malformed',interrupted:true}});
+    expect(getBudgetManagement(cap,'key-one')).toMatchObject({eligibility:{eligible:false,blockReason:'api_key_accounting_unresolved'}});
   });
   it('fixture saves exact policy, current no-op, stale conflict and zero projected exhausted',async()=>{
     const cap=await setup();const saved=putBudgetManagement(cap,'key-one',body('0','1.000000001'));

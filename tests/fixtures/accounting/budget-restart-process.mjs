@@ -42,18 +42,15 @@ try{
     const response=await request(now);assert.equal(response.status,200);await response.text();
     result={status:response.status,row:db.get('SELECT apiKeyId,state,costNanoUsd,startedAt FROM apiKeyAccounting')};
   }else if(mode==='crash-read'){
-    const row=db.get('SELECT attemptId,state,costNanoUsd,resolutionVersion,startedAt FROM apiKeyAccounting');assert.equal(row.state,'unresolved');assert.equal(row.costNanoUsd,null);assert.equal(row.startedAt,now);
+    const row=db.get('SELECT attemptId,state,costNanoUsd,resolutionVersion,startedAt FROM apiKeyAccounting');assert.equal(row.state,'unrecorded');assert.equal(row.costNanoUsd,null);assert.equal(row.startedAt,now);
     const nextAt='2027-01-01T00:00:00.000Z';
-    const denied=await request(nextAt);assert.equal(denied.status,503);assert.equal((await denied.json()).error.code,'api_key_accounting_unresolved');
+    const admitted=await request(nextAt);assert.equal(admitted.status,200);await admitted.text();
     updateAccountingPolicy(db,'key-one',parseBudgetPolicy({weeklyLimitUsd:null,monthlyLimitUsd:null,expectedVersion:2}),nextAt);
     const continued=await request(nextAt);assert.equal(continued.status,200);await continued.text();
     updateAccountingPolicy(db,'key-one',parseBudgetPolicy({weeklyLimitUsd:'1',monthlyLimitUsd:null,expectedVersion:3}),nextAt);
-    const reenabled=await request(nextAt);assert.equal(reenabled.status,503);assert.equal((await reenabled.json()).error.code,'api_key_accounting_unresolved');
-    const {resolveAttemptSync}=await import('../../../src/lib/db/repos/api-key-accounting-repo.js');
-    resolveAttemptSync(db,row.attemptId,{action:'waive',operationId:'fixture-crash-waiver',actor:'fixture-admin',reason:'Audited disposable crash control',evidence:'Parent killed owner only after own durable intent ACK',expectedVersion:row.resolutionVersion});
-    const positive=await request(nextAt);assert.equal(positive.status,200);await positive.text();
-    result={deniedStatus:denied.status,unlimitedStatus:continued.status,reenabledStatus:reenabled.status,afterWaiverStatus:positive.status,rows:db.all('SELECT apiKeyId,state,costNanoUsd,startedAt FROM apiKeyAccounting ORDER BY startedAt'),auditCount:db.get('SELECT count(*) AS n FROM apiKeyAccountingAudit').n};
-    assert.equal(result.rows.length,3);assert.equal(result.auditCount,1);
+    const reenabled=await request(nextAt);assert.equal(reenabled.status,200);await reenabled.text();
+    result={admittedStatus:admitted.status,unlimitedStatus:continued.status,reenabledStatus:reenabled.status,rows:db.all('SELECT apiKeyId,state,costNanoUsd,startedAt FROM apiKeyAccounting ORDER BY startedAt'),auditCount:db.get('SELECT count(*) AS n FROM apiKeyAccountingAudit').n};
+    assert.equal(result.rows.length,4);assert.equal(result.auditCount,0);
   }else{
     const denied=await request(now);assert.equal(denied.status,429);assert.equal((await denied.json()).error.code,'api_key_budget_exceeded');
     const count=db.get('SELECT count(*) AS n FROM apiKeyAccounting').n;assert.equal(count,1);

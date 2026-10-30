@@ -159,7 +159,7 @@ export async function runBudgetPanelChecks({page,context,base,fixture,check,expe
     const denied=await context.request.put(target,{headers:{Origin:'https://hostile.invalid'},data:'bad-json'});expect(denied.status()).toBe(403);expect(denied.headers()['cache-control']).toBe('no-store');
     expect(fixture.db.get("SELECT version FROM apiKeyBudgetPolicies WHERE apiKeyId='key-one'").version).toBe(version);
   });
-  await check('actual concurrent POST overshoot and missing usage render exact overshoot and persistent unknown',async()=>{
+  await check('actual concurrent POST overshoot and completed missing usage retain independent accounting safety',async()=>{
     const target=`${base}/api/keys/key-one/budget`;
     const policy=async weekly=>{const current=await context.request.get(target),snapshot=await current.json();const response=await context.request.put(target,{headers:{Origin:base},data:{weeklyLimitUsd:weekly,monthlyLimitUsd:null,expectedVersion:snapshot.version}});expect(response.status()).toBe(200);};
     // Current-week spend is 0.0012; two admitted POSTs each add 0.0012.
@@ -169,7 +169,7 @@ export async function runBudgetPanelChecks({page,context,base,fixture,check,expe
     const posts=fixture.posts,denied=await infer('fixture-secret');expect(denied.status()).toBe(429);expect(fixture.posts).toBe(posts);await page.screenshot({path:`${root}/budget-overshoot.png`});
     await policy('1');upstreamControl.unknown(true);
     try{const unknown=await infer('fixture-secret');expect(unknown.status()).toBe(200);await unknown.json();}finally{upstreamControl.unknown(false);}
-    await panel.getByRole('button',{name:'Refresh budget',exact:true}).click();await expect(panel.getByText(/Unknown \/ unresolved attempts: 1/)).toBeVisible();await expect(panel.getByText(/api_key_accounting_unresolved/)).toBeVisible();
+    await panel.getByRole('button',{name:'Refresh budget',exact:true}).click();await expect(panel.getByText(/Accounting safety errors: 1/)).toBeVisible();await expect(panel.getByText(/api_key_accounting_unresolved/)).toBeVisible();
     expect(fixture.db.get("SELECT costNanoUsd FROM apiKeyAccounting WHERE state='unresolved'").costNanoUsd).toBeNull();await page.screenshot({path:`${root}/budget-unresolved.png`});
     const count=fixture.posts;setNow('2027-01-01T00:00:00.000Z');const blocked=await infer('fixture-secret');expect(blocked.status()).toBe(503);expect((await blocked.json()).error.code).toBe('api_key_accounting_unresolved');expect(fixture.posts).toBe(count);
     await expect(panel.getByLabel(/^weekly limit USD$/i)).toHaveValue('0.041');
@@ -188,5 +188,24 @@ export async function runBudgetPanelChecks({page,context,base,fixture,check,expe
       const saved=page.waitForResponse(r=>r.url().endsWith('/api/keys/key-two/budget')&&r.request().method()==='PUT');await other.getByRole('button',{name:'Save budget',exact:true}).click();expect((await saved).status()).toBe(200);
       expect(fixture.db.get("SELECT weeklyLimitNanoUsd FROM apiKeyBudgetPolicies WHERE apiKeyId='key-two'").weeklyLimitNanoUsd).toBe(100000000);expect(fixture.db.get("SELECT count(*) AS n FROM apiKeyAccounting WHERE apiKeyId='key-one'").n).toBe(5);
     }finally{release();let bound;try{if(entered)await Promise.race([done,new Promise((_,reject)=>{bound=setTimeout(()=>reject(new Error('Late GET cleanup exceeded 10s')),10000);})]);}finally{clearTimeout(bound);await page.unroute(target,hold);}if(handlerError)throw handlerError;}
+  });
+  await check('actual interrupted SSE has no unknown work while authoritative EOF usage debits once',async()=>{
+    // Key A was removed by the preceding unmount control; use independent key B.
+    const target=`${base}/api/keys/key-two/budget`;
+    const read=async()=>{const response=await context.request.get(target);expect(response.status()).toBe(200);return response.json();};
+    const before=await read();const initial=before.weekly.spentUsd;
+    const request=()=>context.request.post(`${base}/v1/chat/completions`,{headers:{authorization:'Bearer fixture-secret-two'},data:{model:'fixture-node/fixture',stream:true,messages:[{role:'user',content:'hello'}]}});
+    try{
+      upstreamControl.interruption('absent');
+      for(let i=0;i<2;i++){const response=await request();expect(response.status()).toBe(200);const text=await response.text();expect(text).not.toContain('[DONE]');expect(text).not.toContain('"finish_reason":"stop"');}
+      const absent=await read();expect(absent.weekly.spentUsd).toBe(initial);expect(absent.unresolvedCount).toBe(0);expect(absent.eligibility.eligible).toBe(true);
+      await other.getByRole('button',{name:'Refresh budget',exact:true}).click();
+      await expect(other.getByText(/Unknown \/ unresolved attempts/)).toHaveCount(0);await expect(other.getByText(/audited recovery is required/)).toHaveCount(0);
+      await expect(other.getByText(/Interrupted requests without recoverable usage/)).toBeVisible();
+      upstreamControl.interruption('valid');const response=await request();const text=await response.text();expect(text).not.toContain('[DONE]');expect(text).not.toContain('"finish_reason":"stop"');
+      const after=await read();const nano=value=>{const [whole,fraction='']=value.split('.');return BigInt(whole)*1000000000n+BigInt(fraction.padEnd(9,'0'));};
+      expect(nano(after.weekly.spentUsd)-nano(initial)).toBe(1200000n);expect(after.unresolvedCount).toBe(0);
+      expect(fixture.db.get("SELECT count(*) AS n FROM apiKeyAccounting WHERE apiKeyId='key-two' AND state='unrecorded'").n).toBe(2);
+    }finally{upstreamControl.interruption(null);}
   });
 }

@@ -21,6 +21,11 @@ for(const engine of ['node','sqljs'])describe(`${engine} actual budget failure c
     expect(error.resetAt).toBe('2026-10-31T17:00:00.000Z');expect(denied.headers.get('retry-after')).toBe('522000');
     expect(f.posts).toBe(1);expect(f.db.all('SELECT costNanoUsd FROM apiKeyAccounting').map(row=>row.costNanoUsd)).toEqual([1200000]);
   });
+  it.each(['completed-absent','malformed'])('retains safety refusal for %s rather than granting interruption exemption',async mode=>{
+    const {f,clock,policy}=await setup({respond:(_req,res)=>{const body=jsonReply();if(mode==='completed-absent')delete body.usage;else body.usage={prompt_tokens:5};res.setHeader('content-type','application/json');res.end(JSON.stringify(body));}});policy('1');
+    const first=await f.request({clock});await first.text();expect(f.db.get('SELECT state FROM apiKeyAccounting').state).toBe('unresolved');
+    const next=await f.request({clock});expect(next.status).toBe(503);expect(f.posts).toBe(1);
+  });
   it('unsupported compatible profile returns typed native error before POST',async()=>{
     const {f,clock,policy}=await setup();policy('1');
     f.db.durableTransaction(()=>f.db.run("UPDATE providerNodes SET data=json_set(data,'$.apiType','responses')"));
