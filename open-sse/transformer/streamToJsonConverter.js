@@ -1,3 +1,36 @@
+import { isNativeResponsesAccounting } from '../config/accountingProfiles.js';
+import { RESPONSES_EVENT, RESPONSES_STATUS } from '../translator/schema/index.js';
+import { createResponsesSSEFramer } from '../utils/responses-sse-framing.js';
+import { ACCOUNTING_JSON_MAX_BYTES } from '../config/runtimeConfig.js';
+
+async function convertAssociatedNativeStream(stream) {
+  if (!stream?.getReader) throw new Error('Native Responses stream required');
+  const reader=stream.getReader();let terminal=null,id=null,bytes=0;
+  const types=new Map([[RESPONSES_EVENT.COMPLETED,RESPONSES_STATUS.COMPLETED],[RESPONSES_EVENT.FAILED,RESPONSES_STATUS.FAILED],
+    [RESPONSES_EVENT.INCOMPLETE,RESPONSES_STATUS.INCOMPLETE],[RESPONSES_EVENT.DONE,null]]);
+  const framer=createResponsesSSEFramer(frame=>{
+    let data;
+    try { data=JSON.parse(frame.payload); }
+    catch(cause) { throw new Error('Malformed native Responses converter event',{cause}); }
+    const type=frame.event||data.type;
+    if(frame.event&&data.type!==frame.event)throw new Error('Native converter event mismatch');
+    if(data.response?.id){if(id&&id!==data.response.id)throw new Error('Native converter response identity changed');id=data.response.id;}
+    if(type===RESPONSES_EVENT.ERROR)throw new Error('Native Responses error');
+    if(types.has(type)){
+      const raw=data.response,status=types.get(type);
+      if(!raw||!Object.values(RESPONSES_STATUS).includes(raw.status)||status&&raw.status!==status)throw new Error('Native converter terminal mismatch');
+      if(terminal&&JSON.stringify(terminal)!==JSON.stringify(raw))throw new Error('Conflicting native converter terminals');
+      terminal=raw;
+    }
+  });
+  try{
+    while(true){const {done,value}=await reader.read();if(done)break;bytes+=value.byteLength;
+      if(bytes>ACCOUNTING_JSON_MAX_BYTES)throw new Error('Native Responses JSON conversion limit exceeded');framer.push(value);}
+    framer.end();if(!terminal)throw new Error('Native Responses terminal absent');return terminal;
+  }catch(error){await reader.cancel(error).catch(()=>{});throw error;}
+  finally{reader.releaseLock();}
+}
+
 /**
  * Stream-to-JSON Converter
  * Converts Responses API SSE stream to single JSON response
@@ -46,7 +79,8 @@ const EMPTY_RESPONSE = { input_tokens: 0, output_tokens: 0, total_tokens: 0 };
  * @param {ReadableStream} stream - SSE stream from provider
  * @returns {Promise<Object>} Final JSON response in Responses API format
  */
-export async function convertResponsesStreamToJson(stream) {
+export async function convertResponsesStreamToJson(stream, accounting = null) {
+  if (isNativeResponsesAccounting(accounting)) return convertAssociatedNativeStream(stream);
   if (!stream || typeof stream.getReader !== "function") {
     return { id: `resp_${Date.now()}`, object: "response", created_at: Math.floor(Date.now() / 1000), status: "failed", output: [], usage: { ...EMPTY_RESPONSE } };
   }

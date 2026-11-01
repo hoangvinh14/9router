@@ -5,6 +5,10 @@ import { openFixture, addKey, backupFixture } from './test-database.js';
 import { associateChatAccountingFixture } from '../../../src/sse/services/chat-accounting.js';
 import { handleChat } from '../../../src/sse/handlers/chat.js';
 
+// Restoring null lets late consumers initialize a default writable adapter.
+// Retain a closed sentinel between fixtures; presentation tasks are disabled at
+// their call boundary in the isolated harness, not redirected into the next DB.
+const closedFixtureAdapter = Object.freeze({ health: () => ({ healthy:false,closed:true,owned:false }) });
 export const fixtureProvider = 'openai-compatible-chat-accounting-fixture';
 export const rawUsage = (cached = 0) => ({ prompt_tokens:1000, completion_tokens:100, total_tokens:1100,
   prompt_tokens_details:{ cached_tokens:cached }, completion_tokens_details:{ reasoning_tokens:0 } });
@@ -14,10 +18,10 @@ export function gate() { let release; const promise = new Promise(resolve => { r
 export const observe = pending => pending.then(value => ({ok:true,value}), error => ({ok:false,error}));
 export const reach = (gate, outcome) => Promise.race([gate.promise, outcome.then(result => { throw result.ok ? new Error('Request ended before expected gate') : result.error; })]);
 
-export async function openChatFixture(engine, { rates = {input:'1',output:'2',cached:'0.25'}, respond, proxy = false, settings = {} } = {}) {
+export async function openChatFixture(engine, { rates = {input:'1',output:'2',cached:'0.25'}, respond, proxy = false, settings = {}, apiType = 'chat' } = {}) {
   const fixture = await openFixture(engine), { db } = fixture;
   const sockets = new Set(), servers = [];
-  const previous = global._dbAdapter.instance;
+  const previous = global._dbAdapter.instance || closedFixtureAdapter;
   global._dbAdapter.instance = db;
   let posts = 0, connects = 0;
   const requests = [];
@@ -58,8 +62,8 @@ export async function openChatFixture(engine, { rates = {input:'1',output:'2',ca
       const now = new Date().toISOString();
       db.run('INSERT INTO settings(id,data) VALUES(1,?)',[JSON.stringify({requireApiKey:true,rtkEnabled:false,...settings})]);
       db.run('INSERT INTO providerNodes(id,type,name,data,createdAt,updatedAt) VALUES(?,?,?,?,?,?)',
-        [fixtureProvider,'openai-compatible','Fixture',JSON.stringify({prefix:'fixture-node',apiType:'chat',baseUrl}),now,now]);
-      const data = {apiKey:'provider-secret',providerSpecificData:{baseUrl,apiType:'chat',...(proxy ? {proxyPoolId:'pool-one'} : {})}};
+        [fixtureProvider,'openai-compatible','Fixture',JSON.stringify({prefix:'fixture-node',apiType,baseUrl}),now,now]);
+      const data = {apiKey:'provider-secret',providerSpecificData:{baseUrl,apiType,...(proxy ? {proxyPoolId:'pool-one'} : {})}};
       db.run('INSERT INTO providerConnections(id,provider,authType,priority,data,createdAt,updatedAt) VALUES(?,?,?,?,?,?,?)',
         ['connection-one',fixtureProvider,'apikey',1,JSON.stringify(data),now,now]);
       if (proxy) db.run('INSERT INTO proxyPools(id,data,createdAt,updatedAt) VALUES(?,?,?,?)',
@@ -68,9 +72,9 @@ export async function openChatFixture(engine, { rates = {input:'1',output:'2',ca
     });
     backupFixture(db,fixture.file);
     return { ...fixture, requests, get posts(){return posts;},get connects(){return connects;},
-      request({stream=false,model='fixture-node/fixture',key='fixture-secret',hooks={},clock,signal,accounting=true,body={}} = {}) {
-        const request = new Request('http://localhost/v1/chat/completions', {method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`},
-          body:JSON.stringify({model,messages:[{role:'user',content:'hello'}],stream,...body}),signal});
+      request({stream=false,model='fixture-node/fixture',key='fixture-secret',hooks={},clock,signal,accounting=true,body={},ingress=apiType,userAgent=''} = {}) {
+        const request = new Request(`http://localhost/v1/${ingress === 'responses' ? 'responses' : 'chat/completions'}`, {method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${key}`,'user-agent':userAgent},
+          body:JSON.stringify({model,...(ingress === 'responses' ? {input:'hello'} : {messages:[{role:'user',content:'hello'}]}),stream,...body}),signal});
         if (accounting) associateChatAccountingFixture(request,db,hooks,{clock});
         return handleChat(request);
       },

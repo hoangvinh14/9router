@@ -17,6 +17,9 @@ export const CLAUDE_DELTA = {
 // Every one of these starts with RESPONSES_EVENT_PREFIX.
 export const RESPONSES_EVENT_PREFIX = "response.";
 export const RESPONSES_EVENT = {
+  CREATED: "response.created",
+  DONE: "response.done",
+  ERROR: "error",
   OUTPUT_ITEM_ADDED: "response.output_item.added",
   OUTPUT_ITEM_DONE: "response.output_item.done",
   OUTPUT_TEXT_DELTA: "response.output_text.delta",

@@ -1,4 +1,5 @@
 import { FORMATS } from "../../translator/formats.js";
+import { isNativeResponsesAccounting } from "../../config/accountingProfiles.js";
 import { needsTranslation } from "../../translator/index.js";
 import { openAICompletionToClaudeMessage } from "../../translator/concerns/claudeMessage.js";
 import { ollamaBodyToOpenAI } from "../../translator/response/ollama-to-openai.js";
@@ -12,7 +13,7 @@ import { buildRequestDetail, extractRequestConfig, extractUsageFromResponse, sav
 import { appendRequestLog, saveRequestDetail } from "@/lib/usageDb.js";
 import { decloakToolNames } from "../../utils/claudeCloaking.js";
 import { restoreToolNames } from "../../utils/opencodeFingerprint.js";
-import { ROLE, RESPONSES_ITEM } from "../../translator/schema/index.js";
+import { ROLE, RESPONSES_ITEM, RESPONSES_STATUS } from "../../translator/schema/index.js";
 
 /**
  * Convert an OpenAI Chat Completions non-streaming response body into the
@@ -234,7 +235,7 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
 /**
  * Handle non-streaming response from provider.
  */
-export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log }) {
+export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log, accounting }) {
   trackDone();
   const contentType = providerResponse.headers.get("content-type") || "";
   let responseBody;
@@ -263,6 +264,14 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
   responseBody = unwrapClineEnvelope(responseBody, provider);
 
   reqLogger.logProviderResponse(providerResponse.status, providerResponse.statusText, providerResponse.headers, responseBody);
+  if (isNativeResponsesAccounting(accounting) && targetFormat === FORMATS.OPENAI_RESPONSES && responseBody.status !== RESPONSES_STATUS.COMPLETED) {
+    appendLog({ status: `FAILED ${HTTP_STATUS.BAD_GATEWAY}` });
+    return { success: false, terminal: true,
+      response: new Response(JSON.stringify(restoreToolNames(responseBody, toolNameMap)), {
+        status: HTTP_STATUS.BAD_GATEWAY,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', ...upstreamResponseHeaders(providerResponse.headers) },
+      }) };
+  }
   if (onRequestSuccess) {
     Promise.resolve()
       .then(onRequestSuccess)
@@ -311,7 +320,7 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
     }
   }
 
-  if (translatedResponse?.usage) {
+  if (translatedResponse?.usage && !(isResponsesResponse && targetFormat === FORMATS.OPENAI_RESPONSES && isNativeResponsesAccounting(accounting))) {
     translatedResponse.usage = filterUsageForFormat(addBufferToUsage(translatedResponse.usage), sourceFormat);
   }
 

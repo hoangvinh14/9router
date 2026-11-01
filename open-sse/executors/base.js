@@ -6,6 +6,7 @@ import { dbg } from "../utils/debugLog.js";
 import { ANTHROPIC_API_VERSION, OPENAI_COMPAT_BASE, ANTHROPIC_COMPAT_BASE } from "../providers/shared.js";
 import { resolveOpenAICompatibleApiType } from "../services/provider.js";
 import { isAccountingRefusal } from "../utils/accounting-transport.js";
+import { OPENAI_EXPLICIT_USAGE_PROFILE } from "../utils/accounting-openai-usage.js";
 
 /**
  * BaseExecutor - Base class for provider executors
@@ -100,7 +101,7 @@ export class BaseExecutor {
   }
 
   async execute({ model, body, stream, credentials, signal, log, proxyOptions = null, providerOverrides = null, accounting = null, directFetch = null }) {
-    if (accounting?.profile && stream) body = { ...body, stream_options: { ...body.stream_options, include_usage: true } };
+    if (accounting?.profile === OPENAI_EXPLICIT_USAGE_PROFILE && stream) body = { ...body, stream_options: { ...body.stream_options, include_usage: true } };
     if (accounting?.profile) accounting = createAccountedBoundary(accounting);
     const fallbackCount = this.getFallbackCount();
     let lastError = null;

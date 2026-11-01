@@ -2,6 +2,10 @@ import { ACCOUNTING_JSON_MAX_BYTES } from "../config/runtimeConfig.js";
 import { createUsageObservation } from "../utils/accounting-openai-usage.js";
 import { accountingRefusal } from "../utils/accounting-transport.js";
 import { createAccountedStream } from "../utils/accounting-openai-stream.js";
+import { createAccountedResponsesStream } from '../utils/accounting-responses-stream.js';
+import { RESPONSES_EXPLICIT_USAGE_PROFILE } from "../config/accountingProfiles.js";
+import { createResponsesUsageObservation, assertResponsesOutput } from "../utils/accounting-responses-usage.js";
+import { RESPONSES_STATUS } from "../translator/schema/index.js";
 
 const invalidBodies = new WeakSet();
 async function readRawJson(response) {
@@ -36,6 +40,7 @@ export function createAccountedBoundary(accounting) {
     return Object.freeze({ ...ticket,
       async response(response) {
         if (response.ok && response.body && response.headers.get("content-type")?.toLowerCase().includes("text/event-stream")) {
+          if (accounting.profile === RESPONSES_EXPLICIT_USAGE_PROFILE) return createAccountedResponsesStream(response,ticket,accounting);
           return createAccountedStream(response, ticket, accounting);
         }
         let bytes;
@@ -44,14 +49,24 @@ export function createAccountedBoundary(accounting) {
           await ticket.finish(null, "body_unknown", { kind: invalidBodies.has(error) ? 'malformed' : 'absent', interrupted: true });
           throw accountingRefusal(error);
         }
-        const observation = createUsageObservation(accounting.profile);
+        const nativeResponses = accounting.profile === RESPONSES_EXPLICIT_USAGE_PROFILE;
+        const observation = nativeResponses ? createResponsesUsageObservation(accounting.profile) : createUsageObservation(accounting.profile);
         try {
           const raw = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
           if (!raw || typeof raw !== 'object' || Array.isArray(raw)) observation.observe(null);
-          else if (Object.hasOwn(raw, 'usage')) observation.observe(raw.usage);
+          else {
+            if (Object.hasOwn(raw, 'usage')) observation.observe(raw.usage);
+            if (nativeResponses) {
+              if (response.ok || raw.object === 'response') {
+                if (raw.object !== 'response' || !Object.values(RESPONSES_STATUS).includes(raw.status)) observation.observe(null);
+                assertResponsesOutput(raw);
+              } else if (!raw.error || typeof raw.error !== 'object' || Array.isArray(raw.error)) observation.observe(null);
+            }
+          }
         } catch { observation.observe(null); }
         // Persistence errors must not be recaught as missing transport evidence.
         await ticket.finish(observation.value(), `http_${response.status}`, { ...observation.evidence(), interrupted: false });
+        if (nativeResponses && !observation.value()) throw accountingRefusal(new Error('Unsupported native Responses JSON evidence'));
         return new Response([204, 205, 304].includes(response.status) ? null : bytes,
           { status: response.status, statusText: response.statusText, headers: response.headers });
       },

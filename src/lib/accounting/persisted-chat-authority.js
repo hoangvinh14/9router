@@ -112,8 +112,9 @@ export function createPersistedChatAuthority(db, credential) {
   function assertAgainst(view, { provider, model, connectionId }, credentials) {
     const node = view.nodes.find(node => node.id === provider);
     if (!model) throw unavailable('Chat model authority missing');
+    const apiType = node?.apiType || "chat";
     if (!/^openai-compatible-/.test(provider) || node?.type !== "openai-compatible" ||
-        (node.apiType || "chat") !== "chat" || resolveOpenAICompatibleApiType(provider, credentials) !== "chat") throw budgetError('model_accounting_unsupported');
+        !["chat", "responses"].includes(apiType) || resolveOpenAICompatibleApiType(provider, credentials) !== apiType) throw budgetError('model_accounting_unsupported');
     const connection = view.connections.find(c => c.id === connectionId);
     if (!connection?.isActive || connection.provider !== provider || isModelLockActive(connection, model)) throw unavailable("Chat selection unavailable");
     const expected = resolveCredentialsFromView(view, connection);

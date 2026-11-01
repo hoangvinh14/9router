@@ -1,0 +1,41 @@
+{
+  "taskId": "b047216d6",
+  "exitCode": 0,
+  "durationSeconds": 498.92,
+  "node": "v24.21.0",
+  "vitest": "4.1.12",
+  "sqljs": "1.15.2",
+  "adapters": [
+    "node:sqlite",
+    "sql.js"
+  ],
+  "platform": "Linux",
+  "sourceManifestFileCount": 1661,
+  "runtimeHashTiming": "Supplemental runtime dependency hashes captured during run, source manifest captured before launch.",
+  "command": "node tests/fixtures/accounting/run-isolated.mjs unit/accounting-budget-gate.test.js unit/accounting-budget-projection.test.js unit/accounting-crash.test.js unit/accounting-fixture-isolation.test.js unit/accounting-persisted-authority.test.js unit/accounting-request-authority.test.js unit/accounting-transport-boundary.test.js unit/b1-late-chat-sink.test.js unit/b1-ledger-disposition.test.js unit/b1-usage-evidence.test.js unit/budget-activation-boundary.test.js unit/chat-accounting-final-controls.test.js unit/chat-accounting-json.test.js unit/chat-accounting-loopback.test.js unit/chat-accounting-stream-loopback.test.js unit/chat-accounting-stream.test.js unit/chat-budget-loopback.test.js unit/chat-budget-pricing-fallback.test.js unit/chat-budget-process-restart.test.js unit/default-executor-accounting-compatibility.test.js unit/embeddingsCore.test.js unit/github-responses-routing.test.js unit/key-budget-management-security.test.js unit/openai-responses-completed-usage.test.js unit/openai-responses-completion-watchdog.test.js unit/openai-responses-nonstream.test.js unit/openai-responses-terminal-event.test.js unit/openai-responses-usage-pivot.test.js unit/responses-abort-terminal.test.js unit/responses-accounting-consumers.test.js unit/responses-accounting-final-controls.test.js unit/responses-accounting-json-boundary.test.js unit/responses-accounting-json.test.js unit/responses-accounting-late-sink.test.js unit/responses-accounting-loopback.test.js unit/responses-accounting-pricing.test.js unit/responses-accounting-restart.test.js unit/responses-accounting-stream.test.js unit/responses-accounting-usage.test.js unit/responses-budget-loopback.test.js unit/responses-converter-callers.test.js unit/responses-stream-to-json-contract.test.js",
+  "config": "tests/vitest.accounting-isolated.config.js",
+  "reporters": [
+    "default",
+    "json"
+  ],
+  "environment": "Sanitized allowlisted env, pre-import disposable HOME/DATA_DIR/TMPDIR, NODE_ENV=test,TZ=UTC,NODE_OPTIONS=--max-old-space-size=4096; private network/PID/mount namespaces and loopback. See hashed runner/config for full invocation.",
+  "originalComparator": {
+    "command": "node tests/__baseline__/verify-no-regression.mjs /tmp/9router-r1-isolated-kO3r8C/sandbox/artifacts/results.json",
+    "exitCode": 0,
+    "nowFails": 0,
+    "knownBaseline": 32,
+    "pathCaveat": "/app/ split; exact collection and raw assertion identities separately inspected."
+  },
+  "isolationSummary": {
+    "outsideArtifacts": [],
+    "status": 0,
+    "root": "/tmp/9router-r1-isolated-kO3r8C/sandbox"
+  },
+  "excluded": [
+    "legacy presentation persistence",
+    "production build/server wiring certification",
+    "real data inspection/remediation",
+    "unrelated generated build artifacts",
+    "other X1 owners and broader R release certification"
+  ]
+}

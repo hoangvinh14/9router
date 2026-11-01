@@ -3,6 +3,9 @@ import { existsSync, statSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 registerHooks({ resolve(specifier, context, nextResolve) {
+  if (process.env.R1_ISOLATED_ROOT && specifier === '@/lib/usageDb.js') {
+    return nextResolve(new URL('./isolated-presentation.mjs', import.meta.url).href, context);
+  }
   if (specifier === 'node-machine-id' && !context.parentURL?.endsWith('/chat-machine-id-interop.mjs')) {
     return nextResolve(new URL('./chat-machine-id-interop.mjs', import.meta.url).href, context);
   }
