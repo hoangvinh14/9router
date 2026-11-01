@@ -1,0 +1,18 @@
+[
+  "src/sse/services/embeddings-accounting.js",
+  "src/lib/accounting/persisted-embeddings-authority.js",
+  "open-sse/utils/accounting-embeddings-usage.js",
+  "open-sse/handlers/embeddings-accounting.js",
+  "tests/unit/embeddings-budget-loopback.test.js",
+  "tests/unit/embeddings-accounting-late-sink.test.js",
+  "tests/unit/embeddings-accounting-final-controls.test.js",
+  "tests/unit/embeddings-accounting-pricing.test.js",
+  "tests/unit/embeddings-accounting-transport.test.js",
+  "tests/unit/embeddings-accounting-loopback.test.js",
+  "tests/unit/embeddings-accounting-authority.test.js",
+  "tests/unit/embeddings-accounting-json.test.js",
+  "tests/unit/embeddings-accounting-usage.test.js",
+  "tests/unit/embeddings-accounting-restart.test.js",
+  "tests/fixtures/accounting/embeddings-loopback.js",
+  "tests/fixtures/accounting/embeddings-process.mjs"
+]

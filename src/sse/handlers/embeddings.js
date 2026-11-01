@@ -14,6 +14,9 @@ import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { saveRequestUsage } from "@/lib/usageDb.js";
+import { captureEmbeddingsAccounting } from '../services/embeddings-accounting.js';
+import { budgetErrorResponse } from '../../lib/accounting/budget-errors.js';
+import { isAccountingRefusal } from 'open-sse/utils/accounting-transport.js';
 
 function exactEmbeddingUsage(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw) || raw.estimated === true) return null;
@@ -31,15 +34,37 @@ function exactEmbeddingUsage(raw) {
  * @param {Request} request
  */
 export async function handleEmbeddings(request) {
+  let accounting;
+  try {
+    accounting = captureEmbeddingsAccounting(request);
+    const response = await handleEmbeddingsRequest(request,accounting);
+    if (!accounting) return response;
+    const headers = new Headers(response.headers);
+    for (const [name,value] of Object.entries(accounting.responseHeaders)) headers.set(name,value);
+    return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
+  } catch (error) {
+    // Initialization failure of an enrolled request must never fall through to
+    // legacy dispatch. Unassociated errors retain the pre-existing behavior.
+    if (!accounting) {
+      if (!isAccountingRefusal(error)) throw error;
+    }
+    return budgetErrorResponse(error);
+  } finally {accounting?.dispose();}
+}
+
+async function handleEmbeddingsRequest(request,accounting) {
   let body;
   try {
-    body = await request.json();
-  } catch {
+    body = await (accounting ? accounting.wait(request.json()) : request.json());
+  } catch (error) {
+    if (accounting) throw error;
     log.warn("EMBEDDINGS", "Invalid JSON body");
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid JSON body");
   }
 
-  const url = new URL(request.url);
+  let url;
+  try { url = new URL(request.url); }
+  catch { return errorResponse(HTTP_STATUS.BAD_REQUEST, 'Invalid request URL'); }
   const modelStr = body.model;
 
   log.request("POST", `${url.pathname} | ${modelStr}`);
@@ -53,13 +78,14 @@ export async function handleEmbeddings(request) {
   }
 
   // Enforce API key if enabled in settings
-  const settings = await getSettings();
+  const wait = pending => accounting ? accounting.wait(pending) : pending;
+  const settings = accounting?.degraded ? accounting.settings() : await wait(getSettings());
   if (settings.requireApiKey) {
     if (!apiKey) {
       log.warn("AUTH", "Missing API key (requireApiKey=true)");
       return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Missing API key");
     }
-    const valid = await isValidApiKey(apiKey);
+    const valid = accounting?.degraded ? true : await wait(isValidApiKey(apiKey));
     if (!valid) {
       log.warn("AUTH", "Invalid API key (requireApiKey=true)");
       return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Invalid API key");
@@ -76,7 +102,8 @@ export async function handleEmbeddings(request) {
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: input");
   }
 
-  const modelInfo = await getModelInfo(modelStr);
+  accounting?.authorizeTarget(modelStr,body);
+  const modelInfo = accounting?.degraded ? accounting.modelInfo(modelStr) : await wait(getModelInfo(modelStr));
   if (!modelInfo.provider) {
     log.warn("EMBEDDINGS", "Invalid model format", { model: modelStr });
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid model format");
@@ -85,7 +112,7 @@ export async function handleEmbeddings(request) {
   const { provider, model } = modelInfo;
 
   // Per-key access control: checked before any credential lookup.
-  const keyAccessDenied = await enforceKeyAccessResolved(await getKeyAccessContext(request), modelStr, provider, model);
+  const keyAccessDenied = accounting?.degraded ? null : await wait(enforceKeyAccessResolved(await wait(getKeyAccessContext(request)), modelStr, provider, model));
   if (keyAccessDenied) return keyAccessDenied;
 
   if (modelStr !== `${provider}/${model}`) {
@@ -98,12 +125,16 @@ export async function handleEmbeddings(request) {
   const excludeConnectionIds = new Set();
   let lastError = null;
   let lastStatus = null;
+  let retainedError = null;
 
   while (true) {
-    const credentials = await getProviderCredentials(provider, excludeConnectionIds, model);
+    accounting?.assertCurrent();
+    const credentials = accounting?.degraded ? accounting.credentials(provider,model,excludeConnectionIds) : await wait(getProviderCredentials(provider, excludeConnectionIds, model));
+    accounting?.assertCurrent();
 
     // All accounts unavailable
     if (!credentials || credentials.allRateLimited) {
+      if (accounting && retainedError) return retainedError;
       if (credentials?.allRateLimited) {
         const errorMsg = lastError || credentials.lastError || "Unavailable";
         const status = lastStatus || Number(credentials.lastErrorCode) || HTTP_STATUS.SERVICE_UNAVAILABLE;
@@ -118,14 +149,23 @@ export async function handleEmbeddings(request) {
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable");
     }
 
+    // A real successor supersedes the predecessor bytes. Any local admission
+    // refusal must win rather than resurrect that earlier upstream response.
+    retainedError = null;
     log.info("AUTH", `\x1b[32mUsing ${provider} account: ${credentials.connectionName}\x1b[0m`);
 
-    const refreshedCredentials = await checkAndRefreshToken(provider, credentials);
+    // Validate persisted API-key selection before any proactive refresh producer.
+    // Selected credentials have no supported token-refresh path.
+    if (accounting) accounting.validateSelection({provider,model,endpoint:'embeddings',connectionId:credentials.connectionId},credentials);
+    const refreshedCredentials = accounting ? credentials : await checkAndRefreshToken(provider, credentials);
+    const binding = accounting?.bind({provider,model,endpoint:'embeddings',connectionId:credentials.connectionId},refreshedCredentials);
 
     const result = await handleEmbeddingsCore({
       body: { ...body, model: `${provider}/${model}` },
       modelInfo: { provider, model },
       credentials: refreshedCredentials,
+      accounting: binding,
+      signal: request.signal,
       log,
       onCredentialsRefreshed: async (newCreds) => {
         await updateProviderCredentials(credentials.connectionId, {
@@ -135,7 +175,8 @@ export async function handleEmbeddings(request) {
         });
       },
       onRequestSuccess: async () => {
-        await clearAccountError(credentials.connectionId, credentials, model);
+        if (accounting?.degraded) return;
+        await wait(clearAccountError(credentials.connectionId, credentials, model));
       }
     });
 
@@ -155,13 +196,15 @@ export async function handleEmbeddings(request) {
       return result.response;
     }
 
-    const { shouldFallback } = await markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model);
+    accounting?.assertCurrent();
+    const { shouldFallback } = await wait(markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model, null, accounting));
 
     if (shouldFallback) {
       log.warn("AUTH", `Account ${credentials.connectionName} unavailable (${result.status}), trying fallback`);
       excludeConnectionIds.add(credentials.connectionId);
       lastError = result.error;
       lastStatus = result.status;
+      if (accounting) retainedError = result.response;
       continue;
     }
 

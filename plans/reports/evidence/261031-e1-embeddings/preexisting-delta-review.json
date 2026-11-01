@@ -1,0 +1,10 @@
+{
+  "changedPreexisting": [
+    "src/sse/handlers/embeddings.js",
+    "open-sse/handlers/embeddingsCore.js",
+    "tests/unit/budget-activation-boundary.test.js",
+    "tests/unit/embeddingsCore.test.js"
+  ],
+  "otherPreexistingSourceUnchanged": true,
+  "note": "E1 vs pre-E1 baseline, not HEAD; no claim about historical R1 correctness"
+}

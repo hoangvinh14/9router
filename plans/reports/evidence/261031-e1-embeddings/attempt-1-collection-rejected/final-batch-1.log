@@ -1,0 +1,2052 @@
+
+ RUN  v4.1.12 /home/gmo/projects/9router/tests
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > actual one POST and one priced aggregate for "hello"
+[36m[01:21:08] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > actual one POST and one priced aggregate for "hello"
+[01:21:09] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > actual one POST and one priced aggregate for "hello"
+[01:21:09] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > actual one POST and one priced aggregate for "a"
+[36m[01:21:10] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > actual one POST and one priced aggregate for "a"
+[01:21:10] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > actual one POST and one priced aggregate for "a"
+[01:21:10] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > actual one POST and one priced aggregate for 1
+[36m[01:21:10] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > actual one POST and one priced aggregate for 1
+[01:21:10] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > actual one POST and one priced aggregate for 1
+[01:21:10] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > actual one POST and one priced aggregate for [1]
+[36m[01:21:11] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > actual one POST and one priced aggregate for [1]
+[01:21:11] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > actual one POST and one priced aggregate for [1]
+[01:21:11] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > settles original embeddings price/time after persisted rate changes during actual POST
+[36m[01:21:12] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > settles original embeddings price/time after persisted rate changes during actual POST
+[01:21:12] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > settles original embeddings price/time after persisted rate changes during actual POST
+[01:21:12] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > retains exact raw base64 bytes, zero and unknown ordinary metadata
+[36m[01:21:12] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > retains exact raw base64 bytes, zero and unknown ordinary metadata
+[01:21:12] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > retains exact raw base64 bytes, zero and unknown ordinary metadata
+[01:21:12] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 400 bytes and strips unsafe headers after own ACK
+[36m[01:21:13] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 400 bytes and strips unsafe headers after own ACK
+[01:21:13] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 400 bytes and strips unsafe headers after own ACK
+[01:21:13] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 429 bytes and strips unsafe headers after own ACK
+[36m[01:21:14] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 429 bytes and strips unsafe headers after own ACK
+[01:21:14] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 429 bytes and strips unsafe headers after own ACK
+[01:21:14] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stderr | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 429 bytes and strips unsafe headers after own ACK
+[01:21:14] ⚠️  [AUTH] connecti locked modelLock_fixture for 2s [429]
+❌ openai-compatible-chat-accounting-fixture [429]: fixture invalid
+
+stderr | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 429 bytes and strips unsafe headers after own ACK
+[01:21:14] ⚠️  [AUTH] Account connection-one unavailable (429), trying fallback
+
+stderr | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 429 bytes and strips unsafe headers after own ACK
+[01:21:14] ⚠️  [AUTH] openai-compatible-chat-accounting-fixture | all 1 accounts locked for fixture (reset after 2s) | lastError=fixture invalid
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 503 bytes and strips unsafe headers after own ACK
+[36m[01:21:14] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 503 bytes and strips unsafe headers after own ACK
+[01:21:15] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 503 bytes and strips unsafe headers after own ACK
+[01:21:15] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stderr | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 503 bytes and strips unsafe headers after own ACK
+[01:21:15] ⚠️  [AUTH] connecti locked modelLock_fixture for 30s [503]
+❌ openai-compatible-chat-accounting-fixture [503]: fixture invalid
+
+stderr | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 503 bytes and strips unsafe headers after own ACK
+[01:21:15] ⚠️  [AUTH] Account connection-one unavailable (503), trying fallback
+
+stderr | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > preserves final selected HTTP 503 bytes and strips unsafe headers after own ACK
+[01:21:15] ⚠️  [AUTH] openai-compatible-chat-accounting-fixture | all 1 accounts locked for fixture (reset after 30s) | lastError=fixture invalid
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses complete missing without advancing account
+[36m[01:21:15] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses complete missing without advancing account
+[01:21:15] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses complete missing without advancing account
+[01:21:15] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses complete malformed without advancing account
+[36m[01:21:16] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses complete malformed without advancing account
+[01:21:16] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses complete malformed without advancing account
+[01:21:16] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses complete duplicate without advancing account
+[36m[01:21:16] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses complete duplicate without advancing account
+[01:21:16] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses complete duplicate without advancing account
+[01:21:16] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > withholds wire and client completion until own intent and terminal ACK
+[36m[01:21:17] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > withholds wire and client completion until own intent and terminal ACK
+[01:21:17] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > withholds wire and client completion until own intent and terminal ACK
+[01:21:17] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > lost own intent ACK cannot be replaced by visible row
+[36m[01:21:18] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > lost own intent ACK cannot be replaced by visible row
+[01:21:18] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > lost own intent ACK cannot be replaced by visible row
+[01:21:18] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > lost own terminal ACK cannot be replaced by visible row
+[36m[01:21:18] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > lost own terminal ACK cannot be replaced by visible row
+[01:21:19] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > lost own terminal ACK cannot be replaced by visible row
+[01:21:19] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses original invalid profile before adapter {"stream":true}
+[36m[01:21:19] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses original invalid profile before adapter {"input":[]}
+[36m[01:21:20] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses original invalid profile before adapter {"encoding_format":"binary"}
+[36m[01:21:20] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses original invalid profile before adapter {"dimensions":"2"}
+[36m[01:21:20] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET isActive=0 WHERE id='key-one'
+[36m[01:21:20] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET isActive=0 WHERE id='key-one'
+[01:21:20] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET isActive=0 WHERE id='key-one'
+[01:21:20] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET key='rotated' WHERE id='key-one'
+[36m[01:21:20] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET key='rotated' WHERE id='key-one'
+[01:21:20] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET key='rotated' WHERE id='key-one'
+[01:21:20] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET accessRestricted=1,accessAllow='[]' WHERE id='key-one'
+[36m[01:21:20] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET accessRestricted=1,accessAllow='[]' WHERE id='key-one'
+[01:21:20] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET accessRestricted=1,accessAllow='[]' WHERE id='key-one'
+[01:21:20] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerConnections SET isActive=0 WHERE id='connection-one'
+[36m[01:21:21] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerConnections SET isActive=0 WHERE id='connection-one'
+[01:21:21] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerConnections SET isActive=0 WHERE id='connection-one'
+[01:21:21] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerConnections SET data=json_set(data,'$.apiKey','changed')
+[36m[01:21:21] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerConnections SET data=json_set(data,'$.apiKey','changed')
+[01:21:22] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerConnections SET data=json_set(data,'$.apiKey','changed')
+[01:21:22] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerNodes SET data=json_set(data,'$.baseUrl','http://127.0.0.1:1')
+[36m[01:21:22] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerNodes SET data=json_set(data,'$.baseUrl','http://127.0.0.1:1')
+[01:21:22] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerNodes SET data=json_set(data,'$.baseUrl','http://127.0.0.1:1')
+[01:21:22] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK INSERT INTO kv(scope,key,value) VALUES('modelAliases','other','"fixture-node/other"')
+[36m[01:21:23] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK INSERT INTO kv(scope,key,value) VALUES('modelAliases','other','"fixture-node/other"')
+[01:21:23] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > refuses persisted mutation across intent ACK INSERT INTO kv(scope,key,value) VALUES('modelAliases','other','"fixture-node/other"')
+[01:21:23] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerNodes SET data=json_remove(data,'$.baseUrl')
+[36m[01:21:23] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerNodes SET data=json_remove(data,'$.baseUrl')
+[01:21:23] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerNodes SET data=json_remove(data,'$.baseUrl')
+[01:21:23] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_remove(data,'$.providerSpecificData.baseUrl')
+[36m[01:21:24] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_remove(data,'$.providerSpecificData.baseUrl')
+[01:21:24] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_remove(data,'$.providerSpecificData.baseUrl')
+[01:21:24] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET authType='oauth'
+[36m[01:21:24] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET authType='oauth'
+[01:21:24] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET authType='oauth'
+[01:21:24] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.accessToken','unsupported')
+[36m[01:21:24] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.accessToken','unsupported')
+[01:21:24] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.accessToken','unsupported')
+[01:21:24] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.refreshToken','unsupported')
+[36m[01:21:25] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.refreshToken','unsupported')
+[01:21:25] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.refreshToken','unsupported')
+[01:21:25] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerNodes SET type='custom-embedding'
+[36m[01:21:25] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerNodes SET type='custom-embedding'
+[01:21:25] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerNodes SET type='custom-embedding'
+[01:21:25] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{}' WHERE scope='pricing'
+[36m[01:21:26] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{}' WHERE scope='pricing'
+[01:21:26] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{}' WHERE scope='pricing'
+[01:21:26] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"2"}}' WHERE scope='pricing'
+[36m[01:21:26] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"2"}}' WHERE scope='pricing'
+[01:21:26] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"2"}}' WHERE scope='pricing'
+[01:21:26] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"0","cached":"0"}}' WHERE scope='pricing'
+[36m[01:21:27] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"0","cached":"0"}}' WHERE scope='pricing'
+[01:21:27] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"0","cached":"0"}}' WHERE scope='pricing'
+[01:21:27] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > canonical selected base suffix / reaches exact embeddings target
+[36m[01:21:27] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > canonical selected base suffix / reaches exact embeddings target
+[01:21:27] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > canonical selected base suffix / reaches exact embeddings target
+[01:21:27] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > canonical selected base suffix /// reaches exact embeddings target
+[36m[01:21:27] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > canonical selected base suffix /// reaches exact embeddings target
+[01:21:27] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > canonical selected base suffix /// reaches exact embeddings target
+[01:21:27] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > canonical selected base suffix /embeddings reaches exact embeddings target
+[36m[01:21:28] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > canonical selected base suffix /embeddings reaches exact embeddings target
+[01:21:28] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > canonical selected base suffix /embeddings reaches exact embeddings target
+[01:21:28] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > canonical selected base suffix /embeddings/// reaches exact embeddings target
+[36m[01:21:29] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > canonical selected base suffix /embeddings/// reaches exact embeddings target
+[01:21:29] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > canonical selected base suffix /embeddings/// reaches exact embeddings target
+[01:21:29] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > node preference chat does not select embeddings protocol
+[36m[01:21:29] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > node preference chat does not select embeddings protocol
+[01:21:29] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > node preference chat does not select embeddings protocol
+[01:21:29] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > node preference responses does not select embeddings protocol
+[36m[01:21:30] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > node preference responses does not select embeddings protocol
+[01:21:30] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > node preference responses does not select embeddings protocol
+[01:21:30] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > unassociated request ignores client enrollment fields and retains legacy user dropping
+[36m[01:21:30] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > unassociated request ignores client enrollment fields and retains legacy user dropping
+[01:21:30] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > node E1 actual embeddings JSON > unassociated request ignores client enrollment fields and retains legacy user dropping
+[01:21:30] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > actual one POST and one priced aggregate for "hello"
+[36m[01:21:31] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > actual one POST and one priced aggregate for "hello"
+[01:21:31] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > actual one POST and one priced aggregate for "hello"
+[01:21:31] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > actual one POST and one priced aggregate for "a"
+[36m[01:21:32] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > actual one POST and one priced aggregate for "a"
+[01:21:32] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > actual one POST and one priced aggregate for "a"
+[01:21:32] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > actual one POST and one priced aggregate for 1
+[36m[01:21:33] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > actual one POST and one priced aggregate for 1
+[01:21:33] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > actual one POST and one priced aggregate for 1
+[01:21:33] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > actual one POST and one priced aggregate for [1]
+[36m[01:21:33] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > actual one POST and one priced aggregate for [1]
+[01:21:34] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > actual one POST and one priced aggregate for [1]
+[01:21:34] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > settles original embeddings price/time after persisted rate changes during actual POST
+[36m[01:21:34] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > settles original embeddings price/time after persisted rate changes during actual POST
+[01:21:34] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > settles original embeddings price/time after persisted rate changes during actual POST
+[01:21:34] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > retains exact raw base64 bytes, zero and unknown ordinary metadata
+[36m[01:21:35] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > retains exact raw base64 bytes, zero and unknown ordinary metadata
+[01:21:35] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > retains exact raw base64 bytes, zero and unknown ordinary metadata
+[01:21:35] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 400 bytes and strips unsafe headers after own ACK
+[36m[01:21:36] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 400 bytes and strips unsafe headers after own ACK
+[01:21:36] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 400 bytes and strips unsafe headers after own ACK
+[01:21:36] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 429 bytes and strips unsafe headers after own ACK
+[36m[01:21:36] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 429 bytes and strips unsafe headers after own ACK
+[01:21:37] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 429 bytes and strips unsafe headers after own ACK
+[01:21:37] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stderr | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 429 bytes and strips unsafe headers after own ACK
+[01:21:37] ⚠️  [AUTH] connecti locked modelLock_fixture for 2s [429]
+❌ openai-compatible-chat-accounting-fixture [429]: fixture invalid
+
+stderr | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 429 bytes and strips unsafe headers after own ACK
+[01:21:37] ⚠️  [AUTH] Account connection-one unavailable (429), trying fallback
+
+stderr | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 429 bytes and strips unsafe headers after own ACK
+[01:21:37] ⚠️  [AUTH] openai-compatible-chat-accounting-fixture | all 1 accounts locked for fixture (reset after 2s) | lastError=fixture invalid
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 503 bytes and strips unsafe headers after own ACK
+[36m[01:21:37] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 503 bytes and strips unsafe headers after own ACK
+[01:21:37] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 503 bytes and strips unsafe headers after own ACK
+[01:21:37] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stderr | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 503 bytes and strips unsafe headers after own ACK
+[01:21:38] ⚠️  [AUTH] connecti locked modelLock_fixture for 30s [503]
+❌ openai-compatible-chat-accounting-fixture [503]: fixture invalid
+
+stderr | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 503 bytes and strips unsafe headers after own ACK
+[01:21:38] ⚠️  [AUTH] Account connection-one unavailable (503), trying fallback
+
+stderr | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > preserves final selected HTTP 503 bytes and strips unsafe headers after own ACK
+[01:21:38] ⚠️  [AUTH] openai-compatible-chat-accounting-fixture | all 1 accounts locked for fixture (reset after 30s) | lastError=fixture invalid
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses complete missing without advancing account
+[36m[01:21:38] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses complete missing without advancing account
+[01:21:38] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses complete missing without advancing account
+[01:21:38] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses complete malformed without advancing account
+[36m[01:21:39] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses complete malformed without advancing account
+[01:21:39] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses complete malformed without advancing account
+[01:21:39] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses complete duplicate without advancing account
+[36m[01:21:39] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses complete duplicate without advancing account
+[01:21:39] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses complete duplicate without advancing account
+[01:21:39] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > withholds wire and client completion until own intent and terminal ACK
+[36m[01:21:39] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > withholds wire and client completion until own intent and terminal ACK
+[01:21:39] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > withholds wire and client completion until own intent and terminal ACK
+[01:21:39] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > lost own intent ACK cannot be replaced by visible row
+[36m[01:21:40] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > lost own intent ACK cannot be replaced by visible row
+[01:21:40] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > lost own intent ACK cannot be replaced by visible row
+[01:21:40] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > lost own terminal ACK cannot be replaced by visible row
+[36m[01:21:40] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > lost own terminal ACK cannot be replaced by visible row
+[01:21:40] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > lost own terminal ACK cannot be replaced by visible row
+[01:21:40] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses original invalid profile before adapter {"stream":true}
+[36m[01:21:40] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses original invalid profile before adapter {"input":[]}
+[36m[01:21:40] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses original invalid profile before adapter {"encoding_format":"binary"}
+[36m[01:21:40] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses original invalid profile before adapter {"dimensions":"2"}
+[36m[01:21:40] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET isActive=0 WHERE id='key-one'
+[36m[01:21:41] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET isActive=0 WHERE id='key-one'
+[01:21:41] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET isActive=0 WHERE id='key-one'
+[01:21:41] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET key='rotated' WHERE id='key-one'
+[36m[01:21:41] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET key='rotated' WHERE id='key-one'
+[01:21:41] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET key='rotated' WHERE id='key-one'
+[01:21:41] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET accessRestricted=1,accessAllow='[]' WHERE id='key-one'
+[36m[01:21:42] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET accessRestricted=1,accessAllow='[]' WHERE id='key-one'
+[01:21:42] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE apiKeys SET accessRestricted=1,accessAllow='[]' WHERE id='key-one'
+[01:21:42] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerConnections SET isActive=0 WHERE id='connection-one'
+[36m[01:21:42] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerConnections SET isActive=0 WHERE id='connection-one'
+[01:21:43] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerConnections SET isActive=0 WHERE id='connection-one'
+[01:21:43] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerConnections SET data=json_set(data,'$.apiKey','changed')
+[36m[01:21:43] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerConnections SET data=json_set(data,'$.apiKey','changed')
+[01:21:43] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerConnections SET data=json_set(data,'$.apiKey','changed')
+[01:21:43] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerNodes SET data=json_set(data,'$.baseUrl','http://127.0.0.1:1')
+[36m[01:21:44] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerNodes SET data=json_set(data,'$.baseUrl','http://127.0.0.1:1')
+[01:21:44] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK UPDATE providerNodes SET data=json_set(data,'$.baseUrl','http://127.0.0.1:1')
+[01:21:44] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK INSERT INTO kv(scope,key,value) VALUES('modelAliases','other','"fixture-node/other"')
+[36m[01:21:45] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK INSERT INTO kv(scope,key,value) VALUES('modelAliases','other','"fixture-node/other"')
+[01:21:45] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > refuses persisted mutation across intent ACK INSERT INTO kv(scope,key,value) VALUES('modelAliases','other','"fixture-node/other"')
+[01:21:45] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerNodes SET data=json_remove(data,'$.baseUrl')
+[36m[01:21:45] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerNodes SET data=json_remove(data,'$.baseUrl')
+[01:21:45] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerNodes SET data=json_remove(data,'$.baseUrl')
+[01:21:45] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_remove(data,'$.providerSpecificData.baseUrl')
+[36m[01:21:46] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_remove(data,'$.providerSpecificData.baseUrl')
+[01:21:46] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_remove(data,'$.providerSpecificData.baseUrl')
+[01:21:46] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET authType='oauth'
+[36m[01:21:46] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET authType='oauth'
+[01:21:46] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET authType='oauth'
+[01:21:46] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.accessToken','unsupported')
+[36m[01:21:47] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.accessToken','unsupported')
+[01:21:47] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.accessToken','unsupported')
+[01:21:47] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.refreshToken','unsupported')
+[36m[01:21:47] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.refreshToken','unsupported')
+[01:21:47] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.refreshToken','unsupported')
+[01:21:47] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerNodes SET type='custom-embedding'
+[36m[01:21:47] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerNodes SET type='custom-embedding'
+[01:21:47] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE providerNodes SET type='custom-embedding'
+[01:21:47] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{}' WHERE scope='pricing'
+[36m[01:21:48] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{}' WHERE scope='pricing'
+[01:21:48] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{}' WHERE scope='pricing'
+[01:21:48] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"2"}}' WHERE scope='pricing'
+[36m[01:21:49] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"2"}}' WHERE scope='pricing'
+[01:21:49] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"2"}}' WHERE scope='pricing'
+[01:21:49] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"0","cached":"0"}}' WHERE scope='pricing'
+[36m[01:21:50] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"0","cached":"0"}}' WHERE scope='pricing'
+[01:21:50] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"0","cached":"0"}}' WHERE scope='pricing'
+[01:21:50] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > canonical selected base suffix / reaches exact embeddings target
+[36m[01:21:50] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > canonical selected base suffix / reaches exact embeddings target
+[01:21:50] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > canonical selected base suffix / reaches exact embeddings target
+[01:21:50] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > canonical selected base suffix /// reaches exact embeddings target
+[36m[01:21:50] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > canonical selected base suffix /// reaches exact embeddings target
+[01:21:50] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > canonical selected base suffix /// reaches exact embeddings target
+[01:21:50] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > canonical selected base suffix /embeddings reaches exact embeddings target
+[36m[01:21:50] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > canonical selected base suffix /embeddings reaches exact embeddings target
+[01:21:50] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > canonical selected base suffix /embeddings reaches exact embeddings target
+[01:21:50] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > canonical selected base suffix /embeddings/// reaches exact embeddings target
+[36m[01:21:50] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > canonical selected base suffix /embeddings/// reaches exact embeddings target
+[01:21:50] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > canonical selected base suffix /embeddings/// reaches exact embeddings target
+[01:21:50] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > node preference chat does not select embeddings protocol
+[36m[01:21:51] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > node preference chat does not select embeddings protocol
+[01:21:51] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > node preference chat does not select embeddings protocol
+[01:21:51] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > node preference responses does not select embeddings protocol
+[36m[01:21:51] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > node preference responses does not select embeddings protocol
+[01:21:51] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > node preference responses does not select embeddings protocol
+[01:21:51] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > unassociated request ignores client enrollment fields and retains legacy user dropping
+[36m[01:21:51] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > unassociated request ignores client enrollment fields and retains legacy user dropping
+[01:21:51] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-json.test.js > sqljs E1 actual embeddings JSON > unassociated request ignores client enrollment fields and retains legacy user dropping
+[01:21:51] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+ ✓ unit/embeddings-accounting-json.test.js (84 tests) 43190ms
+     ✓ actual one POST and one priced aggregate for "hello"  1382ms
+     ✓ actual one POST and one priced aggregate for "a"  699ms
+     ✓ actual one POST and one priced aggregate for 1  840ms
+     ✓ actual one POST and one priced aggregate for [1]  594ms
+     ✓ settles original embeddings price/time after persisted rate changes during actual POST  595ms
+     ✓ retains exact raw base64 bytes, zero and unknown ordinary metadata  671ms
+     ✓ preserves final selected HTTP 400 bytes and strips unsafe headers after own ACK  757ms
+     ✓ preserves final selected HTTP 429 bytes and strips unsafe headers after own ACK  725ms
+     ✓ preserves final selected HTTP 503 bytes and strips unsafe headers after own ACK  664ms
+     ✓ refuses complete missing without advancing account  769ms
+     ✓ refuses complete malformed without advancing account  550ms
+     ✓ refuses complete duplicate without advancing account  562ms
+     ✓ withholds wire and client completion until own intent and terminal ACK  616ms
+     ✓ lost own intent ACK cannot be replaced by visible row  444ms
+     ✓ lost own terminal ACK cannot be replaced by visible row  1037ms
+     ✓ refuses original invalid profile before adapter {"stream":true}  421ms
+     ✓ refuses original invalid profile before adapter {"input":[]}  309ms
+     ✓ refuses persisted mutation across intent ACK UPDATE providerConnections SET isActive=0 WHERE id='connection-one'  588ms
+     ✓ refuses persisted mutation across intent ACK UPDATE providerConnections SET data=json_set(data,'$.apiKey','changed')  705ms
+     ✓ refuses persisted mutation across intent ACK UPDATE providerNodes SET data=json_set(data,'$.baseUrl','http://127.0.0.1:1')  478ms
+     ✓ refuses persisted mutation across intent ACK INSERT INTO kv(scope,key,value) VALUES('modelAliases','other','"fixture-node/other"')  624ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE providerNodes SET data=json_remove(data,'$.baseUrl')  443ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_remove(data,'$.providerSpecificData.baseUrl')  443ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE providerConnections SET authType='oauth'  374ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.accessToken','unsupported')  350ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.refreshToken','unsupported')  421ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE providerNodes SET type='custom-embedding'  375ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE kv SET value='{}' WHERE scope='pricing'  435ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"2"}}' WHERE scope='pricing'  448ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"0","cached":"0"}}' WHERE scope='pricing'  413ms
+     ✓ canonical selected base suffix / reaches exact embeddings target  577ms
+     ✓ canonical selected base suffix /// reaches exact embeddings target  544ms
+     ✓ canonical selected base suffix /embeddings reaches exact embeddings target  534ms
+     ✓ canonical selected base suffix /embeddings/// reaches exact embeddings target  605ms
+     ✓ node preference chat does not select embeddings protocol  560ms
+     ✓ node preference responses does not select embeddings protocol  524ms
+     ✓ unassociated request ignores client enrollment fields and retains legacy user dropping  427ms
+     ✓ actual one POST and one priced aggregate for "hello"  1315ms
+     ✓ actual one POST and one priced aggregate for "a"  587ms
+     ✓ actual one POST and one priced aggregate for 1  809ms
+     ✓ actual one POST and one priced aggregate for [1]  844ms
+     ✓ settles original embeddings price/time after persisted rate changes during actual POST  764ms
+     ✓ retains exact raw base64 bytes, zero and unknown ordinary metadata  868ms
+     ✓ preserves final selected HTTP 400 bytes and strips unsafe headers after own ACK  683ms
+     ✓ preserves final selected HTTP 429 bytes and strips unsafe headers after own ACK  695ms
+     ✓ preserves final selected HTTP 503 bytes and strips unsafe headers after own ACK  694ms
+     ✓ refuses complete missing without advancing account  576ms
+     ✓ refuses complete malformed without advancing account  615ms
+     ✓ refuses complete duplicate without advancing account  402ms
+     ✓ refuses persisted mutation across intent ACK UPDATE apiKeys SET isActive=0 WHERE id='key-one'  589ms
+     ✓ refuses persisted mutation across intent ACK UPDATE apiKeys SET key='rotated' WHERE id='key-one'  636ms
+     ✓ refuses persisted mutation across intent ACK UPDATE apiKeys SET accessRestricted=1,accessAllow='[]' WHERE id='key-one'  640ms
+     ✓ refuses persisted mutation across intent ACK UPDATE providerConnections SET isActive=0 WHERE id='connection-one'  561ms
+     ✓ refuses persisted mutation across intent ACK UPDATE providerConnections SET data=json_set(data,'$.apiKey','changed')  817ms
+     ✓ refuses persisted mutation across intent ACK UPDATE providerNodes SET data=json_set(data,'$.baseUrl','http://127.0.0.1:1')  735ms
+     ✓ refuses persisted mutation across intent ACK INSERT INTO kv(scope,key,value) VALUES('modelAliases','other','"fixture-node/other"')  630ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE providerNodes SET data=json_remove(data,'$.baseUrl')  368ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_remove(data,'$.providerSpecificData.baseUrl')  426ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE providerConnections SET authType='oauth'  446ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.accessToken','unsupported')  520ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE providerConnections SET data=json_set(data,'$.refreshToken','unsupported')  407ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE providerNodes SET type='custom-embedding'  410ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE kv SET value='{}' WHERE scope='pricing'  655ms
+     ✓ missing authority/profile/price refuses before any POST: UPDATE kv SET value='{"fixture":{"input":"1","output":"2"}}' WHERE scope='pricing'  1209ms
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[36m[01:21:55] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[01:21:55] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[01:21:55] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[36m[01:21:55] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[01:21:55] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[01:21:55] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[36m[01:21:55] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[01:21:55] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[01:21:55] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[36m[01:21:55] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[01:21:55] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[01:21:55] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[36m[01:21:55] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[01:21:55] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[01:21:55] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[36m[01:21:55] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[01:21:55] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[01:21:55] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[36m[01:21:56] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[01:21:56] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[01:21:56] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[36m[01:21:56] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[01:21:56] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[01:21:56] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[36m[01:21:56] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[01:21:56] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[01:21:56] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > batch is a single aggregate debit and raising only weekly cannot override exhausted monthly
+[36m[01:21:56] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > batch is a single aggregate debit and raising only weekly cannot override exhausted monthly
+[01:21:56] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > batch is a single aggregate debit and raising only weekly cannot override exhausted monthly
+[01:21:56] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > batch is a single aggregate debit and raising only weekly cannot override exhausted monthly
+[36m[01:21:56] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > batch is a single aggregate debit and raising only weekly cannot override exhausted monthly
+[01:21:56] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > batch is a single aggregate debit and raising only weekly cannot override exhausted monthly
+[01:21:56] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > peer key settles while first key holds own intent; no cross-charge or reservation
+[36m[01:21:56] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > peer key settles while first key holds own intent; no cross-charge or reservation
+[01:21:56] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > peer key settles while first key holds own intent; no cross-charge or reservation
+[01:21:56] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > peer key settles while first key holds own intent; no cross-charge or reservation
+[36m[01:21:56] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > peer key settles while first key holds own intent; no cross-charge or reservation
+[01:21:56] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > peer key settles while first key holds own intent; no cross-charge or reservation
+[01:21:56] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > management projection exposes actual embeddings recorded cost through the same verified capability
+[36m[01:21:56] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > management projection exposes actual embeddings recorded cost through the same verified capability
+[01:21:56] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > management projection exposes actual embeddings recorded cost through the same verified capability
+[01:21:56] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > guarded budget GET reads embeddings spend and rejects unauthenticated management access
+[36m[01:21:57] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > guarded budget GET reads embeddings spend and rejects unauthenticated management access
+[01:21:57] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > guarded budget GET reads embeddings spend and rejects unauthenticated management access
+[01:21:57] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[36m[01:21:57] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:21:57] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:21:57] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[36m[01:21:57] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:21:57] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:21:57] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[36m[01:21:57] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:21:57] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:21:57] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[36m[01:21:57] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:21:57] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:21:57] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[36m[01:21:57] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:21:57] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:21:57] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[36m[01:21:57] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:21:57] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:21:57] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[36m[01:21:58] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:21:58] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:21:58] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[36m[01:21:58] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:21:58] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:21:58] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > allows in-flight overshoot without reservations but blocks next actual POST
+[36m[01:21:58] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+[36m[01:21:58] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > allows in-flight overshoot without reservations but blocks next actual POST
+[01:21:58] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+[01:21:58] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > allows in-flight overshoot without reservations but blocks next actual POST
+[01:21:58] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > allows in-flight overshoot without reservations but blocks next actual POST
+[01:21:58] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > allows in-flight overshoot without reservations but blocks next actual POST
+[36m[01:21:58] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > allows in-flight overshoot without reservations but blocks next actual POST
+[01:21:58] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > allows in-flight overshoot without reservations but blocks next actual POST
+[01:21:58] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rechecks held intent after peer settles and records own not-dispatched ACK
+[36m[01:21:58] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rechecks held intent after peer settles and records own not-dispatched ACK
+[01:21:58] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rechecks held intent after peer settles and records own not-dispatched ACK
+[01:21:58] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rechecks held intent after peer settles and records own not-dispatched ACK
+[36m[01:21:58] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rechecks held intent after peer settles and records own not-dispatched ACK
+[01:21:58] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > node actual Embeddings recorded-spend budget > rechecks held intent after peer settles and records own not-dispatched ACK
+[01:21:58] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[36m[01:21:58] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[01:21:58] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[01:21:58] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[36m[01:21:59] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[01:21:59] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[01:21:59] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[36m[01:21:59] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[01:21:59] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=null independently and raises without reset
+[01:21:59] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[36m[01:21:59] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[01:21:59] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[01:21:59] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[36m[01:21:59] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[01:21:59] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[01:21:59] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[36m[01:21:59] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[01:21:59] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=null monthly=0.001 independently and raises without reset
+[01:21:59] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[36m[01:21:59] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[01:21:59] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[01:21:59] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[36m[01:21:59] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[01:21:59] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[01:21:59] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[36m[01:21:59] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[01:21:59] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > enforces weekly=0.001 monthly=0.001 independently and raises without reset
+[01:21:59] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > batch is a single aggregate debit and raising only weekly cannot override exhausted monthly
+[36m[01:22:00] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > batch is a single aggregate debit and raising only weekly cannot override exhausted monthly
+[01:22:00] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > batch is a single aggregate debit and raising only weekly cannot override exhausted monthly
+[01:22:00] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > batch is a single aggregate debit and raising only weekly cannot override exhausted monthly
+[36m[01:22:00] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > batch is a single aggregate debit and raising only weekly cannot override exhausted monthly
+[01:22:00] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > batch is a single aggregate debit and raising only weekly cannot override exhausted monthly
+[01:22:00] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > peer key settles while first key holds own intent; no cross-charge or reservation
+[36m[01:22:00] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > peer key settles while first key holds own intent; no cross-charge or reservation
+[01:22:00] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > peer key settles while first key holds own intent; no cross-charge or reservation
+[01:22:00] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > peer key settles while first key holds own intent; no cross-charge or reservation
+[36m[01:22:00] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > peer key settles while first key holds own intent; no cross-charge or reservation
+[01:22:00] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > peer key settles while first key holds own intent; no cross-charge or reservation
+[01:22:00] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > management projection exposes actual embeddings recorded cost through the same verified capability
+[36m[01:22:00] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > management projection exposes actual embeddings recorded cost through the same verified capability
+[01:22:00] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > management projection exposes actual embeddings recorded cost through the same verified capability
+[01:22:00] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > guarded budget GET reads embeddings spend and rejects unauthenticated management access
+[36m[01:22:01] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > guarded budget GET reads embeddings spend and rejects unauthenticated management access
+[01:22:01] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > guarded budget GET reads embeddings spend and rejects unauthenticated management access
+[01:22:01] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[36m[01:22:01] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:22:01] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:22:01] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[36m[01:22:01] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:22:01] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:22:01] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[36m[01:22:01] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:22:01] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:22:01] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[36m[01:22:01] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:22:01] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > zero remains blocked after rollover while null still records; other key isolated
+[01:22:01] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[36m[01:22:01] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:22:01] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:22:01] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[36m[01:22:01] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:22:01] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:22:01] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[36m[01:22:02] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:22:02] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:22:02] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[36m[01:22:02] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:22:02] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rolls Monday and month boundaries in HCM without deleting original costs
+[01:22:02] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > allows in-flight overshoot without reservations but blocks next actual POST
+[36m[01:22:02] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+[36m[01:22:02] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > allows in-flight overshoot without reservations but blocks next actual POST
+[01:22:02] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+[01:22:02] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > allows in-flight overshoot without reservations but blocks next actual POST
+[01:22:02] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > allows in-flight overshoot without reservations but blocks next actual POST
+[01:22:02] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > allows in-flight overshoot without reservations but blocks next actual POST
+[36m[01:22:02] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > allows in-flight overshoot without reservations but blocks next actual POST
+[01:22:02] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > allows in-flight overshoot without reservations but blocks next actual POST
+[01:22:02] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rechecks held intent after peer settles and records own not-dispatched ACK
+[36m[01:22:02] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rechecks held intent after peer settles and records own not-dispatched ACK
+[01:22:02] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rechecks held intent after peer settles and records own not-dispatched ACK
+[01:22:02] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rechecks held intent after peer settles and records own not-dispatched ACK
+[36m[01:22:02] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rechecks held intent after peer settles and records own not-dispatched ACK
+[01:22:02] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-budget-loopback.test.js > sqljs actual Embeddings recorded-spend budget > rechecks held intent after peer settles and records own not-dispatched ACK
+[01:22:02] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+ ✓ unit/embeddings-budget-loopback.test.js (24 tests) 8306ms
+     ✓ enforces weekly=0.001 monthly=null independently and raises without reset  887ms
+     ✓ enforces weekly=null monthly=0.001 independently and raises without reset  392ms
+     ✓ enforces weekly=0.001 monthly=0.001 independently and raises without reset  346ms
+     ✓ guarded budget GET reads embeddings spend and rejects unauthenticated management access  341ms
+     ✓ zero remains blocked after rollover while null still records; other key isolated  370ms
+     ✓ rolls Monday and month boundaries in HCM without deleting original costs  417ms
+     ✓ allows in-flight overshoot without reservations but blocks next actual POST  308ms
+     ✓ enforces weekly=0.001 monthly=null independently and raises without reset  502ms
+     ✓ enforces weekly=null monthly=0.001 independently and raises without reset  441ms
+     ✓ enforces weekly=0.001 monthly=0.001 independently and raises without reset  391ms
+     ✓ peer key settles while first key holds own intent; no cross-charge or reservation  328ms
+     ✓ zero remains blocked after rollover while null still records; other key isolated  428ms
+     ✓ rolls Monday and month boundaries in HCM without deleting original costs  481ms
+     ✓ allows in-flight overshoot without reservations but blocks next actual POST  425ms
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > intended strict HTTP proxy reaches actual embeddings POST
+[36m[01:22:04] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > intended strict HTTP proxy reaches actual embeddings POST
+[01:22:04] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > intended strict HTTP proxy reaches actual embeddings POST
+[01:22:04] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > strict disabled proxy cannot escape to direct
+[36m[01:22:04] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > strict disabled proxy cannot escape to direct
+[01:22:04] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > strict disabled proxy cannot escape to direct
+[01:22:04] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > strict deleted proxy cannot escape to direct
+[36m[01:22:05] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > strict deleted proxy cannot escape to direct
+[01:22:05] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > strict deleted proxy cannot escape to direct
+[01:22:05] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > strict unavailable proxy cannot escape to direct
+[36m[01:22:05] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > strict unavailable proxy cannot escape to direct
+[01:22:05] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > strict unavailable proxy cannot escape to direct
+[01:22:05] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > manual redirect 307 never hits second listener or leaks credentials
+[36m[01:22:06] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > manual redirect 307 never hits second listener or leaks credentials
+[01:22:06] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > manual redirect 307 never hits second listener or leaks credentials
+[01:22:06] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > manual redirect 308 never hits second listener or leaks credentials
+[36m[01:22:07] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > manual redirect 308 never hits second listener or leaks credentials
+[01:22:07] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > manual redirect 308 never hits second listener or leaks credentials
+[01:22:07] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control large-base64
+[36m[01:22:07] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control large-base64
+[01:22:07] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control large-base64
+[01:22:07] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control large-float
+[36m[01:22:07] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control large-float
+[01:22:07] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control large-float
+[01:22:07] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control above-cap
+[36m[01:22:08] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control above-cap
+[01:22:08] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control above-cap
+[01:22:08] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control truncated
+[36m[01:22:08] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control truncated
+[01:22:08] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control truncated
+[01:22:08] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control invalid-utf8
+[36m[01:22:08] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control invalid-utf8
+[01:22:08] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > actual raw body resource/evidence control invalid-utf8
+[01:22:08] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > abort during held intent yields own not-dispatched terminal without wire
+[36m[01:22:08] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > abort during held intent yields own not-dispatched terminal without wire
+[01:22:08] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > abort during held intent yields own not-dispatched terminal without wire
+[01:22:08] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > bounded actual body cancellation: headers-empty
+[36m[01:22:09] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > bounded actual body cancellation: headers-empty
+[01:22:09] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > bounded actual body cancellation: headers-empty
+[01:22:09] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > bounded actual body cancellation: mid-json
+[36m[01:22:09] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > bounded actual body cancellation: mid-json
+[01:22:09] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > bounded actual body cancellation: mid-json
+[01:22:09] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > bounded actual body cancellation: inside-usage
+[36m[01:22:09] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > bounded actual body cancellation: inside-usage
+[01:22:09] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > bounded actual body cancellation: inside-usage
+[01:22:09] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > bounded actual body cancellation: valid-before-abort
+[36m[01:22:09] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > bounded actual body cancellation: valid-before-abort
+[01:22:09] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > node E1 effective transport > bounded actual body cancellation: valid-before-abort
+[01:22:09] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > intended strict HTTP proxy reaches actual embeddings POST
+[36m[01:22:09] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > intended strict HTTP proxy reaches actual embeddings POST
+[01:22:09] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > intended strict HTTP proxy reaches actual embeddings POST
+[01:22:09] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > strict disabled proxy cannot escape to direct
+[36m[01:22:10] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > strict disabled proxy cannot escape to direct
+[01:22:10] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > strict disabled proxy cannot escape to direct
+[01:22:10] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > strict deleted proxy cannot escape to direct
+[36m[01:22:10] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > strict deleted proxy cannot escape to direct
+[01:22:10] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > strict deleted proxy cannot escape to direct
+[01:22:10] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > strict unavailable proxy cannot escape to direct
+[36m[01:22:10] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > strict unavailable proxy cannot escape to direct
+[01:22:10] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > strict unavailable proxy cannot escape to direct
+[01:22:10] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > manual redirect 307 never hits second listener or leaks credentials
+[36m[01:22:10] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > manual redirect 307 never hits second listener or leaks credentials
+[01:22:10] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > manual redirect 307 never hits second listener or leaks credentials
+[01:22:10] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > manual redirect 308 never hits second listener or leaks credentials
+[36m[01:22:10] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > manual redirect 308 never hits second listener or leaks credentials
+[01:22:10] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > manual redirect 308 never hits second listener or leaks credentials
+[01:22:10] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control large-base64
+[36m[01:22:11] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control large-base64
+[01:22:11] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control large-base64
+[01:22:11] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control large-float
+[36m[01:22:11] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control large-float
+[01:22:11] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control large-float
+[01:22:11] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control above-cap
+[36m[01:22:11] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control above-cap
+[01:22:11] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control above-cap
+[01:22:11] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control truncated
+[36m[01:22:11] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control truncated
+[01:22:11] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control truncated
+[01:22:11] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control invalid-utf8
+[36m[01:22:12] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control invalid-utf8
+[01:22:12] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > actual raw body resource/evidence control invalid-utf8
+[01:22:12] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > abort during held intent yields own not-dispatched terminal without wire
+[36m[01:22:12] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > abort during held intent yields own not-dispatched terminal without wire
+[01:22:12] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > abort during held intent yields own not-dispatched terminal without wire
+[01:22:12] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > bounded actual body cancellation: headers-empty
+[36m[01:22:13] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > bounded actual body cancellation: headers-empty
+[01:22:13] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > bounded actual body cancellation: headers-empty
+[01:22:13] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > bounded actual body cancellation: mid-json
+[36m[01:22:13] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > bounded actual body cancellation: mid-json
+[01:22:13] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > bounded actual body cancellation: mid-json
+[01:22:13] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > bounded actual body cancellation: inside-usage
+[36m[01:22:13] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > bounded actual body cancellation: inside-usage
+[01:22:13] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > bounded actual body cancellation: inside-usage
+[01:22:13] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > bounded actual body cancellation: valid-before-abort
+[36m[01:22:13] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > bounded actual body cancellation: valid-before-abort
+[01:22:13] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-transport.test.js > sqljs E1 effective transport > bounded actual body cancellation: valid-before-abort
+[01:22:13] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-transport.test.js > E1 reader deterministic evidence and nonblocking cleanup > large float/base64-like payload below cap is byte-exact without clone/tee
+E1 replay timings ms {
+  construct: 4.836561000000074,
+  read: 15.525002000000313,
+  compare: 0.26575100000081875
+}
+
+ ✓ unit/embeddings-accounting-transport.test.js (42 tests) 9315ms
+     ✓ intended strict HTTP proxy reaches actual embeddings POST  392ms
+     ✓ strict unavailable proxy cannot escape to direct  947ms
+     ✓ manual redirect 307 never hits second listener or leaks credentials  657ms
+     ✓ manual redirect 308 never hits second listener or leaks credentials  599ms
+     ✓ actual raw body resource/evidence control large-base64  324ms
+     ✓ intended strict HTTP proxy reaches actual embeddings POST  337ms
+     ✓ actual raw body resource/evidence control invalid-utf8  518ms
+ ✓ unit/embeddings-accounting-authority.test.js (32 tests) 5279ms
+     ✓ copied ticket/receipt from a peer does not mint a new dispatch and consumed permission stays consumed  802ms
+     ✓ rejects final wire input drift before intent  371ms
+     ✓ copied ticket/receipt from a peer does not mint a new dispatch and consumed permission stays consumed  761ms
+     ✓ rejects final wire input drift before intent  683ms
+stdout | unit/accounting-fixture-isolation.test.js > OS-enforced accounting fixture containment > contains invalid DATA_DIR fallback inside private HOME and refuses forged attestation
+read-only-mkdir-diagnostic {
+  directory: true,
+  mount: '6037 6022 8:3 /tmp/9router-r1-isolated-IWo3Ef/read-only-dir /read-only-fixture ro,nosuid,nodev,relatime master:1 - ext4 /dev/sda3 rw,errors=remount-ro',
+  mkdir: { code: 'EROFS', syscall: 'mkdir', path: '/read-only-fixture/probe' },
+  recursive: {
+    code: 'ENOENT',
+    syscall: 'mkdir',
+    path: '/read-only-fixture/probe'
+  },
+  write: {
+    code: 'EROFS',
+    syscall: 'open',
+    path: '/read-only-fixture/probe-file'
+  }
+}
+
+stdout | unit/accounting-fixture-isolation.test.js > OS-enforced accounting fixture containment > contains late presentation calls overlapping the next fixture without default adapter initialization
+[01:22:23] 🟢 ▶ POST fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture · FMT: openai-responses→openai-responses · JSON · 5 MSG · ACC:connection-one
+
+stdout | unit/accounting-fixture-isolation.test.js > OS-enforced accounting fixture containment > contains late presentation calls overlapping the next fixture without default adapter initialization
+[01:22:23] 🐛 [DBG:FETCH] OPENAI-COMPATIBLE-CHAT-ACCOUNTING-FIXTURE → http://127.0.0.1:46703/v1/responses | body=50B | connectTimeout=60000ms
+
+stdout | unit/accounting-fixture-isolation.test.js > OS-enforced accounting fixture containment > contains late presentation calls overlapping the next fixture without default adapter initialization
+[01:22:23] 🐛 [DBG:FETCH] OPENAI-COMPATIBLE-CHAT-ACCOUNTING-FIXTURE ← 200 | ttft=133ms | ct=application/json; charset=utf-8 | cl=423
+
+stdout | unit/accounting-fixture-isolation.test.js > OS-enforced accounting fixture containment > contains late presentation calls overlapping the next fixture without default adapter initialization
+[01:22:23] 🟢 📊 DONE 184ms · IN 1000 (CACHE ↻400) · OUT 100
+
+ ✓ unit/accounting-fixture-isolation.test.js (4 tests) 1362ms
+     ✓ contains invalid DATA_DIR fallback inside private HOME and refuses forged attestation  573ms
+     ✓ contains late presentation calls overlapping the next fixture without default adapter initialization  617ms
+stdout | unit/embeddings-accounting-final-controls.test.js > node E1 terminal publication refusal > failed intent publication and successful gap delivery never permit an unlimited POST
+[36m[01:22:25] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > node E1 terminal publication refusal > failed intent publication and successful gap delivery never permit an unlimited POST
+[01:22:25] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-final-controls.test.js > node E1 terminal publication refusal > failed intent publication and successful gap delivery never permit an unlimited POST
+[01:22:25] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > node E1 terminal publication refusal > abort after own terminal publication preserves cost but cannot complete successfully
+[36m[01:22:26] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > node E1 terminal publication refusal > abort after own terminal publication preserves cost but cannot complete successfully
+[01:22:26] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-final-controls.test.js > node E1 terminal publication refusal > abort after own terminal publication preserves cost but cannot complete successfully
+[01:22:26] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > node E1 terminal publication refusal > own held gap ACK preserves safety but never authorizes client replay or fallback
+[36m[01:22:26] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > node E1 terminal publication refusal > own held gap ACK preserves safety but never authorizes client replay or fallback
+[01:22:26] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-final-controls.test.js > node E1 terminal publication refusal > own held gap ACK preserves safety but never authorizes client replay or fallback
+[01:22:26] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > node E1 terminal publication refusal > own lost gap ACK preserves safety but never authorizes client replay or fallback
+[36m[01:22:26] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > node E1 terminal publication refusal > own lost gap ACK preserves safety but never authorizes client replay or fallback
+[01:22:26] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-final-controls.test.js > node E1 terminal publication refusal > own lost gap ACK preserves safety but never authorizes client replay or fallback
+[01:22:26] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > sqljs E1 terminal publication refusal > failed intent publication and successful gap delivery never permit an unlimited POST
+[36m[01:22:27] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > sqljs E1 terminal publication refusal > failed intent publication and successful gap delivery never permit an unlimited POST
+[01:22:27] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-final-controls.test.js > sqljs E1 terminal publication refusal > failed intent publication and successful gap delivery never permit an unlimited POST
+[01:22:27] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > sqljs E1 terminal publication refusal > abort after own terminal publication preserves cost but cannot complete successfully
+[36m[01:22:27] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > sqljs E1 terminal publication refusal > abort after own terminal publication preserves cost but cannot complete successfully
+[01:22:27] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-final-controls.test.js > sqljs E1 terminal publication refusal > abort after own terminal publication preserves cost but cannot complete successfully
+[01:22:27] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > sqljs E1 terminal publication refusal > own held gap ACK preserves safety but never authorizes client replay or fallback
+[36m[01:22:27] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > sqljs E1 terminal publication refusal > own held gap ACK preserves safety but never authorizes client replay or fallback
+[01:22:27] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-final-controls.test.js > sqljs E1 terminal publication refusal > own held gap ACK preserves safety but never authorizes client replay or fallback
+[01:22:27] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > sqljs E1 terminal publication refusal > own lost gap ACK preserves safety but never authorizes client replay or fallback
+[36m[01:22:27] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-final-controls.test.js > sqljs E1 terminal publication refusal > own lost gap ACK preserves safety but never authorizes client replay or fallback
+[01:22:27] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-final-controls.test.js > sqljs E1 terminal publication refusal > own lost gap ACK preserves safety but never authorizes client replay or fallback
+[01:22:27] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+ ✓ unit/embeddings-accounting-final-controls.test.js (8 tests) 2480ms
+     ✓ failed intent publication and successful gap delivery never permit an unlimited POST  306ms
+     ✓ abort after own terminal publication preserves cost but cannot complete successfully  304ms
+     ✓ own held gap ACK preserves safety but never authorizes client replay or fallback  318ms
+     ✓ failed intent publication and successful gap delivery never permit an unlimited POST  368ms
+     ✓ own held gap ACK preserves safety but never authorizes client replay or fallback  328ms
+     ✓ own lost gap ACK preserves safety but never authorizes client replay or fallback  315ms
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=true
+[36m[01:22:29] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=true
+[01:22:29] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=true
+[01:22:29] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=true
+[01:22:30] ⚠️  [AUTH] connecti locked modelLock_fixture for 30s [503]
+❌ openai-compatible-chat-accounting-fixture [503]: priced predecessor
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=true
+[01:22:30] ⚠️  [AUTH] Account connection-one unavailable (503), trying fallback
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=true
+[01:22:30] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-two[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[36m[01:22:30] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:30] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:30] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:30] ⚠️  [AUTH] connecti locked modelLock_fixture for 30s [503]
+❌ openai-compatible-chat-accounting-fixture [503]: priced predecessor
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:30] ⚠️  [AUTH] Account connection-one unavailable (503), trying fallback
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:30] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-two[0m
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:30] ⚠️  [AUTH] connecti locked modelLock_fixture for 30s [503]
+❌ openai-compatible-chat-accounting-fixture [503]: priced predecessor
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:30] ⚠️  [AUTH] Account connection-two unavailable (503), trying fallback
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:30] ⚠️  [AUTH] openai-compatible-chat-accounting-fixture | all 2 accounts locked for fixture (reset after 30s) | lastError=priced predecessor
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor debit blocks successor and budget refusal supersedes retained upstream bytes
+[36m[01:22:30] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor debit blocks successor and budget refusal supersedes retained upstream bytes
+[01:22:30] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor debit blocks successor and budget refusal supersedes retained upstream bytes
+[01:22:30] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor debit blocks successor and budget refusal supersedes retained upstream bytes
+[01:22:30] ⚠️  [AUTH] connecti locked modelLock_fixture for 30s [503]
+❌ openai-compatible-chat-accounting-fixture [503]: upstream
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor debit blocks successor and budget refusal supersedes retained upstream bytes
+[01:22:30] ⚠️  [AUTH] Account connection-one unavailable (503), trying fallback
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > predecessor debit blocks successor and budget refusal supersedes retained upstream bytes
+[01:22:30] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-two[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[36m[01:22:31] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[01:22:31] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[01:22:31] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[01:22:34] ❌ [TOKEN_REFRESH] All 3 retry attempts failed
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[01:22:34] ⚠️  [TOKEN] OPENAI-COMPATIBLE-CHAT-ACCOUNTING-FIXTURE | refresh failed
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[01:22:34] ⚠️  [AUTH] connecti locked modelLock_fixture for 120s [401]
+❌ openai-compatible-chat-accounting-fixture [401]: bad key
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[01:22:34] ⚠️  [AUTH] Account connection-one unavailable (401), trying fallback
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[01:22:34] ⚠️  [AUTH] openai-compatible-chat-accounting-fixture | all 1 accounts locked for fixture (reset after 2m) | lastError=bad key
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[36m[01:22:34] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[01:22:34] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[01:22:34] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[01:22:37] ❌ [TOKEN_REFRESH] All 3 retry attempts failed
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[01:22:37] ⚠️  [TOKEN] OPENAI-COMPATIBLE-CHAT-ACCOUNTING-FIXTURE | refresh failed
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[01:22:37] ⚠️  [AUTH] connecti locked modelLock_fixture for 120s [403]
+❌ openai-compatible-chat-accounting-fixture [403]: bad key
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[01:22:37] ⚠️  [AUTH] Account connection-one unavailable (403), trying fallback
+
+stderr | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[01:22:37] ⚠️  [AUTH] openai-compatible-chat-accounting-fixture | all 1 accounts locked for fixture (reset after 2m) | lastError=bad key
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > successor persisted authority refusal supersedes earlier final error
+[36m[01:22:38] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > successor persisted authority refusal supersedes earlier final error
+[01:22:38] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > successor persisted authority refusal supersedes earlier final error
+[01:22:38] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > terminal recording/ACK refusal cannot advance even with a second actual account
+[36m[01:22:38] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > terminal recording/ACK refusal cannot advance even with a second actual account
+[01:22:38] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-loopback.test.js > node actual E1 account fallback > terminal recording/ACK refusal cannot advance even with a second actual account
+[01:22:38] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=true
+[36m[01:22:39] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=true
+[01:22:39] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=true
+[01:22:39] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=true
+[01:22:40] ⚠️  [AUTH] connecti locked modelLock_fixture for 30s [503]
+❌ openai-compatible-chat-accounting-fixture [503]: priced predecessor
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=true
+[01:22:40] ⚠️  [AUTH] Account connection-one unavailable (503), trying fallback
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=true
+[01:22:40] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-two[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[36m[01:22:41] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:41] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:41] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:41] ⚠️  [AUTH] connecti locked modelLock_fixture for 30s [503]
+❌ openai-compatible-chat-accounting-fixture [503]: priced predecessor
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:41] ⚠️  [AUTH] Account connection-one unavailable (503), trying fallback
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:41] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-two[0m
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:42] ⚠️  [AUTH] connecti locked modelLock_fixture for 30s [503]
+❌ openai-compatible-chat-accounting-fixture [503]: priced predecessor
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:42] ⚠️  [AUTH] Account connection-two unavailable (503), trying fallback
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor own ACK before actual second POST; later success=false
+[01:22:42] ⚠️  [AUTH] openai-compatible-chat-accounting-fixture | all 2 accounts locked for fixture (reset after 30s) | lastError=priced predecessor
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor debit blocks successor and budget refusal supersedes retained upstream bytes
+[36m[01:22:42] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor debit blocks successor and budget refusal supersedes retained upstream bytes
+[01:22:42] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor debit blocks successor and budget refusal supersedes retained upstream bytes
+[01:22:42] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor debit blocks successor and budget refusal supersedes retained upstream bytes
+[01:22:42] ⚠️  [AUTH] connecti locked modelLock_fixture for 30s [503]
+❌ openai-compatible-chat-accounting-fixture [503]: upstream
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor debit blocks successor and budget refusal supersedes retained upstream bytes
+[01:22:42] ⚠️  [AUTH] Account connection-one unavailable (503), trying fallback
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > predecessor debit blocks successor and budget refusal supersedes retained upstream bytes
+[01:22:42] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-two[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[36m[01:22:43] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[01:22:43] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[01:22:43] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[01:22:46] ❌ [TOKEN_REFRESH] All 3 retry attempts failed
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[01:22:46] ⚠️  [TOKEN] OPENAI-COMPATIBLE-CHAT-ACCOUNTING-FIXTURE | refresh failed
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[01:22:46] ⚠️  [AUTH] connecti locked modelLock_fixture for 120s [401]
+❌ openai-compatible-chat-accounting-fixture [401]: bad key
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[01:22:46] ⚠️  [AUTH] Account connection-one unavailable (401), trying fallback
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 401 never produces refresh credentials or a successor on one account
+[01:22:46] ⚠️  [AUTH] openai-compatible-chat-accounting-fixture | all 1 accounts locked for fixture (reset after 2m) | lastError=bad key
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[36m[01:22:47] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[01:22:47] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[01:22:47] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[01:22:50] ❌ [TOKEN_REFRESH] All 3 retry attempts failed
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[01:22:50] ⚠️  [TOKEN] OPENAI-COMPATIBLE-CHAT-ACCOUNTING-FIXTURE | refresh failed
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[01:22:50] ⚠️  [AUTH] connecti locked modelLock_fixture for 120s [403]
+❌ openai-compatible-chat-accounting-fixture [403]: bad key
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[01:22:50] ⚠️  [AUTH] Account connection-one unavailable (403), trying fallback
+
+stderr | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > dynamic API key HTTP 403 never produces refresh credentials or a successor on one account
+[01:22:50] ⚠️  [AUTH] openai-compatible-chat-accounting-fixture | all 1 accounts locked for fixture (reset after 2m) | lastError=bad key
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > successor persisted authority refusal supersedes earlier final error
+[36m[01:22:51] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > successor persisted authority refusal supersedes earlier final error
+[01:22:51] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > successor persisted authority refusal supersedes earlier final error
+[01:22:51] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > terminal recording/ACK refusal cannot advance even with a second actual account
+[36m[01:22:51] 📥 POST /v1/embeddings | fixture-node/fixture[0m
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > terminal recording/ACK refusal cannot advance even with a second actual account
+[01:22:51] ℹ️  [ROUTING] fixture-node/fixture → openai-compatible-chat-accounting-fixture/fixture
+
+stdout | unit/embeddings-accounting-loopback.test.js > sqljs actual E1 account fallback > terminal recording/ACK refusal cannot advance even with a second actual account
+[01:22:51] ℹ️  [AUTH] [32mUsing openai-compatible-chat-accounting-fixture account: connection-one[0m
+
+ ✓ unit/embeddings-accounting-loopback.test.js (14 tests) 22452ms
+     ✓ predecessor own ACK before actual second POST; later success=true  521ms
+     ✓ predecessor own ACK before actual second POST; later success=false  362ms
+     ✓ dynamic API key HTTP 401 never produces refresh credentials or a successor on one account  3287ms
+     ✓ dynamic API key HTTP 403 never produces refresh credentials or a successor on one account  3641ms
+     ✓ successor persisted authority refusal supersedes earlier final error  691ms
+     ✓ terminal recording/ACK refusal cannot advance even with a second actual account  560ms
+     ✓ predecessor own ACK before actual second POST; later success=true  1576ms
+     ✓ predecessor own ACK before actual second POST; later success=false  1429ms
+     ✓ predecessor debit blocks successor and budget refusal supersedes retained upstream bytes  921ms
+     ✓ dynamic API key HTTP 401 never produces refresh credentials or a successor on one account  3902ms
+     ✓ dynamic API key HTTP 403 never produces refresh credentials or a successor on one account  3756ms
+     ✓ successor persisted authority refusal supersedes earlier final error  877ms
+     ✓ terminal recording/ACK refusal cannot advance even with a second actual account  660ms
+ ✓ unit/embeddings-accounting-usage.test.js (43 tests) 81ms
+ ✓ unit/embeddings-accounting-late-sink.test.js (2 tests) 1958ms
+     ✓ late exact sink survives disposal/revoke/rate change, idempotent original-window charge and conflict safety  831ms
+     ✓ late exact sink survives disposal/revoke/rate change, idempotent original-window charge and conflict safety  1117ms
+ ✓ unit/embeddings-accounting-restart.test.js (6 tests) 35863ms
+     ✓ preserves recorded evidence after deterministic committed owner crash  4051ms
+     ✓ preserves recorded evidence after deterministic intent owner crash  6401ms
+     ✓ preserves recorded evidence after deterministic volatile owner crash  5574ms
+     ✓ preserves recorded evidence after deterministic committed owner crash  5641ms
+     ✓ preserves recorded evidence after deterministic intent owner crash  7481ms
+     ✓ preserves recorded evidence after deterministic volatile owner crash  6705ms
+ ✓ unit/embeddings-accounting-pricing.test.js (2 tests) 1168ms
+     ✓ resolver input1/output0 -> 1000 tokens -> 1000000 nanoUSD -> ledger/reopen/original week and month  643ms
+     ✓ resolver input1/output0 -> 1000 tokens -> 1000000 nanoUSD -> ledger/reopen/original week and month  511ms
+
+ Test Files  11 passed (11)
+      Tests  261 passed (261)
+   Start at  01:20:50
+   Duration  172.08s (transform 13.56s, setup 740ms, import 35.16s, tests 131.45s, environment 5ms)
+
+JSON report written to /tmp/9router-r1-isolated-IWo3Ef/sandbox/artifacts/results.json
+{"kind":"r1-isolated-run","root":"/tmp/9router-r1-isolated-IWo3Ef/sandbox","status":0,"signal":null,"error":null,"outsideArtifacts":[]}
