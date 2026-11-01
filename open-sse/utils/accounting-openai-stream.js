@@ -2,8 +2,8 @@ import { ACCOUNTING_SSE_FRAME_MAX_BYTES, ACCOUNTING_SSE_TERMINAL_MAX_BYTES } fro
 import { createUsageObservation } from "./accounting-openai-usage.js";
 import { accountingRefusal } from "./accounting-transport.js";
 
-const activities = new WeakMap();
-export const accountingStreamActivity = response => activities.get(response);
+import { bindAccountingStreamActivity } from './accounting-stream-activity.js';
+export { accountingStreamActivity } from './accounting-stream-activity.js';
 const encoder = new TextEncoder();
 const encode = value => encoder.encode(`data: ${typeof value === "string" ? value : JSON.stringify(value)}\n\n`);
 
@@ -158,6 +158,5 @@ export function createAccountedStream(response, ticket, { profile, signal }) {
     cancel(reason) { return stop(reason); },
   });
   const wrapped = new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
-  activities.set(wrapped, activity);
-  return wrapped;
+  return bindAccountingStreamActivity(wrapped, activity);
 }

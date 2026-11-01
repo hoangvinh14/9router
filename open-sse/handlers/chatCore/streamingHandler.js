@@ -1,3 +1,6 @@
+import { isNativeResponsesAccounting } from '../../config/accountingProfiles.js';
+import { createResponsesSSEFramer } from '../../utils/responses-sse-framing.js';
+import { RESPONSES_STATUS } from '../../translator/schema/index.js';
 import { FORMATS } from "../../translator/formats.js";
 import { needsTranslation } from "../../translator/index.js";
 import { createSSETransformStreamWithLogger, createPassthroughStreamWithLogger } from "../../utils/stream.js";
@@ -48,8 +51,9 @@ function buildTransformStream({ provider, sourceFormat, targetFormat, userAgent,
 /**
  * Handle streaming response — pipe provider SSE through transform stream to client.
  */
-export async function handleStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, userAgent, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, streamDetailId, pxpipe, reqTag, log, credentials }) {
-  if (onRequestSuccess) {
+export async function handleStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, userAgent, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, streamDetailId, pxpipe, reqTag, log, credentials, accounting }) {
+  const nativeAssociated=isNativeResponsesAccounting(accounting);
+  if (onRequestSuccess && !nativeAssociated) {
     Promise.resolve()
       .then(onRequestSuccess)
       .catch(err => {
@@ -84,7 +88,18 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
     };
   }
 
-  const transformStream = buildTransformStream({ provider, sourceFormat, targetFormat, userAgent, reqLogger, toolNameMap, customToolNames, model, connectionId, body, onStreamComplete, apiKey, credentials });
+  let transformStream;
+  if(nativeAssociated && sourceFormat===FORMATS.OPENAI_RESPONSES && targetFormat===FORMATS.OPENAI_RESPONSES){
+    // Raw owner already validates/ACKs terminals. Preserve its exact native
+    // fields instead of passing through legacy usage buffering/DONE synthesis.
+    let completed=false;
+    const framer=createResponsesSSEFramer(frame=>{
+      let data;try{data=JSON.parse(frame.payload);}catch{throw new Error('Invalid verified native event');}
+      if(data.response?.status===RESPONSES_STATUS.COMPLETED)completed=true;
+    });
+    transformStream=new TransformStream({transform(chunk,controller){framer.push(chunk);controller.enqueue(chunk);},
+      async flush(){framer.end();if(completed&&onRequestSuccess)await onRequestSuccess();}});
+  }else transformStream = buildTransformStream({ provider, sourceFormat, targetFormat, userAgent, reqLogger, toolNameMap, customToolNames, model, connectionId, body, onStreamComplete, apiKey, credentials });
 
   // Terminal bytes when the stream aborts after HTTP 200 was already sent, so the
   // client sees a real error instead of a silently truncated stream.

@@ -392,7 +392,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       if (isBudgetError(error) && error.code === 'model_pricing_unavailable') return budgetErrorResponse(error);
       throw error;
     }
-    if (result.success) return result.response;
+    if (result.success || result.terminal === true) return result.response;
     if (accounting?.degraded) throw accountingRefusal(new Error("Degraded chat upstream failed"));
 
     // Antigravity 409/429: refresh live quota to get exact resetAt before locking

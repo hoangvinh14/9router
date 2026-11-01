@@ -1,0 +1,7 @@
+{
+  "unchangedInputs": true,
+  "sourceFiles": 1693,
+  "batches": 5,
+  "sourceManifestSha256": "1a16b0e91be213d138a6b6575cb40cc42be22ae242207e6529cfc49c07d00ce1",
+  "note": "Exact raw assertions checked separately. Baseline unmatched identities are not historical baseline passes."
+}

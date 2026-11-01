@@ -1,0 +1,896 @@
+
+ RUN  v4.1.12 /home/gmo/projects/9router/tests
+
+ ✓ unit/embeddingsCore.test.js (46 tests) 163ms
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > holds intent before direct POST and terminal ACK before returning
+[01:23:54] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:41961/chat | body=48B | connectTimeout=1000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > holds intent before direct POST and terminal ACK before returning
+[01:23:56] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=1470ms | ct= | cl=11
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > sends through an actual saved HTTP proxy with its own intent
+[01:23:56] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:36775/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > sends through an actual saved HTTP proxy with its own intent
+[01:23:57] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=425ms | ct= | cl=7
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > refuses unsupported accounted custom direct transport without preparing, retrying or POSTing
+[01:23:57] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:34565/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > retains custom direct transport for nonaccounted requests
+[01:23:57] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:37247/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > retains custom direct transport for nonaccounted requests
+[01:23:57] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=21ms | ct= | cl=13
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > refuses key drift while intent ACK is held without retry or POST
+[01:23:58] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:32833/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > refuses credential drift while intent ACK is held without retry or POST
+[01:23:58] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:34299/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > refuses settings drift while intent ACK is held without retry or POST
+[01:23:59] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:32959/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > refuses environment drift while intent ACK is held without retry or POST
+[01:24:00] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:39617/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > settles each status retry before the next POST and refuses redirect replay
+[01:24:00] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:44141/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > settles each status retry before the next POST and refuses redirect replay
+[01:24:00] 🐛 [DBG:FETCH] OPENAI ← 503 | ttft=134ms | ct= | cl=5
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > settles each status retry before the next POST and refuses redirect replay
+[01:24:00] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:44141/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > settles each status retry before the next POST and refuses redirect replay
+[01:24:00] 🐛 [DBG:FETCH] OPENAI ← 307 | ttft=131ms | ct= | cl=5
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > does not call failed or fallback when terminal observation rejects
+[01:24:01] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:41063/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > does not dispatch from a persisted intent whose own ACK was lost
+[01:24:01] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:37487/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > keeps two keys independent on one executor while one intent is held
+[01:24:02] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:33459/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > keeps two keys independent on one executor while one intent is held
+[01:24:02] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:33459/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > keeps two keys independent on one executor while one intent is held
+[01:24:02] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=117ms | ct= | cl=0
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > keeps two keys independent on one executor while one intent is held
+[01:24:02] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=247ms | ct= | cl=0
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > owns the proxy failure and direct resend as distinct attempts
+[01:24:03] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:40141/chat | body=48B | connectTimeout=60000ms
+
+stderr | unit/accounting-transport-boundary.test.js > node actual POST admission > owns the proxy failure and direct resend as distinct attempts
+[ProxyFetch] Proxy failed, falling back to direct: fetch failed
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > owns the proxy failure and direct resend as distinct attempts
+[01:24:03] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=272ms | ct= | cl=16
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > owns a TLS certificate fallback with a fresh intent before the actual successful POST
+[01:24:04] 🐛 [DBG:FETCH] OPENAI → https://127.0.0.1:43939/chat | body=48B | connectTimeout=60000ms
+
+stderr | unit/accounting-transport-boundary.test.js > node actual POST admission > owns a TLS certificate fallback with a fresh intent before the actual successful POST
+[ProxyFetch] TLS cert verification failed (DEPTH_ZERO_SELF_SIGNED_CERT), retrying with insecure TLS: https://127.0.0.1:43939/chat
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > owns a TLS certificate fallback with a fresh intent before the actual successful POST
+[01:24:04] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=99ms | ct= | cl=13
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > refuses key drift across the lazy dispatcher await
+[01:24:04] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:1/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > refuses credential drift across the lazy dispatcher await
+[01:24:05] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:1/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > refuses node drift across the lazy dispatcher await
+[01:24:05] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:1/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > refuses pool drift across the lazy dispatcher await
+[01:24:06] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:1/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > refuses settings drift across the lazy dispatcher await
+[01:24:07] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:1/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > refuses environment drift across the lazy dispatcher await
+[01:24:07] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:1/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > preserves abort before admission and after own intent with admitted=false
+[01:24:07] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:40559/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > node actual POST admission > preserves abort before admission and after own intent with admitted=true
+[01:24:08] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:37691/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > holds intent before direct POST and terminal ACK before returning
+[01:24:09] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:46621/chat | body=48B | connectTimeout=1000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > holds intent before direct POST and terminal ACK before returning
+[01:24:10] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=1294ms | ct= | cl=11
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > sends through an actual saved HTTP proxy with its own intent
+[01:24:11] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:36935/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > sends through an actual saved HTTP proxy with its own intent
+[01:24:11] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=189ms | ct= | cl=7
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > refuses unsupported accounted custom direct transport without preparing, retrying or POSTing
+[01:24:11] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:36161/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > retains custom direct transport for nonaccounted requests
+[01:24:12] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:40821/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > retains custom direct transport for nonaccounted requests
+[01:24:12] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=10ms | ct= | cl=13
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > refuses key drift while intent ACK is held without retry or POST
+[01:24:12] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:34215/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > refuses credential drift while intent ACK is held without retry or POST
+[01:24:13] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:42071/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > refuses settings drift while intent ACK is held without retry or POST
+[01:24:13] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:43907/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > refuses environment drift while intent ACK is held without retry or POST
+[01:24:14] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:43953/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > settles each status retry before the next POST and refuses redirect replay
+[01:24:15] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:36063/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > settles each status retry before the next POST and refuses redirect replay
+[01:24:15] 🐛 [DBG:FETCH] OPENAI ← 503 | ttft=159ms | ct= | cl=5
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > settles each status retry before the next POST and refuses redirect replay
+[01:24:15] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:36063/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > settles each status retry before the next POST and refuses redirect replay
+[01:24:15] 🐛 [DBG:FETCH] OPENAI ← 307 | ttft=146ms | ct= | cl=5
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > does not call failed or fallback when terminal observation rejects
+[01:24:15] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:44377/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > does not dispatch from a persisted intent whose own ACK was lost
+[01:24:15] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:38005/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > keeps two keys independent on one executor while one intent is held
+[01:24:16] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:36685/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > keeps two keys independent on one executor while one intent is held
+[01:24:16] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:36685/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > keeps two keys independent on one executor while one intent is held
+[01:24:16] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=238ms | ct= | cl=0
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > keeps two keys independent on one executor while one intent is held
+[01:24:17] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=436ms | ct= | cl=0
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > owns the proxy failure and direct resend as distinct attempts
+[01:24:17] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:42103/chat | body=48B | connectTimeout=60000ms
+
+stderr | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > owns the proxy failure and direct resend as distinct attempts
+[ProxyFetch] Proxy failed, falling back to direct: fetch failed
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > owns the proxy failure and direct resend as distinct attempts
+[01:24:17] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=312ms | ct= | cl=16
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > owns a TLS certificate fallback with a fresh intent before the actual successful POST
+[01:24:19] 🐛 [DBG:FETCH] OPENAI → https://127.0.0.1:35275/chat | body=48B | connectTimeout=60000ms
+
+stderr | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > owns a TLS certificate fallback with a fresh intent before the actual successful POST
+[ProxyFetch] TLS cert verification failed (DEPTH_ZERO_SELF_SIGNED_CERT), retrying with insecure TLS: https://127.0.0.1:35275/chat
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > owns a TLS certificate fallback with a fresh intent before the actual successful POST
+[01:24:20] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=532ms | ct= | cl=13
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > refuses key drift across the lazy dispatcher await
+[01:24:20] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:1/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > refuses credential drift across the lazy dispatcher await
+[01:24:20] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:1/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > refuses node drift across the lazy dispatcher await
+[01:24:20] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:1/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > refuses pool drift across the lazy dispatcher await
+[01:24:20] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:1/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > refuses settings drift across the lazy dispatcher await
+[01:24:21] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:1/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > refuses environment drift across the lazy dispatcher await
+[01:24:21] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:1/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > preserves abort before admission and after own intent with admitted=false
+[01:24:21] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:42843/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > sqljs actual POST admission > preserves abort before admission and after own intent with admitted=true
+[01:24:21] 🐛 [DBG:FETCH] OPENAI → http://127.0.0.1:44657/chat | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > admits the actual relay POST without replaying redirects to the target
+[01:24:21] 🐛 [DBG:FETCH] OPENAI → http://no-upstream.invalid/v1/chat?x=1 | body=48B | connectTimeout=60000ms
+
+stdout | unit/accounting-transport-boundary.test.js > admits the actual relay POST without replaying redirects to the target
+[01:24:21] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=42ms | ct= | cl=5
+
+ ✓ unit/accounting-transport-boundary.test.js (46 tests) 28839ms
+     ✓ holds intent before direct POST and terminal ACK before returning  2776ms
+     ✓ sends through an actual saved HTTP proxy with its own intent  1075ms
+     ✓ refuses unsupported accounted custom direct transport without preparing, retrying or POSTing  457ms
+     ✓ refuses key drift while intent ACK is held without retry or POST  664ms
+     ✓ refuses credential drift while intent ACK is held without retry or POST  633ms
+     ✓ refuses settings drift while intent ACK is held without retry or POST  574ms
+     ✓ refuses environment drift while intent ACK is held without retry or POST  525ms
+     ✓ settles each status retry before the next POST and refuses redirect replay  736ms
+     ✓ does not call failed or fallback when terminal observation rejects  636ms
+     ✓ does not dispatch from a persisted intent whose own ACK was lost  550ms
+     ✓ keeps two keys independent on one executor while one intent is held  825ms
+     ✓ owns the proxy failure and direct resend as distinct attempts  691ms
+     ✓ owns a TLS certificate fallback with a fresh intent before the actual successful POST  891ms
+     ✓ refuses key drift across the lazy dispatcher await  392ms
+     ✓ refuses credential drift across the lazy dispatcher await  647ms
+     ✓ refuses node drift across the lazy dispatcher await  505ms
+     ✓ refuses pool drift across the lazy dispatcher await  689ms
+     ✓ refuses settings drift across the lazy dispatcher await  462ms
+     ✓ refuses environment drift across the lazy dispatcher await  427ms
+     ✓ preserves abort before admission and after own intent with admitted=false  408ms
+     ✓ preserves abort before admission and after own intent with admitted=true  547ms
+     ✓ holds intent before direct POST and terminal ACK before returning  2244ms
+     ✓ sends through an actual saved HTTP proxy with its own intent  697ms
+     ✓ refuses unsupported accounted custom direct transport without preparing, retrying or POSTing  425ms
+     ✓ refuses key drift while intent ACK is held without retry or POST  633ms
+     ✓ refuses credential drift while intent ACK is held without retry or POST  750ms
+     ✓ refuses settings drift while intent ACK is held without retry or POST  627ms
+     ✓ refuses environment drift while intent ACK is held without retry or POST  636ms
+     ✓ settles each status retry before the next POST and refuses redirect replay  780ms
+     ✓ keeps two keys independent on one executor while one intent is held  1020ms
+     ✓ owns the proxy failure and direct resend as distinct attempts  794ms
+     ✓ owns a TLS certificate fallback with a fresh intent before the actual successful POST  2245ms
+   ✓ uses the intended MITM bypass IP and certificate hostname for an actual TLS POST  322ms
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > acknowledges complete exact overrides durably, preserves numeric map and zero, and avoids no-op revision writes
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > acknowledges complete exact overrides durably, preserves numeric map and zero, and avoids no-op revision writes
+[DB] Driver: node:sqlite | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-UVTyIJ/db/data.sqlite
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > replaces complete model sources, merges unrelated concurrent models, and resets to synced not stale cache
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > replaces complete model sources, merges unrelated concurrent models, and resets to synced not stale cache
+[DB] Driver: node:sqlite | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-T6jN5P/db/data.sqlite
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > legacy configuration omission preserves catalog/schedule while explicit projection roundtrips ACL and snapshots invalidate
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > legacy configuration omission preserves catalog/schedule while explicit projection roundtrips ACL and snapshots invalidate
+[DB] Driver: node:sqlite | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-7u3f5b/db/data.sqlite
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > invalid sparse overrides or forged catalog projection reject before any destructive config change
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > invalid sparse overrides or forged catalog projection reject before any destructive config change
+[DB] Driver: node:sqlite | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-etKYWi/db/data.sqlite
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > malformed or schema-invalid stored rows fail closed and invalid reset identifiers never become no-ops
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > malformed or schema-invalid stored rows fail closed and invalid reset identifiers never become no-ops
+[DB] Driver: node:sqlite | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-0fthNQ/db/data.sqlite
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > invalid ACL rolls back destructive import and postcommit runtime failure reports saved config then disables timer
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > invalid ACL rolls back destructive import and postcommit runtime failure reports saved config then disables timer
+[DB] Driver: node:sqlite | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-JUknYx/db/data.sqlite
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > paused fetch may publish after import/disable without restoring old schedule or overwriting imported overrides
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > paused fetch may publish after import/disable without restoring old schedule or overwriting imported overrides
+[DB] Driver: node:sqlite | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-HfxDj6/db/data.sqlite
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > editor projection preserves custom exact values and untouched fields across complete model edits without numeric roundtrip
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > editor projection preserves custom exact values and untouched fields across complete model edits without numeric roundtrip
+[DB] Driver: node:sqlite | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-duzlcF/db/data.sqlite
+
+stdout | unit/pricing-persistence-import.test.js > Node actual pricing persistence and config integration > invalid legacy sparse migration retains JSON, creates no import marker or partial pricing rows
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > acknowledges complete exact overrides durably, preserves numeric map and zero, and avoids no-op revision writes
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > acknowledges complete exact overrides durably, preserves numeric map and zero, and avoids no-op revision writes
+[DB] Driver: sql.js | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-WDwb6y/db/data.sqlite
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > replaces complete model sources, merges unrelated concurrent models, and resets to synced not stale cache
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > replaces complete model sources, merges unrelated concurrent models, and resets to synced not stale cache
+[DB] Driver: sql.js | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-fOxavA/db/data.sqlite
+
+(node:52) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 beforeExit listeners added to [process]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:52) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 SIGINT listeners added to [process]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(node:52) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 SIGTERM listeners added to [process]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > legacy configuration omission preserves catalog/schedule while explicit projection roundtrips ACL and snapshots invalidate
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > legacy configuration omission preserves catalog/schedule while explicit projection roundtrips ACL and snapshots invalidate
+[DB] Driver: sql.js | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-5w9xur/db/data.sqlite
+
+(node:52) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 exit listeners added to [process]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > invalid sparse overrides or forged catalog projection reject before any destructive config change
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > invalid sparse overrides or forged catalog projection reject before any destructive config change
+[DB] Driver: sql.js | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-r3wofS/db/data.sqlite
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > malformed or schema-invalid stored rows fail closed and invalid reset identifiers never become no-ops
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > malformed or schema-invalid stored rows fail closed and invalid reset identifiers never become no-ops
+[DB] Driver: sql.js | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-Q4AbCB/db/data.sqlite
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > invalid ACL rolls back destructive import and postcommit runtime failure reports saved config then disables timer
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > invalid ACL rolls back destructive import and postcommit runtime failure reports saved config then disables timer
+[DB] Driver: sql.js | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-mXKkCp/db/data.sqlite
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > paused fetch may publish after import/disable without restoring old schedule or overwriting imported overrides
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > paused fetch may publish after import/disable without restoring old schedule or overwriting imported overrides
+[DB] Driver: sql.js | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-pTR2vg/db/data.sqlite
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > editor projection preserves custom exact values and untouched fields across complete model edits without numeric roundtrip
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > editor projection preserves custom exact values and untouched fields across complete model edits without numeric roundtrip
+[DB] Driver: sql.js | file: /tmp/9router-r1-isolated-CDTWnU/sandbox/tmp/pricing-import-rsDw3I/db/data.sqlite
+
+stdout | unit/pricing-persistence-import.test.js > SQL.js actual pricing persistence and config integration > invalid legacy sparse migration retains JSON, creates no import marker or partial pricing rows
+[DB][migrate] applied #1 initial
+[DB][migrate] applied #2 accounting-foundation
+[DB][migrate] applied #3 accounting-policy
+[DB][migrate] applied #4 recorded-spend-disposition
+
+ ✓ unit/pricing-persistence-import.test.js (18 tests) 14306ms
+     ✓ acknowledges complete exact overrides durably, preserves numeric map and zero, and avoids no-op revision writes  958ms
+     ✓ replaces complete model sources, merges unrelated concurrent models, and resets to synced not stale cache  505ms
+     ✓ legacy configuration omission preserves catalog/schedule while explicit projection roundtrips ACL and snapshots invalidate  510ms
+     ✓ invalid sparse overrides or forged catalog projection reject before any destructive config change  563ms
+     ✓ malformed or schema-invalid stored rows fail closed and invalid reset identifiers never become no-ops  572ms
+     ✓ invalid ACL rolls back destructive import and postcommit runtime failure reports saved config then disables timer  828ms
+     ✓ paused fetch may publish after import/disable without restoring old schedule or overwriting imported overrides  852ms
+     ✓ editor projection preserves custom exact values and untouched fields across complete model edits without numeric roundtrip  1094ms
+     ✓ invalid legacy sparse migration retains JSON, creates no import marker or partial pricing rows  390ms
+     ✓ acknowledges complete exact overrides durably, preserves numeric map and zero, and avoids no-op revision writes  1379ms
+     ✓ replaces complete model sources, merges unrelated concurrent models, and resets to synced not stale cache  1492ms
+     ✓ legacy configuration omission preserves catalog/schedule while explicit projection roundtrips ACL and snapshots invalidate  1016ms
+     ✓ invalid sparse overrides or forged catalog projection reject before any destructive config change  837ms
+     ✓ malformed or schema-invalid stored rows fail closed and invalid reset identifiers never become no-ops  617ms
+     ✓ invalid ACL rolls back destructive import and postcommit runtime failure reports saved config then disables timer  614ms
+     ✓ paused fetch may publish after import/disable without restoring old schedule or overwriting imported overrides  929ms
+     ✓ editor projection preserves custom exact values and untouched fields across complete model edits without numeric roundtrip  912ms
+stdout | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > unrestricted key reaches the provider for the combo and models
+[01:24:44] ℹ️  [CHAT] Combo "Main" with 2 models (strategy: fallback, sticky: undefined)
+[01:24:44] ℹ️  [COMBO] Trying model 1/2: openai/model-a
+
+stderr | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > unrestricted key reaches the provider for the combo and models
+[01:24:44] ⚠️  [COMBO] Model openai/model-a failed, trying next {"status":500}
+
+stdout | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > unrestricted key reaches the provider for the combo and models
+[01:24:44] ℹ️  [COMBO] Trying model 2/2: openai/model-b
+
+stdout | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > unrestricted key reaches the provider for the combo and models
+[01:24:44] ℹ️  [COMBO] Model openai/model-b succeeded
+
+stdout | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > restricted-to-combo key: combo 200, direct member and unlisted model 403 before any credential lookup
+[01:24:44] ℹ️  [CHAT] Combo "Main" with 2 models (strategy: fallback, sticky: undefined)
+[01:24:44] ℹ️  [COMBO] Trying model 1/2: openai/model-a
+
+stderr | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > restricted-to-combo key: combo 200, direct member and unlisted model 403 before any credential lookup
+[01:24:44] ⚠️  [COMBO] Model openai/model-a failed, trying next {"status":500}
+
+stdout | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > restricted-to-combo key: combo 200, direct member and unlisted model 403 before any credential lookup
+[01:24:44] ℹ️  [COMBO] Trying model 2/2: openai/model-b
+
+stdout | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > restricted-to-combo key: combo 200, direct member and unlisted model 403 before any credential lookup
+[01:24:44] ℹ️  [COMBO] Model openai/model-b succeeded
+
+stderr | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > restricted-to-combo key: combo 200, direct member and unlisted model 403 before any credential lookup
+[01:24:44] ⚠️  [AUTH] key-access: key "combo" denied "openai/model-a"
+
+stderr | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > restricted-to-combo key: combo 200, direct member and unlisted model 403 before any credential lookup
+[01:24:44] ⚠️  [AUTH] key-access: key "combo" denied "openai/model-b"
+
+stderr | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > restricted-to-combo key: combo 200, direct member and unlisted model 403 before any credential lookup
+[01:24:44] ⚠️  [AUTH] key-access: key "combo" denied "openai/gpt-4o"
+
+stderr | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > restricted-to-model-B key: B 200; the combo containing B and model A are 403
+[01:24:44] ⚠️  [AUTH] key-access: key "b" denied "Main"
+
+stderr | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > restricted-to-model-B key: B 200; the combo containing B and model A are 403
+[01:24:44] ⚠️  [AUTH] key-access: key "b" denied "openai/model-a"
+
+stderr | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > empty-list key: 403 on everything
+[01:24:44] ⚠️  [AUTH] key-access: key "empty" denied "Main"
+
+stderr | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > empty-list key: 403 on everything
+[01:24:44] ⚠️  [AUTH] key-access: key "empty" denied "openai/model-a"
+
+stderr | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > empty-list key: 403 on everything
+[01:24:44] ⚠️  [AUTH] key-access: key "empty" denied "openai/model-b"
+
+stdout | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > restricted key on an allowed combo still fails over from an erroring member to the next
+[01:24:44] ℹ️  [CHAT] Combo "Main" with 2 models (strategy: fallback, sticky: undefined)
+[01:24:44] ℹ️  [COMBO] Trying model 1/2: openai/model-a
+
+stderr | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > restricted key on an allowed combo still fails over from an erroring member to the next
+[01:24:44] ⚠️  [COMBO] Model openai/model-a failed, trying next {"status":500}
+
+stdout | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > restricted key on an allowed combo still fails over from an erroring member to the next
+[01:24:44] ℹ️  [COMBO] Trying model 2/2: openai/model-b
+
+stdout | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > restricted key on an allowed combo still fails over from an erroring member to the next
+[01:24:44] ℹ️  [COMBO] Model openai/model-b succeeded
+
+stderr | unit/key-access-handlers.test.js > chat (/v1/chat/completions, /v1/messages, /v1/responses all use handleChat) > bypass check: a restricted key sent as x-goog-api-key on the Gemini-compatible route is still restricted
+[01:24:44] ⚠️  [AUTH] key-access: key "b" denied "openai/model-a"
+
+stdout | unit/key-access-handlers.test.js > embeddings handler is wired > denies an unlisted model with 403 before any credential lookup
+[36m[01:24:44] 📥 POST /v1/embeddings | openai/text-embedding-3-large[0m
+
+stderr | unit/key-access-handlers.test.js > embeddings handler is wired > denies an unlisted model with 403 before any credential lookup
+[01:24:44] ⚠️  [AUTH] key-access: key "media" denied "openai/text-embedding-3-large"
+
+stdout | unit/key-access-handlers.test.js > embeddings handler is wired > lets a listed model through to the credential lookup
+[36m[01:24:44] 📥 POST /v1/embeddings | openai/text-embedding-3-small[0m
+
+stdout | unit/key-access-handlers.test.js > embeddings handler is wired > lets a listed model through to the credential lookup
+[01:24:44] ℹ️  [ROUTING] Provider: openai, Model: text-embedding-3-small
+
+stdout | unit/key-access-handlers.test.js > embeddings handler is wired > lets a listed model through to the credential lookup
+[01:24:44] ❌ [AUTH] No credentials for provider: openai
+
+stdout | unit/key-access-handlers.test.js > embeddings handler is wired > leaves an unrestricted key alone
+[36m[01:24:44] 📥 POST /v1/embeddings | openai/text-embedding-3-large[0m
+
+stdout | unit/key-access-handlers.test.js > embeddings handler is wired > leaves an unrestricted key alone
+[01:24:44] ℹ️  [ROUTING] Provider: openai, Model: text-embedding-3-large
+
+stdout | unit/key-access-handlers.test.js > embeddings handler is wired > leaves an unrestricted key alone
+[01:24:44] ❌ [AUTH] No credentials for provider: openai
+
+stdout | unit/key-access-handlers.test.js > embeddings handler is wired > denies everything for the empty-list key
+[36m[01:24:44] 📥 POST /v1/embeddings | openai/text-embedding-3-small[0m
+
+stderr | unit/key-access-handlers.test.js > embeddings handler is wired > denies everything for the empty-list key
+[01:24:44] ⚠️  [AUTH] key-access: key "empty" denied "openai/text-embedding-3-small"
+
+stderr | unit/key-access-handlers.test.js > image handler is wired > denies an unlisted model with 403 before any credential lookup
+[01:24:44] ⚠️  [AUTH] key-access: key "media" denied "openai/gpt-image-1"
+
+stderr | unit/key-access-handlers.test.js > image handler is wired > denies everything for the empty-list key
+[01:24:44] ⚠️  [AUTH] key-access: key "empty" denied "openai/dall-e-3"
+
+stdout | unit/key-access-handlers.test.js > tts handler is wired > denies an unlisted model with 403 before any credential lookup
+[36m[01:24:44] 📥 POST /v1/audio/speech | openai/tts-1-hd | format=mp3[0m
+
+stderr | unit/key-access-handlers.test.js > tts handler is wired > denies an unlisted model with 403 before any credential lookup
+[01:24:44] ⚠️  [AUTH] key-access: key "media" denied "openai/tts-1-hd"
+
+stdout | unit/key-access-handlers.test.js > tts handler is wired > lets a listed model through to the credential lookup
+[36m[01:24:44] 📥 POST /v1/audio/speech | openai/tts-1 | format=mp3[0m
+
+stdout | unit/key-access-handlers.test.js > tts handler is wired > lets a listed model through to the credential lookup
+[01:24:44] ℹ️  [ROUTING] Provider: openai, Voice: tts-1
+
+stdout | unit/key-access-handlers.test.js > tts handler is wired > leaves an unrestricted key alone
+[36m[01:24:44] 📥 POST /v1/audio/speech | openai/tts-1-hd | format=mp3[0m
+
+stdout | unit/key-access-handlers.test.js > tts handler is wired > leaves an unrestricted key alone
+[01:24:44] ℹ️  [ROUTING] Provider: openai, Voice: tts-1-hd
+
+stdout | unit/key-access-handlers.test.js > tts handler is wired > denies everything for the empty-list key
+[36m[01:24:44] 📥 POST /v1/audio/speech | openai/tts-1 | format=mp3[0m
+
+stderr | unit/key-access-handlers.test.js > tts handler is wired > denies everything for the empty-list key
+[01:24:44] ⚠️  [AUTH] key-access: key "empty" denied "openai/tts-1"
+
+stdout | unit/key-access-handlers.test.js > stt handler is wired > denies an unlisted model with 403 before any credential lookup
+[36m[01:24:44] 📥 POST /v1/audio/transcriptions | groq/whisper-large-v3[0m
+
+stderr | unit/key-access-handlers.test.js > stt handler is wired > denies an unlisted model with 403 before any credential lookup
+[01:24:44] ⚠️  [AUTH] key-access: key "media" denied "groq/whisper-large-v3"
+
+stdout | unit/key-access-handlers.test.js > stt handler is wired > lets a listed model through to the credential lookup
+[36m[01:24:44] 📥 POST /v1/audio/transcriptions | openai/whisper-1[0m
+
+stdout | unit/key-access-handlers.test.js > stt handler is wired > lets a listed model through to the credential lookup
+[01:24:44] ℹ️  [ROUTING] Provider: openai, Model: whisper-1
+
+stdout | unit/key-access-handlers.test.js > stt handler is wired > leaves an unrestricted key alone
+[36m[01:24:44] 📥 POST /v1/audio/transcriptions | groq/whisper-large-v3[0m
+
+stdout | unit/key-access-handlers.test.js > stt handler is wired > leaves an unrestricted key alone
+[01:24:44] ℹ️  [ROUTING] Provider: groq, Model: whisper-large-v3
+
+stdout | unit/key-access-handlers.test.js > stt handler is wired > denies everything for the empty-list key
+[36m[01:24:44] 📥 POST /v1/audio/transcriptions | openai/whisper-1[0m
+
+stderr | unit/key-access-handlers.test.js > stt handler is wired > denies everything for the empty-list key
+[01:24:44] ⚠️  [AUTH] key-access: key "empty" denied "openai/whisper-1"
+
+stderr | unit/key-access-handlers.test.js > video handler is wired > denies an unlisted model with 403 before any credential lookup
+[01:24:44] ⚠️  [AUTH] key-access: key "media" denied "xai/grok-imagine-video-pro"
+
+stderr | unit/key-access-handlers.test.js > video handler is wired > denies everything for the empty-list key
+[01:24:44] ⚠️  [AUTH] key-access: key "empty" denied "xai/grok-imagine-video"
+
+stdout | unit/key-access-handlers.test.js > search handler is wired > denies an unlisted model with 403 before any credential lookup
+[36m[01:24:44] 📥 POST /v1/search | exa[0m
+
+stderr | unit/key-access-handlers.test.js > search handler is wired > denies an unlisted model with 403 before any credential lookup
+[01:24:44] ⚠️  [AUTH] key-access: key "media" denied "exa"
+
+stdout | unit/key-access-handlers.test.js > search handler is wired > lets a listed model through to the credential lookup
+[36m[01:24:44] 📥 POST /v1/search | tavily[0m
+
+stdout | unit/key-access-handlers.test.js > search handler is wired > lets a listed model through to the credential lookup
+[01:24:44] ℹ️  [ROUTING] Provider: tavily
+
+stdout | unit/key-access-handlers.test.js > search handler is wired > lets a listed model through to the credential lookup
+[01:24:44] ❌ [AUTH] No credentials for provider: tavily
+
+stdout | unit/key-access-handlers.test.js > search handler is wired > leaves an unrestricted key alone
+[36m[01:24:44] 📥 POST /v1/search | exa[0m
+
+stdout | unit/key-access-handlers.test.js > search handler is wired > leaves an unrestricted key alone
+[01:24:44] ℹ️  [ROUTING] Provider: exa
+
+stdout | unit/key-access-handlers.test.js > search handler is wired > leaves an unrestricted key alone
+[01:24:44] ❌ [AUTH] No credentials for provider: exa
+
+stdout | unit/key-access-handlers.test.js > search handler is wired > denies everything for the empty-list key
+[36m[01:24:44] 📥 POST /v1/search | tavily[0m
+
+stderr | unit/key-access-handlers.test.js > search handler is wired > denies everything for the empty-list key
+[01:24:44] ⚠️  [AUTH] key-access: key "empty" denied "tavily"
+
+stdout | unit/key-access-handlers.test.js > fetch handler is wired > denies an unlisted model with 403 before any credential lookup
+[36m[01:24:44] 📥 POST /v1/web/fetch | firecrawl[0m
+
+stderr | unit/key-access-handlers.test.js > fetch handler is wired > denies an unlisted model with 403 before any credential lookup
+[01:24:44] ⚠️  [AUTH] key-access: key "media" denied "firecrawl"
+
+stdout | unit/key-access-handlers.test.js > fetch handler is wired > lets a listed model through to the credential lookup
+[36m[01:24:44] 📥 POST /v1/web/fetch | tavily[0m
+
+stdout | unit/key-access-handlers.test.js > fetch handler is wired > lets a listed model through to the credential lookup
+[01:24:44] ℹ️  [ROUTING] Provider: tavily
+
+stdout | unit/key-access-handlers.test.js > fetch handler is wired > lets a listed model through to the credential lookup
+[01:24:44] ❌ [AUTH] No credentials for provider: tavily
+
+stdout | unit/key-access-handlers.test.js > fetch handler is wired > leaves an unrestricted key alone
+[36m[01:24:44] 📥 POST /v1/web/fetch | firecrawl[0m
+
+stdout | unit/key-access-handlers.test.js > fetch handler is wired > leaves an unrestricted key alone
+[01:24:44] ℹ️  [ROUTING] Provider: firecrawl
+
+stdout | unit/key-access-handlers.test.js > fetch handler is wired > leaves an unrestricted key alone
+[01:24:44] ❌ [AUTH] No credentials for provider: firecrawl
+
+stdout | unit/key-access-handlers.test.js > fetch handler is wired > denies everything for the empty-list key
+[36m[01:24:44] 📥 POST /v1/web/fetch | tavily[0m
+
+stderr | unit/key-access-handlers.test.js > fetch handler is wired > denies everything for the empty-list key
+[01:24:44] ⚠️  [AUTH] key-access: key "empty" denied "tavily"
+
+stdout | unit/key-access-handlers.test.js > systemone handler is wired > denies an unlisted model with 403 before any credential lookup
+[36m[01:24:44] 📥 POST /v1/systemone | openai/gpt-4.1[0m
+
+stderr | unit/key-access-handlers.test.js > systemone handler is wired > denies an unlisted model with 403 before any credential lookup
+[01:24:44] ⚠️  [AUTH] key-access: key "media" denied "openai/gpt-4.1"
+
+stdout | unit/key-access-handlers.test.js > systemone handler is wired > lets a listed model through to the credential lookup
+[36m[01:24:44] 📥 POST /v1/systemone | openai/gpt-4o[0m
+
+stdout | unit/key-access-handlers.test.js > systemone handler is wired > lets a listed model through to the credential lookup
+[01:24:44] ℹ️  [ROUTING] Provider: openai, Model: gpt-4o
+
+stdout | unit/key-access-handlers.test.js > systemone handler is wired > lets a listed model through to the credential lookup
+[01:24:44] ❌ [AUTH] No credentials for provider: openai
+
+stdout | unit/key-access-handlers.test.js > systemone handler is wired > leaves an unrestricted key alone
+[36m[01:24:44] 📥 POST /v1/systemone | openai/gpt-4.1[0m
+
+stdout | unit/key-access-handlers.test.js > systemone handler is wired > leaves an unrestricted key alone
+[01:24:44] ℹ️  [ROUTING] Provider: openai, Model: gpt-4.1
+
+stdout | unit/key-access-handlers.test.js > systemone handler is wired > leaves an unrestricted key alone
+[01:24:44] ❌ [AUTH] No credentials for provider: openai
+
+stdout | unit/key-access-handlers.test.js > systemone handler is wired > denies everything for the empty-list key
+[36m[01:24:44] 📥 POST /v1/systemone | openai/gpt-4o[0m
+
+stderr | unit/key-access-handlers.test.js > systemone handler is wired > denies everything for the empty-list key
+[01:24:44] ⚠️  [AUTH] key-access: key "empty" denied "openai/gpt-4o"
+
+stderr | unit/key-access-handlers.test.js > gemini-native-tts handler is wired > denies an unlisted model with 403 before any credential lookup
+[01:24:44] ⚠️  [AUTH] key-access: key "media" denied "gemini-2.5-pro-preview-tts"
+
+stdout | unit/key-access-handlers.test.js > gemini-native-tts handler is wired > lets a listed model through to the credential lookup
+[GEMINI_NATIVE] exhausted model=gemini-2.5-flash-preview-tts status=503 error=No active credentials for provider: gemini
+
+stdout | unit/key-access-handlers.test.js > gemini-native-tts handler is wired > leaves an unrestricted key alone
+[GEMINI_NATIVE] exhausted model=gemini-2.5-pro-preview-tts status=503 error=No active credentials for provider: gemini
+
+stderr | unit/key-access-handlers.test.js > gemini-native-tts handler is wired > denies everything for the empty-list key
+[01:24:44] ⚠️  [AUTH] key-access: key "empty" denied "gemini-2.5-flash-preview-tts"
+
+stderr | unit/key-access-handlers.test.js > video: a body without a readable model is denied for restricted keys > multipart / no model -> 403 for restricted, untouched for unrestricted
+[01:24:44] ⚠️  [AUTH] key-access: key "media" denied "xai/"
+
+ ✓ unit/key-access-handlers.test.js (48 tests) 3898ms
+     ✓ full catalog baseline and mixed key filtering  816ms
+     ✓ full catalog baseline and combo key filtering  620ms
+     ✓ full catalog baseline and empty key filtering  629ms
+     ✓ full catalog baseline and anonymous key filtering  599ms
+     ✓ /v1/models/{kind} and single-model lookup are filtered too  1061ms
+ ✓ unit/accounting-coordinator.test.js (31 tests) 9013ms
+     ✓ rechecks missing binding after queue await before intent mutation  314ms
+     ✓ rechecks configuration after queue await before intent mutation  314ms
+     ✓ rechecks price after queue await before intent mutation  322ms
+     ✓ rechecks coverage after queue await before intent mutation  338ms
+     ✓ owns receipts, consumes dispatch once and keeps terminal sink after config changes  347ms
+     ✓ preserves cancellation reason, refuses own ACK on lost group return, and never authorizes from a visible row  365ms
+     ✓ records estimated or missing usage as unresolved with null cost  338ms
+     ✓ refuses stale post-ACK dispatch and applies interleaved keys with independent authority  397ms
+     ✓ does not erase recorded intent when cancellation happens during application  362ms
+     ✓ poisons every accounting member on actual inner RELEASE uncertainty  308ms
+     ✓ rechecks activation after queue await before intent mutation  700ms
+     ✓ rechecks identity binding after queue await before intent mutation  368ms
+     ✓ rechecks missing binding after queue await before intent mutation  413ms
+     ✓ rechecks ACL after queue await before intent mutation  326ms
+     ✓ rechecks configuration after queue await before intent mutation  370ms
+     ✓ rechecks price after queue await before intent mutation  379ms
+     ✓ rechecks coverage after queue await before intent mutation  366ms
+     ✓ owns receipts, consumes dispatch once and keeps terminal sink after config changes  367ms
+ ✓ unit/accounting-request-authority.test.js (32 tests) 13651ms
+     ✓ exposes only the initialized driver capability while ordinary poisoned getters stay strict  638ms
+     ✓ proves a fresh degraded request without exposing secrets or adapter methods  666ms
+     ✓ does not classify a zero or finite limit as an unlimited failure exception  460ms
+     ✓ rejects binding changes across an await  305ms
+     ✓ rejects policy changes across an await  430ms
+     ✓ rejects connection changes across an await  372ms
+     ✓ rejects settings changes across an await  354ms
+     ✓ rejects routing changes across an await  328ms
+     ✓ rejects disabled models changes across an await  353ms
+     ✓ rejects combos changes across an await  374ms
+     ✓ requires a current sidecar, explicit gap generation and no maintenance  361ms
+     ✓ refuses missing installation markers and a missing policy instead of defaulting  379ms
+     ✓ refuses unavailable pools and detects node and pool drift  529ms
+     ✓ refuses lost ownership and corrupt sidecar material without opening another writer  409ms
+     ✓ requires the installed schema and binding fingerprint to remain verifiable  385ms
+     ✓ exposes only the initialized driver capability while ordinary poisoned getters stay strict  680ms
+     ✓ proves a fresh degraded request without exposing secrets or adapter methods  445ms
+     ✓ does not classify a zero or finite limit as an unlimited failure exception  453ms
+     ✓ rejects key changes across an await  505ms
+     ✓ rejects binding changes across an await  428ms
+     ✓ rejects policy changes across an await  384ms
+     ✓ rejects connection changes across an await  366ms
+     ✓ rejects settings changes across an await  408ms
+     ✓ rejects routing changes across an await  510ms
+     ✓ rejects disabled models changes across an await  491ms
+     ✓ rejects combos changes across an await  484ms
+     ✓ requires a current sidecar, explicit gap generation and no maintenance  421ms
+     ✓ refuses missing installation markers and a missing policy instead of defaulting  347ms
+     ✓ refuses unavailable pools and detects node and pool drift  410ms
+     ✓ refuses lost ownership and corrupt sidecar material without opening another writer  337ms
+     ✓ requires the installed schema and binding fingerprint to remain verifiable  361ms
+ ✓ unit/accounting-budget-gate.test.js (26 tests) 11882ms
+     ✓ charges exact then refuses next before insert, other key unaffected  698ms
+     ✓ zero blocks with advisory reset, unlimited still records  560ms
+     ✓ checks both windows and uses latest blocked reset  365ms
+     ✓ pending is not reservation; exact overshoot blocks successor  464ms
+     ✓ fresh final gate sees peer settlement after own intent  639ms
+     ✓ finite rollover refuses without redate; unlimited dimension can roll  1122ms
+     ✓ policy drift refuses held dispatch but terminal survives edits  523ms
+     ✓ all-lifetime unresolved blocks finite across reset/reopen but not unlimited  639ms
+     ✓ mutation captures admitted instant, not enqueue instant  334ms
+     ✓ queue member rechecks peer settlement committed after quick eligibility  445ms
+     ✓ retains original pricing after policy/reset/price edits and duplicate late evidence  452ms
+     ✓ charges exact then refuses next before insert, other key unaffected  541ms
+     ✓ zero blocks with advisory reset, unlimited still records  306ms
+     ✓ pending is not reservation; exact overshoot blocks successor  478ms
+     ✓ fresh final gate sees peer settlement after own intent  569ms
+     ✓ finite rollover refuses without redate; unlimited dimension can roll  582ms
+     ✓ policy drift refuses held dispatch but terminal survives edits  400ms
+     ✓ interrupted absent disposition does not block finite policy across reset or reopen  443ms
+     ✓ all-lifetime unresolved blocks finite across reset/reopen but not unlimited  389ms
+     ✓ mutation captures admitted instant, not enqueue instant  628ms
+ ✓ unit/accounting-persisted-authority.test.js (25 tests) 8659ms
+     ✓ rejects a missing table in a fresh schema proof  464ms
+     ✓ rejects a missing index in a fresh schema proof  325ms
+     ✓ rejects a missing update trigger in a fresh schema proof  345ms
+     ✓ rejects a missing delete trigger in a fresh schema proof  348ms
+     ✓ proves unchanged authority after recording publication failure after=false without resurrecting its ACK  328ms
+     ✓ proves unchanged authority after recording publication failure after=true without resurrecting its ACK  370ms
+     ✓ opens a fresh snapshot for each proof and never exposes a writable reader  312ms
+     ✓ rejects a missing table in a fresh schema proof  655ms
+     ✓ rejects a missing index in a fresh schema proof  342ms
+     ✓ rejects a missing update trigger in a fresh schema proof  339ms
+     ✓ rejects a missing delete trigger in a fresh schema proof  341ms
+     ✓ rejects a missing policy in a fresh schema proof  338ms
+     ✓ proves unchanged authority after recording publication failure after=false without resurrecting its ACK  338ms
+     ✓ proves unchanged authority after recording publication failure after=true without resurrecting its ACK  314ms
+     ✓ denies a failed publication that contains a new credential or policy  438ms
+     ✓ invalidates persisted proof if engine close fails  406ms
+     ✓ opens a fresh snapshot for each proof and never exposes a writable reader  342ms
+   ✓ Node persisted authority reads committed WAL changes absent from the main file  314ms
+ ✓ unit/pricing-snapshot-sqljs.test.js (10 tests) 1536ms
+     ✓ installs verified triggers idempotently and invalidates raw old/new scope transitions  418ms
+ ✓ unit/accounting-crash.test.js (23 tests) 21187ms
+     ✓ reuses pristine durable sidecar after crash before its DB reference  859ms
+     ✓ retains retirement across crash before the key delete commits  923ms
+     ✓ before-intent: reopens persisted truth without manufacturing an ACK  795ms
+     ✓ inside-intent: reopens persisted truth without manufacturing an ACK  792ms
+     ✓ after-intent: reopens persisted truth without manufacturing an ACK  937ms
+     ✓ after-intent-lost-ack: reopens persisted truth without manufacturing an ACK  888ms
+     ✓ before-terminal: reopens persisted truth without manufacturing an ACK  1000ms
+     ✓ inside-terminal: reopens persisted truth without manufacturing an ACK  947ms
+     ✓ after-terminal: reopens persisted truth without manufacturing an ACK  434ms
+     ✓ competing writer cannot mutate an active accounting file or sidecar  326ms
+     ✓ SIGTERM recovers pending, releases only after close and permits another signal owner to run  325ms
+     ✓ reuses pristine durable sidecar after crash before its DB reference  987ms
+     ✓ retains retirement across crash before the key delete commits  1011ms
+     ✓ before-intent: reopens persisted truth without manufacturing an ACK  1141ms
+     ✓ inside-intent: reopens persisted truth without manufacturing an ACK  1142ms
+     ✓ after-intent: reopens persisted truth without manufacturing an ACK  1115ms
+     ✓ after-intent-lost-ack: reopens persisted truth without manufacturing an ACK  1002ms
+     ✓ before-terminal: reopens persisted truth without manufacturing an ACK  1190ms
+     ✓ inside-terminal: reopens persisted truth without manufacturing an ACK  1562ms
+     ✓ after-terminal: reopens persisted truth without manufacturing an ACK  1297ms
+     ✓ competing writer cannot mutate an active accounting file or sidecar  1072ms
+     ✓ SIGTERM recovers pending, releases only after close and permits another signal owner to run  696ms
+   ✓ SQL.js crash after file fsync before rename keeps the last acknowledged file  732ms
+ ✓ unit/key-budget-management-security.test.js (8 tests) 5057ms
+     ✓ auth before params/body/privileged reads for budget and every key CRUD route  1918ms
+     ✓ JWT requires same Origin before any budget body read; production finite target409 no mutation  416ms
+     ✓ fixture exact finite PUT/GET, stale409, invalid400, unknown404, no-store/no secrets  342ms
+     ✓ only verified direct loopback with persisted login-disabled is allowed  320ms
+     ✓ auth before params/body/privileged reads for budget and every key CRUD route  600ms
+     ✓ JWT requires same Origin before any budget body read; production finite target409 no mutation  416ms
+     ✓ fixture exact finite PUT/GET, stale409, invalid400, unknown404, no-store/no secrets  545ms
+     ✓ only verified direct loopback with persisted login-disabled is allowed  491ms
+ ✓ unit/b1-usage-evidence.test.js (9 tests) 227ms
+ ✓ unit/ollama-local-embeddings.test.js (5 tests) 47ms
+ ✓ unit/b1-ledger-disposition.test.js (12 tests) 3478ms
+     ✓ retains idempotency and original cost period for late evidence after an interrupted absence  626ms
+     ✓ does not discard stored usage when recovering a dead-owner pending attempt  445ms
+     ✓ serializes recovery and late settlement without a second charge (recover-first)  378ms
+     ✓ serializes recovery and late settlement without a second charge (settle-first)  318ms
+     ✓ abandons only the selected owner while preserving charges and live intents  328ms
+ ✓ unit/pricing-snapshot-cache.test.js (6 tests) 49ms
+ ✓ unit/accounting-exact-money.test.js (5 tests) 60ms
+ ✓ unit/accounting-ledger.test.js (4 tests) 2540ms
+     ✓ deduplicates immutable intent/terminal, preserves original price across changes and reopens exact settlement  716ms
+     ✓ keeps unknown null, permits late exact usage and protects audited manual resolution with CAS  409ms
+     ✓ deduplicates immutable intent/terminal, preserves original price across changes and reopens exact settlement  906ms
+     ✓ keeps unknown null, permits late exact usage and protects audited manual resolution with CAS  499ms
+ ✓ unit/accounting-budget-projection.test.js (4 tests) 2160ms
+     ✓ distinguishes exact spent, unlimited remaining, overshoot, lifetime unknown and previous window  661ms
+     ✓ aggregates money above Number safe bound with exact wire decimals  355ms
+     ✓ distinguishes exact spent, unlimited remaining, overshoot, lifetime unknown and previous window  776ms
+     ✓ aggregates money above Number safe bound with exact wire decimals  359ms
+ ✓ unit/embedding-usage-persistence.test.js (8 tests) 206ms
+stdout | unit/accounting-stream-terminal.test.js > private accounting stream terminal provenance > accounting terminal works without legacy formatter and emits once after content
+[01:26:39] 🐛 [DBG:STREAM] pipe start | stallTimeout=360000ms
+
+stdout | unit/accounting-stream-terminal.test.js > private accounting stream terminal provenance > accounting terminal works without legacy formatter and emits once after content
+[01:26:39] 🐛 [DBG:STREAM] chunk #1 | size=167B | gap=9ms | total=167B
+
+stdout | unit/accounting-stream-terminal.test.js > private accounting stream terminal provenance > accounting terminal works without legacy formatter and emits once after content
+[01:26:39] 🐛 [DBG:STREAM] error: private ACK detail | chunks=1 | bytes=167 | dur=112ms
+
+stdout | unit/accounting-stream-terminal.test.js > private accounting stream terminal provenance > ordinary unaccounted transport retains legacy terminal formatter
+[01:26:39] 🐛 [DBG:STREAM] pipe start | stallTimeout=360000ms
+
+stdout | unit/accounting-stream-terminal.test.js > private accounting stream terminal provenance > ordinary unaccounted transport retains legacy terminal formatter
+[01:26:39] 🐛 [DBG:STREAM] error: upstream | chunks=0 | bytes=0 | dur=3ms
+
+ ✓ unit/accounting-stream-terminal.test.js (5 tests) 224ms
+ ✓ unit/accounting-budget-windows.test.js (20 tests) 59ms
+ ✓ unit/b1-late-chat-sink.test.js (2 tests) 1887ms
+     ✓ accepts late exact evidence after absence and disposal with original price and period once  776ms
+     ✓ accepts late exact evidence after absence and disposal with original price and period once  1102ms
+ ✓ unit/b1-terminal-failure-reopen.test.js (4 tests) 2710ms
+     ✓ keeps a healthy rejected settled write separate from crash absence and isolates the key  466ms
+     ✓ keeps a healthy rejected unresolved write separate from crash absence and isolates the key  304ms
+     ✓ keeps a healthy rejected settled write separate from crash absence and isolates the key  1131ms
+     ✓ keeps a healthy rejected unresolved write separate from crash absence and isolates the key  802ms
+ ✓ unit/budget-activation-boundary.test.js (5 tests) 370ms
+     ✓ has no shipping caller of private fixture association functions in src or open-sse  351ms
+ ✓ unit/pricing-validation.test.js (4 tests) 339ms
+stdout | unit/default-executor-accounting-compatibility.test.js > canonical Default executor without accounting capability > preserves OpenAI registry URL, bearer header and native body ownership
+[01:26:56] 🐛 [DBG:FETCH] OPENAI → https://api.openai.com/v1/chat/completions | body=48B | connectTimeout=60000ms
+
+stdout | unit/default-executor-accounting-compatibility.test.js > canonical Default executor without accounting capability > preserves OpenAI registry URL, bearer header and native body ownership
+[01:26:56] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=93ms | ct=text/plain;charset=UTF-8 | cl=?
+
+stdout | unit/default-executor-accounting-compatibility.test.js > canonical Default executor without accounting capability > preserves no-key streaming headers and adds no usage opt-in without a capability
+[01:26:56] 🐛 [DBG:FETCH] OPENAI → https://api.openai.com/v1/chat/completions | body=29B | connectTimeout=60000ms
+
+stdout | unit/default-executor-accounting-compatibility.test.js > canonical Default executor without accounting capability > preserves no-key streaming headers and adds no usage opt-in without a capability
+[01:26:56] 🐛 [DBG:FETCH] OPENAI ← 200 | ttft=2ms | ct=text/event-stream | cl=?
+
+ ✓ unit/default-executor-accounting-compatibility.test.js (2 tests) 243ms
+
+ Test Files  26 passed (26)
+      Tests  408 passed (408)
+   Start at  01:23:44
+   Duration  192.07s (transform 11.71s, setup 3.82s, import 36.36s, tests 132.79s, environment 17ms)
+
+JSON report written to /tmp/9router-r1-isolated-CDTWnU/sandbox/artifacts/results.json
+{"kind":"r1-isolated-run","root":"/tmp/9router-r1-isolated-CDTWnU/sandbox","status":0,"signal":null,"error":null,"outsideArtifacts":[]}

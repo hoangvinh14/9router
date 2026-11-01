@@ -1,0 +1,3667 @@
+[
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "node exact recorded-spend gate charges exact then refuses next before insert, other key unaffected",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "node exact recorded-spend gate zero blocks with advisory reset, unlimited still records",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "node exact recorded-spend gate checks both windows and uses latest blocked reset",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "node exact recorded-spend gate pending is not reservation; exact overshoot blocks successor",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "node exact recorded-spend gate fresh final gate sees peer settlement after own intent",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "node exact recorded-spend gate finite rollover refuses without redate; unlimited dimension can roll",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "node exact recorded-spend gate policy drift refuses held dispatch but terminal survives edits",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "node exact recorded-spend gate interrupted absent disposition does not block finite policy across reset or reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "node exact recorded-spend gate all-lifetime unresolved blocks finite across reset/reopen but not unlimited",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "node exact recorded-spend gate mutation captures admitted instant, not enqueue instant",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "node exact recorded-spend gate queue member rechecks peer settlement committed after quick eligibility",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "node exact recorded-spend gate retains original pricing after policy/reset/price edits and duplicate late evidence",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "node exact recorded-spend gate exhaustion/unresolved precedence before missing price",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "sqljs exact recorded-spend gate charges exact then refuses next before insert, other key unaffected",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "sqljs exact recorded-spend gate zero blocks with advisory reset, unlimited still records",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "sqljs exact recorded-spend gate checks both windows and uses latest blocked reset",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "sqljs exact recorded-spend gate pending is not reservation; exact overshoot blocks successor",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "sqljs exact recorded-spend gate fresh final gate sees peer settlement after own intent",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "sqljs exact recorded-spend gate finite rollover refuses without redate; unlimited dimension can roll",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "sqljs exact recorded-spend gate policy drift refuses held dispatch but terminal survives edits",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "sqljs exact recorded-spend gate interrupted absent disposition does not block finite policy across reset or reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "sqljs exact recorded-spend gate all-lifetime unresolved blocks finite across reset/reopen but not unlimited",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "sqljs exact recorded-spend gate mutation captures admitted instant, not enqueue instant",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "sqljs exact recorded-spend gate queue member rechecks peer settlement committed after quick eligibility",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "sqljs exact recorded-spend gate retains original pricing after policy/reset/price edits and duplicate late evidence",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-gate.test.js",
+    "test": "sqljs exact recorded-spend gate exhaustion/unresolved precedence before missing price",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-projection.test.js",
+    "test": "node ledger-derived calendar projection distinguishes exact spent, unlimited remaining, overshoot, lifetime unknown and previous window",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-projection.test.js",
+    "test": "node ledger-derived calendar projection aggregates money above Number safe bound with exact wire decimals",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-projection.test.js",
+    "test": "sqljs ledger-derived calendar projection distinguishes exact spent, unlimited remaining, overshoot, lifetime unknown and previous window",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-budget-projection.test.js",
+    "test": "sqljs ledger-derived calendar projection aggregates money above Number safe bound with exact wire decimals",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "node actual process crash boundaries reuses pristine durable sidecar after crash before its DB reference",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "node actual process crash boundaries retains retirement across crash before the key delete commits",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "node actual process crash boundaries before-intent: reopens persisted truth without manufacturing an ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "node actual process crash boundaries inside-intent: reopens persisted truth without manufacturing an ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "node actual process crash boundaries after-intent: reopens persisted truth without manufacturing an ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "node actual process crash boundaries after-intent-lost-ack: reopens persisted truth without manufacturing an ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "node actual process crash boundaries before-terminal: reopens persisted truth without manufacturing an ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "node actual process crash boundaries inside-terminal: reopens persisted truth without manufacturing an ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "node actual process crash boundaries after-terminal: reopens persisted truth without manufacturing an ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "node actual process crash boundaries competing writer cannot mutate an active accounting file or sidecar",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "node actual process crash boundaries SIGTERM recovers pending, releases only after close and permits another signal owner to run",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "sqljs actual process crash boundaries reuses pristine durable sidecar after crash before its DB reference",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "sqljs actual process crash boundaries retains retirement across crash before the key delete commits",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "sqljs actual process crash boundaries before-intent: reopens persisted truth without manufacturing an ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "sqljs actual process crash boundaries inside-intent: reopens persisted truth without manufacturing an ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "sqljs actual process crash boundaries after-intent: reopens persisted truth without manufacturing an ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "sqljs actual process crash boundaries after-intent-lost-ack: reopens persisted truth without manufacturing an ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "sqljs actual process crash boundaries before-terminal: reopens persisted truth without manufacturing an ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "sqljs actual process crash boundaries inside-terminal: reopens persisted truth without manufacturing an ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "sqljs actual process crash boundaries after-terminal: reopens persisted truth without manufacturing an ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "sqljs actual process crash boundaries competing writer cannot mutate an active accounting file or sidecar",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "sqljs actual process crash boundaries SIGTERM recovers pending, releases only after close and permits another signal owner to run",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-crash.test.js",
+    "test": "SQL.js crash after file fsync before rename keeps the last acknowledged file",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-fixture-isolation.test.js",
+    "test": "OS-enforced accounting fixture containment attests before imports and contains inherited subprocess writes and SQLite opens",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-fixture-isolation.test.js",
+    "test": "OS-enforced accounting fixture containment contains invalid DATA_DIR fallback inside private HOME and refuses forged attestation",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-fixture-isolation.test.js",
+    "test": "OS-enforced accounting fixture containment uses the same legacy-only boundary in spawned actual-process fixtures",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-fixture-isolation.test.js",
+    "test": "OS-enforced accounting fixture containment contains late presentation calls overlapping the next fixture without default adapter initialization",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "node private persisted accounting authority rejects a missing table in a fresh schema proof",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "node private persisted accounting authority rejects a missing index in a fresh schema proof",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "node private persisted accounting authority rejects a missing update trigger in a fresh schema proof",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "node private persisted accounting authority rejects a missing delete trigger in a fresh schema proof",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "node private persisted accounting authority rejects a missing policy in a fresh schema proof",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "node private persisted accounting authority denies persisted proof after an escaped thenable transaction",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "node private persisted accounting authority proves unchanged authority after recording publication failure after=false without resurrecting its ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "node private persisted accounting authority proves unchanged authority after recording publication failure after=true without resurrecting its ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "node private persisted accounting authority denies a failed publication that contains a new credential or policy",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "node private persisted accounting authority invalidates persisted proof if engine close fails",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "node private persisted accounting authority opens a fresh snapshot for each proof and never exposes a writable reader",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "sqljs private persisted accounting authority rejects a missing table in a fresh schema proof",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "sqljs private persisted accounting authority rejects a missing index in a fresh schema proof",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "sqljs private persisted accounting authority rejects a missing update trigger in a fresh schema proof",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "sqljs private persisted accounting authority rejects a missing delete trigger in a fresh schema proof",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "sqljs private persisted accounting authority rejects a missing policy in a fresh schema proof",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "sqljs private persisted accounting authority denies persisted proof after an escaped thenable transaction",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "sqljs private persisted accounting authority proves unchanged authority after recording publication failure after=false without resurrecting its ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "sqljs private persisted accounting authority proves unchanged authority after recording publication failure after=true without resurrecting its ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "sqljs private persisted accounting authority denies a failed publication that contains a new credential or policy",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "sqljs private persisted accounting authority invalidates persisted proof if engine close fails",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "sqljs private persisted accounting authority opens a fresh snapshot for each proof and never exposes a writable reader",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "SQL.js rejects newer dirty authority rather than approving the older file",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "Node persisted authority reads committed WAL changes absent from the main file",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-persisted-authority.test.js",
+    "test": "Node denies authority while failed RELEASE and rollback leave a transaction open",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection exposes only the initialized driver capability while ordinary poisoned getters stay strict",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection proves a fresh degraded request without exposing secrets or adapter methods",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection does not classify a zero or finite limit as an unlimited failure exception",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection rejects key changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection rejects binding changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection rejects policy changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection rejects connection changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection rejects settings changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection rejects routing changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection rejects disabled models changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection rejects combos changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection requires a current sidecar, explicit gap generation and no maintenance",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection refuses missing installation markers and a missing policy instead of defaulting",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection refuses unavailable pools and detects node and pool drift",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection refuses lost ownership and corrupt sidecar material without opening another writer",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "node persisted request identity and selection requires the installed schema and binding fingerprint to remain verifiable",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection exposes only the initialized driver capability while ordinary poisoned getters stay strict",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection proves a fresh degraded request without exposing secrets or adapter methods",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection does not classify a zero or finite limit as an unlimited failure exception",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection rejects key changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection rejects binding changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection rejects policy changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection rejects connection changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection rejects settings changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection rejects routing changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection rejects disabled models changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection rejects combos changes across an await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection requires a current sidecar, explicit gap generation and no maintenance",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection refuses missing installation markers and a missing policy instead of defaulting",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection refuses unavailable pools and detects node and pool drift",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection refuses lost ownership and corrupt sidecar material without opening another writer",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-request-authority.test.js",
+    "test": "sqljs persisted request identity and selection requires the installed schema and binding fingerprint to remain verifiable",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission holds intent before direct POST and terminal ACK before returning",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission sends through an actual saved HTTP proxy with its own intent",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission refuses unsupported accounted custom direct transport without preparing, retrying or POSTing",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission retains custom direct transport for nonaccounted requests",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission refuses key drift while intent ACK is held without retry or POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission refuses credential drift while intent ACK is held without retry or POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission refuses settings drift while intent ACK is held without retry or POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission refuses environment drift while intent ACK is held without retry or POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission settles each status retry before the next POST and refuses redirect replay",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission does not call failed or fallback when terminal observation rejects",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission does not dispatch from a persisted intent whose own ACK was lost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission keeps two keys independent on one executor while one intent is held",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission owns the proxy failure and direct resend as distinct attempts",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission owns a TLS certificate fallback with a fresh intent before the actual successful POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission refuses key drift across the lazy dispatcher await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission refuses credential drift across the lazy dispatcher await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission refuses node drift across the lazy dispatcher await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission refuses pool drift across the lazy dispatcher await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission refuses settings drift across the lazy dispatcher await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission refuses environment drift across the lazy dispatcher await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission preserves abort before admission and after own intent with admitted=false",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "node actual POST admission preserves abort before admission and after own intent with admitted=true",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission holds intent before direct POST and terminal ACK before returning",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission sends through an actual saved HTTP proxy with its own intent",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission refuses unsupported accounted custom direct transport without preparing, retrying or POSTing",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission retains custom direct transport for nonaccounted requests",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission refuses key drift while intent ACK is held without retry or POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission refuses credential drift while intent ACK is held without retry or POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission refuses settings drift while intent ACK is held without retry or POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission refuses environment drift while intent ACK is held without retry or POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission settles each status retry before the next POST and refuses redirect replay",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission does not call failed or fallback when terminal observation rejects",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission does not dispatch from a persisted intent whose own ACK was lost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission keeps two keys independent on one executor while one intent is held",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission owns the proxy failure and direct resend as distinct attempts",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission owns a TLS certificate fallback with a fresh intent before the actual successful POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission refuses key drift across the lazy dispatcher await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission refuses credential drift across the lazy dispatcher await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission refuses node drift across the lazy dispatcher await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission refuses pool drift across the lazy dispatcher await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission refuses settings drift across the lazy dispatcher await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission refuses environment drift across the lazy dispatcher await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission preserves abort before admission and after own intent with admitted=false",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "sqljs actual POST admission preserves abort before admission and after own intent with admitted=true",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "admits the actual relay POST without replaying redirects to the target",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/accounting-transport-boundary.test.js",
+    "test": "uses the intended MITM bypass IP and certificate hostname for an actual TLS POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-late-chat-sink.test.js",
+    "test": "node B1 retained chat sink accepts late exact evidence after absence and disposal with original price and period once",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-late-chat-sink.test.js",
+    "test": "sqljs B1 retained chat sink accepts late exact evidence after absence and disposal with original price and period once",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-ledger-disposition.test.js",
+    "test": "node B1 non-work disposition retains idempotency and original cost period for late evidence after an interrupted absence",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-ledger-disposition.test.js",
+    "test": "node B1 non-work disposition refuses malformed or completed evidence as an unrecorded exemption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-ledger-disposition.test.js",
+    "test": "node B1 non-work disposition does not discard stored usage when recovering a dead-owner pending attempt",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-ledger-disposition.test.js",
+    "test": "node B1 non-work disposition serializes recovery and late settlement without a second charge (recover-first)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-ledger-disposition.test.js",
+    "test": "node B1 non-work disposition serializes recovery and late settlement without a second charge (settle-first)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-ledger-disposition.test.js",
+    "test": "node B1 non-work disposition abandons only the selected owner while preserving charges and live intents",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-ledger-disposition.test.js",
+    "test": "sqljs B1 non-work disposition retains idempotency and original cost period for late evidence after an interrupted absence",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-ledger-disposition.test.js",
+    "test": "sqljs B1 non-work disposition refuses malformed or completed evidence as an unrecorded exemption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-ledger-disposition.test.js",
+    "test": "sqljs B1 non-work disposition does not discard stored usage when recovering a dead-owner pending attempt",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-ledger-disposition.test.js",
+    "test": "sqljs B1 non-work disposition serializes recovery and late settlement without a second charge (recover-first)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-ledger-disposition.test.js",
+    "test": "sqljs B1 non-work disposition serializes recovery and late settlement without a second charge (settle-first)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-ledger-disposition.test.js",
+    "test": "sqljs B1 non-work disposition abandons only the selected owner while preserving charges and live intents",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-usage-evidence.test.js",
+    "test": "B1 classified producer evidence retains authoritative SSE usage before EOF without fabricating completion",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-usage-evidence.test.js",
+    "test": "B1 classified producer evidence captures cancellation evidence once and ignores a racing unread usage chunk",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-usage-evidence.test.js",
+    "test": "B1 classified producer evidence does not exempt malformed or partial SSE as absent",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-usage-evidence.test.js",
+    "test": "B1 classified producer evidence does not exempt malformed or partial SSE as absent",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-usage-evidence.test.js",
+    "test": "B1 classified producer evidence distinguishes absent, malformed, valid and conflicting observations",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-usage-evidence.test.js",
+    "test": "B1 classified producer evidence labels completed JSON missing usage separately from transport interruption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-usage-evidence.test.js",
+    "test": "B1 classified producer evidence does not exempt an oversized JSON evidence body as absent",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-usage-evidence.test.js",
+    "test": "B1 classified producer evidence never downgrades terminal-write failure to absent usage",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/b1-usage-evidence.test.js",
+    "test": "B1 classified producer evidence retains terminal-write failure on interrupted reads without a second finish",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/budget-activation-boundary.test.js",
+    "test": "shipping accounting activation boundary has no shipping caller of private fixture association functions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/budget-activation-boundary.test.js",
+    "test": "shipping accounting activation boundary management readiness is private request identity, not env/header/body setting",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "node actual JSON durable completion requires own held gap ACK after dispatched terminal publication fails",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "node actual JSON durable completion requires own lost gap ACK after dispatched terminal publication fails",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "node actual JSON durable completion settles the status predecessor before an actual native retry",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "node actual JSON durable completion settles the network predecessor before an actual native retry",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "node actual JSON durable completion reopens unknown usage and concurrent identities without inventing zero cost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "node actual JSON durable completion reopens one original-price late settlement after duplicate and conflicting callbacks",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "node actual SSE durable completion requires own held gap ACK after dispatched terminal publication fails",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "node actual SSE durable completion requires own lost gap ACK after dispatched terminal publication fails",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "node actual SSE durable completion settles the status predecessor before an actual native retry",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "node actual SSE durable completion settles the network predecessor before an actual native retry",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "node actual SSE durable completion reopens unknown usage and concurrent identities without inventing zero cost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "node actual SSE durable completion reopens one original-price late settlement after duplicate and conflicting callbacks",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "sqljs actual JSON durable completion requires own held gap ACK after dispatched terminal publication fails",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "sqljs actual JSON durable completion requires own lost gap ACK after dispatched terminal publication fails",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "sqljs actual JSON durable completion settles the status predecessor before an actual native retry",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "sqljs actual JSON durable completion settles the network predecessor before an actual native retry",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "sqljs actual JSON durable completion reopens unknown usage and concurrent identities without inventing zero cost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "sqljs actual JSON durable completion reopens one original-price late settlement after duplicate and conflicting callbacks",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "sqljs actual SSE durable completion requires own held gap ACK after dispatched terminal publication fails",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "sqljs actual SSE durable completion requires own lost gap ACK after dispatched terminal publication fails",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "sqljs actual SSE durable completion settles the status predecessor before an actual native retry",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "sqljs actual SSE durable completion settles the network predecessor before an actual native retry",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "sqljs actual SSE durable completion reopens unknown usage and concurrent identities without inventing zero cost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "sqljs actual SSE durable completion reopens one original-price late settlement after duplicate and conflicting callbacks",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "node parses native fragmented UTF-8, CRLF and multiline SSE before durable completion",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-final-controls.test.js",
+    "test": "sqljs parses native fragmented UTF-8, CRLF and multiline SSE before durable completion",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile prices raw cache count 0 using original cached rate 0.25",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile prices raw cache count 400 using original cached rate 0.25",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile prices raw cache count 1000 using original cached rate 0.25",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile prices raw cache count 400 using original cached rate 0",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile prices raw cache count 400 using original cached rate undefined",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile leaves missing or contradictory evidence unknown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile leaves missing or contradictory evidence unknown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile leaves missing or contradictory evidence unknown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile leaves missing or contradictory evidence unknown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile leaves missing or contradictory evidence unknown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile leaves missing or contradictory evidence unknown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile leaves missing or contradictory evidence unknown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile leaves missing or contradictory evidence unknown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile leaves missing or contradictory evidence unknown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile leaves missing or contradictory evidence unknown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile deduplicates complete identical observations and never sums conflicts",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile cannot infer profile semantics from a compatible provider name",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile preserves native null-body HTTP 204 after unresolved ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile preserves native null-body HTTP 205 after unresolved ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-json.test.js",
+    "test": "strict OpenAI raw usage profile preserves native null-body HTTP 304 after unresolved ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting settles raw cache 0 rate 0.25 and survives reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting settles raw cache 400 rate 0.25 and survives reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting settles raw cache 1000 rate 0.25 and survives reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting settles raw cache 400 rate 0 and survives reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting settles raw cache 400 rate undefined and survives reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting awaits its own intent and settlement ACKs",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting cannot dispatch from a visible intent whose ACK delivery is lost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting cannot return eligible JSON from a visible terminal whose ACK is lost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting refuses current-authority drift after intent await: UPDATE apiKeys SET isActive=0 WHERE id='key-one'",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting refuses current-authority drift after intent await: UPDATE providerConnections SET data=json_set(data,'$.apiKey','changed') WHERE id='connection-one'",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting refuses current-authority drift after intent await: UPDATE providerNodes SET data=json_set(data,'$.baseUrl','http://invalid.example')",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting refuses current-authority drift after intent await: UPDATE settings SET data=json_set(data,'$.providerOverrides','changed')",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting preserves the original cache price after upstream dispatch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting charges exact failed HTTP before returning the failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting replays missing usage after its unresolved ACK with null cost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting keeps two keys isolated on the cached Default executor",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting dispatches through the saved HTTP proxy with a real own intent",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting preserves healthy round-robin bookkeeping without accepting credential drift",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting bootstraps fresh degraded unlimited requests, proxy=false",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting bootstraps fresh degraded unlimited requests, proxy=true",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting requires delivered independent gap ACK despite visible durable gap",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting settles an empty successful predecessor before real combo fallback",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting does not turn local refusal into combo fallback or account cooldown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting settles failed exact HTTP before actual account successor",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting aborts while intent ACK is held without a POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting pins authority before the body parsing await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting holds its own gap ACK before dispatch and rechecks drift after delivery",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting enforces persisted restricted access during degraded bootstrap",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting retains late settlement after app disposal and rejects conflicting duplicate observations",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting retains an unacknowledged evidence-free intent without unknown work after restart",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting verifies persisted authority immediately before every healthy POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting refuses a persisted proof failure after healthy intent ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting switches from healthy entry to persisted continuation when intent publication fails",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting checks accounting schema even on healthy entry",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting records no debit or unknown work after absent-usage native POST interruption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting bounds oversized raw JSON and records unknown cost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting refuses unrelated credentials changed during owned account-failure bookkeeping",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting refuses finite policy after recording failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "node actual app JSON accounting retains null cost without unknown work when transport truncates JSON before usable usage",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting settles raw cache 0 rate 0.25 and survives reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting settles raw cache 400 rate 0.25 and survives reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting settles raw cache 1000 rate 0.25 and survives reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting settles raw cache 400 rate 0 and survives reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting settles raw cache 400 rate undefined and survives reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting awaits its own intent and settlement ACKs",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting cannot dispatch from a visible intent whose ACK delivery is lost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting cannot return eligible JSON from a visible terminal whose ACK is lost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting refuses current-authority drift after intent await: UPDATE apiKeys SET isActive=0 WHERE id='key-one'",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting refuses current-authority drift after intent await: UPDATE providerConnections SET data=json_set(data,'$.apiKey','changed') WHERE id='connection-one'",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting refuses current-authority drift after intent await: UPDATE providerNodes SET data=json_set(data,'$.baseUrl','http://invalid.example')",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting refuses current-authority drift after intent await: UPDATE settings SET data=json_set(data,'$.providerOverrides','changed')",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting preserves the original cache price after upstream dispatch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting charges exact failed HTTP before returning the failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting replays missing usage after its unresolved ACK with null cost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting keeps two keys isolated on the cached Default executor",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting dispatches through the saved HTTP proxy with a real own intent",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting preserves healthy round-robin bookkeeping without accepting credential drift",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting bootstraps fresh degraded unlimited requests, proxy=false",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting bootstraps fresh degraded unlimited requests, proxy=true",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting requires delivered independent gap ACK despite visible durable gap",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting settles an empty successful predecessor before real combo fallback",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting does not turn local refusal into combo fallback or account cooldown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting settles failed exact HTTP before actual account successor",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting aborts while intent ACK is held without a POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting pins authority before the body parsing await",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting holds its own gap ACK before dispatch and rechecks drift after delivery",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting enforces persisted restricted access during degraded bootstrap",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting retains late settlement after app disposal and rejects conflicting duplicate observations",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting retains an unacknowledged evidence-free intent without unknown work after restart",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting verifies persisted authority immediately before every healthy POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting refuses a persisted proof failure after healthy intent ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting switches from healthy entry to persisted continuation when intent publication fails",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting checks accounting schema even on healthy entry",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting records no debit or unknown work after absent-usage native POST interruption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting bounds oversized raw JSON and records unknown cost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting refuses unrelated credentials changed during owned account-failure bookkeeping",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting refuses finite policy after recording failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-loopback.test.js",
+    "test": "sqljs actual app JSON accounting retains null cost without unknown work when transport truncates JSON before usable usage",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting settles cache 0 rate 0.25 with original prices after reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting settles cache 400 rate 0.25 with original prices after reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting settles cache 1000 rate 0.25 with original prices after reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting settles cache 400 rate 0 with original prices after reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting settles cache 400 rate undefined with original prices after reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting passes deltas while holding successful terminal for its own settlement ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting holds intent ACK and rechecks current credentials before actual SSE POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting emits one native failure and no successful finish when settlement ACK is lost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting keeps missing or conflicting protocol evidence unresolved (0)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting keeps missing or conflicting protocol evidence unresolved (1)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting keeps missing or conflicting protocol evidence unresolved (2)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting charges authoritative usage before EOF without claiming protocol success",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting preserves original cache rate through post-dispatch price drift",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting keeps concurrent keys isolated on the shared executor",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting streams through the actual saved HTTP proxy",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting aborts after native POST without releasing successful terminal",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting does not emit completion when aborted during its own settlement ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting continues SSE from a fresh persisted unlimited proof and independent gap ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting rejects lost intent ACK before SSE POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "node actual app SSE accounting bounds actual SSE frame evidence and leaves cost unknown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting settles cache 0 rate 0.25 with original prices after reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting settles cache 400 rate 0.25 with original prices after reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting settles cache 1000 rate 0.25 with original prices after reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting settles cache 400 rate 0 with original prices after reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting settles cache 400 rate undefined with original prices after reopen",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting passes deltas while holding successful terminal for its own settlement ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting holds intent ACK and rechecks current credentials before actual SSE POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting emits one native failure and no successful finish when settlement ACK is lost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting keeps missing or conflicting protocol evidence unresolved (0)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting keeps missing or conflicting protocol evidence unresolved (1)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting keeps missing or conflicting protocol evidence unresolved (2)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting charges authoritative usage before EOF without claiming protocol success",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting preserves original cache rate through post-dispatch price drift",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting keeps concurrent keys isolated on the shared executor",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting streams through the actual saved HTTP proxy",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting aborts after native POST without releasing successful terminal",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting does not emit completion when aborted during its own settlement ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting continues SSE from a fresh persisted unlimited proof and independent gap ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting rejects lost intent ACK before SSE POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream-loopback.test.js",
+    "test": "sqljs actual app SSE accounting bounds actual SSE frame evidence and leaves cost unknown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence parses fragmented UTF-8 and frames at 1 bytes",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence parses fragmented UTF-8 and frames at 2 bytes",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence parses fragmented UTF-8 and frames at 7 bytes",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence parses fragmented UTF-8 and frames at 4096 bytes",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence parses CRLF and multiline data",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence splits a mixed delta and finish and holds completion behind own ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence accepts identical usage once",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence fails incomplete, contradictory or unbounded protocol without successful close (0)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence fails incomplete, contradictory or unbounded protocol without successful close (1)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence fails incomplete, contradictory or unbounded protocol without successful close (2)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence fails incomplete, contradictory or unbounded protocol without successful close (3)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence fails incomplete, contradictory or unbounded protocol without successful close (4)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence fails incomplete, contradictory or unbounded protocol without successful close (5)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence charges authoritative usage independently of incomplete protocol",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence charges authoritative usage independently of incomplete protocol",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence rejects invalid UTF-8",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence does not release terminal after lost ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence cancels its reader and records unknown evidence",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence notifies raw bytes and completion while terminal ACK is held",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence keeps the raw-byte stall watchdog alive during fragmented frames and pauses it during own ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-accounting-stream.test.js",
+    "test": "raw accounting SSE evidence turns an actual raw stall into unknown evidence without a successful flush",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-loopback.test.js",
+    "test": "node actual JSON calendar budget actual debit\u2192native429 headers\u2192raise/null/re-enable without resetting spend",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-loopback.test.js",
+    "test": "node actual JSON calendar budget held ACK sees peer exhaustion and final not-dispatched own ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-loopback.test.js",
+    "test": "node actual JSON calendar budget held finite rollover refuses no POST; new request starts new window",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-loopback.test.js",
+    "test": "node actual JSON calendar budget late exact settlement stays in original startedAt window after reset",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-loopback.test.js",
+    "test": "node actual JSON calendar budget unknown remains null and blocks finite after reset/reopen; key-two unaffected",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-loopback.test.js",
+    "test": "node actual JSON calendar budget upstream lookalike budget code is not trusted local denial",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-loopback.test.js",
+    "test": "sqljs actual JSON calendar budget actual debit\u2192native429 headers\u2192raise/null/re-enable without resetting spend",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-loopback.test.js",
+    "test": "sqljs actual JSON calendar budget held ACK sees peer exhaustion and final not-dispatched own ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-loopback.test.js",
+    "test": "sqljs actual JSON calendar budget held finite rollover refuses no POST; new request starts new window",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-loopback.test.js",
+    "test": "sqljs actual JSON calendar budget late exact settlement stays in original startedAt window after reset",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-loopback.test.js",
+    "test": "sqljs actual JSON calendar budget unknown remains null and blocks finite after reset/reopen; key-two unaffected",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-loopback.test.js",
+    "test": "sqljs actual JSON calendar budget upstream lookalike budget code is not trusted local denial",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-pricing-fallback.test.js",
+    "test": "node price-only candidate fallback missing price skips candidate without POST/cooldown, priced member succeeds",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-pricing-fallback.test.js",
+    "test": "node price-only candidate fallback exhausted is terminal even when first candidate lacks price",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-pricing-fallback.test.js",
+    "test": "sqljs price-only candidate fallback missing price skips candidate without POST/cooldown, priced member succeeds",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-pricing-fallback.test.js",
+    "test": "sqljs price-only candidate fallback exhausted is terminal even when first candidate lacks price",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-process-restart.test.js",
+    "test": "node actual process restart budget retains exact threshold/identity and new calendar allowance in a new writer process",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-process-restart.test.js",
+    "test": "node actual process restart budget dead owner absent intent is nonblocking across reset and policy edits without waiver",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-process-restart.test.js",
+    "test": "sqljs actual process restart budget retains exact threshold/identity and new calendar allowance in a new writer process",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/chat-budget-process-restart.test.js",
+    "test": "sqljs actual process restart budget dead owner absent intent is nonblocking across reset and policy edits without waiver",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/default-executor-accounting-compatibility.test.js",
+    "test": "canonical Default executor without accounting capability preserves OpenAI registry URL, bearer header and native body ownership",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/default-executor-accounting-compatibility.test.js",
+    "test": "canonical Default executor without accounting capability preserves no-key streaming headers and adds no usage opt-in without a capability",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsBody single string input \u2014 includes model and input, default encoding_format=float",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsBody array input \u2014 passes array as-is",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsBody custom encoding_format is forwarded",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsBody no encoding_format in body \u2192 defaults to float",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsBody gemini single input forwards dimensions as outputDimensionality",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsBody gemini batch input forwards dimensions on each request",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsUrl openai \u2192 https://api.openai.com/v1/embeddings",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsUrl openrouter \u2192 https://openrouter.ai/api/v1/embeddings",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsUrl vercel-ai-gateway \u2192 https://ai-gateway.vercel.sh/v1/embeddings",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsUrl openai-compatible-* \u2192 uses baseUrl from providerSpecificData",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsUrl openai-compatible-* strips trailing slash from baseUrl",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsUrl ollama-local default host \u2192 http://localhost:11434/v1/embeddings",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsUrl ollama-local custom host \u2192 respects baseUrl from providerSpecificData",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsUrl ollama-local custom host with trailing slashes \u2192 strips trailing slashes cleanly",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsUrl ollama-local custom host with /v1 or /v1/embeddings suffix \u2192 normalizes without duplication",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsUrl openai-compatible-* without baseUrl \u2192 falls back to api.openai.com",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsUrl unsupported provider (e.g. gemini-cli) \u2192 400 error, no fetch called",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsUrl antigravity (non-openai-compatible, no URL mapping) \u2192 400",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsHeaders openai \u2192 Authorization: Bearer, Content-Type: application/json",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsHeaders openai \u2014 uses accessToken when apiKey is absent",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsHeaders openrouter \u2192 adds HTTP-Referer and X-Title headers",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsHeaders github \u2192 Copilot embeddings endpoint with Copilot token and IDE headers",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsHeaders openai-compatible-* \u2192 Authorization: Bearer only (no extra headers)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "buildEmbeddingsHeaders ollama-local \u2192 Content-Type only by default, Authorization when apiKey is present",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 input validation missing input \u2192 400 Bad Request",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 input validation input is a number \u2192 400 Bad Request",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 input validation input is an object \u2192 400 Bad Request",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 input validation input is null \u2192 400 Bad Request",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 input validation empty string input passes validation",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 input validation empty array input passes validation and reaches provider",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 success path returns success=true with Response on 200",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 success path response body is valid OpenAI-format JSON",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 success path response includes CORS header Access-Control-Allow-Origin: *",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 success path response Content-Type is application/json",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 success path calls onRequestSuccess callback on success",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 success path does not call onRequestSuccess on provider error",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 success path provider response with non-standard format is passed through as-is",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 provider error handling provider 400 \u2192 returns success=false with status 400",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 provider error handling provider 429 \u2192 returns success=false with status 429",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 provider error handling provider 500 \u2192 returns success=false with status 500",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 provider error handling network error (fetch throws) \u2192 returns 502 Bad Gateway",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 provider error handling invalid JSON from provider \u2192 returns 502",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 provider error handling error result response has OpenAI-format error body",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 token refresh on 401/403 on 401, attempts retry after refresh; succeeds if refresh gives new token",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/embeddingsCore.test.js",
+    "test": "handleEmbeddingsCore \u2014 token refresh on 401/403 on 401 with no refresh token, falls back gracefully (no crash)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/github-responses-routing.test.js",
+    "test": "GithubExecutor.supportsResponsesEndpoint excludes Gemini models from the /responses endpoint",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/github-responses-routing.test.js",
+    "test": "GithubExecutor.supportsResponsesEndpoint excludes Claude models from the /responses endpoint",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/github-responses-routing.test.js",
+    "test": "GithubExecutor.supportsResponsesEndpoint allows OpenAI/codex models on the /responses endpoint",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/github-responses-routing.test.js",
+    "test": "GithubExecutor.supportsResponsesEndpoint is null-safe",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/github-responses-routing.test.js",
+    "test": "GithubExecutor.execute cached-route guard (#1062) does NOT use /responses for a Gemini model even if it was wrongly cached as codex",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/key-budget-management-security.test.js",
+    "test": "node actual key/budget route management security auth before params/body/privileged reads for budget and every key CRUD route",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/key-budget-management-security.test.js",
+    "test": "node actual key/budget route management security JWT requires same Origin before any budget body read; production finite target409 no mutation",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/key-budget-management-security.test.js",
+    "test": "node actual key/budget route management security fixture exact finite PUT/GET, stale409, invalid400, unknown404, no-store/no secrets",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/key-budget-management-security.test.js",
+    "test": "node actual key/budget route management security only verified direct loopback with persisted login-disabled is allowed",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/key-budget-management-security.test.js",
+    "test": "sqljs actual key/budget route management security auth before params/body/privileged reads for budget and every key CRUD route",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/key-budget-management-security.test.js",
+    "test": "sqljs actual key/budget route management security JWT requires same Origin before any budget body read; production finite target409 no mutation",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/key-budget-management-security.test.js",
+    "test": "sqljs actual key/budget route management security fixture exact finite PUT/GET, stale409, invalid400, unknown404, no-store/no secrets",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/key-budget-management-security.test.js",
+    "test": "sqljs actual key/budget route management security only verified direct loopback with persisted login-disabled is allowed",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-completed-usage.test.js",
+    "test": "Responses response.completed reports token usage reports Claude upstream usage to a Codex client, counting cached prompt tokens",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-completed-usage.test.js",
+    "test": "Responses response.completed reports token usage waits for a trailing usage-only chunk instead of completing on finish_reason",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-completed-usage.test.js",
+    "test": "Responses response.completed reports token usage ignores zeroed placeholder usage on every chunk and reports the real trailing counts",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-completed-usage.test.js",
+    "test": "Responses response.completed reports token usage derives the total when upstream reports inconsistent total_tokens=0",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-completed-usage.test.js",
+    "test": "Responses response.completed reports token usage derives the total when upstream reports inconsistent total_tokens=999",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-completed-usage.test.js",
+    "test": "Responses response.completed reports token usage completes at [DONE] while the upstream connection remains open",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-completed-usage.test.js",
+    "test": "Responses response.completed reports token usage still completes exactly once, without inventing usage, when the upstream reports none",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-completion-watchdog.test.js",
+    "test": "pending response.completed watchdog flushes the deferred completion when the upstream stalls after finish_reason",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-completion-watchdog.test.js",
+    "test": "pending response.completed watchdog does not fire after the real usage trailer already completed the stream",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-nonstream.test.js",
+    "test": "non-stream Chat upstream for a Responses-API client (op-ericding bug) translates chat.completion tool_calls into Responses function_call output",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-nonstream.test.js",
+    "test": "non-stream Chat upstream for a Responses-API client (op-ericding bug) translates marked Chat tools into Responses custom_tool_call output",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-nonstream.test.js",
+    "test": "non-stream Chat upstream for a Responses-API client (op-ericding bug) keeps chat.completion text content as a Responses message item",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-nonstream.test.js",
+    "test": "non-stream Chat upstream for a Responses-API client (op-ericding bug) leaves chat->chat untouched",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-nonstream.test.js",
+    "test": "forced-SSE JSON path for a Responses-API client behind a chat upstream parses chat SSE chunks and returns a Responses function_call body",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-nonstream.test.js",
+    "test": "forced-SSE JSON path for a Responses-API client behind a chat upstream returns a custom_tool_call for a marked tool",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-nonstream.test.js",
+    "test": "forced-SSE JSON path for a Responses-API client behind a chat upstream still returns chat.completion for a plain chat client",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-terminal-event.test.js",
+    "test": "OpenAI Responses streaming termination emits a response.failed event when a Responses stream closes before a terminal event",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-terminal-event.test.js",
+    "test": "OpenAI Responses streaming termination does not add response.failed when a Responses stream already completed",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-terminal-event.test.js",
+    "test": "OpenAI Responses streaming termination does not add response.failed when a Responses stream sends response.done",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-terminal-event.test.js",
+    "test": "OpenAI Responses streaming termination emits response.failed before DONE when a Responses stream sends DONE without a terminal event",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-usage-pivot.test.js",
+    "test": "OpenAI Responses usage across the pivot reports claude usage on response.completed so Codex can auto-compact",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/openai-responses-usage-pivot.test.js",
+    "test": "OpenAI Responses usage across the pivot always reports all three top-level counts",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-abort-terminal.test.js",
+    "test": "Responses abort terminal synthesis emits response.failed + [DONE] when upstream errors (abort/stall)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-abort-terminal.test.js",
+    "test": "Responses abort terminal synthesis does not synthesize terminal for non-Responses streams (callback null)",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-abort-terminal.test.js",
+    "test": "buildStreamErrorBytes returns bytes, not a string",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-abort-terminal.test.js",
+    "test": "buildStreamErrorBytes emits error frame then [DONE] for OpenAI clients",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-abort-terminal.test.js",
+    "test": "buildStreamErrorBytes emits event: error (no [DONE]) for Claude clients",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-abort-terminal.test.js",
+    "test": "stall abort through pipeWithDisconnect delivers the error frame and closes the stream",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "node actual native Responses SSE consumers settles raw actual native stream for client stream=true with exact terminal fidelity",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "node actual native Responses SSE consumers settles raw actual native stream for client stream=false with exact terminal fidelity",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "node actual native Responses SSE consumers preserves failed native outcome and charges once for forced JSON",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "node actual native Responses SSE consumers preserves incomplete native outcome and charges once for forced JSON",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "node actual native Responses SSE consumers holds native success terminal for its own durable ACK with client stream=true",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "node actual native Responses SSE consumers holds native success terminal for its own durable ACK with client stream=false",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "node actual native Responses SSE consumers never publishes native completed on lost terminal ACK with client stream=true",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "node actual native Responses SSE consumers never publishes native completed on lost terminal ACK with client stream=false",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "node actual native Responses SSE consumers freezes unassociated native SSE baseline without ledger authority",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "node actual native Responses SSE consumers settles observed native usage after client abort during own ACK using original window",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "node actual native Responses SSE consumers keeps native failed SSE rather than replacing with completion or DONE",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "node actual native Responses SSE consumers keeps native incomplete SSE rather than replacing with completion or DONE",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "node actual native Responses SSE consumers records error-only terminal as completed absent safety rather than interruption exemption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "node actual native Responses SSE consumers does not synthesize successful terminal on EOF and preserves absent interruption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "sqljs actual native Responses SSE consumers settles raw actual native stream for client stream=true with exact terminal fidelity",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "sqljs actual native Responses SSE consumers settles raw actual native stream for client stream=false with exact terminal fidelity",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "sqljs actual native Responses SSE consumers preserves failed native outcome and charges once for forced JSON",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "sqljs actual native Responses SSE consumers preserves incomplete native outcome and charges once for forced JSON",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "sqljs actual native Responses SSE consumers holds native success terminal for its own durable ACK with client stream=true",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "sqljs actual native Responses SSE consumers holds native success terminal for its own durable ACK with client stream=false",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "sqljs actual native Responses SSE consumers never publishes native completed on lost terminal ACK with client stream=true",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "sqljs actual native Responses SSE consumers never publishes native completed on lost terminal ACK with client stream=false",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "sqljs actual native Responses SSE consumers freezes unassociated native SSE baseline without ledger authority",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "sqljs actual native Responses SSE consumers settles observed native usage after client abort during own ACK using original window",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "sqljs actual native Responses SSE consumers keeps native failed SSE rather than replacing with completion or DONE",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "sqljs actual native Responses SSE consumers keeps native incomplete SSE rather than replacing with completion or DONE",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "sqljs actual native Responses SSE consumers records error-only terminal as completed absent safety rather than interruption exemption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-consumers.test.js",
+    "test": "sqljs actual native Responses SSE consumers does not synthesize successful terminal on EOF and preserves absent interruption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-final-controls.test.js",
+    "test": "node native json publication safety requires own held gap ACK after actual terminal publication failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-final-controls.test.js",
+    "test": "node native json publication safety requires own lost gap ACK after actual terminal publication failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-final-controls.test.js",
+    "test": "node native sse publication safety requires own held gap ACK after actual terminal publication failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-final-controls.test.js",
+    "test": "node native sse publication safety requires own lost gap ACK after actual terminal publication failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-final-controls.test.js",
+    "test": "node native forced-json publication safety requires own held gap ACK after actual terminal publication failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-final-controls.test.js",
+    "test": "node native forced-json publication safety requires own lost gap ACK after actual terminal publication failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-final-controls.test.js",
+    "test": "sqljs native json publication safety requires own held gap ACK after actual terminal publication failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-final-controls.test.js",
+    "test": "sqljs native json publication safety requires own lost gap ACK after actual terminal publication failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-final-controls.test.js",
+    "test": "sqljs native sse publication safety requires own held gap ACK after actual terminal publication failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-final-controls.test.js",
+    "test": "sqljs native sse publication safety requires own lost gap ACK after actual terminal publication failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-final-controls.test.js",
+    "test": "sqljs native forced-json publication safety requires own held gap ACK after actual terminal publication failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-final-controls.test.js",
+    "test": "sqljs native forced-json publication safety requires own lost gap ACK after actual terminal publication failure",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary preserves UTF-8 bytes, HTTP status and headers exactly after raw ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary settles authoritative root usage on accepted HTTP 400 error envelope before replay",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary settles authoritative root usage on accepted HTTP 401 error envelope before replay",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary settles authoritative root usage on accepted HTTP 429 error envelope before replay",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary settles authoritative root usage on accepted HTTP 500 error envelope before replay",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary does not downgrade invalid or absent complete evidence into interruption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary does not downgrade invalid or absent complete evidence into interruption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary does not downgrade invalid or absent complete evidence into interruption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary does not downgrade invalid or absent complete evidence into interruption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary does not downgrade invalid or absent complete evidence into interruption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary does not downgrade invalid or absent complete evidence into interruption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary does not downgrade invalid or absent complete evidence into interruption",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary refuses unexpected hosted billable output despite valid token counters",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary records malformed stream evidence even when reader cancellation rejects",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary preserves terminal persistence failure over cancellation rejection without a second write",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json-boundary.test.js",
+    "test": "native Responses raw JSON boundary never recatches DB terminal failure as absent usage",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization preserves associated native JSON and exact raw usage with client stream=false",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization preserves associated native JSON and exact raw usage with client stream=true",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization withholds JSON until its own intent and terminal ACK, not a read-visible row",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses unsupported background before actual POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses unsupported previous_response_id before actual POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses unsupported tools before actual POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses unsupported input before actual POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization settles native failed JSON without successful HTTP or account-success bookkeeping",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization settles native incomplete JSON without successful HTTP or account-success bookkeeping",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization settles exact failed HTTP 400 before error/retry processing",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization settles exact failed HTTP 429 before error/retry processing",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization prices each actual native JSON attempt from original snapshot despite a later rate change",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization keeps two native keys isolated on the cached executor",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization does not dispatch without exact original pricing",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization sends client function definitions and inline results without hosted execution",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization preserves explicit zero counters/details without presentation defaults",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization does not publish successful JSON from malformed evidence",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization does not publish successful JSON from missing evidence",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization does not publish successful JSON from status evidence",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses original Chat media before lossy conversion or remote prefetch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses original Chat hosted before lossy conversion or remote prefetch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses original Chat unknown before lossy conversion or remote prefetch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization uses saved strict HTTP proxy for an intended native POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses configured credential header override before POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization does not activate from client-supplied accounting/profile/usage fields",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization does not trust a visible row after lost own intent ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization does not trust a visible row after lost own terminal ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses persisted selection drift after own intent await: UPDATE apiKeys SET isActive=0 WHERE id='key-one'",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses persisted selection drift after own intent await: UPDATE apiKeys SET key='rotated' WHERE id='key-one'",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses persisted selection drift after own intent await: UPDATE apiKeys SET accessRestricted=1,accessAllow='[]' WHERE id='key-one'",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses persisted selection drift after own intent await: UPDATE providerConnections SET isActive=0 WHERE id='connection-one'",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses persisted selection drift after own intent await: INSERT INTO kv(scope,key,value) VALUES('modelAliases','fixture-alias','\"fixture-node/other\"')",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses persisted selection drift after own intent await: UPDATE providerNodes SET data=json_set(data,'$.apiType','chat')",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses persisted selection drift after own intent await: UPDATE providerConnections SET data=json_set(data,'$.apiKey','changed')",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization refuses saved proxy pool drift after intent ACK before any CONNECT/POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "node native Responses JSON characterization freezes unassociated native JSON presentation with no accounting authority",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization preserves associated native JSON and exact raw usage with client stream=false",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization preserves associated native JSON and exact raw usage with client stream=true",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization withholds JSON until its own intent and terminal ACK, not a read-visible row",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses unsupported background before actual POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses unsupported previous_response_id before actual POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses unsupported tools before actual POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses unsupported input before actual POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization settles native failed JSON without successful HTTP or account-success bookkeeping",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization settles native incomplete JSON without successful HTTP or account-success bookkeeping",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization settles exact failed HTTP 400 before error/retry processing",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization settles exact failed HTTP 429 before error/retry processing",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization prices each actual native JSON attempt from original snapshot despite a later rate change",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization keeps two native keys isolated on the cached executor",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization does not dispatch without exact original pricing",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization sends client function definitions and inline results without hosted execution",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization preserves explicit zero counters/details without presentation defaults",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization does not publish successful JSON from malformed evidence",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization does not publish successful JSON from missing evidence",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization does not publish successful JSON from status evidence",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses original Chat media before lossy conversion or remote prefetch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses original Chat hosted before lossy conversion or remote prefetch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses original Chat unknown before lossy conversion or remote prefetch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization uses saved strict HTTP proxy for an intended native POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses configured credential header override before POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization does not activate from client-supplied accounting/profile/usage fields",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization does not trust a visible row after lost own intent ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization does not trust a visible row after lost own terminal ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses persisted selection drift after own intent await: UPDATE apiKeys SET isActive=0 WHERE id='key-one'",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses persisted selection drift after own intent await: UPDATE apiKeys SET key='rotated' WHERE id='key-one'",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses persisted selection drift after own intent await: UPDATE apiKeys SET accessRestricted=1,accessAllow='[]' WHERE id='key-one'",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses persisted selection drift after own intent await: UPDATE providerConnections SET isActive=0 WHERE id='connection-one'",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses persisted selection drift after own intent await: INSERT INTO kv(scope,key,value) VALUES('modelAliases','fixture-alias','\"fixture-node/other\"')",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses persisted selection drift after own intent await: UPDATE providerNodes SET data=json_set(data,'$.apiType','chat')",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses persisted selection drift after own intent await: UPDATE providerConnections SET data=json_set(data,'$.apiKey','changed')",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization refuses saved proxy pool drift after intent ACK before any CONNECT/POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-json.test.js",
+    "test": "sqljs native Responses JSON characterization freezes unassociated native JSON presentation with no accounting authority",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-late-sink.test.js",
+    "test": "node native retained terminal sink settles late once after disposal/revoke using original price and actual original-window projection",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-late-sink.test.js",
+    "test": "sqljs native retained terminal sink settles late once after disposal/revoke using original price and actual original-window projection",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "node actual Responses retry/fallback authority settles priced 503 predecessor before retry and own ACK, threshold=false",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "node actual Responses retry/fallback authority settles priced 503 predecessor before retry and own ACK, threshold=true",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "node actual Responses retry/fallback authority settles failed account before actual next-account POST with persisted owned cooldown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "node actual Responses retry/fallback authority does not retry when predecessor terminal ACK delivery is lost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "node actual Responses retry/fallback authority refuses credential refresh-like mutation after intent ACK rather than authorizing OAuth implicitly",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "node actual Responses retry/fallback authority never follows redirect with credentials across origins",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "node actual Responses retry/fallback authority rejects copied/stale receipt against actual request settlement while retaining one known charge",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "node actual Responses retry/fallback authority unavailable saved strict proxy refuses without a direct inference POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "node actual Responses retry/fallback authority local bypass creates no inference attempt or debit",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "sqljs actual Responses retry/fallback authority settles priced 503 predecessor before retry and own ACK, threshold=false",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "sqljs actual Responses retry/fallback authority settles priced 503 predecessor before retry and own ACK, threshold=true",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "sqljs actual Responses retry/fallback authority settles failed account before actual next-account POST with persisted owned cooldown",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "sqljs actual Responses retry/fallback authority does not retry when predecessor terminal ACK delivery is lost",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "sqljs actual Responses retry/fallback authority refuses credential refresh-like mutation after intent ACK rather than authorizing OAuth implicitly",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "sqljs actual Responses retry/fallback authority never follows redirect with credentials across origins",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "sqljs actual Responses retry/fallback authority rejects copied/stale receipt against actual request settlement while retaining one known charge",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "sqljs actual Responses retry/fallback authority unavailable saved strict proxy refuses without a direct inference POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-loopback.test.js",
+    "test": "sqljs actual Responses retry/fallback authority local bypass creates no inference attempt or debit",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-pricing.test.js",
+    "test": "node Responses token pricing compatibility gate retains chat as a token-pricing identity through resolver, exact subsets, ledger, reopen and original-window reporting",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-pricing.test.js",
+    "test": "sqljs Responses token pricing compatibility gate retains chat as a token-pricing identity through resolver, exact subsets, ledger, reopen and original-window reporting",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-restart.test.js",
+    "test": "node actual Responses process durability preserves recorded evidence after deterministic committed owner crash",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-restart.test.js",
+    "test": "node actual Responses process durability preserves recorded evidence after deterministic intent owner crash",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-restart.test.js",
+    "test": "node actual Responses process durability preserves recorded evidence after deterministic volatile owner crash",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-restart.test.js",
+    "test": "sqljs actual Responses process durability preserves recorded evidence after deterministic committed owner crash",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-restart.test.js",
+    "test": "sqljs actual Responses process durability preserves recorded evidence after deterministic intent owner crash",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-restart.test.js",
+    "test": "sqljs actual Responses process durability preserves recorded evidence after deterministic volatile owner crash",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority settles completed terminal without Chat DONE and retains native bytes",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority settles failed terminal without Chat DONE and retains native bytes",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority settles incomplete terminal without Chat DONE and retains native bytes",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority holds terminal until own ACK and cancels sole reader at cutoff",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority handles every-byte UTF8, CRLF and multiline data",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority collapses identical terminals already read in one transport chunk",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority classifies EOF without terminal as interrupted+absent but not error-only terminal",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority does not use usage from a delta as authoritative evidence",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority preserves DB rejection once and never publishes held success",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority consumes already-received terminal evidence on cancellation after a delta from the same chunk",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority refuses conflicting already-received terminal even when cancelled after the delta",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority records cancelled partial buffered evidence as malformed, never absent",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority classifies partial-only prior chunk when cancelled during the next pending read",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority rejects invalid UTF8 and retains malformed rather than absent",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority accepts response.done only with embedded completed terminal",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority accepts response.done only with embedded failed terminal",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority accepts response.done only with embedded incomplete terminal",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority never lets a nonsettling cancel promise hold durable terminal ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority bounds per-frame state without depending on transport chunk partition",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority removes abort listener and releases upstream reader after terminal settlement",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority uses raw activity for watchdog and disables it while own ACK holds terminal bytes",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority abort during pending ACK preserves the persistence error over abort reason",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-stream.test.js",
+    "test": "native raw Responses SSE authority cancellation after valid observed usage retains settlement but publishes no success",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile normalizes explicit counters including all-zero without estimates",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile retains malformed/conflicting classifications and deduplicates exact snapshots",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile admits original Chat text/function subset before conversion",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile admits inline text and client function definitions/results",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile refuses unsupported final-wire declarations before dispatch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile refuses unsupported final-wire declarations before dispatch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile refuses unsupported final-wire declarations before dispatch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile refuses unsupported final-wire declarations before dispatch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile refuses unsupported final-wire declarations before dispatch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile refuses unsupported final-wire declarations before dispatch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile refuses unsupported final-wire declarations before dispatch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile refuses unsupported final-wire declarations before dispatch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile refuses unsupported final-wire declarations before dispatch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile refuses unsupported final-wire declarations before dispatch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile refuses unsupported final-wire declarations before dispatch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-accounting-usage.test.js",
+    "test": "strict native Responses token-only profile refuses unsupported final-wire declarations before dispatch",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "node actual Responses recorded-spend budget enforces weekly=0.0009 monthly=null independently and raises without reset",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "node actual Responses recorded-spend budget enforces weekly=null monthly=0.0009 independently and raises without reset",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "node actual Responses recorded-spend budget enforces weekly=0.0009 monthly=0.0009 independently and raises without reset",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "node actual Responses recorded-spend budget management projection exposes actual native recorded cost through the same verified capability",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "node actual Responses recorded-spend budget guarded budget GET reads native spend and rejects unauthenticated management access",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "node actual Responses recorded-spend budget zero remains blocked after rollover while null still records; other key isolated",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "node actual Responses recorded-spend budget rolls Monday and month boundaries in HCM without deleting original costs",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "node actual Responses recorded-spend budget allows in-flight overshoot without reservations but blocks next actual POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "node actual Responses recorded-spend budget rechecks held intent after peer settles and records own not-dispatched ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "sqljs actual Responses recorded-spend budget enforces weekly=0.0009 monthly=null independently and raises without reset",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "sqljs actual Responses recorded-spend budget enforces weekly=null monthly=0.0009 independently and raises without reset",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "sqljs actual Responses recorded-spend budget enforces weekly=0.0009 monthly=0.0009 independently and raises without reset",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "sqljs actual Responses recorded-spend budget management projection exposes actual native recorded cost through the same verified capability",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "sqljs actual Responses recorded-spend budget guarded budget GET reads native spend and rejects unauthenticated management access",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "sqljs actual Responses recorded-spend budget zero remains blocked after rollover while null still records; other key isolated",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "sqljs actual Responses recorded-spend budget rolls Monday and month boundaries in HCM without deleting original costs",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "sqljs actual Responses recorded-spend budget allows in-flight overshoot without reservations but blocks next actual POST",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-budget-loopback.test.js",
+    "test": "sqljs actual Responses recorded-spend budget rechecks held intent after peer settles and records own not-dispatched ACK",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-converter-callers.test.js",
+    "test": "both converter callers keep their association boundary Workers compatibility-only caller keeps legacy unassociated baseline",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-converter-callers.test.js",
+    "test": "both converter callers keep their association boundary forced native failed never calls success bookkeeping",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-converter-callers.test.js",
+    "test": "both converter callers keep their association boundary forced native incomplete never calls success bookkeeping",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-converter-callers.test.js",
+    "test": "both converter callers keep their association boundary forced JSON caller private native association=false",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-converter-callers.test.js",
+    "test": "both converter callers keep their association boundary forced JSON caller private native association=true",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-stream-to-json-contract.test.js",
+    "test": "Responses converter native-associated fidelity and default baseline preserves entire completed native terminal including output/details/error",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-stream-to-json-contract.test.js",
+    "test": "Responses converter native-associated fidelity and default baseline preserves entire failed native terminal including output/details/error",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-stream-to-json-contract.test.js",
+    "test": "Responses converter native-associated fidelity and default baseline preserves entire incomplete native terminal including output/details/error",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-stream-to-json-contract.test.js",
+    "test": "Responses converter native-associated fidelity and default baseline uses embedded status for compatibility done and handles multiline CRLF/byte splits",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-stream-to-json-contract.test.js",
+    "test": "Responses converter native-associated fidelity and default baseline does not invent missing usage or success at EOF/error",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-stream-to-json-contract.test.js",
+    "test": "Responses converter native-associated fidelity and default baseline preserves explicit zero and never uses assembled delta output over native terminal",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-stream-to-json-contract.test.js",
+    "test": "Responses converter native-associated fidelity and default baseline keeps concurrently bound converter calls isolated",
+    "status": "passed"
+  },
+  {
+    "file": "/home/gmo/projects/9router/tests/unit/responses-stream-to-json-contract.test.js",
+    "test": "Responses converter native-associated fidelity and default baseline keeps unassociated legacy terminal-only baseline including filtered details and absent output",
+    "status": "passed"
+  }
+]

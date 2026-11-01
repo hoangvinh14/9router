@@ -31,6 +31,7 @@ vi.mock("../../open-sse/utils/proxyFetch.js", () => ({
 }));
 
 import { handleEmbeddingsCore } from "../../open-sse/handlers/embeddingsCore.js";
+import { refreshWithRetry } from '../../open-sse/services/tokenRefresh.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -724,17 +725,28 @@ describe("handleEmbeddingsCore — token refresh on 401/403", () => {
       refreshToken: "rt-valid",
     };
 
-    // Mock executor's refreshCredentials to return new creds
+    // Compatibility-only: unassociated OAuth refresh actually emits retry.
+    vi.mocked(refreshWithRetry).mockResolvedValueOnce({accessToken:'at-new',apiKey:'sk-new'});
+    const refreshed = vi.fn();
     const result = await handleEmbeddingsCore(makeOptions({
       modelInfo: { provider: "openai", model: "text-embedding-ada-002" },
       credentials,
-      onCredentialsRefreshed: vi.fn(),
+      onCredentialsRefreshed: refreshed,
     }));
+    expect(result.success).toBe(true);
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(2);
+    expect(refreshed).toHaveBeenCalledWith({accessToken:'at-new',apiKey:'sk-new'});
+    expect(vi.mocked(fetch).mock.calls[1][1].headers.Authorization).toBe('Bearer sk-new');
+  });
 
-    // The handler may or may not succeed depending on whether the executor
-    // can refresh (openai executor likely can't). What we verify is that
-    // fetch was called at least once (the initial request).
-    expect(vi.mocked(fetch).mock.calls.length).toBeGreaterThanOrEqual(1);
+  it('selected controlled refresh mutation refuses before callback and successor dispatch', async () => {
+    const signal=new AbortController().signal, dispatch=vi.fn().mockResolvedValueOnce(makeProviderErrorResponse(401,'bad key'));
+    vi.mocked(refreshWithRetry).mockResolvedValueOnce({apiKey:'changed',accessToken:'unsupported'});
+    const credentials={apiKey:'original',providerSpecificData:{baseUrl:'http://127.0.0.1:1/v1'}},refreshed=vi.fn();
+    await expect(handleEmbeddingsCore(makeOptions({modelInfo:{provider:'openai-compatible-fixture',model:'fixture'},body:{model:'fixture',input:'hello'},
+      credentials,accounting:{signal},dispatch,onCredentialsRefreshed:refreshed}))).rejects.toThrow('refresh unsupported');
+    expect(dispatch).toHaveBeenCalledTimes(1);expect(dispatch.mock.calls[0][0].options.signal).toBe(signal);
+    expect(credentials.apiKey).toBe('original');expect(refreshed).not.toHaveBeenCalled();expect(fetch).not.toHaveBeenCalled();
   });
 
   it("on 401 with no refresh token, falls back gracefully (no crash)", async () => {

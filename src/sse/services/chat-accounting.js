@@ -6,6 +6,10 @@ import { createAccountingService } from "../../lib/accounting/service.js";
 import { unavailable } from "../../lib/accounting/attempt-payload.js";
 import { accountingRefusal, captureTransportEnvironment } from "../../../open-sse/utils/accounting-transport.js";
 import { OPENAI_EXPLICIT_USAGE_PROFILE } from "../../../open-sse/utils/accounting-openai-usage.js";
+import { RESPONSES_EXPLICIT_USAGE_PROFILE, bindNativeResponsesAccounting } from "../../../open-sse/config/accountingProfiles.js";
+import { assertResponsesRequest, assertResponsesChatSource } from "../../../open-sse/utils/accounting-responses-usage.js";
+import { RESPONSES_EVENT } from '../../../open-sse/translator/schema/index.js';
+import { resolveOpenAICompatibleApiType } from "../../../open-sse/services/provider.js";
 import { budgetInstant, serverBudgetClock } from "../../lib/accounting/budget-windows.js";
 import { budgetError, isBudgetError } from "../../lib/accounting/budget-errors.js";
 
@@ -32,7 +36,7 @@ function createSession(request, { db, hooks, clock }) {
   const environment = captureTransportEnvironment(), contexts = new Set();
   const requestId = randomUUID();
   const safeStreamError = budgetError('api_key_accounting_unavailable', { requestId });
-  const errorBytes = error => new TextEncoder().encode(`data: ${JSON.stringify({ error: {
+  const errorBytes = (error, native = false) => new TextEncoder().encode(`${native ? `event: ${RESPONSES_EVENT.ERROR}\n` : ''}data: ${JSON.stringify({ ...(native ? {type:RESPONSES_EVENT.ERROR} : {}), error: {
     message: error.message, type: 'invalid_request_error', code: error.code, param: null, ...error.metadata,
   } })}\n\n`);
   const fallbackTerminalBytes = errorBytes(safeStreamError);
@@ -75,12 +79,22 @@ function createSession(request, { db, hooks, clock }) {
         return authority.assertSelection(candidate, credentials, db);
       } }) : null;
     if (context) contexts.add(context);
-    return Object.freeze({ profile: OPENAI_EXPLICIT_USAGE_PROFILE, signal: request.signal,
+    const nativeResponses = resolveOpenAICompatibleApiType(candidate.provider, credentials) === 'responses';
+    const binding = Object.freeze({ profile: nativeResponses ? RESPONSES_EXPLICIT_USAGE_PROFILE : OPENAI_EXPLICIT_USAGE_PROFILE, signal: request.signal,
+      validateRequest(body, chatSource = false) { if (nativeResponses) { try { (chatSource ? assertResponsesChatSource : assertResponsesRequest)(body); } catch (error) { throw accountingRefusal(error); } } },
       async prepare(wire) {
         try {
           live(); authority.assertSelection(candidate, credentials);
-          const expectedUrl = `${credentials.providerSpecificData.baseUrl.replace(/\/$/, "")}/chat/completions`;
-          if (wire.targetUrl !== expectedUrl || wire.method !== "POST" || JSON.parse(wire.body).model !== candidate.model) throw unavailable("Chat wire outside selected authority");
+          const expectedUrl = `${credentials.providerSpecificData.baseUrl.replace(/\/$/, "")}${nativeResponses ? '/responses' : '/chat/completions'}`;
+          const body = JSON.parse(wire.body);
+          if (wire.targetUrl !== expectedUrl || wire.method !== "POST" || body.model !== candidate.model) throw unavailable("Chat wire outside selected authority");
+          if (nativeResponses) {
+            assertResponsesRequest(body);
+            const headers = new Headers(JSON.parse(wire.headers));
+            const token = credentials.apiKey || credentials.accessToken;
+            if (!token || headers.get('authorization') !== `Bearer ${token}` || headers.has('x-api-key') ||
+                headers.has('proxy-authorization') || headers.has('host')) throw unavailable('Responses wire credential authority changed');
+          }
           const retainedWire = JSON.stringify(wire);
           let receipt = null, gapAck = null, consumed = false, terminal = null, terminalFailure = null;
           if (context && db.health().healthy) {
@@ -132,12 +146,13 @@ function createSession(request, { db, hooks, clock }) {
           return Object.freeze({ assertDispatch, finish,
             // A selected raw protocol failure is never a successful terminal,
             // even when accounting itself durably settled valid usage.
-            terminalError: () => errorBytes(terminalFailure || safeStreamError),
-            fallbackTerminalBytes,
+            terminalError: () => errorBytes(terminalFailure || safeStreamError,nativeResponses),
+            fallbackTerminalBytes: nativeResponses ? errorBytes(safeStreamError,true) : fallbackTerminalBytes,
             failed: (_error, { exposed }) => finish(null, exposed ? "network_unknown" : "local_refusal", { kind: 'absent', interrupted: true }, exposed) });
         } catch (error) { throw accountingRefusal(error); }
       },
     });
+    return nativeResponses ? bindNativeResponsesAccounting(binding) : binding;
   }
   return Object.freeze({
     get degraded() { return !db.health().healthy; },

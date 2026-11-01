@@ -1,0 +1,9 @@
+{
+  "note": "Supplemental dependency hashes captured during final run, not pre-launch attestation. Source manifest separately captured before launch.",
+  "files": {
+    "tests/node_modules/vitest/package.json": "e5a6d55e103f04929442595df0f641f128b02fd706ff01474c094863b44511d0",
+    "node_modules/sql.js/package.json": "384c3c1048b0d35ee8f09bbf8dfac4d62cbba4cb7082e3f1c549254e4f124405",
+    "node_modules/sql.js/dist/sql-wasm.wasm": "0dfeecda2070b36da0cd4f6afa250af9453de528a983770f85b13d5d6b667572",
+    "/usr/bin/python3.10": "a2f33a6e006989270f4340528eb61f8f97366e00a5d1b602ac8672ea44fc56ae"
+  }
+}

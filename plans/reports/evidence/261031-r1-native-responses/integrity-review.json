@@ -1,0 +1,26 @@
+{
+  "report": "/tmp/9router-r1-isolated-kO3r8C/sandbox/artifacts/results.json",
+  "manifest": "/tmp/r1-final-source-before.json",
+  "revision": "18a27a1b5e0655cf8c9b3998a0dc51b964686a47",
+  "sourceChanges": [],
+  "expectedSuites": 42,
+  "actualSuites": 42,
+  "missingSuites": [],
+  "extraSuites": [],
+  "duplicateSuites": [],
+  "emptySuites": [],
+  "totals": {
+    "numTotalTests": 733,
+    "numPassedTests": 733,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0,
+    "success": true
+  },
+  "assertionCount": 733,
+  "nonpassed": [],
+  "failures": [],
+  "baselineMatchedIdentities": 49,
+  "baselineUnmatchedIdentities": 684,
+  "baselinePathCaveat": "Original comparator uses /app/ path split; not sufficient to verify collection/omissions. Raw paths retained. Baseline match here uses filename+fullName explicitly for review, not to alter original comparator."
+}

@@ -1,0 +1,77 @@
+
+ RUN  v4.1.12 /home/gmo/projects/9router/tests
+
+stdout | unit/openai-responses-completed-usage.test.js > Responses response.completed reports token usage > reports Claude upstream usage to a Codex client, counting cached prompt tokens
+[01:32:55] 🐛 [DBG:SSE] flush | provider=test | model=test-model | recvLines=12 | emitted=9 | events=[message_start=1,content_block_start=1,content_block_delta=1,content_block_stop=1,message_delta=1,message_stop=1]
+
+stdout | unit/openai-responses-completed-usage.test.js > Responses response.completed reports token usage > waits for a trailing usage-only chunk instead of completing on finish_reason
+[01:32:55] 🐛 [DBG:SSE] flush | provider=test | model=test-model | recvLines=4 | emitted=9 | events=[none]
+
+stdout | unit/openai-responses-completed-usage.test.js > Responses response.completed reports token usage > ignores zeroed placeholder usage on every chunk and reports the real trailing counts
+[01:32:55] 🐛 [DBG:SSE] flush | provider=test | model=test-model | recvLines=4 | emitted=9 | events=[none]
+
+stdout | unit/openai-responses-completed-usage.test.js > Responses response.completed reports token usage > derives the total when upstream reports inconsistent total_tokens=0
+[01:32:55] 🐛 [DBG:SSE] flush | provider=test | model=test-model | recvLines=3 | emitted=9 | events=[none]
+
+stdout | unit/openai-responses-completed-usage.test.js > Responses response.completed reports token usage > derives the total when upstream reports inconsistent total_tokens=999
+[01:32:55] 🐛 [DBG:SSE] flush | provider=test | model=test-model | recvLines=3 | emitted=9 | events=[none]
+
+stdout | unit/openai-responses-completed-usage.test.js > Responses response.completed reports token usage > still completes exactly once, without inventing usage, when the upstream reports none
+[01:32:55] 🐛 [DBG:SSE] flush | provider=test | model=test-model | recvLines=3 | emitted=9 | events=[none]
+
+ ✓ unit/openai-responses-completed-usage.test.js (7 tests) 195ms
+ ✓ unit/openai-responses-nonstream.test.js (7 tests) 78ms
+stdout | unit/responses-abort-terminal.test.js > stall abort through pipeWithDisconnect > delivers the error frame and closes the stream
+[01:33:00] 🐛 [DBG:STREAM] pipe start | stallTimeout=50ms
+
+stdout | unit/responses-abort-terminal.test.js > stall abort through pipeWithDisconnect > delivers the error frame and closes the stream
+[01:33:00] 🐛 [DBG:STREAM] chunk #1 | size=10B | gap=162ms | total=10B
+
+stdout | unit/responses-abort-terminal.test.js > stall abort through pipeWithDisconnect > delivers the error frame and closes the stream
+[01:33:00] 🐛 [DBG:STREAM] STALL TIMEOUT 50ms | chunks=1 | bytes=10 | sinceLast=53ms
+[01:33:00] ✗ ollama/test · ERROR: stream stall timeout
+    Error: stream stall timeout
+    at Timeout._onTimeout (/home/gmo/projects/9router/open-sse/utils/streamHandler.js:216:38)
+    at listOnTimeout (node:internal/timers:685:17)
+    at process.processTimers (node:internal/timers:618:7) · 249ms
+
+stdout | unit/responses-abort-terminal.test.js > stall abort through pipeWithDisconnect > delivers the error frame and closes the stream
+[01:33:00] 🐛 [DBG:STREAM] error: aborted | chunks=1 | bytes=10 | dur=264ms
+
+ ✓ unit/responses-abort-terminal.test.js (6 tests) 340ms
+stdout | unit/openai-responses-usage-pivot.test.js > OpenAI Responses usage across the pivot > reports claude usage on response.completed so Codex can auto-compact
+[01:33:03] 🐛 [DBG:SSE] flush | provider=claude | model=claude-sonnet-5 | recvLines=6 | emitted=9 | events=[none]
+
+stdout | unit/openai-responses-usage-pivot.test.js > OpenAI Responses usage across the pivot > always reports all three top-level counts
+[01:33:03] 🐛 [DBG:SSE] flush | provider=claude | model=claude-sonnet-5 | recvLines=6 | emitted=9 | events=[none]
+
+ ✓ unit/openai-responses-usage-pivot.test.js (2 tests) 156ms
+stdout | unit/openai-responses-terminal-event.test.js > OpenAI Responses streaming termination > emits a response.failed event when a Responses stream closes before a terminal event
+[01:33:06] 🐛 [DBG:SSE] flush | provider=codex | model=gpt-5.5 | recvLines=4 | emitted=2 | events=[response.created=1,response.output_text.delta=1]
+
+stdout | unit/openai-responses-terminal-event.test.js > OpenAI Responses streaming termination > does not add response.failed when a Responses stream already completed
+[01:33:06] 🐛 [DBG:SSE] flush | provider=codex | model=gpt-5.5 | recvLines=2 | emitted=1 | events=[response.completed=1]
+
+stdout | unit/openai-responses-terminal-event.test.js > OpenAI Responses streaming termination > does not add response.failed when a Responses stream sends response.done
+[01:33:06] 🐛 [DBG:SSE] flush | provider=codex | model=gpt-5.5 | recvLines=2 | emitted=1 | events=[response.done=1]
+
+stdout | unit/openai-responses-terminal-event.test.js > OpenAI Responses streaming termination > emits response.failed before DONE when a Responses stream sends DONE without a terminal event
+[01:33:06] 🐛 [DBG:SSE] flush | provider=codex | model=gpt-5.5 | recvLines=3 | emitted=2 | events=[response.created=1]
+
+ ✓ unit/openai-responses-terminal-event.test.js (4 tests) 183ms
+stdout | unit/openai-responses-completion-watchdog.test.js > pending response.completed watchdog > flushes the deferred completion when the upstream stalls after finish_reason
+[01:33:11] 🐛 [DBG:SSE] flush | provider=test | model=gpt-test | recvLines=1 | emitted=8 | events=[none]
+
+stdout | unit/openai-responses-completion-watchdog.test.js > pending response.completed watchdog > does not fire after the real usage trailer already completed the stream
+[01:33:19] 🐛 [DBG:SSE] flush | provider=test | model=gpt-test | recvLines=2 | emitted=9 | events=[none]
+
+ ✓ unit/openai-responses-completion-watchdog.test.js (2 tests) 174ms
+ ✓ unit/github-responses-routing.test.js (5 tests) 36ms
+
+ Test Files  7 passed (7)
+      Tests  33 passed (33)
+   Start at  01:32:47
+   Duration  24.53s (transform 5.90s, setup 1.08s, import 17.04s, tests 1.16s, environment 5ms)
+
+JSON report written to /tmp/9router-r1-isolated-BHglUs/sandbox/artifacts/results.json
+{"kind":"r1-isolated-run","root":"/tmp/9router-r1-isolated-BHglUs/sandbox","status":0,"signal":null,"error":null,"outsideArtifacts":[]}

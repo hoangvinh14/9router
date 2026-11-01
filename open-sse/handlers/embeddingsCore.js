@@ -3,6 +3,9 @@ import { HTTP_STATUS, FETCH_CONNECT_TIMEOUT_MS } from "../config/runtimeConfig.j
 import { getExecutor } from "../executors/index.js";
 import { refreshWithRetry } from "../services/tokenRefresh.js";
 import { getEmbeddingAdapter } from "./embeddingProviders/index.js";
+import { dispatchEmbeddings } from './embeddings-accounting.js';
+import { assertEmbeddingsRequest } from '../utils/accounting-embeddings-usage.js';
+import { isAccountingRefusal } from '../utils/accounting-transport.js';
 
 /**
  * Core embeddings handler — orchestrator only. Provider-specific URL/headers/body/normalize
@@ -17,8 +20,17 @@ export async function handleEmbeddingsCore({
   log,
   onCredentialsRefreshed,
   onRequestSuccess,
+  accounting = null,
+  signal = null,
+  dispatch = dispatchEmbeddings,
 }) {
   const { provider, model } = modelInfo;
+  if (accounting) assertEmbeddingsRequest(body);
+  // Selected sessions provide a single composed lifetime across all attempts.
+  const requestSignal = accounting?.signal || signal;
+  const send = (target, options) => accounting
+    ? dispatch({url:target,options:{...options,signal:requestSignal},credentials,accounting})
+    : fetch(target,{...options,...(requestSignal ? {signal:requestSignal} : {})});
 
   // Validate input
   const input = body.input;
@@ -61,7 +73,7 @@ export async function handleEmbeddingsCore({
 
   let providerResponse;
   try {
-    providerResponse = await fetch(url, {
+    providerResponse = await send(url, {
       method: "POST",
       headers,
       body: JSON.stringify(requestBody),
@@ -70,10 +82,15 @@ export async function handleEmbeddingsCore({
         : {}),
     });
   } catch (error) {
+    if (accounting || isAccountingRefusal(error)) throw error;
     const errMsg = formatProviderError(error, provider, model, HTTP_STATUS.BAD_GATEWAY);
     log?.debug?.("EMBEDDINGS", `Fetch error: ${errMsg}`);
     return createErrorResult(HTTP_STATUS.BAD_GATEWAY, errMsg);
   }
+
+  // Valid evidence has already settled at this point. Cancellation still must
+  // not turn that settlement into provider/client success or launch refresh.
+  accounting?.signal.throwIfAborted();
 
   // Handle 401/403 — try token refresh (skip for noAuth providers)
   const executor = getExecutor(provider);
@@ -90,18 +107,22 @@ export async function handleEmbeddingsCore({
 
     if (newCredentials?.accessToken || newCredentials?.apiKey) {
       log?.info?.("TOKEN", `${provider.toUpperCase()} | refreshed for embeddings`);
+      // A selected API-key session has no supported credential refresher.
+      // Refuse mutation before persistence or a successor POST.
+      if (accounting) throw new Error('Selected embeddings credential refresh unsupported');
       Object.assign(credentials, newCredentials);
       if (onCredentialsRefreshed) await onCredentialsRefreshed(newCredentials);
 
       try {
         const retryHeaders = adapter.buildHeaders(credentials, ctx);
         const retryUrl = adapter.buildUrl(model, credentials, ctx);
-        providerResponse = await fetch(retryUrl, {
+        providerResponse = await send(retryUrl, {
           method: "POST",
           headers: retryHeaders,
           body: JSON.stringify(requestBody),
         });
-      } catch {
+      } catch (error) {
+        if (accounting || isAccountingRefusal(error)) throw error;
         log?.warn?.("TOKEN", `${provider.toUpperCase()} | retry after refresh failed`);
       }
     } else {
@@ -110,15 +131,29 @@ export async function handleEmbeddingsCore({
   }
 
   if (!providerResponse.ok) {
+    if (accounting) {
+      // Already validated and own-ACKed by the actual transport boundary. Retain
+      // only this response until normal fallback/exhaustion decides its owner.
+      const bytes = new Uint8Array(await providerResponse.arrayBuffer());
+      let raw;
+      try { raw = JSON.parse(new TextDecoder().decode(bytes)); }
+      catch { throw new Error('Selected embeddings response lost validated JSON'); }
+      const message = typeof raw.error?.message === 'string' ? raw.error.message : 'Upstream embeddings error';
+      return {success:false,status:providerResponse.status,error:message,
+        response:new Response(bytes,{status:providerResponse.status,headers:providerResponse.headers})};
+    }
     const { statusCode, message } = await parseUpstreamError(providerResponse);
     const errMsg = formatProviderError(new Error(message), provider, model, statusCode);
     log?.debug?.("EMBEDDINGS", `Provider error: ${errMsg}`);
     return createErrorResult(statusCode, errMsg);
   }
 
-  let responseBody;
+  let responseBody, selectedBytes;
   try {
-    responseBody = await providerResponse.json();
+    if (accounting) {
+      selectedBytes = new Uint8Array(await providerResponse.arrayBuffer());
+      responseBody = JSON.parse(new TextDecoder().decode(selectedBytes));
+    } else responseBody = await providerResponse.json();
   } catch {
     return createErrorResult(HTTP_STATUS.BAD_GATEWAY, `Invalid JSON response from ${provider}`);
   }
@@ -131,8 +166,8 @@ export async function handleEmbeddingsCore({
   return {
     success: true,
     usage: normalized.usage || null,
-    response: new Response(JSON.stringify(normalized), {
-      headers: {
+    response: new Response(selectedBytes || JSON.stringify(normalized), {
+      headers: accounting ? providerResponse.headers : {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },

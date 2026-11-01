@@ -1,0 +1,61 @@
+{
+  "note": "Source definitions manually inspected; report occurrence ordinals do not prove distinct parameter values. New E1 collisions are not allowed.",
+  "exceptions": [
+    {
+      "suite": "unit/accounting-coordinator.test.js",
+      "fullName": "bounded coordinator refuses all ACKs from malformed group result undefined",
+      "multiplicity": 2,
+      "sourceSha256": "e9a44b6610345a4e0406a26127a96480a685f1146b00f8706222540c301b1999",
+      "sourceAudit": "it.each([undefined, [], [{ ok: yes }]]) has 3 rows; Vitest %j renders first and array row as undefined; 2 colliding plus one distinct title"
+    },
+    {
+      "suite": "unit/b1-usage-evidence.test.js",
+      "fullName": "B1 classified producer evidence does not exempt malformed or partial SSE as absent",
+      "multiplicity": 2,
+      "sourceSha256": "20701ac64ac8a52743c7737a249d54b6af47faa988e2d3da475e165f24e2a646",
+      "sourceAudit": "it.each contains partial string and invalid UTF8 bytes, 2 rows without placeholder"
+    },
+    {
+      "suite": "unit/chat-accounting-json.test.js",
+      "fullName": "strict OpenAI raw usage profile leaves missing or contradictory evidence unknown",
+      "multiplicity": 10,
+      "sourceSha256": "690b8fa5b3360e3c360210ae119d9ad516ddd7cedb343be55b1477339ea7ab1a",
+      "sourceAudit": "10 mutation functions in it.each without placeholder"
+    },
+    {
+      "suite": "unit/chat-accounting-stream.test.js",
+      "fullName": "raw accounting SSE evidence charges authoritative usage independently of incomplete protocol",
+      "multiplicity": 2,
+      "sourceSha256": "2d3f7bac568969295e47b2adda0ec716893706df8da58e06daade292950d9946",
+      "sourceAudit": "2 distinct incomplete frame sequences in it.each without placeholder"
+    },
+    {
+      "suite": "unit/responses-accounting-json-boundary.test.js",
+      "fullName": "native Responses raw JSON boundary does not downgrade invalid or absent complete evidence into interruption",
+      "multiplicity": 7,
+      "sourceSha256": "69deec1b581a6fba2e08eca3796acd2a602d5b0cd656e655d8ca5a6dccf43c76",
+      "sourceAudit": "7 invalid/absent document cases in it.each without placeholder"
+    },
+    {
+      "suite": "unit/responses-accounting-stream.test.js",
+      "fullName": "native raw Responses SSE authority rejects contradictory/malformed/absent terminal without exact settlement",
+      "multiplicity": 14,
+      "sourceSha256": "f4a30c43ef0fe20d1a7eadf102f691ed054e6b0b3e1f5faaac83ff7ed9a87030",
+      "sourceAudit": "14 malformed/conflicting event functions in it.each without placeholder"
+    },
+    {
+      "suite": "unit/responses-accounting-usage.test.js",
+      "fullName": "strict native Responses token-only profile rejects unsupported/malformed evidence rather than swallowing billing dimensions",
+      "multiplicity": 15,
+      "sourceSha256": "59098aa0f3cb6f481ceca5bfd12765f9897068d06bc0d3aa52f6a22f18148ee6",
+      "sourceAudit": "15 usage mutation functions in it.each without placeholder"
+    },
+    {
+      "suite": "unit/responses-accounting-usage.test.js",
+      "fullName": "strict native Responses token-only profile refuses unsupported final-wire declarations before dispatch",
+      "multiplicity": 12,
+      "sourceSha256": "59098aa0f3cb6f481ceca5bfd12765f9897068d06bc0d3aa52f6a22f18148ee6",
+      "sourceAudit": "12 request mutation functions in it.each without placeholder"
+    }
+  ]
+}
