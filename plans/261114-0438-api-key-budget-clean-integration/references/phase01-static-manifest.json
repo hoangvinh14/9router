@@ -507,10 +507,24 @@
       "equalsPinnedGitBlob": true
     }
   },
-  "runtimePortedFiles": [],
+  "runtimePortedFiles": [
+    "src/lib/accounting/exact-money.js",
+    "src/lib/accounting/budget-windows.js",
+    "src/lib/accounting/attempt-payload.js",
+    "src/lib/pricing/decimalMoney.js",
+    "src/lib/pricing/constants.js"
+  ],
+  "pureHelperAdmission": "pure-budget-admission.md",
+  "pureHelperSourceSha256": {
+    "src/lib/accounting/exact-money.js": "fdd55b57913f9a79c572408bbee5974f086dd780355bdbf932931368703f929a",
+    "src/lib/accounting/budget-windows.js": "dd76a0fdb4eb8e1464c94c83cc18c0839f2e40995b54887a34bfc29288d2c60f",
+    "src/lib/accounting/attempt-payload.js": "7a131265f4a274cec3222c293c256dab2915e6ba90d4255da384163ac78fef59",
+    "src/lib/pricing/decimalMoney.js": "b3ff9137fa79dfa84c3abcc08b2b7bfb4295a430f86ba3e8031b0abfa90c57d9",
+    "src/lib/pricing/constants.js": "0c8398c8fc97846dcd655684300ad59172db4e0e87e52f6fc6c366f386262c98"
+  },
   "persistenceDesignRegister": "phase01-persistence-admission.json",
   "persistenceRegisterAdmittedForRuntime": false,
-  "runtimeTests": "not_run",
+  "runtimeTests": "pure helper lane only: final task b050044b4 exit0,8pass/0fail/0skip (test-title-only correction after initial b9ccff45c pass). No LLM/DB imports or integrated runtime test; donor tests above read-only, not executed.",
   "phase01Exit": "partial; no executable support/route/retry manifest or dependency DAG admitted",
   "hashProvenance": "Each whole-file hash verified against exact named Git pin and current reviewed source/extracted bytes. Whole-file parity is not proof every body was reviewed; review coverage is separately described."
 }
