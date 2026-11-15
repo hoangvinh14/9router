@@ -1,6 +1,6 @@
 # Phase 01 — Exact scope/evidence và boundary design trước port
 
-Status: **in-progress / partial; positive slice producer-blocked**. Priority: P1. Depends on: phase00 (verified). [Boundary design](./references/phase01-boundary-design.md), [support register](./references/phase01-support-manifest.json), [retry/exposure inventory](./references/phase01-retry-inventory.md), [management/identity comparison](./references/phase01-management-closure.md), [session/rotation protocol](./references/phase01-session-and-rotation-protocol.md), [persistence dependency register](./references/phase01-persistence-admission.json), [static source manifest](./references/phase01-static-manifest.json) record bounded progress. No step below marked complete merely from a partial route/body review; full transitive closure/protocol admission/selectors remain open. No runtime port or tests executed.
+Status: **in-progress / partial; positive slice producer-blocked**. Priority: P1. Depends on: phase00 (verified). [Boundary design](./references/phase01-boundary-design.md), [support register](./references/phase01-support-manifest.json), [retry/exposure inventory](./references/phase01-retry-inventory.md), [management/identity comparison](./references/phase01-management-closure.md), [session/rotation protocol](./references/phase01-session-and-rotation-protocol.md), [persistence dependency register](./references/phase01-persistence-admission.json), [factory/migration/authority comparison](./references/phase01-factory-migration-closure.md), [static source manifest](./references/phase01-static-manifest.json) record bounded progress. No step below marked complete merely from a partial route/body review; full transitive closure/protocol admission/selectors remain open. No runtime port or tests executed.
 
 ## Inputs và files
 
@@ -27,6 +27,8 @@ Status: **in-progress / partial; positive slice producer-blocked**. Priority: P1
 ## Current bounded decision
 
 Generic server-derived `dashboard-session` actor selected; no claim of per-person/session identity or immediate logout revocation. Strict authenticated===true check remains a new guard requirement. Donor sidecar retiredBindings cannot represent revoked fingerprints for an active stable ID. Rotation design requires durable reader/writer fencing, operation/version history, own publication ACK and exclusive recovery; per-key/global fence and coherent restore/rollback detection remain unresolved. The linked dependency register orders static review only: zero nodes admitted for runtime, proposed test labels not executable selectors. **Runtime rotation blocked; phase01 exit not met.**
+
+Factory/migration follow-up: M/P adapter factories and migration bootstrap compared; P better/Bun do not install persisted-read capability, so durable health is not four-engine dispatch readiness. Correct P migration003 filename is `003-accounting-policy.js` (previous register path corrected). D03 changes require shared identity + each session/gap/final dispatch consumer, not generic guard alone. Six exact donor test bodies mapped as source assertions; none executed/admitted. Legacy abort caching and account-failure dirty projection need explicit correction/tests before port, not a claim of runtime exploit.
 
 ## Design validation / exit
 

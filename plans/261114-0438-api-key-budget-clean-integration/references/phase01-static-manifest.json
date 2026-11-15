@@ -4,6 +4,46 @@
   "masterPin": "1855aa44473e88feac9d3f131b9c0c5fc9706b68",
   "donorPin": "7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2",
   "masterFiles": {
+    "src/lib/db/adapters/nodeSqliteAdapter.js": {
+      "sha256": "f2e37fe23a991e67235429cd125bd0668b0b05881499058d5262dcdd3bd60ab0",
+      "review": "whole M body read; factory/transaction/close compared, no runtime admission",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/adapters/betterSqliteAdapter.js": {
+      "sha256": "8dc4669157a59ee70cc98512d50ae5f8a48699c48ad0c056d81b7bc6ebfd9dae",
+      "review": "whole M body read; no runtime admission",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/adapters/bunSqliteAdapter.js": {
+      "sha256": "9cc44d7c7b1ee06a81e0475c3aaec48a3d70b9f4b6451d80bf0847158f60d685",
+      "review": "whole M body read; no Bun platform execution",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/adapters/sqljsAdapter.js": {
+      "sha256": "cf8687bbe60739e251064aea833acbc1c442e573a162c5991b8857d2a9c2c6f7",
+      "review": "whole M body read; no durability execution",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/migrate.js": {
+      "sha256": "a345d645854e93def4fe3fbfbd25aa55d692f23c7df497c2a1df237dbc838054",
+      "review": "whole M body read; no private legacy payload or bootstrap execution",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/schema.js": {
+      "sha256": "62308aad30f7ced05503dba48c69c9ce61b589e8cd2c317643ef898544c061b5",
+      "review": "whole M body read; version2 no accounting TABLES, not equal P",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/migrations/index.js": {
+      "sha256": "89c8c8dbfe4397d079f26b6269d58a9ecb06b871051184321bfdcc87bfdca9ec",
+      "review": "whole M body read; registry001 only",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/migrations/001-initial.js": {
+      "sha256": "4ddb402aa1165a615770042fba0911ad98e19e4188e692faf9e95ac066bfc276",
+      "review": "whole M body read; uses current TABLES, not P frozen legacy",
+      "equalsPinnedGitBlob": true
+    },
     "next.config.mjs": {
       "sha256": "497edc9c9e635e5cd4bdc4d579691f2de4db0c0050968fd38de25d1f9a8944c4",
       "review": "rewrite listing reviewed by targeted search; not whole-module body review",
@@ -241,6 +281,116 @@
     }
   },
   "donorFiles": {
+    "src/lib/db/adapters/nodeSqliteAdapter.js": {
+      "sha256": "1a16ae67462868f0c4736576e2d6472a21abcb38561509b929c6d8f86656f87c",
+      "review": "whole P body read; readOnly factory present, not runtime proof",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/adapters/betterSqliteAdapter.js": {
+      "sha256": "5804c7b46871c70b48cf575095860ba4dc2b95b67e3fe3bc7539c1319eeb7374",
+      "review": "whole P body read; no openReadOnly wrapper argument",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/adapters/bunSqliteAdapter.js": {
+      "sha256": "d320e84e441cccde9f3e9158f9189c0ca66ebe1ff243537f46f0336f5cd4448b",
+      "review": "whole P body read; strict close policy, no openReadOnly wrapper argument",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/migrate.js": {
+      "sha256": "d9fd882881b379e40b4a901da2e5820ce11da025879faf159550b49c41d978f1",
+      "review": "whole P body read; swallowed legacy abort/caching hypothesis not executed",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/migrations/index.js": {
+      "sha256": "422eec7c19cc015d57b2703e7dccfb9d85af55a64ac45f67e805976944a80a9d",
+      "review": "whole P body read;003-accounting-policy correct path",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/migrations/001-initial.js": {
+      "sha256": "646ef6961ccb7f09701f110f9982dc871503f1c73e659c01b307772f89b682b3",
+      "review": "whole P body read; frozen legacy TABLES",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/migrations/legacy-accounting-schema.js": {
+      "sha256": "d3cec028dddd8d09d70d3257f896cda9784f4aa9a4226e124ccc07a5574e5c59",
+      "review": "whole P body read; not admission to rewrite M001",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/migrations/003-accounting-policy.js": {
+      "sha256": "92bf407fd6077ae4ef636226e34b3d58bbd62fb0bf91f218e569f3d3a5ecc59b",
+      "review": "whole P body read; prior register filename corrected against tree+registry",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/helpers/accounting-policy.js": {
+      "sha256": "fe58b4e1c32a61804ada1ea2b8e29629d286ffb64250f67f60141c8c6ac37596",
+      "review": "whole P body read; exact schema and missing-policy fail-closed/CAS",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/accounting/persisted-request-authority.js": {
+      "sha256": "f4076519c942d6696b8b6fdccc27173a0c24cb78258c3d0585f680a0a915e4b9",
+      "review": "whole P body read; unhealthy-unlimited identity exception conflicts D03 dispatch",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/accounting/persisted-chat-authority.js": {
+      "sha256": "c99a503954949b56cac0f8dc4efe3525cb3427b01bb834ddf9f089f90d0fa02c",
+      "review": "whole P body read; caller/transition comparison not producer proof",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/accounting/persisted-embeddings-authority.js": {
+      "sha256": "465ad07bac009cd4c3d82d9c19bcbfb1fd68f726397be912a0c85937dd690019",
+      "review": "whole P body read; dirty account-failure transition hypothesis, no runtime proof",
+      "equalsPinnedGitBlob": true
+    },
+    "src/sse/services/chat-accounting.js": {
+      "sha256": "d70116d5adcbbf07f70c7b30a6c4f79df9782c1d060c134542d87c9e4b148b7b",
+      "review": "whole P body read; private fixture enrollment, degraded gap continuation conflicts D03",
+      "equalsPinnedGitBlob": true
+    },
+    "src/sse/services/embeddings-accounting.js": {
+      "sha256": "19bdc4f047470c7a30579ed78665b988007e398685723b0bce3075f2c57ef73d",
+      "review": "whole P body read; E1 healthy original price/intent required, terminal gap not settlement ACK",
+      "equalsPinnedGitBlob": true
+    },
+    "src/sse/services/auth.js": {
+      "sha256": "b9fe9f6d751421fa5cdd051a7f901d45c33bbe5b06f38856717b7c5bde6a87da",
+      "review": "selected markAccountUnavailable body lines217-270; other bodies not reviewed here",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/repos/connectionsRepo.js": {
+      "sha256": "82d69c770ed514dbcc5802a3513dff263343dd91eece96716792bc5fc77f77ca",
+      "review": "selected updateProviderConnection body lines263-277; transitive upsert helper not read here",
+      "equalsPinnedGitBlob": true
+    },
+    "tests/unit/db-durable-publication.test.js": {
+      "sha256": "b8ddac84c50caf091a7da9c369a6f905f19c4882af72783ba56690e701045dc4",
+      "review": "whole test body read only; assertion/title limits mapped; not executed or admitted",
+      "equalsPinnedGitBlob": true
+    },
+    "tests/unit/db-writer-ownership.test.js": {
+      "sha256": "8322f582f77c452722bb675401a96c0e8fc75a5ae32dc7279fe2ac3a0d8cb060",
+      "review": "whole test body read; child kill/cleanup sandbox dependencies pending, not executed",
+      "equalsPinnedGitBlob": true
+    },
+    "tests/unit/db-driver-chain.test.js": {
+      "sha256": "82b1918727aa85ba6231e14a84bfae195d6b8385932ad8b4300bd1806f12b2d2",
+      "review": "whole test body read; default engine assumptions need explicit lane, not executed",
+      "equalsPinnedGitBlob": true
+    },
+    "tests/unit/accounting-migration.test.js": {
+      "sha256": "639f90faafc22ad33eab49742584a60a606f5bc6284abd56ae4659b4e8dee7ac",
+      "review": "whole test body read; backup throw retries only, legacy abort not tested, not executed",
+      "equalsPinnedGitBlob": true
+    },
+    "tests/unit/db-migration-chain.test.js": {
+      "sha256": "5382ea0506e3b3379ca8f4f389b1762620895e92eb9885d8c3dd84f87281dcef",
+      "review": "whole test body read; ordinary import/schema assertions only, not executed",
+      "equalsPinnedGitBlob": true
+    },
+    "tests/unit/accounting-request-authority.test.js": {
+      "sha256": "83361b87df138ee2dc20ec34d296dd8a30ab5888aabe2db3be7bd7da918a8ad3",
+      "review": "whole test body read; degraded-unlimited success tests require D03 adaptation, not executed",
+      "equalsPinnedGitBlob": true
+    },
     "src/lib/accounting/budget-errors.js": {
       "sha256": "15ca1d3318a39c9c63eaa62319c0a71352d1502086820fc28887e61defcb8375",
       "review": "extracted candidate only, not admitted",
@@ -313,7 +463,7 @@
     },
     "src/lib/db/schema.js": {
       "sha256": "28f8bd519a4514b5d2f958319274e949cc6f38fc47bb9c2e8c19962da1f45802",
-      "review": "selected apiKeys/accounting/bindings/policy/audit table block lines78-124; not whole schema body",
+      "review": "whole P schema body now read; version5/current accounting TABLES, distinct from Mversion2; no runtime schema proof",
       "equalsPinnedGitBlob": true
     },
     "src/lib/db/driver.js": {

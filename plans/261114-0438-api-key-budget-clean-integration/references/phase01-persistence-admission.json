@@ -25,10 +25,10 @@
     },
     {
       "id": "schema", "dependsOn": ["payload"],
-      "files": ["src/lib/db/schema.js", "src/lib/db/migrations/002-accounting-foundation.js", "src/lib/db/migrations/003-api-key-access.js", "src/lib/db/migrations/004-recorded-spend.js", "src/lib/db/helpers/accounting-policy.js"],
-      "review": "P schema selected accounting/key table block only; migrations002/004 whole bodies; 003 and policy helper extracted not reviewed",
+      "files": ["src/lib/db/schema.js", "src/lib/db/migrations/002-accounting-foundation.js", "src/lib/db/migrations/003-accounting-policy.js", "src/lib/db/migrations/004-recorded-spend.js", "src/lib/db/helpers/accounting-policy.js"],
+      "review": "M/P schema whole bodies read; P migrations002/003-accounting-policy/004 and policy helper whole bodies. Prior003-api-key-access path corrected against pinned tree/registry, not an admitted new file.",
       "disposition": "targeted M additive migration design needed; no blind donor numbering restore",
-      "remaining": "master migration chain ordering, non-accounting schema preservation, schema/SQL verification, active-ID revoked fingerprints and version/op journal absent",
+      "remaining": "M registry001/current TABLES vs P001/frozen legacy+002/003/004 and version2 vs5 compared; freeze targeted M additive upgrade preserving001, not whole history restore. Active-ID revoked fingerprints/version/op journal still absent.",
       "tests": ["D-ACK-01", "R-RESTORE-01"]
     },
     {
@@ -41,16 +41,16 @@
     },
     {
       "id": "persisted-authority", "dependsOn": ["ownership", "payload", "schema", "coverage"],
-      "files": ["src/lib/db/persisted-accounting-authority.js", "src/lib/accounting/persisted-request-authority.js"],
-      "review": "P persisted-accounting-authority whole body; persisted-request-authority pending",
+      "files": ["src/lib/db/persisted-accounting-authority.js", "src/lib/accounting/persisted-request-authority.js", "src/lib/accounting/persisted-chat-authority.js", "src/lib/accounting/persisted-embeddings-authority.js", "src/sse/services/chat-accounting.js", "src/sse/services/embeddings-accounting.js"],
+      "review": "P whole bodies read, generic identity distinct from private fixture session projections. Chat/embeddings callers mapped, no production activation demonstrated.",
       "disposition": "retain fresh persisted proof; do not inherit donor degraded dispatch permission under D03",
-      "remaining": "all digest fields/callers against M configuration, read-only factory assumptions, rotation version/fence included in authority; unavailable is never zero",
+      "remaining": "D03 requires common identity plus chat/embeddings session/gap/final gates healthy-only. Preserve low-level inspection/recovery, not degraded dispatch. Better/Bun missing persisted capability; account-failure adoption ordinary transaction vs refresh durable/clean asymmetry mapped, correction/selectors pending. Rotation fence/version still absent.",
       "tests": ["D-ACK-01", "R-OWNER-01", "R-RESTORE-01"]
     },
     {
       "id": "native-durability", "dependsOn": ["ownership", "persisted-authority"],
       "files": ["src/lib/db/adapters/nativeDurability.js", "src/lib/db/adapters/nativeAdapter.js"],
-      "review": "P whole bodies read; exact M bodies comparison pending",
+      "review": "P native wrapper/durability whole bodies; M three native factory/adapters whole bodies compared, no corresponding shared wrapper in M",
       "disposition": "targeted durableTransaction/health/close candidate",
       "remaining": "no nested durable ACK, WAL/FULL verification, uncertain release and factory cleanup; backup capability and ordinary transaction compatibility",
       "tests": ["D-ACK-01", "R-OWNER-01"]
@@ -58,7 +58,7 @@
     {
       "id": "sqljs", "dependsOn": ["ownership", "persisted-authority"],
       "files": ["src/lib/db/adapters/sqljsAdapter.js"],
-      "review": "P whole body read; exact M body comparison pending",
+      "review": "M/P SQL.js whole bodies compared: M deferred writeFileSync vs P own atomic-fsync export, owner/poison/authority",
       "disposition": "preserve existing adapter family, targeted poison/atomic export/health candidate",
       "remaining": "deferred ordinary writes vs exact accounting own ACK, no poisoned RAM export, flush/signal/backup close safety, read-only persisted image facts",
       "tests": ["D-ACK-01", "R-CUT-01..05"]
@@ -66,9 +66,9 @@
     {
       "id": "factories", "dependsOn": ["native-durability", "sqljs", "coverage"],
       "files": ["src/lib/db/engineAcquisition.js", "src/lib/db/adapters/nodeSqliteAdapter.js", "src/lib/db/adapters/betterSqliteAdapter.js", "src/lib/db/adapters/bunSqliteAdapter.js"],
-      "review": "P engineAcquisition whole body; node factory extracted only; better/Bun factories pending",
+      "review": "P engineAcquisition and all three native factories whole bodies, all four M adapters whole bodies read. P node/SQL.js install persisted read, better/Bun do not; no four-engine parity.",
       "disposition": "narrow unavailable-before-open fallback only",
-      "remaining": "whole factories and all backend failure/close paths, runtime/platform matrix. No broad catch-and-fallback after app-data engine open",
+      "remaining": "Selected Pdriver/factory/wrapper trace mapped; add verified better/Bun read-only capability or refuse accounting before readiness without changing ordinary routing. Backend/platform runtime matrix and exact tests pending. No writable engine fallback after app-data open/uncertain close.",
       "tests": ["D-ACK-01", "R-OWNER-01"]
     },
     {
@@ -82,17 +82,17 @@
     {
       "id": "coordinator", "dependsOn": ["payload", "ownership", "bindings-ledger"],
       "files": ["src/lib/accounting/write-coordinator.js"],
-      "review": "P whole body read",
+      "review": "P whole body read; service coordinator callback intent/terminal and direct synchronous resolveAttempt caller reread",
       "disposition": "single adapter command owner; no parallel writer service",
-      "remaining": "apply callback ownership/caller closure and group own ACK, recovery/rotation commands serialization, stop/final lifecycle vs live requests; no row-as-ACK",
+      "remaining": "Group own ACK retains module-owned intent/terminal callbacks. Direct durable resolveAttempt vs pending queued microtasks needs explicit management/recovery/rotation ordering, not second coordinator callback or row-as-ACK. Stop/final lifecycle and late terminal sink unchanged.",
       "tests": ["D-ACK-01", "R-CAS-01", "R-LATE-01"]
     },
     {
       "id": "lifecycle", "dependsOn": ["factories", "bindings-ledger", "coordinator", "persisted-authority"],
-      "files": ["src/lib/db/accounting-lifecycle.js", "src/lib/db/driver.js", "src/lib/db/migrate.js", "src/lib/db/index.js"],
-      "review": "P lifecycle/driver whole bodies; M driver/index whole bodies; migration orchestration pending",
+      "files": ["src/lib/db/accounting-lifecycle.js", "src/lib/db/driver.js", "src/lib/db/migrate.js", "src/lib/db/index.js", "src/lib/db/migrations/index.js", "src/lib/db/migrations/001-initial.js", "src/lib/db/migrations/legacy-accounting-schema.js"],
+      "review": "M/P migrate, registry,001 whole bodies; P legacy accounting schema whole body. P lifecycle/driver and M driver/index whole bodies previously reviewed.",
       "disposition": "selective initialization composition; whole driver restore rejected",
-      "remaining": "startup before publication, exact same adapter object, HMR/failed init lease, health, backcompat import entry, zero implicit app execution while design only",
+      "remaining": "P catches MigrationAborted in migrateAdapter then runMigrationOnce can cache returned failure: source hypothesis not executed proof; propagate non-success before driver publication. Backup/pricing/migration composition still not closed. Preserve M001/ordinary schema; exact same adapter/HMR lease/health/backcompat. No implicit app execution.",
       "tests": ["D-ACK-01", "R-OWNER-01", "R-CUT-01..05"]
     },
     {
@@ -122,12 +122,13 @@
     {
       "id": "safe-execution", "dependsOn": ["key-consumers"],
       "files": [],
-      "review": "no admitted exact runtime runner/command/test body manifest",
+      "review": "Six P test files whole bodies read and exact assertion mapping documented; runner/config/transitive fixtures unreviewed so no executable selectors admitted",
       "disposition": "blocked A1; static JSON/link/Git parity validation only",
       "remaining": "review test sources/transitive imports and runner fail-closed sandbox, commands/selectors/platform matrix; no host fallback or live endpoints",
       "tests": ["D-ACK-01"]
     }
   ],
+  "sourceComparison": "phase01-factory-migration-closure.md",
   "admittedRuntimeNodes": [],
   "testsExecuted": [],
   "producerEligibilityChanged": false,
