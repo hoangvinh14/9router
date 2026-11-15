@@ -204,6 +204,36 @@
       "review": "whole body read; transitive admission not implied",
       "equalsPinnedGitBlob": true
     },
+    "src/app/api/auth/login/route.js": {
+      "sha256": "845015ff9dd3a0fd03353c7e31d109e11b5f4318203d3ad847b541f580631017",
+      "review": "whole body read; local session caller, not IdP or transitive admission",
+      "equalsPinnedGitBlob": true
+    },
+    "src/app/api/auth/logout/route.js": {
+      "sha256": "32d646aae61cfef1444096251b88834eecb06c65428bbfc936e2e470d24bc165",
+      "review": "whole body read; cookie deletion does not prove copied-token revocation",
+      "equalsPinnedGitBlob": true
+    },
+    "src/app/api/auth/status/route.js": {
+      "sha256": "8b5013c230b04a714b27326c511a3f64bcbdfe1c3a39149d4644beb6767a78cf",
+      "review": "whole body read; display session not strict mutation guard",
+      "equalsPinnedGitBlob": true
+    },
+    "src/app/api/auth/oidc/callback/route.js": {
+      "sha256": "a599a7031ba483474b975c9bec8d0f0570a38dee4e827f8c4ada70e880ae113e",
+      "review": "whole caller body read; IdP verification helper not recertified",
+      "equalsPinnedGitBlob": true
+    },
+    "src/app/api/auth/saml/acs/route.js": {
+      "sha256": "22056dee078ce031a0dd63dc3890487f972cfcea439a15fc33282fba75c8a941",
+      "review": "whole caller body read; SAML helper not recertified",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/driver.js": {
+      "sha256": "169e63afe15055724cf15402194cd511ef201a0b6d65e500ef20da949c0be35a",
+      "review": "whole body read; adapter factory/ordinary compatibility closure pending",
+      "equalsPinnedGitBlob": true
+    },
     "cli/src/cli/api/client.js": {
       "sha256": "ed82235fb0d473116db1dd3482db33f66406370659e7d4e5b28078cd52e889b8",
       "review": "selected prefix lines1-115 makeRequest/auth-file setup, not whole module; transitive admission not implied",
@@ -261,6 +291,66 @@
       "review": "whole body read; transitive admission not implied",
       "equalsPinnedGitBlob": true
     },
+    "src/lib/db/accounting-coverage.js": {
+      "sha256": "66d86fd94b494743bd89d5e86f2eaa5f68ed6b6f89a373a873172a9a3a7cb65f",
+      "review": "whole body read; lifetime monotonicity not universal coordinated rollback proof",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/accounting/write-coordinator.js": {
+      "sha256": "f416a4678854444c47520d450dee3c4b290fbfea9566e10b4723deeb675b197c",
+      "review": "whole body read; command owner/caller closure pending",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/migrations/002-accounting-foundation.js": {
+      "sha256": "a94dc9e04238451cb6e34540a1b1f82a1df1d3c103cd603d23a178464866a997",
+      "review": "whole body read; M migration chain not admitted",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/migrations/004-recorded-spend.js": {
+      "sha256": "6b6294add986047c965232a804253cebaf9142a97d51629a08cca3f4ca597960",
+      "review": "whole body read; M migration chain not admitted",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/schema.js": {
+      "sha256": "28f8bd519a4514b5d2f958319274e949cc6f38fc47bb9c2e8c19962da1f45802",
+      "review": "selected apiKeys/accounting/bindings/policy/audit table block lines78-124; not whole schema body",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/driver.js": {
+      "sha256": "292965fb924f47bc70d034dafa253a057d55b2e5e91267dfaadb745338eaff3d",
+      "review": "whole body read; lifecycle dependency register not runtime admission",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/accounting-lifecycle.js": {
+      "sha256": "e459f55cd4dbaa926a32da82d52566f065aa0a7e7dcbd067f33daa2505bab24b",
+      "review": "whole body read; process-death/close tests not executed",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/adapters/sqljsAdapter.js": {
+      "sha256": "796bad6e2ea86d96a408a4ff0df1ce80c9bfcff6e34d01a24fc8474f6b0ecbd2",
+      "review": "whole body read; M adapter comparison and runtime platform tests pending",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/adapters/nativeAdapter.js": {
+      "sha256": "3f9b1d26b9c3a97ae4ea6ed5ca1495ad695605a2b78df8efede34ef7a9452fe1",
+      "review": "whole body read; backend factories/caller admission pending",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/adapters/nativeDurability.js": {
+      "sha256": "3cfd1bf2af4291075f314f86c1dd52fcecc7819fd11b97b98cbe8336382d7973",
+      "review": "whole body read; no executed ACK fault test",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/persisted-accounting-authority.js": {
+      "sha256": "eae04e85fef96cd3161360679890851b04438cf26818bdf0f206bc1fc654622d",
+      "review": "whole body read; persisted-request-authority/caller closure pending",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/engineAcquisition.js": {
+      "sha256": "906d77d6bf8c0e0ca9cac52c21294b2df8637cf272a9e408b1d79d64553f858d",
+      "review": "whole body read; unavailable engine fallback predicate only, factories pending",
+      "equalsPinnedGitBlob": true
+    },
     "custom-server.js": {
       "sha256": "e7ea12080dbbc24f7cc606b0d466bdc1afa6f962a0464efdec53ecbd914cd8b9",
       "review": "selected wrapper block lines45-87, not whole module; transitive admission not implied",
@@ -268,6 +358,8 @@
     }
   },
   "runtimePortedFiles": [],
+  "persistenceDesignRegister": "phase01-persistence-admission.json",
+  "persistenceRegisterAdmittedForRuntime": false,
   "runtimeTests": "not_run",
   "phase01Exit": "partial; no executable support/route/retry manifest or dependency DAG admitted",
   "hashProvenance": "Each whole-file hash verified against exact named Git pin and current reviewed source/extracted bytes. Whole-file parity is not proof every body was reviewed; review coverage is separately described."

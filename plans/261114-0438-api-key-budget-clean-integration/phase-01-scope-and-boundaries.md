@@ -1,6 +1,6 @@
 # Phase 01 — Exact scope/evidence và boundary design trước port
 
-Status: **in-progress / partial; positive slice producer-blocked**. Priority: P1. Depends on: phase00 (verified). [Boundary design](./references/phase01-boundary-design.md), [support register](./references/phase01-support-manifest.json), [retry/exposure inventory](./references/phase01-retry-inventory.md), [management/identity comparison](./references/phase01-management-closure.md), [static source manifest](./references/phase01-static-manifest.json) record bounded progress. No step below marked complete merely from a partial route/body review; full transitive closure/protocol admission/selectors remain open. No runtime port or tests executed.
+Status: **in-progress / partial; positive slice producer-blocked**. Priority: P1. Depends on: phase00 (verified). [Boundary design](./references/phase01-boundary-design.md), [support register](./references/phase01-support-manifest.json), [retry/exposure inventory](./references/phase01-retry-inventory.md), [management/identity comparison](./references/phase01-management-closure.md), [session/rotation protocol](./references/phase01-session-and-rotation-protocol.md), [persistence dependency register](./references/phase01-persistence-admission.json), [static source manifest](./references/phase01-static-manifest.json) record bounded progress. No step below marked complete merely from a partial route/body review; full transitive closure/protocol admission/selectors remain open. No runtime port or tests executed.
 
 ## Inputs và files
 
@@ -23,6 +23,10 @@ Status: **in-progress / partial; positive slice producer-blocked**. Priority: P1
 - [ ] Inventory **every retry/replay**: Base HTTP/network/URL fallback, Codex SSE peek/retry, core refresh, app account/model fallback, upstream fresh-socket implicit replay, redirects/TLS fallback/proxy direct fallback and adapter-owned HTTP stacks. For each: exposure possibility, predecessor evidence/finality, own terminal ACK, fresh budget/identity/intent, actual POST counter. Ambiguous-delivery replay is not “free transport retry”; no hidden second POST on one consumed permission.
 - [ ] Reconcile M Claude header mutation/background CLI version fetch with immutable effective wire; price/counter proof and final destination are actual provider/auth/model, not only client model name. Budget selected transport cannot accept insecure TLS fallback/redirect/proxy escape. Ordinary feature changes require separate compatibility record.
 - [ ] File-by-file admission record per candidate closure: requirements, M vs D/T/U hash, port/adapt/new comparison, direct/transitive imports, migrations and ordinary impact, tests. Selective pure helpers first; no whole donor service/core restore to make imports resolve. Sidecar/degraded simplification only with guarantee disposition + migration plan.
+
+## Current bounded decision
+
+Generic server-derived `dashboard-session` actor selected; no claim of per-person/session identity or immediate logout revocation. Strict authenticated===true check remains a new guard requirement. Donor sidecar retiredBindings cannot represent revoked fingerprints for an active stable ID. Rotation design requires durable reader/writer fencing, operation/version history, own publication ACK and exclusive recovery; per-key/global fence and coherent restore/rollback detection remain unresolved. The linked dependency register orders static review only: zero nodes admitted for runtime, proposed test labels not executable selectors. **Runtime rotation blocked; phase01 exit not met.**
 
 ## Design validation / exit
 

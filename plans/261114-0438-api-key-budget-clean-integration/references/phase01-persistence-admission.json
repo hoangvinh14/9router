@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "kind": "design-dependency-register-not-executable-admission",
+  "masterPin": "1855aa44473e88feac9d3f131b9c0c5fc9706b68",
+  "donorPin": "7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2",
+  "runtimePortAllowed": false,
+  "phase01Complete": false,
+  "semantics": "Dependencies order design review; runtime import cycles require a single coherent initialization composition. File lists are exact known candidates, not closed import graphs. Newly proposed paths have no donor body. No node admitted; tests are proposed labels only.",
+  "nodes": [
+    {
+      "id": "ownership", "dependsOn": [],
+      "files": ["src/lib/db/writerOwnership.js", "src/lib/db/durableFile.js"],
+      "review": "P whole bodies reviewed in prior increment",
+      "disposition": "retain invariants; selective port candidate",
+      "remaining": "M paths and all file writers/factory callers, platform sensitivity and exact no-host sandbox tests; do not release owner after uncertain close/publication",
+      "tests": ["D-ACK-01", "R-OWNER-01"]
+    },
+    {
+      "id": "payload", "dependsOn": [],
+      "files": ["src/lib/accounting/attempt-payload.js"],
+      "review": "known imports only; fresh full closure pending",
+      "disposition": "not admitted",
+      "remaining": "canonical immutable bounded data/error dependency and exact schema/counter semantics",
+      "tests": ["R-CAS-01", "D-ACK-01"]
+    },
+    {
+      "id": "schema", "dependsOn": ["payload"],
+      "files": ["src/lib/db/schema.js", "src/lib/db/migrations/002-accounting-foundation.js", "src/lib/db/migrations/003-api-key-access.js", "src/lib/db/migrations/004-recorded-spend.js", "src/lib/db/helpers/accounting-policy.js"],
+      "review": "P schema selected accounting/key table block only; migrations002/004 whole bodies; 003 and policy helper extracted not reviewed",
+      "disposition": "targeted M additive migration design needed; no blind donor numbering restore",
+      "remaining": "master migration chain ordering, non-accounting schema preservation, schema/SQL verification, active-ID revoked fingerprints and version/op journal absent",
+      "tests": ["D-ACK-01", "R-RESTORE-01"]
+    },
+    {
+      "id": "coverage", "dependsOn": ["ownership", "payload", "schema"],
+      "files": ["src/lib/db/accounting-coverage.js"],
+      "review": "P whole body read",
+      "disposition": "retain D05 sidecar; not rotation-ready",
+      "remaining": "receipt/capacity and maintenance/reconcile consumers; new fingerprint history cannot reuse retiredBindings; no demonstrated universal rollback root",
+      "tests": ["R-CUT-01..05", "R-RESTORE-01", "R-CAP-01"]
+    },
+    {
+      "id": "persisted-authority", "dependsOn": ["ownership", "payload", "schema", "coverage"],
+      "files": ["src/lib/db/persisted-accounting-authority.js", "src/lib/accounting/persisted-request-authority.js"],
+      "review": "P persisted-accounting-authority whole body; persisted-request-authority pending",
+      "disposition": "retain fresh persisted proof; do not inherit donor degraded dispatch permission under D03",
+      "remaining": "all digest fields/callers against M configuration, read-only factory assumptions, rotation version/fence included in authority; unavailable is never zero",
+      "tests": ["D-ACK-01", "R-OWNER-01", "R-RESTORE-01"]
+    },
+    {
+      "id": "native-durability", "dependsOn": ["ownership", "persisted-authority"],
+      "files": ["src/lib/db/adapters/nativeDurability.js", "src/lib/db/adapters/nativeAdapter.js"],
+      "review": "P whole bodies read; exact M bodies comparison pending",
+      "disposition": "targeted durableTransaction/health/close candidate",
+      "remaining": "no nested durable ACK, WAL/FULL verification, uncertain release and factory cleanup; backup capability and ordinary transaction compatibility",
+      "tests": ["D-ACK-01", "R-OWNER-01"]
+    },
+    {
+      "id": "sqljs", "dependsOn": ["ownership", "persisted-authority"],
+      "files": ["src/lib/db/adapters/sqljsAdapter.js"],
+      "review": "P whole body read; exact M body comparison pending",
+      "disposition": "preserve existing adapter family, targeted poison/atomic export/health candidate",
+      "remaining": "deferred ordinary writes vs exact accounting own ACK, no poisoned RAM export, flush/signal/backup close safety, read-only persisted image facts",
+      "tests": ["D-ACK-01", "R-CUT-01..05"]
+    },
+    {
+      "id": "factories", "dependsOn": ["native-durability", "sqljs", "coverage"],
+      "files": ["src/lib/db/engineAcquisition.js", "src/lib/db/adapters/nodeSqliteAdapter.js", "src/lib/db/adapters/betterSqliteAdapter.js", "src/lib/db/adapters/bunSqliteAdapter.js"],
+      "review": "P engineAcquisition whole body; node factory extracted only; better/Bun factories pending",
+      "disposition": "narrow unavailable-before-open fallback only",
+      "remaining": "whole factories and all backend failure/close paths, runtime/platform matrix. No broad catch-and-fallback after app-data engine open",
+      "tests": ["D-ACK-01", "R-OWNER-01"]
+    },
+    {
+      "id": "bindings-ledger", "dependsOn": ["schema", "coverage", "payload"],
+      "files": ["src/lib/db/helpers/api-key-bindings.js", "src/lib/db/repos/api-key-accounting-repo.js"],
+      "review": "P whole bodies read in previous increment",
+      "disposition": "original identity/attempt invariants retained; exact selective hunks pending",
+      "remaining": "schema/fence integration, original price/window terminal association, late evidence and retained retired IDs, no active-ID rotation by existing retire helper",
+      "tests": ["R-LATE-01", "R-CAS-01", "R-RESTORE-01"]
+    },
+    {
+      "id": "coordinator", "dependsOn": ["payload", "ownership", "bindings-ledger"],
+      "files": ["src/lib/accounting/write-coordinator.js"],
+      "review": "P whole body read",
+      "disposition": "single adapter command owner; no parallel writer service",
+      "remaining": "apply callback ownership/caller closure and group own ACK, recovery/rotation commands serialization, stop/final lifecycle vs live requests; no row-as-ACK",
+      "tests": ["D-ACK-01", "R-CAS-01", "R-LATE-01"]
+    },
+    {
+      "id": "lifecycle", "dependsOn": ["factories", "bindings-ledger", "coordinator", "persisted-authority"],
+      "files": ["src/lib/db/accounting-lifecycle.js", "src/lib/db/driver.js", "src/lib/db/migrate.js", "src/lib/db/index.js"],
+      "review": "P lifecycle/driver whole bodies; M driver/index whole bodies; migration orchestration pending",
+      "disposition": "selective initialization composition; whole driver restore rejected",
+      "remaining": "startup before publication, exact same adapter object, HMR/failed init lease, health, backcompat import entry, zero implicit app execution while design only",
+      "tests": ["D-ACK-01", "R-OWNER-01", "R-CUT-01..05"]
+    },
+    {
+      "id": "strict-management", "dependsOn": [],
+      "files": ["src/lib/auth/dashboardSession.js", "src/lib/auth/managementGuard.js", "custom-server.js"],
+      "review": "M session/wrapper and P guard bodies reviewed (P wrapper selected block only); login/status/logout/OIDC/SAML caller bodies reviewed",
+      "disposition": "generic dashboard-session actor; new strict route guard and selected normalization provenance hunks only",
+      "remaining": "session helper algorithm/version compatibility, exact canonical Origin/authority/direct-Next/proxy handling and no CLI/inference-key bypass; full donor guard has forbidden requireLogin=false bypass",
+      "tests": ["S-AUTH-01", "S-AUTH-02", "S-CSRF-01"]
+    },
+    {
+      "id": "rotation-protocol", "dependsOn": ["coverage", "bindings-ledger", "coordinator", "lifecycle", "strict-management"],
+      "files": [],
+      "review": "new protocol only; no donor equivalent",
+      "disposition": "blocked; no invented shipping endpoint/path",
+      "remaining": "durable fence scope, op journal/version/revoked fingerprint representation, reader/writer enforcement, recovery/rollback rules and no-secret replay; proposed state machine not proof",
+      "tests": ["R-CAS-01", "R-CUT-01..05", "R-OWNER-01", "R-LATE-01", "R-RESTORE-01", "R-CAP-01", "R-DELIVERY-01"]
+    },
+    {
+      "id": "key-consumers", "dependsOn": ["rotation-protocol", "strict-management"],
+      "files": ["src/lib/db/repos/apiKeysRepo.js", "src/lib/db/backup.js", "src/app/api/keys/[id]/route.js", "src/app/api/settings/database/route.js", "src/sse/services/keyAccess.js"],
+      "review": "M bodies reviewed previously; other import/export/legacy migration consumers in management closure still need exact caller/selector mapping",
+      "disposition": "not closed by this subset; use existing management-closure inventory",
+      "remaining": "every CRUD/import/export/file restore/backup and ingress/final-dispatch enforcement; original existing ordinary key behavior; late terminal sink not new admission",
+      "tests": ["R-RESTORE-01", "R-OWNER-01", "R-LATE-01", "S-CSRF-01"]
+    },
+    {
+      "id": "safe-execution", "dependsOn": ["key-consumers"],
+      "files": [],
+      "review": "no admitted exact runtime runner/command/test body manifest",
+      "disposition": "blocked A1; static JSON/link/Git parity validation only",
+      "remaining": "review test sources/transitive imports and runner fail-closed sandbox, commands/selectors/platform matrix; no host fallback or live endpoints",
+      "tests": ["D-ACK-01"]
+    }
+  ],
+  "admittedRuntimeNodes": [],
+  "testsExecuted": [],
+  "producerEligibilityChanged": false,
+  "unresolvedPolicy": ["D05 replacement not approved; retain mechanism", "D06 transport disposition pending", "D04 exact rotation fencing/recovery/restore protocol not demonstrated"],
+  "security": "No private JWT/config/key/DB payload read. Source and documentation only. No auth claim certification or coordinated-all-artifact rollback guarantee. Unknown/uncertain ACK fails closed; D03 includes unlimited accounting-controlled keys."
+}
