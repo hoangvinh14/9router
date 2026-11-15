@@ -1,6 +1,6 @@
 # Phase00 — execution record (continuation)
 
-Status: **transition verified; documentation baseline finalization below**. This record supersedes planning-only A0 statements for this continuation, not producer/policy/runtime gates.
+Status: **completed — local baseline commit verified**. This record supersedes planning-only A0 statements for this continuation, not producer/policy/runtime gates.
 
 ## Authority and dispositions
 
@@ -35,4 +35,4 @@ Failed earlier attempts remain diagnostic history: timeout, uncoordinated Codex,
 
 ## Exit and limitations
 
-Phase00 completion is pending the documentation/archival-tooling commit and exact staged/committed diff verification recorded externally. Runtime tracked source must remain byte/mode-identical to pin; source/test/build not executed. Next is phase01 independent static design. P1–P4, D05/D06 where relevant, sandbox A1 exact runner/command gate, historical required timing/sensitivity/platform gates and all feature acceptance remain open. No finite budget save or production activation is enabled by this transition.
+Phase00 completed with local commit **`5b1fc863adac5227b6b77ad93a29c5d68cfa3835`**, parent master pin. External `integration-execution-resume-4/docs-commit.json` records exact 26 committed paths, content/mode parity, protected refs and tracked/index clean. Status reconciliation here follows that verified commit rather than claiming completion prospectively. Runtime tracked source must remain byte/mode-identical to pin; source/test/build not executed. Next is phase01 independent static design. P1–P4, D05/D06 where relevant, sandbox A1 exact runner/command gate, historical required timing/sensitivity/platform gates and all feature acceptance remain open. No finite budget save or production activation is enabled by this transition.

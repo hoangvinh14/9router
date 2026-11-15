@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "kind": "design-only-eligibility-register-not-dispatch-allowlist",
+  "masterPin": "1855aa44473e88feac9d3f131b9c0c5fc9706b68",
+  "preservationDonor": "7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2",
+  "selectedFirstCell": null,
+  "producerEligibleCount": 0,
+  "producerEvidenceReview": "No new named producer evidence supplied; reuse recorded blockers, no repeated research/live acquisition.",
+  "cells": [
+    {
+      "id": "C0",
+      "status": "blocked",
+      "reason": "No exact Codex or Claude cell meets P1-P4; positive first slice cannot be selected from fixtures.",
+      "model": null,
+      "tests": "No runtime selectors admitted"
+    },
+    {
+      "id": "C1",
+      "provider": "codex",
+      "alias": "cx",
+      "auth": "OAuth subscription standard HTTP Responses SSE",
+      "status": "blocked",
+      "targetIngress": ["/v1/responses", "/v1/chat/completions", "required Messages-to-Codex ingress"],
+      "targetOutputs": ["client SSE", "JSON from forced SSE"],
+      "retainedComposition": ["text", "standard reasoning/public summary", "client function definitions/calls/results", "encrypted continuation"],
+      "modelRows": [
+        {"model": "gpt-6-astra", "status": "blocked", "gates": ["P1", "P2", "P3", "exact applicable tariff validation"]},
+        {"model": "gpt-5.6-sol", "status": "blocked", "gates": ["P1", "P2", "P3", "exact applicable tariff validation"]},
+        {"model": "gpt-5.6-terra", "status": "blocked", "verificationRole": "historical representative only, not eligibility", "gates": ["P1", "P2", "P3", "exact applicable tariff validation"]},
+        {"model": "gpt-5.6-luna", "status": "blocked", "verificationRole": "historical representative only, not eligibility", "gates": ["P1", "P2", "P3", "exact applicable tariff validation"]},
+        {"model": "gpt-daybreak-blue-latest", "status": "blocked", "gates": ["P1", "P2", "P3", "P4"]},
+        {"model": "gpt-reserve", "status": "blocked", "gates": ["P1", "P2", "P3", "P4"]}
+      ],
+      "wireProfileVersion": null,
+      "usageAuthority": null,
+      "failureFinalityAuthority": null,
+      "originalPriceAuthority": null,
+      "dispatchTests": "not admitted or executed"
+    },
+    {
+      "id": "C2",
+      "provider": "anthropic",
+      "auth": "Anthropic API key",
+      "status": "blocked",
+      "targetIngress": ["/v1/messages", "required Chat/Responses conversions"],
+      "targetOutputs": ["native Messages JSON", "native Messages SSE"],
+      "retainedComposition": ["text", "client functions/results", "thinking/history"],
+      "modelRows": [],
+      "exactModelManifestStatus": "incomplete; do not invent or substitute IDs",
+      "gates": ["P1 exact counter/cache-tier/null semantics", "P2 auth/profile-specific error/finality", "P3 exact models/continuation/effective headers", "exact applicable tariff authority"],
+      "usageAuthority": null,
+      "dispatchTests": "not admitted or executed"
+    },
+    {
+      "id": "C3",
+      "provider": "claude",
+      "alias": "cc",
+      "auth": "subscription OAuth access-token identity",
+      "status": "blocked",
+      "targetIngress": ["/v1/messages", "required conversions"],
+      "targetOutputs": ["native Messages JSON", "native Messages SSE"],
+      "retainedComposition": ["text", "client functions/results", "thinking/history", "session/cloaking/beta/header transformations", "refresh"],
+      "modelRows": [],
+      "exactModelManifestStatus": "incomplete; API-key docs do not prove OAuth semantics",
+      "gates": ["P1", "P2", "P3", "exact applicable reference tariff authority"],
+      "usageAuthority": null,
+      "dispatchTests": "not admitted or executed"
+    },
+    {"id": "C4", "status": "blocked", "scope": "positive refresh/HTTP retry/owned SSE retry/account fallback within accepted C1-C3 class", "gates": ["accepted predecessor evidence/finality", "own durable terminal ACK", "fresh identity/budget/price/intent own ACK", "all actual POST/replay ownership"], "eligibleTransitions": []},
+    {"id": "C5", "status": "design-refuse-not-implemented", "scope": "unsupported graphs/compositions/premiums/hosted tools/media", "oracle": "entire request 0 inference/helper POST and 0 debit before classifier/prefetch; ordinary preserved", "tests": "not admitted/executed"},
+    {"id": "C6", "status": "design-refuse-not-implemented", "scope": "other billable routes and alternate aliases including native Gemini bypass", "oracle": "0 inference POST and 0 debit", "tests": "not admitted/executed"},
+    {"id": "C7", "status": "classification-partial", "localControlCandidates": ["messages/count_tokens local estimate", "models/info registry lookup", "v1beta models local registry list", "OPTIONS"], "notSafeLocalExemptions": ["models dynamic live resolver/credential refresh", "audio voices self-fetch/service", "video job polling"], "importAuthAclClosure": "open", "tests": "not admitted/executed"}
+  ],
+  "requiredBeforeExecutableManifest": [
+    "Exact canonical/logical/wire/reference model identities, auth and profile version per positive row",
+    "Allowed structured fields and encrypted continuation fidelity",
+    "Effective headers/URL/transport plus all retry/replay paths",
+    "Counter/category inclusion, missing/null/zero and reported versus estimated provenance",
+    "Exact immutable reference tariff categories/units/manual precedence",
+    "Success/failure/late finality cutoff and original-window settlement",
+    "Exact dispatch/route/test selectors with safe sandbox authority"
+  ],
+  "policyGates": {"D01-D04": "approved; implementation protocols not accepted", "D05": "retain sidecar/invariants unless separately approved equivalent", "D06": "pending transport scope/guarantee disposition", "A1": "exact sandbox runner and commands not admitted"},
+  "warnings": ["Refusal is safety, not delivered native support", "No wildcard model eligibility", "No catalog refresh auto-enrollment", "No host activation or finite-save readiness implied"]
+}

@@ -27,7 +27,9 @@ Nguồn quyết định là [brainstorm contract B01–B08, đặc biệt §8](.
 - Vertical milestone đầu: management save budget → supported Claude/Codex inference qua pipeline thật hiện có → debit đúng original key/attempt/price/window một lần → request sau chạm ngưỡng có **0 upstream inference POST**. Mốc đầu không thay thế target đầy đủ.
 - Mọi route/composition budget key còn dùng được phải accounted hoặc bị refuse trước POST; không rơi xuống ordinary inference khi thiếu association/parser/price/storage.
 
-## 2. Baseline đã kiểm tra (static, local)
+## 2. Historical planning baseline (static, local)
+
+Current continuation: master remote fetched successfully at unchanged pin; branch transition and docs/tooling baseline commit verified. Historical table below is not current HEAD/status; see fresh baseline and phase00 execution record.
 
 | Đối tượng | Kết quả 2026-11-14 |
 |---|---|
@@ -48,8 +50,8 @@ Một writer trong checkout. Thực hiện tuần tự; không runtime parallel 
 
 | Phase | Nội dung / exit gate | Phụ thuộc | Trạng thái |
 |---|---|---|---|
-| [00 — preservation & switch](./phase-00-preserve-and-switch.md) | Reviewed preservation + owner no-backup disposition cho exclusions; collision/service preflight, pin master và normal clean switch | Owner continuation authority | transition verified; documentation/tooling commit finalization pending |
-| [01 — support & boundary design](./phase-01-scope-and-boundaries.md) | Exact cells/evidence, policy decisions, identity/durability/ACK/no-bypass design, per-slice admission | 00 | pending |
+| [00 — preservation & switch](./phase-00-preserve-and-switch.md) | Reviewed preservation + owner no-backup disposition cho exclusions; collision/service preflight, pin master và normal clean switch | Owner continuation authority | completed; local baseline commit `5b1fc863adac5227b6b77ad93a29c5d68cfa3835` verified |
+| [01 — support & boundary design](./phase-01-scope-and-boundaries.md) | Exact cells/evidence, policy decisions, identity/durability/ACK/no-bypass design, per-slice admission | 00 | in-progress / partial; [boundary design](./references/phase01-boundary-design.md), no eligible cell |
 | [02 — first real vertical slice](./phase-02-first-vertical-slice.md) | API/UI → shipping ingress → actual native dummy TLS POST → durable exact debit → next **0 POST** | 01; evidence/policy cho selected cell | pending / producer-gated |
 | [03 — retained native compatibility](./phase-03-native-retry-and-compatibility.md) | Codex + Anthropic API-key + Claude OAuth, retained ingress/history/functions, retry/refresh/fallback | 02; applicable producer gates | pending |
 | [04 — identity, faults & migrations](./phase-04-integrity-and-migration.md) | Cross-key/concurrency/restart/window, fault injection, old donor schema/retention/platform validation | 03 | pending |

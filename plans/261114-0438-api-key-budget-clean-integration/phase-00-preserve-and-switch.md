@@ -1,6 +1,6 @@
 # Phase 00 — Bảo toàn WIP, pin baseline, clean switch cùng checkout
 
-Status: **transition verified; documentation/tooling baseline commit finalization pending**. Priority: P1. Owner continuation authority supersedes original planning-only status. [Execution record](./references/phase00-execution.md) is current evidence; checklists below remain original runbook, not independent proof. No runtime file edits. Excluded material now has owner no-backup/retain-in-place disposition, not deletion authority or a secure-backup claim.
+Status: **completed — verified local documentation/tooling baseline commit `5b1fc863adac5227b6b77ad93a29c5d68cfa3835`**. Priority: P1. Owner continuation authority supersedes original planning-only status. [Execution record](./references/phase00-execution.md) is current evidence; checklists below remain original runbook, not independent proof. No runtime file edits. Excluded material now has owner no-backup/retain-in-place disposition, not deletion authority or a secure-backup claim.
 
 ## Outcome
 

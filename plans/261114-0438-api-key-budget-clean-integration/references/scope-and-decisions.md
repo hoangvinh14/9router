@@ -44,13 +44,13 @@ Mỗi manifest row gồm: canonical client/logical/reference/wire model identiti
 
 ## Decision register
 
-Không hỏi lại settled §8. **Validation Session 1 (2026-11-14): D01–D04 approved như bên dưới; A0/A1, D05/D06 và P1–P4 vẫn pending.** Policy approval không đồng nghĩa protocol implementation, evidence sufficiency hay quyền live/commit/production.
+Không hỏi lại settled §8. **Current continuation:** A0 completed per [phase00 record](./phase00-execution.md); D01–D04 approved Session 1, implementation protocols still gated; D05/D06 và P1–P4 unchanged. Owner automatic continuation covers approved offline/static plan work; A1 exact sandbox runner/commands still must be reviewed/admitted before runtime execution. No live/production authority. [Phase01 partial design](./phase01-boundary-design.md) proposes protocols without declaring them implemented or accepted.
 
 <!-- Updated: Validation Session 1 - approved policy/lifecycle changes; conditional gates remain -->
 
 | ID / owner | Decision / status | Blocking scope / cần output |
 |---|---|---|
-| A0 / owner | Preservation branch+reviewed commit, pinned-master clean switch; no stash mặc định | Phase00: exact allowlist, branch names, secure external recovery path, artifact disposition, Git hooks/filters/services/fetch approval |
+| A0 / owner | **COMPLETED continuation:** reviewed preservation + owner no-backup disposition exclusions, exact master fetch and normal integration switch, docs/tooling commit `5b1fc863…` | External receipts and [phase00 execution](./phase00-execution.md); no service stop/private backup/deletion implied |
 | D01 / owner + implementer | **APPROVED Session 1:** normal/error missing/malformed/contradictory usage → unresolved NULL + safe error/status, block affected key until authorized resolution; preserve known cost. Add minimal authenticated audited CAS admin recovery for unresolved | Phase01 designs bounded operation/actor/reason/evidence/idempotency/version contract; phase02 shipping API/UI recovery, phase04 faults. B1/E2 interrupted-no-evidence remains unrecorded/may-undercount, not zero claim, no required post-death recovery |
 | D02 / owner + implementer | **APPROVED Session 1:** unpriced/invalid tariff → deterministic pre-POST refusal; estimates separate, not exact authoritative debit | Phase01/02 exact producer counters+price evidence still required. No guessed source/zero defaults |
 | D03 / owner | **APPROVED Session 1:** recording/storage unhealthy → fail closed every accounting-controlled path including unlimited identified keys; no unauthorized successor; ordinary behavior preserved only if genuinely independent | Phase01/02 remove old dedicated unlimited continuation only through admitted dependency/migration change; retain health latch, durable known truth and own ACK safety |
@@ -58,7 +58,7 @@ Không hỏi lại settled §8. **Validation Session 1 (2026-11-14): D01–D04 a
 | D05 / owner nếu đổi guarantee | DB-centric sidecar replacement/selected config versions only after equivalent invariant proof | Phase01 dependency admission; migration/read/write/import/export/restore semantics, smaller alternative comparison. Không approval → retain existing invariant/mechanism or stop if closure cannot bound |
 | P1–P4 / producer evidence owner | No guessed counter-zero/model/profile/failure cutoff/tariff | Phase01 exact evidence manifest; selected positive support/retry phases blocked nếu thiếu. New named source/version/claim needed, not repeat broad audit |
 | D06 / owner | Initial direct secure transport, strict saved HTTP CONNECT follow-up; refuse unproven proxy/env/relay/SOCKS/premiums on budget paths | Không thay ordinary transport; retained intended support cells outside initial set remain pending, require disposition before whole-target completion |
-| A1 / owner | Offline implementation/tests only after explicit execution approval; production rollout/live inference separate | Future phases require sandbox runner/commands allowlist. This plan turn runs no runtime/tests or real refresh, deployment/push |
+| A1 / owner + implementer | Owner permits automatic approved-plan continuation; runtime/test execution remains conditional on exact sandbox/code/command admission; production rollout/live inference separate | No runtime imports/tests/build executed in continuation. Review fail-closed isolation and exact selectors before any launch; no host fallback, real refresh, deployment/push |
 
 ## Failure/accounting outcome distinctions (D01–D04 approved Session 1; detailed protocol pending)
 

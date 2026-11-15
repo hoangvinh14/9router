@@ -1,6 +1,6 @@
 # Phase 01 — Exact scope/evidence và boundary design trước port
 
-Status: pending. Priority: P1. Depends on: phase00. Outcome: bounded design/admission records để thực thi slice đầu, không giả định production eligibility.
+Status: **in-progress / partial; positive slice producer-blocked**. Priority: P1. Depends on: phase00 (verified). [Boundary design](./references/phase01-boundary-design.md), [support register](./references/phase01-support-manifest.json), [retry/exposure inventory](./references/phase01-retry-inventory.md), [static source manifest](./references/phase01-static-manifest.json) record bounded progress. No step below marked complete merely from a partial route/body review; full transitive closure/protocol admission/selectors remain open. No runtime port or tests executed.
 
 ## Inputs và files
 
