@@ -1,0 +1,1126 @@
+{
+  "schema": 1,
+  "scope": "Selected active decision documents; local inline/reference/HTML-link extraction plus explicit authority review, not universal Markdown parser/full historical closure.",
+  "preservation_sha": "7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2",
+  "selected_paths": [
+    "plans/261018-0213-api-key-budget-roadmap/references/codex-claude-milestone.md",
+    "plans/261018-0213-api-key-budget-roadmap/references/m1-decisions.md",
+    "plans/261018-0213-api-key-budget-roadmap/references/m1-selected-path-inventory.md",
+    "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+    "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+    "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+    "plans/261101-0716-m1-codex-standard-accounting/references/e2-accepted-limitation.md",
+    "plans/261113-1952-api-key-budget-scope-audit/plan.md",
+    "plans/261113-1952-api-key-budget-scope-audit/references/audit-report.md",
+    "plans/261113-1952-api-key-budget-scope-audit/references/brainstorm-contract.md",
+    "plans/261113-1952-api-key-budget-scope-audit/references/branch-handoff.md",
+    "plans/261113-1952-api-key-budget-scope-audit/references/validate-documents.py",
+    "plans/261114-0438-api-key-budget-clean-integration/phase-00-preserve-and-switch.md",
+    "plans/261114-0438-api-key-budget-clean-integration/phase-01-scope-and-boundaries.md",
+    "plans/261114-0438-api-key-budget-clean-integration/phase-02-first-vertical-slice.md",
+    "plans/261114-0438-api-key-budget-clean-integration/phase-03-native-retry-and-compatibility.md",
+    "plans/261114-0438-api-key-budget-clean-integration/phase-04-integrity-and-migration.md",
+    "plans/261114-0438-api-key-budget-clean-integration/phase-05-acceptance-and-handoff.md",
+    "plans/261114-0438-api-key-budget-clean-integration/plan.md",
+    "plans/261114-0438-api-key-budget-clean-integration/references/baseline-and-admission.md",
+    "plans/261114-0438-api-key-budget-clean-integration/references/plan-validation.md",
+    "plans/261114-0438-api-key-budget-clean-integration/references/scope-and-decisions.md",
+    "plans/261114-0438-api-key-budget-clean-integration/references/validation-session-1-evidence.md"
+  ],
+  "omitted_references": [
+    {
+      "from": "plans/261018-0213-api-key-budget-roadmap/references/codex-claude-milestone.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/codex-standard-contract.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/codex-standard-contract.md"
+    },
+    {
+      "from": "plans/261018-0213-api-key-budget-roadmap/references/m1-decisions.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/g0-experiment-protocol.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/g0-experiment-protocol.md"
+    },
+    {
+      "from": "plans/261018-0213-api-key-budget-roadmap/references/m1-selected-path-inventory.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/codex-standard-contract.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/codex-standard-contract.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/context-restart-handoff.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/context-restart-handoff.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/plan-before-completion-replan.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/plan-before-completion-replan.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/remaining-items-owner-review.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/remaining-items-owner-review.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/plan-before-completion-replan.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/plan-before-completion-replan.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e1-e2-e5-design-audit.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/e1-e2-e5-design-audit.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261018-0213-budget-release-acceptance/plan.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261018-0213-budget-release-acceptance/plan.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-claude-http-errors/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-intermediate-model/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-composition-bca65adad/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-b02-observer-bc2a48d3e/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e0-case-inventory.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/e0-case-inventory.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e0-suite-manifest.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-01/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-02-03/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-06/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-06-residual/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-06-pool-diagnostic/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-04/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-05/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-08/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-08-threshold/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-10/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-claude/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-claude-repair/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-claude-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-09/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-09-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-compact/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-compact-repair/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-native-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-sensitivity/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-compact-refresh/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-overlap/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-overlap-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/codex-invocation-review.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/codex-invocation-review.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e1-e2-e5-design-audit.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/e1-e2-e5-design-audit.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-08-late-evidence/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e3-08-late-evidence-trace.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-09-json-partial/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e3-09-json-partial-trace.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/remaining-delivery-gates.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/remaining-delivery-gates.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/remaining-items-owner-review.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/remaining-items-owner-review.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e2-surviving-source-proposal.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/e2-surviving-source-proposal.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e2-proposal-validation.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/phase-01-authority-and-admission.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/phase-01-authority-and-admission.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/phase-02-raw-lifecycle.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/phase-02-raw-lifecycle.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/plan.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/phase-03-acceptance.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/phase-03-acceptance.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/remaining-items-owner-review.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/remaining-items-owner-review.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e0-case-inventory.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/e0-case-inventory.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e0-suite-manifest.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-01/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e1-e2-e5-design-audit.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/e1-e2-e5-design-audit.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-02-03/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-06/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-06-residual/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-06-pool-diagnostic/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-04/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-05/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-08/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-08-threshold/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-10/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-claude/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-claude-repair/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-claude-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-09/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-09-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-compact/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-compact-repair/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-native-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-sensitivity/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-compact-refresh/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-overlap/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-overlap-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/codex-invocation-review.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/codex-invocation-review.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-08-late-evidence/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e3-08-late-evidence-trace.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-09-json-partial/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e3-09-json-partial-trace.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/remaining-delivery-gates.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/remaining-delivery-gates.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e2-surviving-source-proposal.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/e2-surviving-source-proposal.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e2-proposal-validation.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/completion-replan-validation.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/completion-replan-validation.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/claude-http-error-contract.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/claude-http-error-contract.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-claude-http-errors/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-intermediate-model/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-1794160658/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-red-1794163077/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-claude-1794167333/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-1794163810/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-composition-red-b6be51083/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/acceptance-evidence.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-composition-bca65adad/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e0-case-inventory.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/e0-case-inventory.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e0-suite-manifest.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e1-e2-e5-design-audit.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/e1-e2-e5-design-audit.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-02-03/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-06/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-06-residual/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-06-pool-diagnostic/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-04/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-05/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-08/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-08-threshold/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-10/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-claude/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-claude-repair/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-claude-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-09/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-09-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-compact/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-compact-repair/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-native-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-sensitivity/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-compact-refresh/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-overlap/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-07-codex-overlap-affected/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/codex-invocation-review.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/codex-invocation-review.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-composition-bca65adad/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-intermediate-model/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-claude-http-errors/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-claude-1794167333/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e2-surviving-source-proposal.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/e2-surviving-source-proposal.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e2-proposal-validation.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e3-08-late-evidence-trace.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-08-late-evidence/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e3-09-json-partial-trace.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-e3-09-json-partial/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/remaining-delivery-gates.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/remaining-delivery-gates.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-intermediate-model/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-red-1794163077/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/verification-composition-red-b6be51083/README.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/b02-public-source-review.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/b02-public-source-review.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/claude-http-error-contract.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/claude-http-error-contract.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261018-0213-budget-release-acceptance/plan.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261018-0213-budget-release-acceptance/plan.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/remaining-items-owner-review.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/remaining-items-owner-review.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/completion-worklist.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/completion-replan-validation.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/completion-replan-validation.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/e2-accepted-limitation.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/e2-surviving-source-proposal.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/e2-surviving-source-proposal.md"
+    },
+    {
+      "from": "plans/261101-0716-m1-codex-standard-accounting/references/e2-accepted-limitation.md",
+      "target": "plans/261101-0716-m1-codex-standard-accounting/references/remaining-items-owner-review.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/261101-0716-m1-codex-standard-accounting/references/remaining-items-owner-review.md"
+    },
+    {
+      "from": "plans/261113-1952-api-key-budget-scope-audit/plan.md",
+      "target": "plans/261113-1952-api-key-budget-scope-audit/references/validation.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261113-1952-api-key-budget-scope-audit/plan.md",
+      "target": "plans/journals/2026-11-13-api-key-budget-scope-audit.md",
+      "disposition": "preservation-reviewed-reference-only",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": "git show 7a4f3a3e43dc738d0406e6ab1658db02b8df7ff2:plans/journals/2026-11-13-api-key-budget-scope-audit.md"
+    },
+    {
+      "from": "plans/261113-1952-api-key-budget-scope-audit/references/audit-report.md",
+      "target": "plans/261113-1952-api-key-budget-scope-audit/references/source-baseline.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261113-1952-api-key-budget-scope-audit/references/audit-report.md",
+      "target": "plans/261113-1952-api-key-budget-scope-audit/references/inspected-evidence-index.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261113-1952-api-key-budget-scope-audit/references/audit-report.md",
+      "target": "plans/261113-1952-api-key-budget-scope-audit/references/validation.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261113-1952-api-key-budget-scope-audit/references/branch-handoff.md",
+      "target": "plans/261113-1952-api-key-budget-scope-audit/references/handoff-validation.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261114-0438-api-key-budget-clean-integration/phase-00-preserve-and-switch.md",
+      "target": "plans/261114-0438-api-key-budget-clean-integration/references/phase00-execution.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261114-0438-api-key-budget-clean-integration/plan.md",
+      "target": "plans/261114-0438-api-key-budget-clean-integration/references/phase00-execution.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261114-0438-api-key-budget-clean-integration/plan.md",
+      "target": "plans/261114-0438-api-key-budget-clean-integration/references/integration-baseline.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261114-0438-api-key-budget-clean-integration/plan.md",
+      "target": "plans/261114-0438-api-key-budget-clean-integration/references/integration-baseline.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261114-0438-api-key-budget-clean-integration/plan.md",
+      "target": "plans/261114-0438-api-key-budget-clean-integration/references/phase00-execution.md",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261114-0438-api-key-budget-clean-integration/plan.md",
+      "target": "plans/261114-0438-api-key-budget-clean-integration/references/archive-reference-map.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    },
+    {
+      "from": "plans/261114-0438-api-key-budget-clean-integration/references/plan-validation.md",
+      "target": "plans/261114-0438-api-key-budget-clean-integration/references/planning-baseline.json",
+      "disposition": "excluded-or-nonpreserved-unavailable",
+      "blocking": "Nonblocking only for phase00/docs/static boundary design. Any positive/acceptance claim depending on this evidence stays blocked.",
+      "recovery": null
+    }
+  ],
+  "historical_validator": "Archival only; no run authorized. Original baseline/receipts unreviewed/unrestored on integration.",
+  "excluded_baseline": "planning-baseline.json retained outside preservation, unread; fresh integration-baseline.json used instead."
+}
