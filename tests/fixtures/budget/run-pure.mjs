@@ -1,11 +1,12 @@
-// Fixed Linux-only pure-helper test lane. No app imports on the host.
+// Fixed Linux budget helper + existing SQLite fixture lane; legacy filename.
+// No application imports on the host; no production driver/startup in child.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 if (process.platform !== 'linux' || process.version !== 'v24.21.0' || process.argv.length !== 2) {
-  throw new Error('Budget pure lane requires Linux, Node v24.21.0 and no arguments');
+  throw new Error('Budget fixture lane requires Linux, Node v24.21.0 and no arguments');
 }
 if (process.env.NODE_OPTIONS || process.env.NODE_PATH) throw new Error('Start launcher with a clean environment');
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -13,6 +14,8 @@ const files = [
   'src/lib/accounting/exact-money.js', 'src/lib/accounting/budget-windows.js',
   'src/lib/accounting/attempt-payload.js', 'src/lib/pricing/decimalMoney.js',
   'src/lib/pricing/constants.js', 'tests/unit/budget-pure.test.mjs',
+  'src/lib/db/adapters/nodeSqliteAdapter.js', 'src/lib/db/schema.js',
+  'tests/unit/budget-storage.test.mjs',
 ];
 const args = ['--unshare-all', '--die-with-parent', '--new-session',
   '--ro-bind', '/usr', '/usr', '--symlink', 'usr/bin', '/bin',
@@ -30,7 +33,8 @@ args.push('--ro-bind', fs.realpathSync(process.execPath), '/runtime/node',
   '--proc', '/proc', '--dev', '/dev', '--tmpfs', '/tmp', '--tmpfs', '/sandbox');
 for (const name of ['home', 'data', 'config', 'cache', 'tmp']) args.push('--dir', `/sandbox/${name}`);
 args.push('--chdir', '/app', '--remount-ro', '/', '--',
-  '/runtime/node', '--test', '--test-isolation=none', '/app/tests/unit/budget-pure.test.mjs');
+  '/runtime/node', '--test', '--test-isolation=none',
+  '/app/tests/unit/budget-pure.test.mjs', '/app/tests/unit/budget-storage.test.mjs');
 const env = {
   PATH: '/runtime:/usr/bin:/bin', HOME: '/sandbox/home', DATA_DIR: '/sandbox/data',
   XDG_CONFIG_HOME: '/sandbox/config', XDG_DATA_HOME: '/sandbox/data', XDG_CACHE_HOME: '/sandbox/cache',
@@ -41,7 +45,7 @@ const env = {
 // /usr and system libraries are read-only runtime exposure, not file-only isolation.
 const result = spawnSync('/usr/bin/bwrap', args, { env, stdio: 'inherit', timeout: 60000 });
 if (result.error || result.signal || result.status !== 0) {
-  console.error('Budget pure sandbox failed; no host fallback', JSON.stringify({
+  console.error('Budget fixture sandbox failed; no host fallback', JSON.stringify({
     status: result.status, signal: result.signal, error: result.error?.code ?? null,
   }));
   process.exitCode = 1;
