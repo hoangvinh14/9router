@@ -183,6 +183,31 @@
       "sha256": "e4230784b5f13a20a6393923d50891bdff20bd7e219b99fb657053a8d1d34f78",
       "review": "single-model account loop lines270-end; transitive closure not implied",
       "equalsPinnedGitBlob": true
+    },
+    "src/lib/auth/dashboardSession.js": {
+      "sha256": "65624323a82cec8034ffcf0a12be1197fe7f7a1b75a42e20dd76ac82621882c2",
+      "review": "whole body read; import-time jwt-secret effects only statically observed; transitive admission not implied",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/auth/trustedPeer.js": {
+      "sha256": "7ba0e26cd839f76fa7c0df2346033b90eb3059a25d3212e092e3931f31935b08",
+      "review": "whole body read; transitive admission not implied",
+      "equalsPinnedGitBlob": true
+    },
+    "src/app/api/settings/database/route.js": {
+      "sha256": "a92f56e353f90ad78fbec169d91b817960ffcf3e15476ba0e5dad564ebac0631",
+      "review": "whole body read; middleware auth dependency not runtime verified; transitive admission not implied",
+      "equalsPinnedGitBlob": true
+    },
+    "custom-server.js": {
+      "sha256": "c3b4f23acd30384d814ac16f729cc956db717a342abc68a74153f87bbe45ff3f",
+      "review": "whole body read; transitive admission not implied",
+      "equalsPinnedGitBlob": true
+    },
+    "cli/src/cli/api/client.js": {
+      "sha256": "ed82235fb0d473116db1dd3482db33f66406370659e7d4e5b28078cd52e889b8",
+      "review": "selected prefix lines1-115 makeRequest/auth-file setup, not whole module; transitive admission not implied",
+      "equalsPinnedGitBlob": true
     }
   },
   "donorFiles": {
@@ -209,6 +234,36 @@
     "src/lib/db/repos/api-key-accounting-repo.js": {
       "sha256": "412ced09a4371f1f5b888bcefd62c90abc04c1dca66e0ba1466cc857b5daf23c",
       "review": "body read",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/auth/managementGuard.js": {
+      "sha256": "7c793a1d83c947e50fa2961b69767b36a32b12bb2d35d6af994396d41a7a77ca",
+      "review": "whole body read; transitive admission not implied",
+      "equalsPinnedGitBlob": true
+    },
+    "src/app/api/keys/[id]/budget/route.js": {
+      "sha256": "2417b27fc0d7f542a4dd1d80c9627cc38c1ca1298fa14bdd91df8af78b0c8d52",
+      "review": "whole body read; transitive admission not implied",
+      "equalsPinnedGitBlob": true
+    },
+    "cli/src/cli/api/managementSession.js": {
+      "sha256": "157c6ac3024b60e041fef5861f98c3841494d6c9f0455c485b1096695813c47a",
+      "review": "whole body read; transitive admission not implied",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/durableFile.js": {
+      "sha256": "99b88ede995bf29f647e8572cb0b78cd5cfe34e1bff732f4f96c37db8c625ed9",
+      "review": "whole body read; transitive admission not implied",
+      "equalsPinnedGitBlob": true
+    },
+    "src/lib/db/writerOwnership.js": {
+      "sha256": "c76d153c2dcba27c91921c48fe2d741e1fc16d488e8afcdfc41d72fd16e378ef",
+      "review": "whole body read; transitive admission not implied",
+      "equalsPinnedGitBlob": true
+    },
+    "custom-server.js": {
+      "sha256": "e7ea12080dbbc24f7cc606b0d466bdc1afa6f962a0464efdec53ecbd914cd8b9",
+      "review": "selected wrapper block lines45-87, not whole module; transitive admission not implied",
       "equalsPinnedGitBlob": true
     }
   },
