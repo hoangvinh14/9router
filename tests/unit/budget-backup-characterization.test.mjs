@@ -124,6 +124,39 @@ test('restoring an older standalone snapshot enforces its saved policy and recor
   assert.equal(sourceLedger.totals('key-A', now).monthly, '6000000');
 }));
 
+test('older snapshots restore the credential generation and retirement state at backup time', () => fixture(async (db, dir) => {
+  const policy = createNodeKeyPolicy(db);
+  const beforeRotation = backupDbLite(db, dir, 'before-rotation.sqlite');
+  policy.rotate('key-A', 1, 'fixture-secret', 'fixture-replacement');
+  const beforeRetirement = backupDbLite(db, dir, 'before-retirement.sqlite');
+  policy.retireAudited('key-A', 2);
+  assert.equal(policy.inspect('key-A').lifecycle, 'retired');
+  assert.throws(() => policy.resolve('fixture-secret'));
+  assert.throws(() => policy.resolve('fixture-replacement'));
+
+  for (const [snapshot, generation, present, absent] of [
+    [beforeRotation, '1', 'fixture-secret', 'fixture-replacement'],
+    [beforeRetirement, '2', 'fixture-replacement', 'fixture-secret'],
+  ]) {
+    const restoredPath = `${dir}/restored-${generation}.sqlite`;
+    fs.copyFileSync(snapshot, restoredPath, fs.constants.COPYFILE_EXCL);
+    const restored = await createNodeSqliteAdapter(restoredPath);
+    try {
+      const snapshotPolicy = createNodeKeyPolicy(restored);
+      assert.equal(snapshotPolicy.inspect('key-A').lifecycle, 'active');
+      assert.equal(snapshotPolicy.resolve(present).bindingGeneration, generation);
+      assert.throws(() => snapshotPolicy.resolve(absent));
+      assert.equal(restored.get('SELECT COUNT(*) AS n FROM accounting_admin_events_v1').n, 0);
+      assert.deepEqual(createNodeAttemptLedger(restored).validateExistingAttempts(),
+        { validatedAttempts: 1, validatedTerminals: 1 });
+    } finally {
+      restored.close();
+    }
+  }
+  assert.equal(policy.inspect('key-A').lifecycle, 'retired');
+  assert.equal(db.get('SELECT COUNT(*) AS n FROM accounting_admin_events_v1').n, 1);
+}));
+
 test('administrative event copy failure rejects artifact completion and preserves original retirement facts',()=>fixture(async(db,dir)=>{
  createNodeKeyPolicy(db).retireAudited('key-A',1);
  const tables=['apiKeys','accounting_key_policy_v1','accounting_key_generations_v1','accounting_admin_events_v1'];
