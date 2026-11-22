@@ -76,8 +76,11 @@ for(const mode of ['partial','complete','view','event-table','event-view','read-
  assert.equal(fs.existsSync(DB_DIR+'/.migrated-from-json'),false);
 `));
 
-for(const mode of ['current','restored','pending-import','missing-app-index','invalid-binding'])test('installed marked startup qualifies existing state: '+mode,()=>child(`
+for(const mode of ['current','restored','legacy-snapshot-repaired','legacy-snapshot-unmodified','pending-import','missing-app-index','invalid-binding'])test('installed marked startup qualifies existing state: '+mode,()=>child(`
  const mode=${JSON.stringify(mode)};
+ const legacySnapshot=mode.startsWith('legacy-snapshot-');
+ const restores=mode==='restored'||legacySnapshot;
+ const {DatabaseSync}=await import('node:sqlite');
  await runMigrationOnce(db);
  db.run("INSERT INTO apiKeys(id,key,isActive,createdAt) VALUES('fixture','synthetic',1,'2026-11-16T10:00:00.000Z')");
  initializeNodeKeyPolicy(db);initializeNodeAttemptLedger(db);
@@ -89,7 +92,7 @@ for(const mode of ['current','restored','pending-import','missing-app-index','in
   price:{currency:'USD',unit:'USD/1M tokens',revision:'fixture',rates:{input:'0.1',output:'2'}}};
  const context={presentedSecret:'synthetic',now};
  let backup;
- if(mode==='restored'){
+ if(restores){
   const {EXCLUSIVE_USAGE}=await import('/app/src/lib/accounting/terminal-cost.js');
   const {backupDbLite}=await import('/app/src/lib/db/backup.js');
   const ledger=createNodeAttemptLedger(db);
@@ -110,14 +113,35 @@ for(const mode of ['current','restored','pending-import','missing-app-index','in
   ...['_meta','accounting_key_policy_v1','accounting_key_generations_v1','accounting_attempts_v1','accounting_terminals_v1'].map(
    name=>adapter.all('SELECT * FROM '+name+' ORDER BY rowid'))]);
  const before=state(db);db.close();
- if(mode==='restored'){
+ if(restores){
+  if(legacySnapshot){
+   const legacyPath=DB_DIR+'/legacy-snapshot.sqlite';
+   fs.copyFileSync(backup,legacyPath,fs.constants.COPYFILE_EXCL);
+   const legacy=new DatabaseSync(legacyPath);
+   try{
+    assert.equal(legacy.prepare('PRAGMA journal_mode=DELETE').get().journal_mode,'delete');
+    legacy.exec('DROP TABLE requestDetails');
+   }finally{legacy.close();}
+   backup=legacyPath;
+  }
   fs.renameSync(DATA_FILE,DATA_FILE+'.source');
   fs.copyFileSync(backup,DATA_FILE,fs.constants.COPYFILE_EXCL);
+  if(mode==='legacy-snapshot-repaired'){
+   const {TABLES,buildCreateTableSql}=await import('/app/src/lib/db/schema.js');
+   const copy=new DatabaseSync(DATA_FILE);
+   try{
+    assert.equal(copy.prepare('PRAGMA journal_mode=WAL').get().journal_mode,'wal');
+    copy.exec('BEGIN IMMEDIATE');
+    copy.exec(buildCreateTableSql('requestDetails',TABLES.requestDetails));
+    for(const sql of TABLES.requestDetails.indexes)copy.exec(sql);
+    copy.exec('COMMIT');
+   }finally{copy.close();}
+  }
  }
  // A legacy file arriving after completion must not be imported on restart.
  fs.writeFileSync(LEGACY_FILES.main,JSON.stringify({apiKeys:[{id:'unexpected',key:'synthetic-legacy'}]}));
  const {getAdapter,getAdapterSync,getAccountingAdapter}=await import('/app/src/lib/db/driver.js');
- if(mode==='current'||mode==='restored'){
+ if(mode==='current'||(restores&&mode!=='legacy-snapshot-unmodified')){
   const installed=await getAdapter();
   try{
    assert.equal(installed,getAdapterSync());assert.equal(installed,await getAccountingAdapter());
@@ -125,7 +149,7 @@ for(const mode of ['current','restored','pending-import','missing-app-index','in
    assert.equal(installed.raw.isTransaction,false);assert.equal(installed.get('PRAGMA synchronous').synchronous,1);
    assert.equal(installed.get('SELECT total_changes() n').n,0);assert.equal(state(installed),before);
    assert.equal(installed.get("SELECT id FROM apiKeys WHERE id='unexpected'"),undefined);
-   if(mode==='restored'){
+   if(restores){
     assert.equal(installed.get('SELECT COUNT(*) AS count FROM requestDetails').count,0);
     const ledger=createNodeAttemptLedger(installed);
     assert.equal(ledger.totals('fixture',now).monthly,'105900');
@@ -136,6 +160,10 @@ for(const mode of ['current','restored','pending-import','missing-app-index','in
     assert.deepEqual(ledger.validateExistingAttempts(),{validatedAttempts:2,validatedTerminals:1});
    }
   }finally{installed.close();}
+ }else if(mode==='legacy-snapshot-unmodified'){
+  await assert.rejects(getAdapter(),e=>refused(e)&&e.startupReason==='unsupported_app_state');
+  assert.throws(getAdapterSync);
+  assert.equal(global._dbAdapter.instance,null);
  }else{
   const qualifiedRefusal=e=>refused(e)&&e.startupReason==='unqualified_accounting_state';
   await assert.rejects(getAdapter(),qualifiedRefusal);await assert.rejects(getAdapter(),qualifiedRefusal);
@@ -145,12 +173,19 @@ for(const mode of ['current','restored','pending-import','missing-app-index','in
   const {finalAccountingDispatch}=await import('/app/src/lib/accounting/process-state.js');
   let sends=0;assert.throws(()=>finalAccountingDispatch(()=>true,()=>{sends++;}));assert.equal(sends,0);
  }
- const {DatabaseSync}=await import('node:sqlite');
  const read=new DatabaseSync(DATA_FILE,{readOnly:true});
  try{
-  if(mode==='restored')assert.equal(read.prepare('SELECT COUNT(*) AS count FROM accounting_terminals_v1').get().count,1);
+  if(restores)assert.equal(read.prepare('SELECT COUNT(*) AS count FROM accounting_terminals_v1').get().count,1);
   else assert.equal(state({all:sql=>read.prepare(sql).all()}),before);
  }finally{read.close();}
+ if(legacySnapshot){
+  const saved=new DatabaseSync(backup,{readOnly:true});
+  try{
+   assert.equal(saved.prepare('PRAGMA journal_mode').get().journal_mode,'delete');
+   assert.equal(saved.prepare("SELECT name FROM sqlite_schema WHERE name='requestDetails'").get(),undefined);
+   assert.equal(saved.prepare('SELECT amount FROM accounting_terminals_v1').get().amount,'105900');
+  }finally{saved.close();}
+ }
  assert.equal(fs.existsSync(DB_DIR+'/.migrated-from-json'),false);
 `));
 
