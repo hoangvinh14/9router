@@ -143,10 +143,10 @@ async function fixture(run, { weekly = null, monthly = null, reply, interrupted 
     };
     return adapter;
   }
-  function openOwner() {
+  function openOwner(presentedSecret = 'fixture-client') {
     const policy = createNodeKeyPolicy(db);
     const ledger = createNodeAttemptLedger(db, { requireAccount: true });
-    const bound = bindAccountingIdentity({ ledger, policy }, 'fixture-client');
+    const bound = bindAccountingIdentity({ ledger, policy }, presentedSecret);
     assert.ok(bound);
     const identity = { ...bound,
       prepare(...args) {
@@ -257,6 +257,7 @@ async function fixture(run, { weekly = null, monthly = null, reply, interrupted 
       owner = openOwner(); // No schema initialization or re-seeding on reopen.
     }
     await run({ chat, state, rows, reopen, path,
+      rebind: presentedSecret => { owner = openOwner(presentedSecret); },
       inspectPolicy: () => owner.policy.inspect('fixture-key'),
       setMonthly: (version, monthly) => owner.policy.save('fixture-key', version, { weekly: null, monthly }),
       totals: (instant = clock()) => owner.ledger.totals('fixture-key', instant),
@@ -371,6 +372,56 @@ if (!stage) test('late response uses the original HCM window and each limit rese
       if (point === 'before-response-read' && instant === dispatchAt) instant = monthReset;
     },
   });
+});
+
+if (!stage) test('late response settles against its original binding after a peer changes policy and rotates the key', () => {
+  const replacement = 'fixture-client-rotated';
+  let changePolicy;
+  return fixture(async ({ chat, state, rows, path, inspectPolicy, totals, rebind }) => {
+    const peer = await createNodeSqliteAdapter(path);
+    try {
+      const peerPolicy = createNodeKeyPolicy(peer);
+      changePolicy = () => {
+        assert.deepEqual([state.wire.length, rows(peer).attempts.length, rows(peer).terminals.length], [1, 1, 0]);
+        const saved = peerPolicy.save('fixture-key', inspectPolicy().version, { weekly: null, monthly: limit });
+        peerPolicy.rotate('fixture-key', saved.version, 'fixture-client', replacement);
+      };
+      const response = await chat();
+      assert.equal(response.status, 200);
+      assert.deepEqual((await response.json()).usage, usage);
+      const { attempts, terminals } = rows(peer);
+      assert.equal(attempts.length, 1);
+      assert.equal(terminals.length, 1);
+      const [original] = attempts;
+      assert.equal(original.keyId, 'fixture-key');
+      assert.equal(original.bindingGeneration, '1');
+      assert.equal(original.price.revision, 'anthropic-messages-sonnet-4-6-2026-11-16-global-v1');
+      assert.equal(original.startedAt, now);
+      assert.equal(original.windows.weekly.startAt, '2026-11-15T17:00:00.000Z');
+      assert.equal(original.windows.monthly.startAt, '2026-10-31T17:00:00.000Z');
+      assert.equal(peer.get('SELECT attempt_id FROM accounting_terminals_v1').attempt_id, original.attemptId);
+      assert.equal(terminals[0].amount, limit);
+      assert.deepEqual(totals(now), { weekly: limit, monthly: limit, unknown: 0 });
+      assert.deepEqual(inspectPolicy(), {
+        keyId: 'fixture-key', bindingGeneration: '2', version: 3, lifecycle: 'active',
+        limits: { weekly: null, monthly: limit },
+      });
+
+      const revoked = await chat();
+      assert.equal(revoked.status, 503);
+      assert.equal(isAccountingResponse(revoked), true);
+      rebind(replacement);
+      const atLimit = await chat('Root', {}, { authorization: `Bearer ${replacement}` });
+      assert.equal(atLimit.status, 503);
+      assert.equal(isAccountingResponse(atLimit), true);
+      assert.equal(state.wire.length, 1);
+      assert.deepEqual(rows(peer).terminals, terminals);
+    } finally {
+      peer.close();
+    }
+  }, { reply: success, onCheckpoint(point) {
+    if (point === 'before-response-read') changePolicy();
+  } });
 });
 
 const sseFrame = event => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
