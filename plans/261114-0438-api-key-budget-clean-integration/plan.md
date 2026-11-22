@@ -15,11 +15,11 @@ created: 2026-11-14
 
 # Implementation plan — API-key budget, clean integration
 
-**Current continuation:** owner đã authorize sync master, tạo integration branch trong checkout hiện tại và tiếp tục tự động trong phạm vi plan. Phase00 transition đã verified; xem [execution record](./references/phase00-execution.md) và [fresh integration baseline](./references/integration-baseline.json). Không deploy/push/live inference/đụng dữ liệu hoặc dịch vụ thật. Các đoạn planning/Validation Session 1 bên dưới là chronology, không phủ nhận authority mới và không cấp thêm producer/policy/sandbox authority. `blockedBy: []` không có nghĩa positive slice ready.
+**Current continuation:** owner đã authorize sync master, tạo integration branch trong checkout hiện tại và tiếp tục tự động trong phạm vi plan. Phase00 transition đã verified; xem [execution record](./references/phase00-execution.md) và [fresh integration baseline](./references/integration-baseline.json). Owner đã authorize commit và push phần hoàn tất lên nhánh tích hợp. Deploy, live inference và sử dụng dữ liệu hoặc dịch vụ thật nằm ngoài lần nghiệm thu offline này. Các đoạn planning/Validation Session 1 bên dưới là chronology, không phủ nhận authority mới và không cấp thêm producer/policy/sandbox authority. `blockedBy: []` không có nghĩa positive slice ready.
 
 ## Phạm vi đã chốt — 2026-11-23
 
-Dùng SQLite hiện có của 9Router. Mỗi API key bắt đầu ghi chi phí từ khi bật budget, với lịch sử và số đã dùng của tính năng bắt đầu từ 0. Dashboard hiển thị hạn mức, số đã dùng và số còn lại. Khi chi phí đã ghi đạt hoặc vượt hạn mức, request kế tiếp bị chặn trước POST upstream. Phạm vi triển khai và nghiệm thu loại bỏ nhập hoặc chuyển đổi dữ liệu từ schema budget thử nghiệm v2–v4 của nhánh develop.
+Dùng SQLite hiện có của 9Router. Mỗi API key bắt đầu ghi chi phí từ khi bật budget, với lịch sử và số đã dùng của tính năng bắt đầu từ 0. Dashboard hiển thị hạn mức, số đã dùng và số còn lại. Khi chi phí đã ghi đạt hoặc vượt hạn mức, request kế tiếp bị chặn trước POST upstream. Phạm vi triển khai và nghiệm thu loại bỏ nhập hoặc chuyển đổi dữ liệu từ schema budget thử nghiệm v2–v4 của nhánh develop. SQLite đã có dữ liệu dùng lệnh offline `--enable-existing` để sao lưu trước khi thêm bảng budget. Ca nghiệm thu từ database có key sẵn đã kiểm chứng số dư ban đầu bằng 0, một khoản mới và chặn sau khi khởi động lại. [Kiểm chứng SQLite hiện có](./phase-04-integrity-and-migration.md#success-evidence).
 
 ## 1. Authority và outcome
 
