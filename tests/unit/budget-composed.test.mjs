@@ -485,7 +485,7 @@ if (!stage) test('native Anthropic SSE publishes the stop frame after the durabl
   }, { monthly: limit, stream: true, reply: sseReply(frames) });
 });
 
-if (!stage) test('accounted SSE preserves tool and thinking response blocks without billing their bytes', () => {
+if (!stage) test('accounted SSE returns signed thinking and tool history unchanged on native continuation', () => {
   const { output_tokens, ...inputUsage } = usage;
   const frames = [
     { type: 'message_start', message: { type: 'message', role: 'assistant', model, content: [], usage: inputUsage } },
@@ -502,16 +502,55 @@ if (!stage) test('accounted SSE preserves tool and thinking response blocks with
     { type: 'message_delta', delta: { stop_reason: 'tool_use' }, usage: { output_tokens } },
     { type: 'message_stop' },
   ].map(sseFrame);
+  const completion = [
+    { type: 'message_start', message: { type: 'message', role: 'assistant', model, content: [], usage: inputUsage } },
+    { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'Tool failed.' } },
+    { type: 'content_block_stop', index: 0 },
+    { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens } },
+    { type: 'message_stop' },
+  ].map(sseFrame);
+  let responses = 0;
   return fixture(async ({ chat, state, rows, totals }) => {
-    const reply = await chat('Root', { stream: true });
+    const toolRequest = {
+      stream: true,
+      thinking: { type: 'adaptive' },
+      tools: [{ name: 'lookup', input_schema: { type: 'object', properties: { term: { type: 'string' } } } }],
+    };
+    const reply = await chat('Root', toolRequest);
     assert.equal(reply.status, 200);
     assert.equal(isAccountingResponse(reply), true);
-    assert.equal(await reply.text(), frames.join(''));
+    const raw = await reply.text();
+    assert.equal(raw, frames.join(''));
+    assert.deepEqual(state.wire[0].body, { ...body, ...toolRequest, model });
     assert.deepEqual([state.wire.length, state.reads, rows().attempts.length], [1, 0, 1]);
     assert.deepEqual(rows().terminals.map(({ amount, provenance }) => ({ amount, provenance })),
       [{ amount: limit, provenance: 'provider-reported' }]);
     assert.equal(totals().monthly, limit);
-  }, { stream: true, reply: sseReply(frames) });
+
+    const events = raw.split('\n').filter(line => line.startsWith('data: ')).map(line => JSON.parse(line.slice(6)));
+    const blocks = events.filter(event => event.type === 'content_block_start').map(event => event.content_block);
+    const delta = type => events.filter(event => event.delta?.type === type).map(event => event.delta);
+    const messages = [
+      ...body.messages,
+      { role: 'assistant', content: [
+        { ...blocks[0], thinking: delta('thinking_delta').map(value => value.thinking).join(''),
+          signature: delta('signature_delta')[0].signature },
+        blocks[1],
+        { ...blocks[2], input: JSON.parse(delta('input_json_delta').map(value => value.partial_json).join('')) },
+      ] },
+      { role: 'user', content: [
+        { type: 'tool_result', tool_use_id: blocks[2].id, content: [{ type: 'text', text: 'fixture failure' }], is_error: true },
+      ] },
+    ];
+    const next = await chat('Root', { ...toolRequest, messages }, { 'user-agent': 'generic fixture client' });
+    assert.equal(next.status, 200);
+    assert.equal(await next.text(), completion.join(''));
+    assert.deepEqual(state.wire[1].body, { ...body, ...toolRequest, messages, model });
+    assert.deepEqual([state.wire.length, state.reads, rows().attempts.length], [2, 0, 2]);
+    assert.deepEqual(rows().terminals.map(({ amount, provenance }) => ({ amount, provenance })),
+      Array.from({ length: 2 }, () => ({ amount: limit, provenance: 'provider-reported' })));
+    assert.equal(totals().monthly, String(2n * BigInt(limit)));
+  }, { stream: true, reply: () => sseReply(responses++ === 0 ? frames : completion)() });
 });
 
 if (!stage) test('accounted SSE forwards HTTP 200 provider error and does not try the next combo member', () => {
@@ -531,20 +570,16 @@ if (!stage) test('accounted SSE forwards HTTP 200 provider error and does not tr
   }, { stream: true, reply: sseReply(frames) });
 });
 
-if (!stage) test('trusted SSE still rejects structured continuity requests before transport and intent', () => {
+if (!stage) test('trusted SSE rejects paid tools, unsupported thinking and unsafe content blocks before transport', () => {
   return fixture(async ({ chat, state, rows }) => {
     for (const input of [
-      { tools: [{ name: 'lookup', input_schema: { type: 'object' } }] },
-      { thinking: { type: 'adaptive' } },
-      { messages: [
-        { role: 'assistant', content: [
-          { type: 'thinking', thinking: 'fixture reasoning', signature: 'Zml4dHVyZS1zaWduYXR1cmU=' },
-          { type: 'tool_use', id: 'toolu_fixture', name: 'lookup', input: {} },
-        ] },
-        { role: 'user', content: [
-          { type: 'tool_result', tool_use_id: 'toolu_fixture', content: 'fixture failure', is_error: true },
-        ] },
-      ] },
+      { tools: [{ type: 'web_search_20250305', name: 'web_search' }] },
+      { thinking: { type: 'enabled', budget_tokens: 1024 } },
+      { messages: [{ role: 'assistant', content: [{ type: 'thinking', thinking: 'unsigned' }] }] },
+      { messages: [{ role: 'user', content: [{
+        type: 'tool_result', tool_use_id: 'toolu_fixture',
+        content: [{ type: 'image', source: { type: 'url', url: 'https://fixture.invalid/image' } }],
+      }] }] },
     ]) {
       const reply = await chat('Root', { ...input, stream: true });
       assert.equal(reply.status, 503);

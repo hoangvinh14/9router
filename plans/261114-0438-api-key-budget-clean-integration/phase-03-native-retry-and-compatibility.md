@@ -20,9 +20,15 @@ Pinned Node v24.21.0 passed `run-core.mjs` **12/12**, `run-default-fidelity.mjs`
 
 The real response handler preserves fixture frames byte-for-byte, including thinking deltas, signatures, opaque redacted thinking, client tool IDs and split tool-input JSON. The successful response records exactly one provider-reported debit of **105,900 nanoUSD** from one invocation. An HTTP 200 stream with a native `overloaded_error` forwards that error, uses one POST and one intent, records zero terminals, and does not try a second combo member.
 
-A trusted SSE context rejects tool definitions, adaptive thinking, and structured history with signed thinking and an `is_error: true` tool result before preparing transport or recording an intent. Positive request round-trip, Chat/Responses conversions, usage cutoff after a failed or interrupted stream, and runtime admission remain open. The response fixtures use synthetic signatures and payloads. They establish outbound fidelity, while the provider contract requires returning complete thinking and opaque redacted data unchanged with the tool continuation. [Anthropic thinking contract](https://platform.claude.com/docs/en/build-with-claude/thinking#preserving-thinking-blocks) · [Failure evidence](../reports/research-261122-1350-anthropic-sse-finality.md#follow-up-on-mid-stream-errors).
-
 Pinned Node v24.21.0 passed `run-composed.mjs` **13/13** and `run-composed.mjs --tls` **13/13**.
+
+### Offline native SSE continuation
+
+The trusted Anthropic Messages SSE context accepts adaptive thinking, client-defined tools, and native text and tool history. It checks the original shape before request helpers run and checks the final serialized request before preparing transport. The candidate forwards native SSE requests without Claude CLI normalization, tool deduplication or automatic cache anchors. The JSON profile still refuses structured continuation. Paid server tools, unsupported thinking configurations and media in tool results are refused before transport and intent creation.
+
+The loopback client reads the tool-use stream and sends a continuation containing the complete signed thinking block, opaque redacted data, tool ID and input, and an `is_error: true` result. The endpoint receives these fields unchanged. Two POSTs produce two provider-reported fixture debits of **105,900 nanoUSD** each. Changed signatures, dropped redacted blocks and removed error flags are refused before transport. The fixture uses synthetic signatures. Chat/Responses conversion, provider evidence for usage cutoff on failed streams and runtime SSE admission remain open. [Anthropic thinking contract](https://platform.claude.com/docs/en/build-with-claude/thinking#preserving-thinking-blocks) · [Failure evidence](../reports/research-261122-1350-anthropic-sse-finality.md#follow-up-on-mid-stream-errors).
+
+Pinned Linux Node v24.21.0 passed `run-composed.mjs` and `run-composed.mjs --tls` **22/22** each, plus `run-core.mjs` and `run-default-fidelity.mjs` **12/12** each.
 
 ## Files / ownership
 

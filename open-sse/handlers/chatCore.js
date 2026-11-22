@@ -209,7 +209,9 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   // Native passthrough: CLI tool and provider are the same ecosystem
   // Skip all translation/normalization — only model and Bearer are swapped
   const clientTool = detectClientTool(clientRawRequest?.headers || {}, body);
-  const passthrough = isNativePassthrough(clientTool, provider);
+  // Preserve signed history from the validated native Messages request.
+  const nativeAccountedStream = accounting?.stream === true;
+  const passthrough = nativeAccountedStream || isNativePassthrough(clientTool, provider);
 
   // Expose raw client headers to translators/executors for session-id resolution
   if (credentials) credentials.rawHeaders = clientRawRequest?.headers || {};
@@ -246,7 +248,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
       }
     }
     // Normalize newer Cowork/CC beta shapes (adaptive thinking, mid-conversation system) the API rejects
-    if (clientTool === "claude") normalizeClaudePassthrough(translatedBody, translatedBody.model);
+    if (clientTool === "claude" && !nativeAccountedStream) normalizeClaudePassthrough(translatedBody, translatedBody.model);
   } else {
     translatedBody = translateRequest(sourceFormat, targetFormat, upstreamModel, body, stream, credentials, provider, reqLogger, stripList, connectionId, clientTool);
     if (!translatedBody) {
@@ -263,7 +265,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
 
   // Tool normalization: MCP-equivalent built-in dedup (Claude clients) + same-name
   // dedup for DeepSeek models (upstream rejects duplicate tool names on all endpoints).
-  if (Array.isArray(translatedBody.tools)) {
+  if (!nativeAccountedStream && Array.isArray(translatedBody.tools)) {
     const { tools: deduped, stripped } = dedupeTools(translatedBody.tools, { clientTool, model, messages: translatedBody.messages });
     if (stripped.length > 0) {
       translatedBody.tools = deduped;
@@ -366,7 +368,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
 
   // Pin cache breakpoints to the final body — every saver above can reshape
   // system/tools/messages, and a stale anchor costs a full prefix rewrite.
-  if (passthrough && clientTool === "claude") anchorClaudeCache(translatedBody);
+  if (passthrough && clientTool === "claude" && !nativeAccountedStream) anchorClaudeCache(translatedBody);
 
   const executor = getExecutor(provider);
   trackPendingRequest(model, provider, connectionId, true);

@@ -11,6 +11,43 @@ import { ACCOUNTED_ANTHROPIC_URL, credentialDigest, directAccountData, isSingleW
 // own a second response reader. Profile readiness must come from executable
 // coverage, never request JSON or a client header. C0 remains unadmitted.
 const WIRE_HEADERS = ['anthropic-version', 'content-type', 'x-api-key'];
+const JSON_FIELDS = ['model', 'messages', 'system', 'max_tokens', 'temperature', 'top_p', 'top_k',
+  'stop_sequences', 'stream', 'inference_geo', 'service_tier'];
+const SSE_FIELDS = [...JSON_FIELDS, 'tools', 'thinking'];
+const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const fields = (value, allowed) => record(value) && Object.keys(value).every(key => allowed.includes(key));
+const nonempty = value => typeof value === 'string' && value.length > 0;
+const textBlock = block => fields(block, ['type', 'text']) && block.type === 'text' && typeof block.text === 'string';
+
+function nativeMessageBlock(block, role) {
+  if (textBlock(block)) return true;
+  if (!record(block)) return false;
+  if (role === 'user') {
+    return block.type === 'tool_result' && fields(block, ['type', 'tool_use_id', 'content', 'is_error']) &&
+      nonempty(block.tool_use_id) && (block.is_error === undefined || typeof block.is_error === 'boolean') &&
+      (block.content === undefined || typeof block.content === 'string' ||
+        (Array.isArray(block.content) && block.content.every(textBlock)));
+  }
+  switch (block.type) {
+    case 'thinking':
+      return fields(block, ['type', 'thinking', 'signature']) && typeof block.thinking === 'string' && nonempty(block.signature);
+    case 'redacted_thinking':
+      return fields(block, ['type', 'data']) && nonempty(block.data);
+    case 'tool_use':
+      return fields(block, ['type', 'id', 'name', 'input']) && nonempty(block.id) && nonempty(block.name) && record(block.input);
+    default:
+      return false;
+  }
+}
+
+function clientTool(tool) {
+  return fields(tool, ['type', 'name', 'description', 'input_schema', 'strict']) &&
+    (tool.type === undefined || tool.type === 'custom') && nonempty(tool.name) &&
+    (tool.description === undefined || typeof tool.description === 'string') &&
+    (tool.strict === undefined || typeof tool.strict === 'boolean') &&
+    record(tool.input_schema) && tool.input_schema.type === 'object';
+}
+
 export function createAnthropicDispatchContext({ identity, routeProof, credentials, profile, clock, stream = false }) {
   const config = snapshotPayload(profile);
   if (config?.enabled !== true || config?.producerAdmitted !== true ||
@@ -32,16 +69,20 @@ export function createAnthropicDispatchContext({ identity, routeProof, credentia
   let preparationStarted = false;
   const validateShape = body => {
     const request = snapshotPayload(body);
-    const allowed = ['model','messages','system','max_tokens','temperature','top_p','top_k','stop_sequences','stream','inference_geo','service_tier'];
-    if (!request || ![config.model, `${config.provider}/${config.model}`].includes(request.model) || request.stream !== stream ||
+    if (!fields(request, stream ? SSE_FIELDS : JSON_FIELDS) ||
+        ![config.model, `${config.provider}/${config.model}`].includes(request.model) || request.stream !== stream ||
         request.inference_geo !== config.inferenceGeo || request.service_tier !== config.serviceTier ||
-        Object.keys(request).some(key => !allowed.includes(key)) ||
         !Array.isArray(request.messages) || !request.messages.length) throw unavailable();
     for (const message of request.messages) {
-      if (!message || !['user','assistant'].includes(message.role) || typeof message.content !== 'string' ||
-          Object.keys(message).sort().join(',') !== 'content,role') throw unavailable();
+      if (!fields(message, ['role', 'content']) || !['user', 'assistant'].includes(message.role) ||
+          !(typeof message.content === 'string' || (stream && Array.isArray(message.content) &&
+            message.content.length && message.content.every(block => nativeMessageBlock(block, message.role))))) throw unavailable();
     }
     if (request.system !== undefined && typeof request.system !== 'string') throw unavailable();
+    if (request.tools !== undefined && (!Array.isArray(request.tools) || !request.tools.every(clientTool))) throw unavailable();
+    if (request.thinking !== undefined &&
+        (!fields(request.thinking, ['type', 'display']) || request.thinking.type !== 'adaptive' ||
+          (request.thinking.display !== undefined && !['summarized', 'omitted'].includes(request.thinking.display)))) throw unavailable();
     // Only this enumerated top-level model spelling is equivalent. Preserve
     // all other presence/values and nested/array ordering without defaults.
     return canonical({ ...request, model: config.model });

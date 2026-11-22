@@ -35,8 +35,9 @@ const profile={enabled:true,producerAdmitted:true,provider:'anthropic',auth:'api
 const ownerPrice={currency:'USD',unit:'USD/1M tokens',revision:'test-owner-only',rates:{input:'3',output:'15',cached:'0.3',cache_creation:'3.75',cache_creation_1h:'6'}};
 const ownerProof=Object.freeze({});
 const credentials=Object.freeze({connectionId:'fixture-account',authType:'apikey',apiKey:'fixture-only'});
-function context(overrides={}){return createAnthropicDispatchContext({
+function context(overrides={}, stream=false){return createAnthropicDispatchContext({
  profile:{...profile,...overrides},
+ stream,
  routeProof:Object.freeze({}),clock:()=>'2026-11-16T10:00:00.000Z',
  credentials,
  identity:{
@@ -48,7 +49,7 @@ function context(overrides={}){return createAnthropicDispatchContext({
   dispatch(_ack,_now,invoke){return invoke();},
  },
 });}
-const wire=(b)=>({url:'https://api.anthropic.com/v1/messages',provider:'anthropic',model,stream:false,proxyOptions:null,
+const wire=(b)=>({url:'https://api.anthropic.com/v1/messages',provider:'anthropic',model,stream:b.stream,proxyOptions:null,
  options:{method:'POST',body:JSON.stringify(b),headers:{'x-api-key':'fixture-only','anthropic-version':'2023-06-01','content-type':'application/json'}}});
 
 test('ordinary execution retains registry beta; accidentally using those headers in accounting still refuses',async()=>{
@@ -159,6 +160,34 @@ test('structural equality ignores object order, maps only top-level model spelli
  await assert.rejects(a.prepare(wire(reordered)));assert.throws(()=>a.validateInput(input));
  const b=context(),history={...body(),messages:[{role:'user',content:'one'},{role:'assistant',content:'two'}]};b.validateInput(history);
  await assert.rejects(b.prepare(wire({...history,messages:[...history.messages].reverse()})));
+});
+
+test('native continuation rejects changed signed or redacted history and error flags before transport', async () => {
+ const input = { ...body(), stream: true, thinking: { type: 'adaptive', display: 'omitted' }, messages: [
+  ...body().messages,
+  { role: 'assistant', content: [
+   { type: 'thinking', thinking: '', signature: 'fixture-signature' },
+   { type: 'redacted_thinking', data: 'fixture-data' },
+   { type: 'tool_use', id: 'toolu_fixture', name: 'lookup', input: {} },
+  ] },
+  { role: 'user', content: [
+   { type: 'tool_result', tool_use_id: 'toolu_fixture', is_error: true },
+  ] },
+ ] };
+ assert.throws(() => context().validateInput({ ...input, stream: false }));
+ const before = [transports, intents, posts];
+ for (const changed of [
+  b => { b.messages[1].content[0].signature = 'changed'; },
+  b => { b.messages[1].content.splice(1, 1); },
+  b => { delete b.messages[2].content[0].is_error; },
+ ]) {
+  const ctx = context({}, true);
+  ctx.validateInput(input);
+  const outgoing = structuredClone(input);
+  changed(outgoing);
+  await assert.rejects(ctx.prepare(wire(outgoing)));
+ }
+ assert.deepEqual([transports, intents, posts], before);
 });
 
 test('contexts isolate concurrent baselines and checked payload is handed unchanged to transport',async()=>{
