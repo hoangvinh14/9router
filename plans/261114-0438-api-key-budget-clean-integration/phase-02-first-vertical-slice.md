@@ -2,6 +2,10 @@
 
 Status: pending / positive support producer-gated. Priority: P1. Depends on: phase01 approved selected cell, policies, bounded admission. Không có approval implementation từ bản plan này.
 
+### Resume — dashboard budget readback
+
+The internal Docker Messages JSON path has reached offline acceptance on existing SQLite. The companion backed up an ordinary database, and the packaged app saved the first budget for the existing key, read back zero spend, recorded one exact debit over TLS loopback and refused the next request at the limit before and after restart. [Packaged acceptance and image manifest](./phase-04-integrity-and-migration.md#success-evidence). Phase 03 tracks the remaining provider and transport scope.
+
 ## Outcome / không oversell milestone
 
 Một representative authenticated client set finite key budget bằng **shipping management route/UI**, gọi native cell C0 qua existing shipping ingress/router/core/executor/raw transport, debit durable original key một lần, rồi request kế tiếp bị từ chối **0 upstream inference POST** khi recorded spend >= limit. Test chạy dummy TLS local trong disposable instance; không thay fixture-association test thành production wiring. Đây là milestone đầu, không chứng nhận toàn bộ Codex/Claude hoặc production rollout.
