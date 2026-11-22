@@ -98,8 +98,8 @@ async function startLoopback(state, reply, interrupted, partialResponse) {
   return server;
 }
 
-async function fixture(run, { monthly = null, reply, interrupted = false, prepareDb, beforeFinalBegin,
-  sharedDir, existing = false, stream = false, onCheckpoint = () => {}, partialResponse = false } = {}) {
+async function fixture(run, { weekly = null, monthly = null, reply, interrupted = false, prepareDb, beforeFinalBegin,
+  sharedDir, existing = false, stream = false, onCheckpoint = () => {}, partialResponse = false, clock = () => now } = {}) {
   const dir = sharedDir ?? fs.mkdtempSync('/tmp/budget-composed-');
   const path = `${dir}/budget.sqlite`;
   let db, server, peer, atFinal = false;
@@ -194,7 +194,7 @@ async function fixture(run, { monthly = null, reply, interrupted = false, prepar
       prepareDb?.(db);
       initializeNodeKeyPolicy(db);
       initializeNodeAttemptLedger(db);
-      createNodeKeyPolicy(db).save('fixture-key', 0, { weekly: null, monthly });
+      createNodeKeyPolicy(db).save('fixture-key', 0, { weekly, monthly });
     }
     const state = { db, preparations: 0, contexts: 0, selected: [], wire: [], reads: 0,
       get accounts() { return accounts; },
@@ -238,7 +238,7 @@ async function fixture(run, { monthly = null, reply, interrupted = false, prepar
       state.contexts++;
       state.selected.push(credentials.connectionId);
       assert.equal(settings.rtkEnabled, false);
-      return createAnthropicDispatchContext({ identity: owner.identity, routeProof, credentials, clock: () => now, stream,
+      return createAnthropicDispatchContext({ identity: owner.identity, routeProof, credentials, clock, stream,
         profile: { enabled: true, producerAdmitted: true, provider: 'anthropic', auth: 'api-key', model, inferenceGeo: 'global',
           serviceTier: 'standard_only', workspaceBinding } });
     } });
@@ -259,7 +259,7 @@ async function fixture(run, { monthly = null, reply, interrupted = false, prepar
     await run({ chat, state, rows, reopen, path,
       inspectPolicy: () => owner.policy.inspect('fixture-key'),
       setMonthly: (version, monthly) => owner.policy.save('fixture-key', version, { weekly: null, monthly }),
-      totals: () => owner.ledger.totals('fixture-key', now),
+      totals: (instant = clock()) => owner.ledger.totals('fixture-key', instant),
     });
     assert.equal(state.serverError, undefined);
     assert.equal(globalThis.__budgetCore.peeks, 0);
@@ -336,6 +336,43 @@ if (!stage) test('client workspace header and non-Standard inputs cannot reach T
 }, { reply: success }));
 
 const limit = '105900';
+if (!stage) test('late response uses the original HCM window and each limit resets independently', () => {
+  const dispatchAt = '2026-11-30T16:59:59.999Z';
+  const monthReset = '2026-11-30T17:00:00.000Z';
+  let instant = dispatchAt;
+  return fixture(async ({ chat, state, rows, totals }) => {
+    const first = await chat();
+    assert.equal(first.status, 200);
+    assert.deepEqual((await first.json()).usage, usage);
+    assert.equal(instant, monthReset);
+    const original = rows().attempts[0];
+    assert.equal(original.startedAt, dispatchAt);
+    assert.equal(original.keyId, 'fixture-key');
+    assert.equal(original.price.revision, 'anthropic-messages-sonnet-4-6-2026-11-16-global-v1');
+    assert.deepEqual(totals(dispatchAt), { weekly: limit, monthly: limit, unknown: 0 });
+    assert.deepEqual(totals(), { weekly: limit, monthly: '0', unknown: 0 });
+    assert.equal((await chat()).status, 503, 'the weekly limit still blocks after the monthly reset');
+    assert.deepEqual([state.wire.length, rows().terminals.length], [1, 1]);
+
+    instant = '2026-12-06T17:00:00.000Z';
+    assert.deepEqual(totals(), { weekly: '0', monthly: '0', unknown: 0 });
+    const next = await chat();
+    assert.equal(next.status, 200);
+    assert.deepEqual((await next.json()).usage, usage);
+    assert.deepEqual(totals(), { weekly: limit, monthly: limit, unknown: 0 });
+
+    instant = '2026-12-13T17:00:00.000Z';
+    assert.deepEqual(totals(), { weekly: '0', monthly: limit, unknown: 0 });
+    assert.equal((await chat()).status, 503, 'the monthly limit still blocks after the weekly reset');
+    assert.deepEqual([state.wire.length, rows().terminals.length], [2, 2]);
+    assert.deepEqual(totals(dispatchAt), { weekly: limit, monthly: limit, unknown: 0 });
+  }, { weekly: limit, monthly: limit, clock: () => instant, reply: success,
+    onCheckpoint(point) {
+      if (point === 'before-response-read' && instant === dispatchAt) instant = monthReset;
+    },
+  });
+});
+
 const sseFrame = event => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
 const sseReply = frames => () => new Response(frames.join(''), {
   headers: { 'content-type': 'text/event-stream' },
