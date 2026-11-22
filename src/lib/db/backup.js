@@ -3,8 +3,8 @@
 // ⚠️ AGENT/DEV NOTES:
 // - Backups are a best-effort safety net before schema migrations. There is NO
 //   automated restore path; recovery is manual (copy a backup file back).
-// - Backups intentionally EXCLUDE the `requestDetails` table (observability log,
-//   auto-pruned, non-critical) so a multi-hundred-MB DB backs up as a few MB.
+// - Backups keep the empty `requestDetails` schema and indexes, skipping its
+//   auto-pruned observability rows to keep backup size small.
 // - Only the newest KEEP_BACKUPS are kept; older ones are pruned automatically.
 import fs from "node:fs";
 import path from "node:path";
@@ -13,8 +13,6 @@ import { timestampSlug, getAppVersion } from "./version.js";
 
 const KEEP_BACKUPS = 3;
 
-// Tables excluded from safety backups (large, non-critical, reproducible).
-const BACKUP_EXCLUDE_TABLES = ["requestDetails"];
 const quoteIdentifier = name => '"' + name.replace(/"/g, '""') + '"';
 
 export function makeBackupDir(label) {
@@ -80,18 +78,23 @@ export function backupDbLite(adapter, destDir, destName = "data.sqlite") {
   let copyFailed = false;
   let copyError;
   try {
-    const excluded = new Set(BACKUP_EXCLUDE_TABLES);
+    // Marked SQLite databases must already be in WAL mode on reopen.
+    if (adapter.get('PRAGMA main.journal_mode')?.journal_mode === 'wal' &&
+        adapter.get('PRAGMA bak.journal_mode = WAL')?.journal_mode !== 'wal') {
+      throw new Error('Backup WAL mode unavailable');
+    }
     adapter.transaction(() => {
       // Inventory is the first main-DB read in the same snapshot as row copies.
       // Reading schema before the transaction lets concurrent DDL/data changes
       // produce a mixed artifact. This is not standalone-commit/restore proof.
       const tables = adapter
-        .all(`SELECT name, sql FROM main.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`)
-        .filter((t) => !excluded.has(t.name));
+        .all(`SELECT name, sql FROM main.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`);
       for (const t of tables) {
         // Recreate table structure in backup DB, then copy rows.
         const createSql = t.sql.replace(/CREATE TABLE\s+/i, "CREATE TABLE bak.");
         adapter.exec(createSql);
+        // Marked databases require the full app schema at startup.
+        if (t.name === 'requestDetails') continue;
         const table = quoteIdentifier(t.name);
         const columns = adapter.all(`PRAGMA main.table_xinfo(${table})`);
         if (!columns.length || columns.some(c => ![0, 2, 3].includes(c.hidden))) throw new Error('Unsupported backup table columns');
@@ -108,7 +111,7 @@ export function backupDbLite(adapter, destDir, destName = "data.sqlite") {
       if (adapter.get(`SELECT name FROM main.sqlite_master WHERE type='table' AND name='sqlite_sequence'`) &&
           adapter.get(`SELECT name FROM bak.sqlite_master WHERE type='table' AND name='sqlite_sequence'`)) {
         adapter.exec(`DELETE FROM bak.sqlite_sequence`);
-        adapter.exec(`INSERT INTO bak.sqlite_sequence(name, seq) SELECT name, seq FROM main.sqlite_sequence WHERE name IN (SELECT name FROM bak.sqlite_master WHERE type='table')`);
+        adapter.exec(`INSERT INTO bak.sqlite_sequence(name, seq) SELECT name, seq FROM main.sqlite_sequence WHERE name != 'requestDetails' AND name IN (SELECT name FROM bak.sqlite_master WHERE type='table')`);
       }
       const includedTables = new Set(tables.map(t => t.name));
       const indexes = adapter.all(`SELECT name, tbl_name, sql FROM main.sqlite_master WHERE type='index' AND sql IS NOT NULL`);

@@ -27,14 +27,16 @@ async function fixture(run){
  }finally{db.close();}
 }
 
-test('actual lightweight backup preserves current accounting schema rows and intrinsic constraints, excluding only requestDetails',()=>fixture(async(db,dir)=>{
+test('lightweight backup preserves accounting rows and schema while leaving request logs empty',()=>fixture(async(db,dir)=>{
  const copied=backupDbLite(db,dir,'copied.sqlite');const copy=new DatabaseSync(copied);
  try{
  for(const table of ['apiKeys','accounting_key_policy_v1','accounting_attempts_v1','accounting_terminals_v1']){
   assert.deepEqual(copy.prepare('SELECT * FROM '+table).all(),db.all('SELECT * FROM '+table));
   assert.equal(copy.prepare('SELECT sql FROM sqlite_schema WHERE name=?').get(table).sql,db.get('SELECT sql FROM sqlite_schema WHERE name=?',[table]).sql);
  }
- assert.equal(copy.prepare("SELECT name FROM sqlite_schema WHERE name='requestDetails'").get(),undefined);
+ assert.equal(copy.prepare("SELECT sql FROM sqlite_schema WHERE name='requestDetails'").get().sql,
+  db.get("SELECT sql FROM sqlite_schema WHERE name='requestDetails'").sql);
+ assert.deepEqual(copy.prepare('SELECT * FROM requestDetails').all(),[]);
  assert.equal(copy.prepare('PRAGMA foreign_key_check').all().length,0);
  assert.throws(()=>copy.prepare('INSERT INTO accounting_key_policy_v1 SELECT * FROM accounting_key_policy_v1').run());
  assert.equal(copy.prepare('SELECT amount FROM accounting_terminals_v1').get().amount,'0');
@@ -160,18 +162,18 @@ test('inventory and rows share one read snapshot despite a concurrent committed 
  }finally{copy.close();}
 }));
 
-test('explicit ordinary unique partial expression and quoted indexes retain definitions and enforcement, excluding requestDetails indexes',()=>fixture(async(db,dir)=>{
+test('explicit unique partial expression and quoted indexes retain definitions and enforcement',()=>fixture(async(db,dir)=>{
  db.exec('CREATE INDEX fixture_explicit_index ON accounting_attempts_v1(key_id)');
  db.exec('CREATE UNIQUE INDEX "fixture ""unique" ON apiKeys(isActive)');
  db.exec('CREATE INDEX `fixture``expression` ON apiKeys(lower(key)) WHERE isActive=1');
  db.exec('CREATE INDEX [fixture bracket] ON apiKeys(key DESC)');
- db.exec('CREATE INDEX omitted_log_index ON requestDetails(id)');
+ db.exec('CREATE INDEX fixture_log_index ON requestDetails(id)');
  const copy=new DatabaseSync(backupDbLite(db,dir,'index-copy.sqlite'));
  try{
-  const expected=db.all("SELECT name,sql FROM sqlite_schema WHERE type='index' AND sql IS NOT NULL AND tbl_name!='requestDetails' ORDER BY name");
+  const expected=db.all("SELECT name,sql FROM sqlite_schema WHERE type='index' AND sql IS NOT NULL ORDER BY name");
   assert.deepEqual(copy.prepare("SELECT name,sql FROM sqlite_schema WHERE type='index' AND sql IS NOT NULL ORDER BY name").all(),expected);
   assert.throws(()=>copy.prepare('INSERT INTO apiKeys VALUES(?,?,1)').run('other','different'));
-  assert.equal(copy.prepare("SELECT name FROM sqlite_schema WHERE name='omitted_log_index'").get(),undefined);
+  assert.deepEqual(copy.prepare('SELECT * FROM requestDetails').all(),[]);
   assert.equal(copy.prepare('PRAGMA integrity_check').get().integrity_check,'ok');
  }finally{copy.close();}
 }));
