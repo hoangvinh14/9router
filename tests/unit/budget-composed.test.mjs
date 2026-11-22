@@ -20,6 +20,7 @@ const restartCases = {
   'before-intent-commit': { attempts: 0, terminals: 0 },
   'after-intent-ack': { attempts: 1, terminals: 0 },
   'before-response-read': { attempts: 1, terminals: 0 },
+  'during-response-read': { attempts: 1, terminals: 0 },
   'before-terminal-commit': { attempts: 1, terminals: 0 },
   'after-terminal-commit': { attempts: 1, terminals: 1 },
   'after-response': { attempts: 1, terminals: 1 },
@@ -57,7 +58,9 @@ const usage = {
   cache_creation: { ephemeral_5m_input_tokens: 4, ephemeral_1h_input_tokens: 5 },
 };
 
-async function startLoopback(state, reply, interrupted) {
+const partialJson = '{"type":"message",';
+
+async function startLoopback(state, reply, interrupted, partialResponse) {
   const server = https.createServer({ key: fs.readFileSync('/tmp/composed-key.pem'), cert: fs.readFileSync('/tmp/composed-cert.pem') });
   server.on('request', (req, res) => {
     // Count at actual HTTP ingress, even if the body is malformed or cut short.
@@ -73,6 +76,11 @@ async function startLoopback(state, reply, interrupted) {
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
       wire.body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      if (partialResponse) {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.write(partialJson);
+        return; // Leave the response open until the writer process is killed.
+      }
       if (interrupted) {
         res.writeHead(401, { 'content-type': 'application/json', 'content-length': 100 });
         state.interrupt = () => res.destroy();
@@ -91,7 +99,7 @@ async function startLoopback(state, reply, interrupted) {
 }
 
 async function fixture(run, { monthly = null, reply, interrupted = false, prepareDb, beforeFinalBegin,
-  sharedDir, existing = false, stream = false, onCheckpoint = () => {} } = {}) {
+  sharedDir, existing = false, stream = false, onCheckpoint = () => {}, partialResponse = false } = {}) {
   const dir = sharedDir ?? fs.mkdtempSync('/tmp/budget-composed-');
   const path = `${dir}/budget.sqlite`;
   let db, server, peer, atFinal = false;
@@ -194,9 +202,22 @@ async function fixture(run, { monthly = null, reply, interrupted = false, prepar
       get finalChanges() { return finalChanges; },
       trackRead(response) {
         const text = response.text.bind(response);
-        response.text = () => {
+        response.text = async () => {
           state.reads++;
           onCheckpoint('before-response-read');
+          if (partialResponse) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let received = '';
+            while (received.length < partialJson.length) {
+              const { done, value } = await reader.read();
+              assert.equal(done, false, 'response ended before the partial body arrived');
+              received += decoder.decode(value, { stream: true });
+            }
+            assert.equal(received, partialJson);
+            onCheckpoint('during-response-read');
+            assert.fail('writer survived the requested checkpoint');
+          }
           if (tls && interrupted) state.interrupt();
           return text();
         };
@@ -207,7 +228,7 @@ async function fixture(run, { monthly = null, reply, interrupted = false, prepar
         return state.trackRead(reply());
       },
     };
-    if (tls) server = await startLoopback(state, reply, interrupted);
+    if (tls) server = await startLoopback(state, reply, interrupted, partialResponse);
     globalThis.routeFixture = state;
     globalThis.__budgetCore = { helpers: 0, peeks: 0, refresh: 0 };
     const chat = (target = 'Root', overrides = {}, headers = {}) => handleAccountedChatCandidate(new Request('https://fixture.invalid/v1/messages', {
@@ -543,6 +564,7 @@ for (const point of stage ? [] : Object.keys(restartCases)) {
 }
 
 if (stage === '--restart-write') {
+  const partialResponse = checkpoint === 'during-response-read';
   let writerState;
   function killAt(point) {
     if (point !== checkpoint) return;
@@ -563,7 +585,11 @@ if (stage === '--restart-write') {
     assert.equal(inspectPolicy().limits.monthly, limit);
     killAt('after-response');
     assert.equal(checkpoint, 'clean', 'writer missed the requested checkpoint');
-  }, { sharedDir: stageDir, monthly: limit, reply: success, onCheckpoint: killAt });
+  }, { sharedDir: stageDir, monthly: limit, onCheckpoint: killAt, partialResponse,
+    reply: partialResponse ? () => new Response(new ReadableStream({
+      start(controller) { controller.enqueue(new TextEncoder().encode(partialJson)); },
+    }), { headers: { 'content-type': 'application/json' } }) : success,
+  });
 }
 
 if (stage === '--restart-read') {
