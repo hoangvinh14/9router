@@ -207,6 +207,18 @@ sequenceDiagram
     Stream->>Usage: extract usage + persist history/log
 ```
 
+The default release image refuses accounting-controlled API keys before routing. An internal candidate carries the actual direct or nested combo branch and selected account into the final SQLite authorization transaction. That transaction rechecks the captured routing inputs alongside current key policy and spend. Its successful `COMMIT` orders revocation; transaction cleanup and the process health check must still succeed before invocation. Unverified helper, capacity-adapter and retry paths do not inherit that authorization.
+
+The endpoint dashboard reads a key’s budget through the signed-admin `GET /api/keys/[id]/budget`. For an admitted key with a persisted policy, the installed SQLite adapter reads the policy and recorded costs in one transaction. Weekly and monthly remaining amounts use exact nano-USD and stop at zero. The response reports the next resets in the Ho Chi Minh City calendar and counts attempts with defaulted usage or missing terminal cost across the two current windows. Missing profiles return unavailable readiness with null policy and usage. For an eligible active key with no policy or retained accounting history, HTTP 503 with code `budget_not_configured` opens the first-save form. Storage failures return a generic 503 and hide the form. The dashboard saves decimal nano-USD limits or Unlimited through the same-origin admin PUT using the observed policy version (zero for creation), then reloads the persisted policy. A stale edit returns 409 and requires refresh to pick up the current version.
+
+### Operator binding for the internal Docker image
+
+Build the dedicated Linux amd64 image with `--build-arg ACCOUNTING_EDITION=internal` and `--build-arg NODE_IMAGE=<digest-pinned Node 24 Alpine image>`. The operator companion uses [its own Dockerfile](../docker/internal-accounting-operator.Dockerfile). On a fresh private instance, run the companion’s `--create-new /work/instance`, configure the client key and direct Anthropic connection, then stop the app before checking the binding.
+
+Keep one operator-controlled JSON file outside the app’s writable data directory. It contains `clientKeyId` and `workspaceBinding`. The latter contains `scope` (`single-workspace`), `workspaceId`, `connectionId` and `keyDigest` (the upstream credential’s SHA-256 hex digest). For a real upstream key, verify its workspace scope in the provider account. Only the digest belongs in this file.
+
+Pass the file on stdin to the companion’s `--check-binding /work/instance` with the instance data mounted at the same path. Start the internal app on that data with `--mount type=bind,src=<absolute binding file>,dst=/run/9router/accounting-binding.json,readonly`. The app checks the exact client and current connection before offering a policy or dispatching. Use **View budget** to set the first policy. The internal profile covers direct Anthropic Messages JSON for `claude-sonnet-4-6`, `inference_geo=global`, and `service_tier=standard_only`. To replace the upstream credential, recheck the binding offline and recreate the container with the updated mount.
+
 ## Combo + Account Fallback Flow
 
 ```mermaid
