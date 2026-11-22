@@ -15,12 +15,22 @@ import { createNodeKeyPolicy, initializeNodeKeyPolicy } from '../../src/lib/acco
 import { createAnthropicDispatchContext } from '../../src/lib/accounting/anthropic-dispatch-context.js';
 import { isAccountingResponse } from '../../open-sse/utils/accountingResponse.js';
 
-const [stage, stageDir] = process.argv.slice(2);
+const restartCases = {
+  clean: { attempts: 1, terminals: 1 },
+  'before-intent-commit': { attempts: 0, terminals: 0 },
+  'after-intent-ack': { attempts: 1, terminals: 0 },
+  'before-response-read': { attempts: 1, terminals: 0 },
+  'before-terminal-commit': { attempts: 1, terminals: 0 },
+  'after-terminal-commit': { attempts: 1, terminals: 1 },
+  'after-response': { attempts: 1, terminals: 1 },
+};
+const [stage, stageDir, checkpoint] = process.argv.slice(2);
 assert.equal(process.env.BUDGET_PURE_SANDBOX, '1');
 assert.ok(process.env.BUDGET_OUTER_NET);
 if (stage !== undefined) {
-  assert.equal(process.argv.length, 4);
-  assert.ok(['--restart-write', '--restart-kill', '--restart-read'].includes(stage));
+  assert.equal(process.argv.length, 5);
+  assert.ok(['--restart-write', '--restart-read'].includes(stage));
+  assert.ok(Object.hasOwn(restartCases, checkpoint));
   assert.match(stageDir, /^\/tmp\/budget-restart-[A-Za-z0-9]+$/);
   assert.equal(fs.realpathSync(stageDir), stageDir);
   assert.equal(fs.statSync(stageDir).isDirectory(), true);
@@ -81,14 +91,21 @@ async function startLoopback(state, reply, interrupted) {
 }
 
 async function fixture(run, { monthly = null, reply, interrupted = false, prepareDb, beforeFinalBegin,
-  sharedDir, existing = false, stream = false } = {}) {
+  sharedDir, existing = false, stream = false, onCheckpoint = () => {} } = {}) {
   const dir = sharedDir ?? fs.mkdtempSync('/tmp/budget-composed-');
   const path = `${dir}/budget.sqlite`;
   let db, server, peer, atFinal = false;
   let accounts = 0, poolReads = 0, finalChanges = 0;
   async function openObservedAdapter() {
     const adapter = await createNodeSqliteAdapter(path);
-    const { all, get, exec } = adapter;
+    const { all, get, exec, run } = adapter;
+    let pendingWrite;
+    adapter.run = (sql, params) => {
+      const result = run(sql, params);
+      if (sql.startsWith('INSERT INTO accounting_attempts_v1 ')) pendingWrite = 'intent';
+      if (sql.startsWith('INSERT INTO accounting_terminals_v1 ')) pendingWrite = 'terminal';
+      return result;
+    };
     adapter.all = (sql, params) => {
       if (sql === 'SELECT * FROM providerConnections WHERE provider = ? AND isActive = ?') {
         assert.deepEqual(params, ['anthropic', 1]);
@@ -109,7 +126,12 @@ async function fixture(run, { monthly = null, reply, interrupted = false, prepar
         beforeFinalBegin(peer);
         finalChanges++;
       }
-      return exec(sql);
+      const writing = sql === 'COMMIT' ? pendingWrite : undefined;
+      if (writing) onCheckpoint(`before-${writing}-commit`);
+      const result = exec(sql);
+      if (writing) onCheckpoint(`after-${writing}-commit`);
+      if (sql === 'COMMIT' || sql === 'ROLLBACK') pendingWrite = undefined;
+      return result;
     };
     return adapter;
   }
@@ -118,11 +140,18 @@ async function fixture(run, { monthly = null, reply, interrupted = false, prepar
     const ledger = createNodeAttemptLedger(db, { requireAccount: true });
     const bound = bindAccountingIdentity({ ledger, policy }, 'fixture-client');
     assert.ok(bound);
-    const identity = { ...bound, dispatch(...args) {
-      atFinal = true;
-      try { return bound.dispatch(...args); }
-      finally { atFinal = false; }
-    } };
+    const identity = { ...bound,
+      prepare(...args) {
+        const attempt = bound.prepare(...args);
+        onCheckpoint('after-intent-ack');
+        return attempt;
+      },
+      dispatch(...args) {
+        atFinal = true;
+        try { return bound.dispatch(...args); }
+        finally { atFinal = false; }
+      },
+    };
     return { policy, ledger, identity };
   }
   try {
@@ -167,6 +196,7 @@ async function fixture(run, { monthly = null, reply, interrupted = false, prepar
         const text = response.text.bind(response);
         response.text = () => {
           state.reads++;
+          onCheckpoint('before-response-read');
           if (tls && interrupted) state.interrupt();
           return text();
         };
@@ -490,20 +520,19 @@ if (!stage) test('a new owner of reopened SQLite blocks at the persisted limit b
   assert.equal(totals().monthly, (2n * BigInt(limit)).toString());
 }, { monthly: limit, reply: success }));
 
-for (const writer of stage ? [] : ['--restart-write', '--restart-kill']) {
-  const exit = writer === '--restart-kill' ? 'SIGKILL' : 'clean exit';
-  test(`a fresh Node process enforces committed spend after ${exit}`, () => {
+for (const point of stage ? [] : Object.keys(restartCases)) {
+  test(`a fresh Node process restores accounting for checkpoint ${point}`, () => {
     const dir = fs.mkdtempSync('/tmp/budget-restart-');
     try {
-      for (const phase of [writer, '--restart-read']) {
+      for (const phase of ['--restart-write', '--restart-read']) {
         // Only the disposable database and its SQLite journal files carry over.
         const child = spawnSync('/runtime/node', ['--unhandled-rejections=strict', '--experimental-loader',
-          '/app/tests/fixtures/budget/composed-loader.mjs', import.meta.filename, phase, dir], {
+          '/app/tests/fixtures/budget/composed-loader.mjs', import.meta.filename, phase, dir, point], {
           env: process.env, encoding: 'utf8', timeout: 6000,
         });
         const output = `${phase}\n${child.stdout}\n${child.stderr}`;
         assert.ifError(child.error);
-        const expectedSignal = phase === '--restart-kill' ? 'SIGKILL' : null;
+        const expectedSignal = phase === '--restart-write' && point !== 'clean' ? 'SIGKILL' : null;
         assert.equal(child.signal, expectedSignal, output);
         assert.equal(child.status, expectedSignal ? null : 0, output);
       }
@@ -513,8 +542,16 @@ for (const writer of stage ? [] : ['--restart-write', '--restart-kill']) {
   });
 }
 
-if (stage === '--restart-write' || stage === '--restart-kill') {
+if (stage === '--restart-write') {
+  let writerState;
+  function killAt(point) {
+    if (point !== checkpoint) return;
+    const sent = !point.includes('intent');
+    assert.deepEqual([writerState.wire.length, writerState.reads], sent ? [1, 1] : [0, 0]);
+    process.kill(process.pid, 'SIGKILL');
+  }
   await fixture(async ({ chat, state, rows, totals, inspectPolicy }) => {
+    writerState = state;
     const response = await chat();
     assert.equal(response.status, 200);
     assert.equal(isAccountingResponse(response), true);
@@ -524,19 +561,33 @@ if (stage === '--restart-write' || stage === '--restart-kill') {
     assert.equal(rows().terminals.length, 1);
     assert.equal(totals().monthly, limit);
     assert.equal(inspectPolicy().limits.monthly, limit);
-    if (stage === '--restart-kill') process.kill(process.pid, 'SIGKILL');
-  }, { sharedDir: stageDir, monthly: limit, reply: success });
+    killAt('after-response');
+    assert.equal(checkpoint, 'clean', 'writer missed the requested checkpoint');
+  }, { sharedDir: stageDir, monthly: limit, reply: success, onCheckpoint: killAt });
 }
 
 if (stage === '--restart-read') {
   await fixture(async ({ chat, state, rows, totals, inspectPolicy, setMonthly }) => {
     const saved = rows();
     const policy = inspectPolicy();
-    assert.equal(saved.attempts.length, 1);
-    assert.equal(saved.attempts[0].keyId, 'fixture-key');
-    assert.equal(saved.terminals.length, 1);
-    assert.equal(saved.terminals[0].amount, limit);
+    const expected = restartCases[checkpoint];
+    assert.equal(saved.attempts.length, expected.attempts);
+    for (const attempt of saved.attempts) assert.equal(attempt.keyId, 'fixture-key');
+    assert.deepEqual(saved.terminals.map(terminal => terminal.amount), expected.terminals ? [limit] : []);
     assert.equal(policy.limits.monthly, limit);
+    if (!expected.terminals) {
+      assert.equal(totals().monthly, '0');
+      assert.equal(totals().unknown, 0);
+      const resumed = await chat();
+      assert.equal(resumed.status, 200);
+      assert.equal(isAccountingResponse(resumed), true);
+      assert.deepEqual((await resumed.json()).usage, usage);
+      assert.equal((await chat()).status, 503);
+      assert.equal(state.wire.length, 1);
+      assert.equal(rows().attempts.length, expected.attempts + 2);
+      assert.deepEqual(rows().terminals.map(terminal => terminal.amount), [limit]);
+      return;
+    }
     assert.equal(totals().monthly, limit);
     const blocked = await chat();
     assert.equal(blocked.status, 503);

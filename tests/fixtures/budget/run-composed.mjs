@@ -61,7 +61,7 @@ const result = spawnSync('/usr/bin/bwrap', args, {
   env: { PATH: '/usr/bin:/bin', HOME: '/tmp', DATA_DIR: '/tmp/fixture-data', TMPDIR: '/tmp', TZ: 'UTC',
     NODE_ENV: 'test', BUDGET_PURE_SANDBOX: '1', BUDGET_OUTER_NET: fs.readlinkSync('/proc/self/ns/net'),
     ...(tls ? { BUDGET_COMPOSED_TLS: '1', BUDGET_OUTER_USER: fs.readlinkSync('/proc/self/ns/user') } : {}) },
-  stdio: 'inherit', timeout: tls ? 60000 : 20000,
+  stdio: 'inherit', timeout: tls ? 60000 : 35000,
 });
 if (result.error || result.signal || result.status !== 0) {
   console.error('Composed sandbox failed; no host fallback', result.error?.code, result.signal, result.status);
