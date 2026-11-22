@@ -64,6 +64,42 @@ function originalSnapshot(command) {
   const windows = budgetWindows(value.startedAt);
   return { ...value, windows };
 }
+
+const LEGACY_STATES = ['pending', 'settled', 'unresolved', 'not_dispatched', 'waived', 'unrecorded'];
+function legacySnapshot(command, legacy) {
+  if (!legacy || Object.keys(legacy).sort().join(',') !== 'amount,sourceDigest,state' ||
+      !LEGACY_STATES.includes(legacy.state) || typeof legacy.sourceDigest !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(legacy.sourceDigest)) throw unavailable();
+  if (legacy.state === 'settled' || legacy.state === 'waived') nanoUsd(legacy.amount);
+  else if (legacy.amount !== null) throw unavailable();
+  if (legacy.state === 'waived' && legacy.amount !== '0') throw unavailable();
+  if (command.bindingGeneration !== 'legacy') throw unavailable();
+  return { ...originalSnapshot(command), legacy };
+}
+
+function legacyTerminal(original) {
+  return { amountNanoUsd: original.legacy.amount, provenance: 'legacy-recorded' };
+}
+
+// Offline copy only. The caller validates the donor and owns the new file.
+// This writer preserves historical IDs without creating any live attempt ACK.
+export function writeLegacyNodeAttempts(adapter, entries) {
+  const transact = createNodeOuterTransaction(adapter, {
+    schema: DEFINITIONS.schema, putIntent: DEFINITIONS.putIntent, putTerminal: DEFINITIONS.putTerminal,
+  });
+  transact(scope => {
+    checkSchema(scope);
+    for (const { legacy, ...command } of entries) {
+      const original = legacySnapshot(command, legacy);
+      scope.putIntent([original.attemptId, original.keyId, original.startedAt,
+        original.windows.weekly.startAt, original.windows.monthly.startAt, boundedCanonical(original)]);
+      if (legacy.amount !== null) {
+        scope.putTerminal([original.attemptId, legacy.amount, boundedCanonical(legacyTerminal(original))]);
+      }
+    }
+    return true;
+  });
+}
 export const LEDGER_AUDIT_DEFINITIONS = Object.freeze(Object.fromEntries(
   ['schema', 'original', 'auditPage', 'emptyAttempt', 'orphanTerminal'].map(name => [name, Object.freeze({ ...DEFINITIONS[name] })])
 ));
@@ -72,8 +108,9 @@ export function createLedgerReadValidator(corrupt) {
   const parseOriginal = encoded => {
     try {
       const stored = JSON.parse(encoded);
-      const { windows, ...command } = stored;
-      const original = originalSnapshot(command);
+      const { windows, legacy, ...command } = stored;
+      const original = legacy === undefined ? originalSnapshot(command) : legacySnapshot(command, legacy);
+      if (!legacy && original.bindingGeneration === 'legacy') throw unavailable();
       if (boundedCanonical(original) !== encoded || canonical(windows) !== canonical(original.windows)) throw unavailable();
       return original;
     } catch { corrupt(); }
@@ -91,6 +128,16 @@ export function createLedgerReadValidator(corrupt) {
       if (original.attemptId !== row.id || original.keyId !== row.key_id ||
           original.startedAt !== row.started_at || original.windows.weekly.startAt !== row.week_start ||
           original.windows.monthly.startAt !== row.month_start) throw unavailable();
+      if (original.legacy) {
+        if (original.legacy.amount === null) {
+          if (row.amount !== null || row.evidence !== null) throw unavailable();
+          // Preserve source classifications in the attempt without creating a debit.
+          return original.legacy.state === 'unrecorded' ? null : { provenance: 'legacy-no-recorded-cost' };
+        }
+        const evidence = legacyTerminal(original);
+        if (row.amount !== evidence.amountNanoUsd || row.evidence !== boundedCanonical(evidence)) throw unavailable();
+        return evidence;
+      }
       validateGeneration?.(scope, row.key_id, original.bindingGeneration);
       if (row.evidence === null && row.amount === null) return null;
       nanoUsd(row.amount);
@@ -112,10 +159,11 @@ export function createLedgerReadValidator(corrupt) {
         const rows = scope.auditPage([after]);
         for (const row of rows) {
           if (row.id <= after) corrupt();
-          if (validateStoredRow(scope, row) !== null) terminals++;
+          validateStoredRow(scope, row);
+          if (row.evidence !== null) terminals++;
           if (validateGeneration) {
             const original = parseOriginal(scope.original([row.id])?.original);
-            validateGeneration(original.keyId, original.bindingGeneration);
+            validateGeneration(original.keyId, original.legacy ? '1' : original.bindingGeneration);
           }
           attempts++; after = row.id;
         }
@@ -155,6 +203,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
           if (observation && (row.week_start === windows.weekly.startAt || row.month_start === windows.monthly.startAt)) observation.unrecorded++;
           continue;
         }
+        if (row.amount === null) continue;
         if (row.week_start === windows.weekly.startAt) weekly += BigInt(row.amount);
         if (row.month_start === windows.monthly.startAt) monthly += BigInt(row.amount);
         if ((row.week_start === windows.weekly.startAt || row.month_start === windows.monthly.startAt) &&
@@ -218,6 +267,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
     prepare(command, routeProof, accountProof) {
       assertAccountingHealthy();
       const original = originalSnapshot(command);
+      if (original.bindingGeneration === 'legacy') throw unavailable();
       const route = ownRoutes.get(routeProof);
       if ((requireRoute || requireAccount || routeProof !== undefined) && (!route || route.keyId !== original.keyId ||
           route.provider !== original.provider || route.model !== original.model)) throw unavailable();

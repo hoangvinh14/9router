@@ -89,9 +89,27 @@ for(const mode of ['partial','complete','view','event-table','event-view','donor
 for (const version of [2, 3, 4]) test('installed startup preserves donor accounting v' + version, () => child(`
  const version = ${version};
  const now = '2026-11-16T10:00:00.000Z';
+ const {createHmac} = await import('node:crypto');
+ const bindingKey = '01'.repeat(32);
+ const donorSecret = 'fixture-donor-key';
  const states = ['pending', 'settled', 'unresolved', 'not_dispatched', 'waived'];
  if (version === 4) states.push('unrecorded');
  await runMigrationOnce(db);
+ db.run('INSERT INTO apiKeys(id,key,isActive,createdAt) VALUES (?,?,1,?)', ['donor-key', donorSecret, now]);
+ const targetWork = DB_DIR + '/target-work.sqlite';
+ db.run('VACUUM INTO ?', [targetWork]);
+ const target = await createNodeSqliteAdapter(targetWork);
+ const targetBackup = DB_DIR + '/target.sqlite';
+ const {createNodeKeyPolicy} = await import('/app/src/lib/accounting/node-key-policy.js');
+ const {createNodeAttemptLedger} = await import('/app/src/lib/accounting/node-attempt-ledger.js');
+ try {
+   initializeNodeKeyPolicy(target);
+   initializeNodeAttemptLedger(target);
+   createNodeKeyPolicy(target).save('donor-key', 0, {weekly: null, monthly: '225900'});
+   target.run('VACUUM INTO ?', [targetBackup]);
+ } finally {
+   target.close();
+ }
  // Frozen table shapes from the preserved donor's migrations.
  db.exec(\`
   CREATE TABLE apiKeyBindings (apiKeyId TEXT PRIMARY KEY, fingerprint TEXT UNIQUE NOT NULL, createdAt TEXT NOT NULL, retiredAt TEXT);
@@ -119,10 +137,11 @@ for (const version of [2, 3, 4]) test('installed startup preserves donor account
      monthlyLimitNanoUsd INTEGER CHECK(monthlyLimitNanoUsd IS NULL OR (typeof(monthlyLimitNanoUsd)='integer' AND monthlyLimitNanoUsd>=0 AND monthlyLimitNanoUsd<=9000000000000000)),
      version INTEGER NOT NULL CHECK(typeof(version)='integer' AND version>=1), updatedAt TEXT NOT NULL
    )\`);
-   db.run('INSERT INTO apiKeyBudgetPolicies VALUES (?, ?, ?, ?, ?)', ['donor-key', null, 105900, 2, now]);
+   db.run('INSERT INTO apiKeyBudgetPolicies VALUES (?, ?, ?, ?, ?)', ['donor-key', null, 225900, 2, now]);
    tables.push('apiKeyBudgetPolicies');
  }
- db.run('INSERT INTO apiKeyBindings VALUES (?, ?, ?, ?)', ['donor-key', '0'.repeat(64), now, now]);
+ db.run('INSERT INTO apiKeyBindings VALUES (?, ?, ?, ?)', ['donor-key',
+   createHmac('sha256', Buffer.from(bindingKey, 'hex')).update(donorSecret).digest('hex'), now, null]);
  const price = JSON.stringify({ currency: 'USD', unit: 'USD/1M tokens', revision: 'donor-price', rates: { input: '1', output: '2' } });
  const rows = [...states.map(state => ['donor-' + state, state]), ['donor-corrected', 'settled']];
  for (const [id, state] of rows) {
@@ -174,6 +193,68 @@ for (const version of [2, 3, 4]) test('installed startup preserves donor account
  const refusedInspection = inspect(corrupt);
  assert.equal(refusedInspection.status, 1);
  assert.equal(refusedInspection.stdout, '');
+ const beforeTarget = fs.readFileSync(targetBackup);
+ const output = DB_DIR + '/converted';
+ const migrate = (source, destination, key, targetPath = targetBackup) => spawnSync('/runtime/node',
+   ['/app/scripts/inspect-legacy-accounting.mjs', '--migrate', source, targetPath, destination],
+   {encoding: 'utf8', input: key});
+ const converted = migrate(backup, output, bindingKey);
+ assert.equal(converted.status, 0, converted.stderr);
+ assert.deepEqual(JSON.parse(converted.stdout), JSON.parse(result.stdout));
+ assert.deepEqual(fs.readFileSync(output + '/legacy-source.sqlite'), beforeBackup);
+ assert.deepEqual(fs.readFileSync(targetBackup), beforeTarget);
+ assert.deepEqual(fs.readFileSync(backup), beforeBackup);
+ assert.equal(migrate(backup, output, bindingKey).status, 1);
+ for (const [name, input, key] of [
+   ['bad-audit', corrupt, bindingKey], ['bad-binding', backup, '02'.repeat(32)],
+ ]) {
+   const rejected = DB_DIR + '/' + name;
+   assert.equal(migrate(input, rejected, key).status, 1);
+   assert.equal(fs.existsSync(rejected + '/data.sqlite'), false);
+ }
+ const duplicate = DB_DIR + '/duplicate';
+ assert.equal(migrate(backup, duplicate, bindingKey, output + '/data.sqlite').status, 1);
+ assert.equal(fs.existsSync(duplicate + '/data.sqlite'), false);
+ const collisionTarget = DB_DIR + '/collision-target.sqlite';
+ fs.copyFileSync(targetBackup, collisionTarget, fs.constants.COPYFILE_EXCL);
+ const collisionDb = await createNodeSqliteAdapter(collisionTarget);
+ try {
+   createNodeAttemptLedger(collisionDb).prepare({attemptId: 'donor-corrected', keyId: 'donor-key',
+     bindingGeneration: '1', provider: 'fixture', model: 'fixture', startedAt: now, price: JSON.parse(price)});
+ } finally {
+   collisionDb.close();
+ }
+ const collision = DB_DIR + '/late-collision';
+ assert.equal(migrate(backup, collision, bindingKey, collisionTarget).status, 1);
+ assert.equal(fs.existsSync(collision + '/data.sqlite'), false);
+ const pendingCopy = new DatabaseSync(collision + '/pending.sqlite', {readOnly: true});
+ try {
+   assert.deepEqual(pendingCopy.prepare('SELECT id FROM accounting_attempts_v1').all().map(row => row.id), ['donor-corrected']);
+   assert.equal(pendingCopy.prepare('SELECT COUNT(*) AS count FROM accounting_terminals_v1').get().count, 0);
+ } finally {
+   pendingCopy.close();
+ }
+ const reopened = await createNodeSqliteAdapter(output + '/data.sqlite');
+ try {
+   const {auditMarkedNodeStartup} = await import('/app/src/lib/accounting/node-existing-audit.js');
+   auditMarkedNodeStartup(reopened);
+   const ledger = createNodeAttemptLedger(reopened);
+   assert.deepEqual(ledger.validateExistingAttempts(), {validatedAttempts: rows.length, validatedTerminals: 3});
+   assert.deepEqual(ledger.totals('donor-key', now), {weekly: '225900', monthly: '225900', unknown: 0});
+   assert.deepEqual(ledger.totals('donor-key', '2026-11-23T10:00:00.000Z'), {weekly: '0', monthly: '225900', unknown: 0});
+   assert.deepEqual(ledger.totals('donor-key', '2026-12-01T10:00:00.000Z'), {weekly: '0', monthly: '0', unknown: 0});
+   assert.equal(ledger.inspectBudget('donor-key', () => now).usage.unrecorded, Number(version === 4));
+   const fresh = {attemptId: 'fresh', keyId: 'donor-key', bindingGeneration: '1', provider: 'fixture',
+     model: 'fixture', startedAt: now, price: JSON.parse(price)};
+   assert.throws(() => ledger.prepare({...fresh, bindingGeneration: 'legacy'}));
+   assert.throws(() => ledger.prepare({...fresh, attemptId: 'donor-settled'}), error => error.status === 409);
+   const attempt = ledger.prepare(fresh);
+   let posts = 0;
+   assert.throws(() => ledger.dispatch(attempt.ack, {presentedSecret: donorSecret, now}, () => posts++));
+   assert.equal(posts, 0);
+ } finally {
+   reopened.close();
+ }
  const data = () => tables.map(table => db.all('SELECT * FROM ' + table + ' ORDER BY rowid'));
  const previous = data();
  const schema = snapshot();
