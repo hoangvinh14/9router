@@ -5,6 +5,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {createNodeSqliteAdapter} from '../../src/lib/db/adapters/nodeSqliteAdapter.js';
 import {initializeNodeKeyPolicy,createNodeKeyPolicy} from '../../src/lib/accounting/node-key-policy.js';
 import {initializeNodeAttemptLedger,createNodeAttemptLedger} from '../../src/lib/accounting/node-attempt-ledger.js';
+import {EXCLUSIVE_USAGE} from '../../src/lib/accounting/terminal-cost.js';
 import {backupDbLite} from '../../src/lib/db/backup.js';
 assert.equal(process.env.BUDGET_DRIVER_SANDBOX,'1');
 assert.notEqual(fs.readlinkSync('/proc/self/ns/net'),process.env.BUDGET_OUTER_NET);
@@ -64,6 +65,61 @@ test('retired identity generation history and administrative event survive actua
   assert.equal(copy.get('PRAGMA integrity_check').integrity_check,'ok');
   assert.deepEqual(tables.map(table=>db.all('SELECT * FROM '+table)),before);
  }finally{copy.close();}
+}));
+
+test('restoring an older standalone snapshot enforces its saved policy and recorded spend', () => fixture(async (db, dir) => {
+  const now = '2026-11-16T10:00:00.000Z';
+  const context = { presentedSecret: 'fixture-secret', now };
+  const original = id => ({
+    attemptId: id, keyId: 'key-A', bindingGeneration: '1', provider: 'fixture', model: 'fixture', startedAt: now,
+    price: { currency: 'USD', unit: 'USD/1M tokens', revision: 'fixture', rates: { input: '1', output: '2' } },
+  });
+  const evidence = {
+    semantics: EXCLUSIVE_USAGE,
+    components: [{ category: 'input', count: 3000, unit: 'USD/1M tokens' }],
+  };
+  const sourcePolicy = createNodeKeyPolicy(db);
+  const sourceLedger = createNodeAttemptLedger(db);
+  let posts = 0;
+  function charge(id) {
+    const attempt = sourceLedger.prepare(original(id));
+    sourceLedger.dispatch(attempt.ack, context, () => posts++);
+    attempt.settle(evidence);
+  }
+
+  sourcePolicy.save('key-A', 1, { weekly: null, monthly: '3000000' });
+  charge('before-backup');
+  const policyAtBackup = sourcePolicy.inspect('key-A');
+  const totalsAtBackup = sourceLedger.totals('key-A', now);
+  assert.equal(totalsAtBackup.monthly, '3000000');
+  const snapshot = backupDbLite(db, dir, 'backup.sqlite');
+
+  sourcePolicy.save('key-A', policyAtBackup.version, { weekly: null, monthly: '6000000' });
+  charge('after-backup');
+  assert.equal(posts, 2);
+  assert.equal(sourceLedger.totals('key-A', now).monthly, '6000000');
+
+  const restoredPath = dir + '/restored.sqlite';
+  fs.copyFileSync(snapshot, restoredPath, fs.constants.COPYFILE_EXCL);
+  const restored = await createNodeSqliteAdapter(restoredPath);
+  try {
+    const policy = createNodeKeyPolicy(restored);
+    const ledger = createNodeAttemptLedger(restored);
+    assert.deepEqual(policy.inspect('key-A'), policyAtBackup);
+    assert.deepEqual(ledger.validateExistingAttempts(), { validatedAttempts: 2, validatedTerminals: 2 });
+    assert.deepEqual(ledger.totals('key-A', now), totalsAtBackup);
+    const next = ledger.prepare(original('after-restore'));
+    assert.throws(() => ledger.dispatch(next.ack, context, () => posts++));
+    assert.equal(posts, 2);
+    assert.deepEqual(ledger.validateExistingAttempts(), { validatedAttempts: 3, validatedTerminals: 2 });
+    assert.deepEqual(ledger.totals('key-A', now), totalsAtBackup);
+    assert.deepEqual(restored.all('PRAGMA foreign_key_check'), []);
+    assert.equal(restored.get('PRAGMA integrity_check').integrity_check, 'ok');
+  } finally {
+    restored.close();
+  }
+  assert.equal(sourcePolicy.inspect('key-A').limits.monthly, '6000000');
+  assert.equal(sourceLedger.totals('key-A', now).monthly, '6000000');
 }));
 
 test('administrative event copy failure rejects artifact completion and preserves original retirement facts',()=>fixture(async(db,dir)=>{
