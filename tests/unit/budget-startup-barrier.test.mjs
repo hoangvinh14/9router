@@ -86,6 +86,76 @@ for(const mode of ['partial','complete','view','event-table','event-view','donor
  assert.equal(fs.existsSync(DB_DIR+'/.migrated-from-json'),false);
 `));
 
+for (const version of [2, 3, 4]) test('installed startup preserves donor accounting v' + version, () => child(`
+ const version = ${version};
+ const now = '2026-11-16T10:00:00.000Z';
+ const states = ['pending', 'settled', 'unresolved', 'not_dispatched', 'waived'];
+ if (version === 4) states.push('unrecorded');
+ await runMigrationOnce(db);
+ // Frozen table shapes from the preserved donor's migrations.
+ db.exec(\`
+  CREATE TABLE apiKeyBindings (apiKeyId TEXT PRIMARY KEY, fingerprint TEXT UNIQUE NOT NULL, createdAt TEXT NOT NULL, retiredAt TEXT);
+  CREATE TABLE apiKeyAccounting (
+    attemptId TEXT PRIMARY KEY, requestId TEXT NOT NULL, apiKeyId TEXT NOT NULL, ownerInstanceId TEXT NOT NULL,
+    startedAt TEXT NOT NULL, finishedAt TEXT, provider TEXT NOT NULL, model TEXT NOT NULL, endpoint TEXT NOT NULL,
+    connectionId TEXT, state TEXT NOT NULL CHECK(state IN (\${states.map(state => "'" + state + "'").join(',')})),
+    outcome TEXT, usageJson TEXT, priceSnapshotJson TEXT NOT NULL, intentJson TEXT NOT NULL, terminalJson TEXT,
+    costNanoUsd INTEGER CHECK(costNanoUsd IS NULL OR (typeof(costNanoUsd)='integer' AND costNanoUsd>=0 AND costNanoUsd<=9000000000000000)),
+    resolutionVersion INTEGER NOT NULL DEFAULT 0, manuallyResolved INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX idx_accounting_key_time_state ON apiKeyAccounting(apiKeyId,startedAt,state);
+  CREATE INDEX idx_accounting_key_state ON apiKeyAccounting(apiKeyId,state);
+  CREATE TABLE apiKeyAccountingAudit (id TEXT PRIMARY KEY, attemptId TEXT, apiKeyId TEXT, gapId TEXT,
+    operationId TEXT UNIQUE NOT NULL, actor TEXT NOT NULL, reason TEXT NOT NULL, action TEXT NOT NULL,
+    beforeJson TEXT NOT NULL, afterJson TEXT NOT NULL, createdAt TEXT NOT NULL);
+  CREATE TRIGGER accounting_audit_no_update BEFORE UPDATE ON apiKeyAccountingAudit BEGIN SELECT RAISE(ABORT,'Accounting audit is append-only'); END;
+  CREATE TRIGGER accounting_audit_no_delete BEFORE DELETE ON apiKeyAccountingAudit BEGIN SELECT RAISE(ABORT,'Accounting audit is append-only'); END;
+ \`);
+ const tables = ['apiKeyBindings', 'apiKeyAccounting', 'apiKeyAccountingAudit'];
+ if (version >= 3) {
+   db.exec(\`CREATE TABLE apiKeyBudgetPolicies (
+     apiKeyId TEXT PRIMARY KEY,
+     weeklyLimitNanoUsd INTEGER CHECK(weeklyLimitNanoUsd IS NULL OR (typeof(weeklyLimitNanoUsd)='integer' AND weeklyLimitNanoUsd>=0 AND weeklyLimitNanoUsd<=9000000000000000)),
+     monthlyLimitNanoUsd INTEGER CHECK(monthlyLimitNanoUsd IS NULL OR (typeof(monthlyLimitNanoUsd)='integer' AND monthlyLimitNanoUsd>=0 AND monthlyLimitNanoUsd<=9000000000000000)),
+     version INTEGER NOT NULL CHECK(typeof(version)='integer' AND version>=1), updatedAt TEXT NOT NULL
+   )\`);
+   db.run('INSERT INTO apiKeyBudgetPolicies VALUES (?, ?, ?, ?, ?)', ['donor-key', null, 105900, 2, now]);
+   tables.push('apiKeyBudgetPolicies');
+ }
+ db.run('INSERT INTO apiKeyBindings VALUES (?, ?, ?, ?)', ['donor-key', '0'.repeat(64), now, now]);
+ const price = JSON.stringify({ currency: 'USD', unit: 'USD/1M tokens', revision: 'donor-price', rates: { input: '1', output: '2' } });
+ const rows = [...states.map(state => ['donor-' + state, state]), ['donor-corrected', 'settled']];
+ for (const [id, state] of rows) {
+   const corrected = id === 'donor-corrected';
+   const usage = state === 'settled' && !corrected
+     ? { exact: true, input: 100, output: 10, cacheRead: 0, cacheWrite: 0, reasoning: 0, reasoningIncludedInOutput: true }
+     : null;
+   const intent = JSON.stringify({ attemptId: id, requestId: 'request-' + state, apiKeyId: 'donor-key', ownerInstanceId: 'donor-owner',
+     startedAt: now, provider: 'fixture', model: 'fixture', endpoint: '/v1/messages', priceSnapshot: JSON.parse(price) });
+   const terminal = state === 'pending' ? null : JSON.stringify({ state: corrected ? 'unresolved' : state, finishedAt: now,
+     ...(usage && { usage }) });
+   const amount = corrected ? 105900 : usage ? 120000 : state === 'waived' ? 0 : null;
+   db.run(\`INSERT INTO apiKeyAccounting
+     (attemptId,requestId,apiKeyId,ownerInstanceId,startedAt,finishedAt,provider,model,endpoint,state,priceSnapshotJson,intentJson,terminalJson,usageJson,costNanoUsd,manuallyResolved)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)\`,
+   [id, 'request-' + state, 'donor-key', 'donor-owner', now, terminal ? now : null, 'fixture', 'fixture',
+     '/v1/messages', state, price, intent, terminal, usage ? JSON.stringify(usage) : null, amount, Number(corrected || state === 'waived')]);
+ }
+ db.run('INSERT INTO apiKeyAccountingAudit VALUES (?,?,?,?,?,?,?,?,?,?,?)', [
+   'audit-correction', 'donor-corrected', 'donor-key', null, 'correction', 'fixture-operator', 'fixture evidence',
+   'cost_correction', JSON.stringify({ state: 'unresolved' }), JSON.stringify({ costNanoUsd: '105900' }), now,
+ ]);
+ const data = () => tables.map(table => db.all('SELECT * FROM ' + table + ' ORDER BY rowid'));
+ const previous = data();
+ const schema = snapshot();
+ await assert.rejects(runMigrationOnce(db), refused);
+ const {getAdapter} = await import('/app/src/lib/db/driver.js');
+ await assert.rejects(getAdapter(), refused);
+ assert.deepEqual(data(), previous);
+ assert.equal(snapshot(), schema);
+ assert.equal(db.get('SELECT SUM(costNanoUsd) AS total FROM apiKeyAccounting').total, 225900);
+`));
+
 for(const mode of ['current','restored','legacy-snapshot-repaired','legacy-snapshot-unmodified','pending-import','missing-app-index','invalid-binding'])test('installed marked startup qualifies existing state: '+mode,()=>child(`
  const mode=${JSON.stringify(mode)};
  const legacySnapshot=mode.startsWith('legacy-snapshot-');
