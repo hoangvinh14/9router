@@ -5,6 +5,7 @@ import path from 'node:path';
 // must keep the new directory private until this command exits successfully.
 const [command, directory] = process.argv.slice(2);
 const checking = command === '--check-binding';
+const enabling = command === '--enable-existing';
 
 async function readBinding() {
   const chunks = [];
@@ -29,21 +30,44 @@ function requirePrivateDb(directory) {
     if (!stat && name !== file) continue;
     if (!stat?.isFile() || stat.uid !== process.getuid() || stat.nlink !== 1) throw new Error();
   }
+  return file;
 }
+
+async function backupExistingDb(directory, file) {
+  const { DatabaseSync, backup } = await import('node:sqlite');
+  const { readAccountingMarkers } = await import('../src/lib/accounting/mutation-barrier.js');
+  const source = new DatabaseSync(file, { readOnly: true });
+  try {
+    if (!source.prepare("SELECT 1 FROM main.sqlite_schema WHERE type = 'table' AND name = 'apiKeys'").get()) {
+      throw new Error();
+    }
+    const accountingObjects = source.prepare("SELECT 1 FROM main.sqlite_schema WHERE lower(name) GLOB 'accounting_*'").get();
+    if (accountingObjects || readAccountingMarkers({ all: (sql, params) => source.prepare(sql).all(...params) }).length) {
+      throw new Error('Refused: existing accounting schema');
+    }
+    const backupDir = fs.mkdtempSync(path.join(directory, 'before-budget-'));
+    await backup(source, path.join(backupDir, 'data.sqlite'));
+    console.log('SQLite backup saved in ' + path.basename(backupDir));
+  } finally {
+    source.close();
+  }
+}
+
 try {
-  if (process.argv.length !== 4 || (!checking && command !== '--create-new') || !path.isAbsolute(directory ?? '') ||
+  if (process.argv.length !== 4 || (!checking && !enabling && command !== '--create-new') || !path.isAbsolute(directory ?? '') ||
       path.normalize(directory) !== directory || directory.endsWith('/') || process.platform !== 'linux' ||
       Number(process.versions.node.split('.')[0]) !== 24 || process.getuid() === 0) {
-    throw new Error('Usage (non-root Linux Node 24): node scripts/provision-internal-accounting.mjs {--create-new|--check-binding} /absolute/directory');
+    throw new Error('Usage (non-root Linux Node 24): node scripts/provision-internal-accounting.mjs {--create-new|--enable-existing|--check-binding} /absolute/directory');
   }
   const parent = path.dirname(directory);
   if (fs.realpathSync(parent) !== parent) throw new Error('Use a canonical, operator-controlled parent directory');
-  // Only exclusive creation grants first-provision provenance. The separate
-  // check can inspect a marked database but cannot provision or adopt it.
   let binding;
   if (checking) {
     try { binding = await readBinding(); requirePrivateDb(directory); }
     catch { throw new Error('Refused: invalid binding input or private existing database unavailable'); }
+  } else if (enabling) {
+    try { await backupExistingDb(directory, requirePrivateDb(directory)); }
+    catch { throw new Error('Refused: expected a private SQLite database with no accounting schema and a successful backup'); }
   } else {
     try { fs.mkdirSync(directory, { mode: 0o700 }); }
     catch { throw new Error('Refused: target must not exist and its parent must be writable'); }
@@ -61,7 +85,7 @@ try {
         verifyInternalAnthropicBinding(adapter, binding);
       } else {
         const { provisionEmptyNodeAccountingSchema } = await import('../src/lib/accounting/node-existing-audit.js');
-        provisionEmptyNodeAccountingSchema(adapter);
+        provisionEmptyNodeAccountingSchema(adapter, { existingSqlite: enabling });
       }
     } finally { adapter.close(); }
     const disposition = globalThis._dbAdapter.accountingCloseDisposition;
@@ -71,7 +95,7 @@ try {
   } catch {
     // Preserve the new directory for inspection; no implicit removal or retry.
     throw new Error(checking ? 'Binding check failed; no admission granted' :
-      'Provisioning failed: do not serve this directory; inspect offline');
+      'Provisioning failed: keep the instance offline and inspect the data and any backup');
   }
 } catch (error) {
   console.error(error.message);

@@ -94,3 +94,71 @@ for(const mode of ['partial','ddl-failure'])test('schema setup does not repair o
  assert.equal(r.status,0,r.stdout+r.stderr);
  assert.deepEqual(inspect(dir,markers),mode==='partial'?['accounting_admin_events_v1']:[]);
 });
+
+test('enable existing SQLite preserves keys and logs, starts at zero and blocks at the persisted limit', () => {
+ const dir='/tmp/enable-existing';
+ const now='2026-11-16T10:00:00.000Z';
+ fs.mkdirSync(dir,{mode:0o700});
+ const seed=run(['--input-type=module','--eval',`
+  const {getAdapter}=await import('/app/src/lib/db/driver.js');
+  const db=await getAdapter();
+  db.run("DELETE FROM _meta WHERE key='legacyImportState'");
+  db.run("INSERT INTO apiKeys(id,key,isActive,createdAt) VALUES('fixture','offline-client-only',1,?)",[${JSON.stringify(now)}]);
+  db.run("INSERT INTO requestDetails(id,timestamp,data) VALUES('old-log',?,'{}')",[${JSON.stringify(now)}]);
+  db.close();
+ `],{DATA_DIR:dir});
+ assert.equal(seed.status,0,seed.stdout+seed.stderr);
+ const enabled=run([cli,'--enable-existing',dir]);
+ assert.equal(enabled.status,0,enabled.stdout+enabled.stderr);
+ const backups=fs.readdirSync(dir).filter(name=>name.startsWith('before-budget-'));
+ assert.equal(backups.length,1);
+ const readData=db=>[
+  db.prepare('SELECT id,key FROM apiKeys').all(),
+  db.prepare('SELECT * FROM requestDetails').all(),
+ ];
+ const snapshot=new DatabaseSync(dir+'/'+backups[0]+'/data.sqlite',{readOnly:true});
+ try {
+  assert.deepEqual(markers(snapshot),[]);
+  assert.deepEqual(readData(snapshot),inspect(dir,readData));
+ } finally {snapshot.close();}
+
+ const budgetScript=`
+  import assert from 'node:assert/strict';
+  import {getAccountingAdapter} from '/app/src/lib/db/driver.js';
+  import {createNodeKeyPolicy} from '/app/src/lib/accounting/node-key-policy.js';
+  import {createNodeAttemptLedger} from '/app/src/lib/accounting/node-attempt-ledger.js';
+  import {EXCLUSIVE_USAGE} from '/app/src/lib/accounting/terminal-cost.js';
+  const now=${JSON.stringify(now)};
+  const db=await getAccountingAdapter();
+  try {
+   const ledger=createNodeAttemptLedger(db);
+   const command={attemptId:process.argv[1],keyId:'fixture',bindingGeneration:'1',provider:'fixture',model:'fixture',
+    startedAt:now,price:{currency:'USD',unit:'USD/1M tokens',revision:'fixture',rates:{input:'0.1',output:'2'}}};
+   const context={presentedSecret:'offline-client-only',now};
+   let sends=0;
+   if(command.attemptId==='first') {
+    assert.equal(db.get('SELECT count(*) n FROM accounting_key_policy_v1').n,0);
+    createNodeKeyPolicy(db).save('fixture',0,{weekly:null,monthly:'105900'});
+    assert.equal(ledger.totals('fixture',now).monthly,'0');
+    const attempt=ledger.prepare(command);
+    ledger.dispatch(attempt.ack,context,()=>sends++);
+    attempt.settle({semantics:EXCLUSIVE_USAGE,components:[
+     {category:'input',count:1059,unit:'USD/1M tokens'},{category:'output',count:0,unit:'USD/1M tokens'}]});
+    assert.equal(sends,1);
+   } else {
+    assert.equal(ledger.totals('fixture',now).monthly,'105900');
+    const attempt=ledger.prepare(command);
+    assert.throws(()=>ledger.dispatch(attempt.ack,context,()=>sends++));
+    assert.equal(sends,0);
+    assert.equal(db.get('SELECT count(*) n FROM accounting_terminals_v1').n,1);
+   }
+  } finally {db.close();}
+ `;
+ for(const attempt of ['first','after-restart']) {
+  const result=run(['--input-type=module','--eval',budgetScript,attempt],{DATA_DIR:dir});
+  assert.equal(result.status,0,result.stdout+result.stderr);
+ }
+ const repeat=run([cli,'--enable-existing',dir]);
+ assert.equal(repeat.status,1);
+ assert.deepEqual(fs.readdirSync(dir).filter(name=>name.startsWith('before-budget-')),backups);
+});
