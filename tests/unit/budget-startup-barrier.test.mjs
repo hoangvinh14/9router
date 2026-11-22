@@ -37,9 +37,14 @@ test('complete or partial markers refuse before any startup DDL import backup pr
  `);
 });
 
-for(const mode of ['partial','complete','view','event-table','event-view','read-fault','close-fault'])test('installed native preconfiguration refusal '+mode,()=>child(`
+for(const mode of ['partial','complete','view','event-table','event-view','donor','mixed-donor','read-fault','close-fault'])test('installed native preconfiguration refusal '+mode,()=>child(`
  const mode=${JSON.stringify(mode)};
  if(mode==='complete'){initializeNodeKeyPolicy(db);initializeNodeAttemptLedger(db);}
+ else if(mode==='donor'||mode==='mixed-donor'){
+  if(mode==='mixed-donor')initializeNodeKeyPolicy(db);
+  db.exec('CREATE TABLE ApiKeyAccounting (attemptId TEXT PRIMARY KEY,costNanoUsd INTEGER)');
+  db.run('INSERT INTO ApiKeyAccounting VALUES(?,?)',['recorded',105900]);
+ }
  else if(mode==='view')db.exec('CREATE VIEW accounting_attempts_v1 AS SELECT 1 AS value');
  else if(mode==='event-table')db.exec('CREATE TABLE accounting_admin_events_v1 (key_id TEXT)');
  else if(mode==='event-view')db.exec('CREATE VIEW accounting_admin_events_v1 AS SELECT 1 AS key_id');
@@ -72,6 +77,11 @@ for(const mode of ['partial','complete','view','event-table','event-view','read-
   globalThis.setInterval=interval;console.warn=warn;if(raw?.isOpen)close.call(raw);
  }
  assert.equal(snapshot(),beforeSchema);
+ if(mode==='donor'||mode==='mixed-donor'){
+  await assert.rejects(runMigrationOnce(db),refused);
+  assert.equal(db.get('SELECT costNanoUsd FROM ApiKeyAccounting WHERE attemptId=?',['recorded']).costNanoUsd,105900);
+  assert.equal(snapshot(),beforeSchema);
+ }
  assert.equal(db.get("SELECT name FROM sqlite_schema WHERE name='_meta'"),undefined);
  assert.equal(fs.existsSync(DB_DIR+'/.migrated-from-json'),false);
 `));

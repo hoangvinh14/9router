@@ -2,7 +2,7 @@
 // No native build, no npm install. Ordinary API mirrors betterSqliteAdapter.
 import { PRAGMA_SQL } from "../schema.js";
 import { nodeClosureConfirmed } from "./nodeClosure.js";
-import { readAccountingMarkers } from "../../accounting/mutation-barrier.js";
+import { CURRENT_ACCOUNTING_MARKERS, readAccountingMarkers } from "../../accounting/mutation-barrier.js";
 
 const CHECKPOINT_INTERVAL_MS = 60 * 1000;
 const markedInstalledConnections = new WeakSet();
@@ -88,7 +88,8 @@ async function openAttempt(filePath, installed, requireMarked = false) {
         if (!markers.length) phase = "initialization_failed";
         else {
           reason = 'incomplete_accounting_schema';
-          if (markers.length !== 5 || markers.some(row => row.type !== 'table')) throw new Error();
+          if (markers.length !== CURRENT_ACCOUNTING_MARKERS.length ||
+              markers.some(row => row.type !== 'table' || !CURRENT_ACCOUNTING_MARKERS.includes(row.name))) throw new Error();
           reason = 'unsupported_app_state';
           if (!db.prepare("SELECT 1 FROM main.sqlite_schema WHERE type = 'table' AND name = '_meta'").get() ||
               db.prepare('PRAGMA journal_mode').get()?.journal_mode !== 'wal') throw new Error();

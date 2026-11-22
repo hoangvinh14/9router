@@ -1,12 +1,20 @@
 import { unavailable } from './attempt-payload.js';
 import { faultAccounting } from './process-state.js';
 
-const markerNames = ['accounting_attempts_v1', 'accounting_terminals_v1', 'accounting_key_policy_v1', 'accounting_key_generations_v1', 'accounting_admin_events_v1'];
+export const CURRENT_ACCOUNTING_MARKERS = Object.freeze([
+  'accounting_attempts_v1', 'accounting_terminals_v1', 'accounting_key_policy_v1',
+  'accounting_key_generations_v1', 'accounting_admin_events_v1',
+]);
+const markerNames = [
+  ...CURRENT_ACCOUNTING_MARKERS, 'apikeybindings', 'apikeyaccounting',
+  'apikeyaccountingaudit', 'apikeybudgetpolicies',
+];
+const markerSql = `SELECT name, type FROM main.sqlite_schema WHERE lower(name) IN (${markerNames.map(() => '?').join(', ')})`;
 
 // Inventory only, not startup qualification. Do not mistake a view for a table.
 export function readAccountingMarkers(adapter) {
   try {
-    const markers = adapter.all('SELECT name, type FROM main.sqlite_schema WHERE name IN (?, ?, ?, ?, ?)', markerNames);
+    const markers = adapter.all(markerSql, markerNames);
     if (!Array.isArray(markers)) throw unavailable();
     return markers;
   } catch {
