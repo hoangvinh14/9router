@@ -53,7 +53,8 @@ export async function handleChat(request, clientRawRequest = null) {
 // or supply an identity, routing readers, or context factory through a request.
 export async function handleAccountedChatCandidate(request, { identity, createContext }) {
   try {
-    if (request.headers.has('anthropic-workspace-id') ||
+    if (request.method !== 'POST' || new URL(request.url).pathname !== '/v1/messages' ||
+        request.headers.has('anthropic-workspace-id') ||
         !identity.matchesSecret(selectedAccountingSecret(request))) return refuseCandidate();
     const view = await identity.captureRoute();
     const settings = mergeWithDefaults(view.reads.getSettingsData());

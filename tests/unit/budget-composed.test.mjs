@@ -231,7 +231,7 @@ async function fixture(run, { weekly = null, monthly = null, reply, interrupted 
     if (tls) server = await startLoopback(state, reply, interrupted, partialResponse);
     globalThis.routeFixture = state;
     globalThis.__budgetCore = { helpers: 0, peeks: 0, refresh: 0 };
-    const chat = (target = 'Root', overrides = {}, headers = {}) => handleAccountedChatCandidate(new Request('https://fixture.invalid/v1/messages', {
+    const chat = (target = 'Root', overrides = {}, headers = {}, pathname = '/v1/messages') => handleAccountedChatCandidate(new Request(`https://fixture.invalid${pathname}`, {
       method: 'POST', headers: { authorization: 'Bearer fixture-client', 'user-agent': 'claude-code fixture', ...headers },
       body: JSON.stringify({ ...body, ...overrides, model: target }),
     }), { identity: owner.identity, createContext({ routeProof, credentials, settings }) {
@@ -598,6 +598,22 @@ if (!stage) test('request SSE flag and headers cannot opt a JSON profile into SS
   assert.equal(state.wire.length, 0);
   assert.deepEqual(rows(), { attempts: [], terminals: [] });
 }, { reply: success }));
+
+if (!stage) test('native SSE candidate refuses Chat and Responses ingress before routing', () => fixture(async ({ chat, state, rows }) => {
+  const native = { stream: true, system: 'fixture system prompt' };
+  for (const [path, request] of [
+    ['/v1/chat/completions', native],
+    ['/v1/chat/completions', { stream: true, messages: [{ role: 'assistant', content: null, reasoning_content: 'fixture' }] }],
+    ['/v1/responses', native],
+    ['/v1/responses', { stream: true, input: [{ type: 'reasoning', encrypted_content: 'fixture' }] }],
+  ]) {
+    const response = await chat('Root', request, {}, path);
+    assert.equal(response.status, 503);
+    assert.equal(isAccountingResponse(response), true);
+  }
+  assert.deepEqual([state.accounts, state.contexts, state.preparations, state.wire.length], [0, 0, 0, 0]);
+  assert.deepEqual(rows(), { attempts: [], terminals: [] });
+}, { stream: true, reply: () => assert.fail('foreign ingress reached upstream') }));
 
 if (!stage) test('selected nested route settles five categories, then the same route at the exact limit invokes zero times', () => fixture(async ({chat, state, rows, totals}) => {
   assert.equal((await chat('fast')).status, 503, 'direct alias cannot inherit combo access');
