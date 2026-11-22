@@ -23,4 +23,6 @@ Root `/home/gmo/projects/9router`: admitted `src/lib/db/{schema,driver,migrate,b
 
 ## Success evidence
 
+**Restart after a committed terminal.** In the isolated C0 fixture, the writer receives the native JSON response and checks the durable policy and one 105,900 nanoUSD terminal. It is then killed with SIGKILL before SQLite can close. A fresh Node process reads the same policy and terminal, returns 503 at the persisted limit, and adds zero POSTs and zero terminals. Raising the limit by one nanoUSD admits exactly one POST and one further terminal. Counted transport and HTTPS loopback suites both passed 14/14 on Node v24.21.0. Crash points before terminal acknowledgement, startup migration, and the wider platform matrix remain open.
+
 Exact test selectors/revision hashes+adapter/platform table; durable saved-row restart+zero-next-POST; original identity/price/window checks after late/concurrent controls; fault/migration roundtrip no known-truth loss; unresolved old timing/native-isolation gates either repaired with new causal evidence or exact owner disposition. Broad pass counts/baseline classifications alone do not grant completion. All runtime checks external sandbox only; see phase05.

@@ -20,7 +20,7 @@ assert.equal(process.env.BUDGET_PURE_SANDBOX, '1');
 assert.ok(process.env.BUDGET_OUTER_NET);
 if (stage !== undefined) {
   assert.equal(process.argv.length, 4);
-  assert.ok(['--restart-write', '--restart-read'].includes(stage));
+  assert.ok(['--restart-write', '--restart-kill', '--restart-read'].includes(stage));
   assert.match(stageDir, /^\/tmp\/budget-restart-[A-Za-z0-9]+$/);
   assert.equal(fs.realpathSync(stageDir), stageDir);
   assert.equal(fs.statSync(stageDir).isDirectory(), true);
@@ -490,26 +490,30 @@ if (!stage) test('a new owner of reopened SQLite blocks at the persisted limit b
   assert.equal(totals().monthly, (2n * BigInt(limit)).toString());
 }, { monthly: limit, reply: success }));
 
-if (!stage) test('a fresh Node process enforces the budget committed by a previous process', () => {
-  const dir = fs.mkdtempSync('/tmp/budget-restart-');
-  try {
-    for (const phase of ['--restart-write', '--restart-read']) {
-      // Only the disposable DB is handed over. spawnSync waits for the writer
-      // to exit cleanly before starting a fresh interpreter for the reader.
-      const child = spawnSync('/runtime/node', ['--unhandled-rejections=strict', '--experimental-loader',
-        '/app/tests/fixtures/budget/composed-loader.mjs', import.meta.filename, phase, dir], {
-        env: process.env, encoding: 'utf8', timeout: 6000,
-      });
-      assert.ifError(child.error);
-      assert.equal(child.signal, null, phase);
-      assert.equal(child.status, 0, `${phase}\n${child.stdout}\n${child.stderr}`);
+for (const writer of stage ? [] : ['--restart-write', '--restart-kill']) {
+  const exit = writer === '--restart-kill' ? 'SIGKILL' : 'clean exit';
+  test(`a fresh Node process enforces committed spend after ${exit}`, () => {
+    const dir = fs.mkdtempSync('/tmp/budget-restart-');
+    try {
+      for (const phase of [writer, '--restart-read']) {
+        // Only the disposable database and its SQLite journal files carry over.
+        const child = spawnSync('/runtime/node', ['--unhandled-rejections=strict', '--experimental-loader',
+          '/app/tests/fixtures/budget/composed-loader.mjs', import.meta.filename, phase, dir], {
+          env: process.env, encoding: 'utf8', timeout: 6000,
+        });
+        const output = `${phase}\n${child.stdout}\n${child.stderr}`;
+        assert.ifError(child.error);
+        const expectedSignal = phase === '--restart-kill' ? 'SIGKILL' : null;
+        assert.equal(child.signal, expectedSignal, output);
+        assert.equal(child.status, expectedSignal ? null : 0, output);
+      }
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
     }
-  } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
-});
+  });
+}
 
-if (stage === '--restart-write') {
+if (stage === '--restart-write' || stage === '--restart-kill') {
   await fixture(async ({ chat, state, rows, totals, inspectPolicy }) => {
     const response = await chat();
     assert.equal(response.status, 200);
@@ -520,6 +524,7 @@ if (stage === '--restart-write') {
     assert.equal(rows().terminals.length, 1);
     assert.equal(totals().monthly, limit);
     assert.equal(inspectPolicy().limits.monthly, limit);
+    if (stage === '--restart-kill') process.kill(process.pid, 'SIGKILL');
   }, { sharedDir: stageDir, monthly: limit, reply: success });
 }
 
