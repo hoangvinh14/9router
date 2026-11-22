@@ -16,7 +16,7 @@ Root `/home/gmo/projects/9router`: admitted `src/lib/db/{schema,driver,migrate,b
 
 ## Implementation và validation
 
-Readonly startup decision: [single candidate not achieved at source](./references/startup-diagnostic-seam-review.md#decision--not-achieved-source-no-go); no DB open or fixture. This closes the decision package only. Accounting-marked startup remains refused; restart/recovery/migration checks below stay open.
+The startup regression suite covers refusal before migrations on unqualified accounting state. Restored snapshots still need installed-startup verification. [Startup regression suite](../../tests/unit/budget-startup-barrier.test.mjs).
 
 - [ ] Rename và verified rotation cùng stable ID giữ policy/spend/history theo approved D04. Donor validator currently rejects changed fingerprint; test new authorized binding operation, old-secret revocation, stale/CAS/concurrent/fault rollback without half-rebind. Delete retires binding/history, no automatic purge; genuinely new ID does not inherit old money. Import cannot reuse retired IDs. Legal retention duration remains separate rollout gate; no plaintext in accounting records.
 - [ ] Budget policy update CAS và simultaneous request gate: không double draft overwrite, không money rounding/negative corruption. Tách keys và periods, same-key concurrent preadmitted requests có documented overshoot; peer settlement trước final gate phải chặn successor. Không reserve pending.
