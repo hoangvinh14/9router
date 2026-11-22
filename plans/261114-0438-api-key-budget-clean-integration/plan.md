@@ -17,6 +17,10 @@ created: 2026-11-14
 
 **Current continuation:** owner đã authorize sync master, tạo integration branch trong checkout hiện tại và tiếp tục tự động trong phạm vi plan. Phase00 transition đã verified; xem [execution record](./references/phase00-execution.md) và [fresh integration baseline](./references/integration-baseline.json). Không deploy/push/live inference/đụng dữ liệu hoặc dịch vụ thật. Các đoạn planning/Validation Session 1 bên dưới là chronology, không phủ nhận authority mới và không cấp thêm producer/policy/sandbox authority. `blockedBy: []` không có nghĩa positive slice ready.
 
+## Phạm vi đã chốt — 2026-11-23
+
+Dùng SQLite hiện có của 9Router. Mỗi API key bắt đầu ghi chi phí từ khi bật budget, với lịch sử và số đã dùng của tính năng bắt đầu từ 0. Dashboard hiển thị hạn mức, số đã dùng và số còn lại. Khi chi phí đã ghi đạt hoặc vượt hạn mức, request kế tiếp bị chặn trước POST upstream. Phạm vi triển khai và nghiệm thu loại bỏ nhập hoặc chuyển đổi dữ liệu từ schema budget thử nghiệm v2–v4 của nhánh develop.
+
 ## 1. Authority và outcome
 
 Nguồn quyết định là [brainstorm contract B01–B08, đặc biệt §8](../261113-1952-api-key-budget-scope-audit/references/brainstorm-contract.md), [handoff](../261113-1952-api-key-budget-scope-audit/references/branch-handoff.md), và [audit §§3–8/11](../261113-1952-api-key-budget-scope-audit/references/audit-report.md). Không lập lại audit cũ, không hỏi lại key-vs-account, block-vs-monitor, master-vs-develop hay worktree.
@@ -54,7 +58,7 @@ Một writer trong checkout. Thực hiện tuần tự; không runtime parallel 
 | [01 — support & boundary design](./phase-01-scope-and-boundaries.md) | Exact cells/evidence, policy decisions, identity/durability/ACK/no-bypass design, per-slice admission | 00 | in-progress / partial; [boundary design](./references/phase01-boundary-design.md), no eligible cell |
 | [02 — first real vertical slice](./phase-02-first-vertical-slice.md) | API/UI → shipping ingress → actual native dummy TLS POST → durable exact debit → next **0 POST** | 01; evidence/policy cho selected cell | pending / producer-gated |
 | [03 — retained native compatibility](./phase-03-native-retry-and-compatibility.md) | Codex + Anthropic API-key + Claude OAuth, retained ingress/history/functions, retry/refresh/fallback | 02; applicable producer gates | pending |
-| [04 — identity, faults & migrations](./phase-04-integrity-and-migration.md) | Cross-key/concurrency/restart/window, fault injection, old donor schema/retention/platform validation | 03 | pending |
+| [04 — identity, persistence & faults](./phase-04-integrity-and-migration.md) | Khởi tạo budget trên SQLite hiện có, kiểm chứng tính theo key và kỳ, restart, backup/restore và lỗi lưu trữ | 03 | pending |
 | [05 — integrated acceptance](./phase-05-acceptance-and-handoff.md) | Management HTTP/CSRF/UI, affected ordinary controls, packaging/security; release/activation separate approval | 04 | pending |
 
 **Scope held:** không tự thêm catalog scheduler, positive standalone embeddings, provider mới, reservation engine, post-death evidence acquisition hay general security certification. Không tự bỏ safety/platform/old intended models/encrypted history/failed usage/owned retry. [Scope/guarantee dispositions](./references/scope-and-decisions.md) là acceptance authority bổ sung cho plan này, không phải backlog M1 cũ sao chép.
