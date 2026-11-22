@@ -4,6 +4,7 @@
 
 import { checkFallbackError, formatRetryAfter } from "./accountFallback.js";
 import { unavailableResponse } from "../utils/error.js";
+import { isAccountingResponse } from "../utils/accountingResponse.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { parseModel } from "./model.js";
 import { extractTextContent } from "../translator/formats/gemini.js";
@@ -474,6 +475,10 @@ export async function handleComboChat({
 
     try {
       const result = await handleSingleModel(body, modelStr);
+      // Trusted server identity must be checked before peek/clone/cooldown or
+      // empty-content retry. A terminal accounting result is not a successor
+      // admission, even when status is 2xx. Ordinary responses are unchanged.
+      if (isAccountingResponse(result)) return result;
       
       // Success (2xx). A 2xx is necessary but NOT sufficient: Gemini aborts (e.g.
       // MALFORMED_FUNCTION_CALL) still return 200 and stream empty content, which would

@@ -3,6 +3,8 @@ import { getSettings, validateApiKey } from "@/lib/localDb";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { verifyDashboardAuthToken } from "@/lib/auth/dashboardSession";
 import { hasTrustedPeerHeaders } from "@/lib/auth/trustedPeer";
+import { inspectAccountingRequest, accountingUnavailableResponse } from "@/lib/accounting/request-boundary.js";
+import { findInstalledBudgetProfileForKey } from "@/lib/accounting/profile-registry.js";
 
 const CLI_TOKEN_HEADER = "x-9r-cli-token";
 const CLI_TOKEN_SALT = "9r-cli-auth";
@@ -226,6 +228,14 @@ export async function proxy(request) {
   }
 
   if (isPublicLlmApi(pathname)) {
+    // Before loopback/CLI shortcuts: those authorize access, never permission to
+    // bypass an existing accounting binding. No production profile admitted yet.
+    const accounting = await inspectAccountingRequest(request);
+    if (accounting.kind !== 'ordinary') {
+      if (accounting.kind === 'controlled' && request.method === 'POST' && pathname === '/v1/messages' &&
+          await findInstalledBudgetProfileForKey(accounting.keyId)) return NextResponse.next();
+      return accountingUnavailableResponse();
+    }
     if (await canAccessPublicLlmApi(request)) return NextResponse.next();
     return NextResponse.json({ error: "API key required for remote API access" }, { status: 401 });
   }

@@ -9,7 +9,7 @@ import { HTTP_STATUS } from "../../config/runtimeConfig.js";
 import { parseSSEToOpenAIResponse } from "./sseToJsonHandler.js";
 import { unwrapClineEnvelope } from "../../shared/clineEnvelope.js";
 import { buildRequestDetail, extractRequestConfig, extractUsageFromResponse, saveUsageStats, formatDoneLine } from "./requestDetail.js";
-import { appendRequestLog, saveRequestDetail } from "@/lib/usageDb.js";
+import { saveRequestDetail } from "@/lib/usageDb.js";
 import { decloakToolNames } from "../../utils/claudeCloaking.js";
 import { restoreToolNames } from "../../utils/opencodeFingerprint.js";
 import { ROLE, RESPONSES_ITEM } from "../../translator/schema/index.js";
@@ -234,11 +234,15 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
 /**
  * Handle non-streaming response from provider.
  */
-export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log }) {
+export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log, accountingAttempt = null }) {
   trackDone();
   const contentType = providerResponse.headers.get("content-type") || "";
   let responseBody;
 
+  if (accountingAttempt !== null && contentType.includes('text/event-stream')) {
+    // Candidate JSON contract mismatch: no second parser/reader or hidden retry.
+    return { ...createErrorResult(503, 'Accounting response profile unavailable'), accountingRefused: true };
+  }
   if (contentType.includes("text/event-stream")) {
     const sseText = await providerResponse.text();
     const parsed = parseSSEToOpenAIResponse(sseText, model);
@@ -255,6 +259,26 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
       return createErrorResult(status, parsed.error.message || "Upstream SSE stream failed");
     }
     responseBody = parsed;
+  } else if (accountingAttempt !== null) {
+    // One raw reader, with separate completion and parse boundaries. An error's
+    // class cannot distinguish interrupted reading from malformed complete JSON.
+    let text;
+    try { text = await providerResponse.text(); }
+    catch {
+      return { ...createErrorResult(503, 'Accounting response incomplete'), accountingRefused: true };
+    }
+    let invalid = false;
+    try { responseBody = JSON.parse(text); }
+    catch { invalid = true; }
+    if (!responseBody || typeof responseBody !== 'object' || Array.isArray(responseBody)) invalid = true;
+    // D01: completed malformed evidence contributes unknown/default0. Keep ACK
+    // failure outside the parse catch; never attempt a second settlement.
+    try { await accountingAttempt.settleJson(invalid ? undefined : responseBody.usage); }
+    catch { return { ...createErrorResult(503, 'Accounting recording unavailable'), accountingRefused: true }; }
+    if (invalid) {
+      appendLog({ status: `FAILED ${HTTP_STATUS.BAD_GATEWAY}` });
+      return { ...createErrorResult(HTTP_STATUS.BAD_GATEWAY, `Invalid JSON response from ${provider}`), accountingRefused: true };
+    }
   } else {
     try {
       responseBody = await providerResponse.json();
@@ -319,7 +343,11 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
     }
   }
 
-  if (translatedResponse?.usage) {
+  // Native accounted Anthropic Messages expose the same usage that was settled.
+  // Do not apply the ordinary client-compatibility padding or field projection.
+  const preserveNativeUsage = accountingAttempt !== null && provider === "anthropic" &&
+    targetFormat === FORMATS.CLAUDE && isClaudeMessageResponse;
+  if (!preserveNativeUsage && translatedResponse?.usage) {
     translatedResponse.usage = filterUsageForFormat(addBufferToUsage(translatedResponse.usage), sourceFormat);
   }
 

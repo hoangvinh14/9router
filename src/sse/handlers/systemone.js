@@ -14,6 +14,7 @@ import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import * as log from "../utils/logger.js";
 import { checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { saveRequestUsage } from "@/lib/usageDb.js";
+import { refuseUnadmittedAccountingRequest } from "@/lib/accounting/request-boundary.js";
 
 /**
  * Handle System One (Jev) decision requests for the Next.js server.
@@ -22,6 +23,8 @@ import { saveRequestUsage } from "@/lib/usageDb.js";
  * @param {Request} request
  */
 export async function handleSystemone(request) {
+  const accountingRefusal = await refuseUnadmittedAccountingRequest(request);
+  if (accountingRefusal) return accountingRefusal;
   let body;
   try {
     body = await request.json();

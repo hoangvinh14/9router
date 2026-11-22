@@ -30,6 +30,14 @@ RUN --mount=type=cache,target=/root/.npm \
       --fetch-timeout=300000
 
 COPY . ./
+# Dedicated internal build only. The default registry stays empty.
+ARG ACCOUNTING_EDITION=release
+RUN case "$ACCOUNTING_EDITION" in \
+      release) ;; \
+      internal) test "$(node -p 'process.versions.node.split(".")[0]')" = 24 && \
+        cp docker/internal-profile-registry.js src/lib/accounting/profile-registry.js ;; \
+      *) exit 1 ;; \
+    esac
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 

@@ -56,12 +56,21 @@ export async function writeStreamError(writer, statusCode, message) {
  * @param {object} [executor] - Optional executor with parseError() override for provider-specific parsing
  * @returns {Promise<{statusCode: number, message: string, resetsAtMs?: number}>}
  */
-export async function parseUpstreamError(response, executor = null) {
+export async function parseUpstreamError(response, executor = null, onNativeBody = null) {
   let bodyText = "";
   try {
     bodyText = await response.text();
-  } catch {
+  } catch (error) {
+    if (onNativeBody !== null) throw error; // Interrupted exposure is E2, not completed unknown usage.
     bodyText = "";
+  }
+
+  // Existing single raw reader owns error evidence too. Callback failure must
+  // propagate (recording/ACK failure), never be swallowed as a parse fallback.
+  if (onNativeBody !== null) {
+    let native;
+    try { native = JSON.parse(bodyText); } catch { native = null; }
+    await onNativeBody(native);
   }
 
   // Let executor-specific parser extract provider-specific fields (e.g. codex resetsAtMs)
@@ -139,7 +148,7 @@ export function unavailableResponse(statusCode, message, retryAfter, retryAfterH
  * @param {number|string} statusCode - HTTP status code or error code
  * @returns {string} Formatted error message
  */
-export function formatProviderError(error, provider, model, statusCode) {
+export function formatProviderError(error, _provider, _model, statusCode) {
   const code = statusCode || error.code || "FETCH_FAILED";
   const message = error.message || "Unknown error";
   // Expose low-level cause (e.g. UND_ERR_SOCKET, ECONNRESET, ETIMEDOUT) for diagnosing fetch failures

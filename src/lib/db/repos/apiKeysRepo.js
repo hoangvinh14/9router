@@ -2,6 +2,8 @@ import { v4 as uuidv4 } from "uuid";
 import { getAdapter } from "../driver.js";
 import { keyAccessFromColumns, keyAccessToColumns } from "@/shared/utils/keyAccess.js";
 import { KEY_ACCESS_UNRESTRICTED } from "@/shared/constants/keyAccess.js";
+import { assertNoAccountingMutation } from "../../accounting/mutation-barrier.js";
+import { assertAccountingKeyActivationAllowed } from "../../accounting/node-key-policy.js";
 
 function rowToKey(row) {
   if (!row) return null;
@@ -65,6 +67,11 @@ export async function updateApiKey(id, data) {
     const row = db.get(`SELECT * FROM apiKeys WHERE id = ?`, [id]);
     if (!row) return;
     const merged = { ...rowToKey(row), ...data };
+    // Unqualified secret/machine rebinding is not authorized rotation. Keep
+    // metadata/active/access behavior; exact policy/fingerprint checks remain at
+    // inference admission. Enrolled-schema lifecycle needs dedicated D04 path.
+    if (merged.key !== row.key || merged.machineId !== row.machineId) assertNoAccountingMutation(db);
+    if (merged.isActive) assertAccountingKeyActivationAllowed(db, id);
     const cols = keyAccessToColumns(merged.access);
     db.run(
       `UPDATE apiKeys SET key = ?, name = ?, machineId = ?, isActive = ?, accessRestricted = ?, accessAllow = ? WHERE id = ?`,
@@ -77,8 +84,13 @@ export async function updateApiKey(id, data) {
 
 export async function deleteApiKey(id) {
   const db = await getAdapter();
-  const res = db.run(`DELETE FROM apiKeys WHERE id = ?`, [id]);
-  return (res?.changes ?? 0) > 0;
+  let deleted = false;
+  db.transaction(() => {
+    assertNoAccountingMutation(db);
+    const res = db.run(`DELETE FROM apiKeys WHERE id = ?`, [id]);
+    deleted = (res?.changes ?? 0) > 0;
+  });
+  return deleted;
 }
 
 export async function validateApiKey(key) {

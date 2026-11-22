@@ -1,5 +1,6 @@
 import { handleChat } from "@/sse/handlers/chat.js";
 import { initTranslators } from "open-sse/translator/index.js";
+import { refuseUnadmittedAccountingRequest } from "@/lib/accounting/request-boundary.js";
 
 let initialized = false;
 
@@ -25,6 +26,8 @@ export async function OPTIONS() {
  * Reuses the same handleChat pipeline, signals compact via body._compact
  */
 export async function POST(request) {
+  const accountingRefusal = await refuseUnadmittedAccountingRequest(request);
+  if (accountingRefusal) return accountingRefusal;
   await ensureInitialized();
   const body = await request.json();
   body._compact = true;

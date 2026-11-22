@@ -1,4 +1,4 @@
-// Fixed Linux budget helper + existing SQLite fixture lane; legacy filename.
+// Fixed Linux budget primitive + existing SQLite fixture lane; legacy filename.
 // No application imports on the host; no production driver/startup in child.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,8 +14,18 @@ const files = [
   'src/lib/accounting/exact-money.js', 'src/lib/accounting/budget-windows.js',
   'src/lib/accounting/attempt-payload.js', 'src/lib/pricing/decimalMoney.js',
   'src/lib/pricing/constants.js', 'tests/unit/budget-pure.test.mjs',
-  'src/lib/db/adapters/nodeSqliteAdapter.js', 'src/lib/db/schema.js',
+  'src/lib/db/adapters/nodeSqliteAdapter.js', 'src/lib/db/adapters/nodeClosure.js', 'src/lib/db/schema.js',
   'tests/unit/budget-storage.test.mjs',
+  'src/lib/accounting/process-state.js', 'src/lib/accounting/mutation-barrier.js', 'tests/unit/budget-process-state.test.mjs',
+  'src/lib/accounting/sql-operation-scope.js', 'tests/unit/budget-operation-scope.test.mjs',
+  'src/lib/accounting/node-outer-transaction.js', 'tests/unit/budget-outer-transaction.test.mjs',
+  'tests/unit/budget-node-lifecycle.test.mjs',
+  'src/lib/accounting/node-connection-admission.js', 'tests/unit/budget-node-disposition.test.mjs',
+  'src/lib/accounting/terminal-cost.js', 'src/lib/accounting/node-attempt-ledger.js', 'src/lib/accounting/node-key-policy.js', 'tests/unit/budget-ledger.test.mjs',
+  'open-sse/utils/accounted-anthropic-stream.js', 'open-sse/utils/streamHandler.js',
+  'open-sse/utils/debugLog.js', 'open-sse/config/runtimeConfig.js', 'open-sse/config/errorConfig.js',
+  'tests/unit/budget-anthropic-stream.test.mjs',
+  'src/lib/accounting/anthropic-usage.js', 'tests/unit/budget-anthropic-usage.test.mjs',
 ];
 const args = ['--unshare-all', '--die-with-parent', '--new-session',
   '--ro-bind', '/usr', '/usr', '--symlink', 'usr/bin', '/bin',
@@ -33,8 +43,12 @@ args.push('--ro-bind', fs.realpathSync(process.execPath), '/runtime/node',
   '--proc', '/proc', '--dev', '/dev', '--tmpfs', '/tmp', '--tmpfs', '/sandbox');
 for (const name of ['home', 'data', 'config', 'cache', 'tmp']) args.push('--dir', `/sandbox/${name}`);
 args.push('--chdir', '/app', '--remount-ro', '/', '--',
-  '/runtime/node', '--test', '--test-isolation=none',
-  '/app/tests/unit/budget-pure.test.mjs', '/app/tests/unit/budget-storage.test.mjs');
+  '/runtime/node', '--unhandled-rejections=strict', '--test', '--test-isolation=none',
+  '/app/tests/unit/budget-pure.test.mjs', '/app/tests/unit/budget-storage.test.mjs',
+  '/app/tests/unit/budget-process-state.test.mjs', '/app/tests/unit/budget-operation-scope.test.mjs',
+  '/app/tests/unit/budget-outer-transaction.test.mjs', '/app/tests/unit/budget-node-lifecycle.test.mjs',
+  '/app/tests/unit/budget-node-disposition.test.mjs', '/app/tests/unit/budget-ledger.test.mjs',
+  '/app/tests/unit/budget-anthropic-usage.test.mjs', '/app/tests/unit/budget-anthropic-stream.test.mjs');
 const env = {
   PATH: '/runtime:/usr/bin:/bin', HOME: '/sandbox/home', DATA_DIR: '/sandbox/data',
   XDG_CONFIG_HOME: '/sandbox/config', XDG_DATA_HOME: '/sandbox/data', XDG_CACHE_HOME: '/sandbox/cache',

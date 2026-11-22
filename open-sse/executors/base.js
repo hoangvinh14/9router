@@ -97,7 +97,17 @@ export class BaseExecutor {
     return { status: response.status, message: bodyText || `HTTP ${response.status}` };
   }
 
-  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null, providerOverrides = null, directFetch = null }) {
+  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null, providerOverrides = null, directFetch = null, accounting = null }) {
+    // Opt-in trusted app-side context, never derived from provider request JSON.
+    // It must bind own intent/terminal to the final effective wire. Ordinary path
+    // is unchanged. Unsupported executor overrides must not silently ignore it.
+    if (accounting !== null && (typeof accounting.prepare !== 'function' || directFetch)) {
+      throw new Error('Accounting executor context unavailable');
+    }
+    const buildAccountedHeaders = accounting?.buildHeaders;
+    if (buildAccountedHeaders !== undefined && (typeof buildAccountedHeaders !== 'function' || providerOverrides != null)) {
+      throw new Error('Accounting header overrides unavailable');
+    }
     const fallbackCount = this.getFallbackCount();
     let lastError = null;
     let lastStatus = 0;
@@ -128,7 +138,11 @@ export class BaseExecutor {
     for (let urlIndex = 0; urlIndex < fallbackCount; urlIndex++) {
       const url = this.buildUrl(model, stream, urlIndex, credentials);
       const transformedBody = this.transformRequest(model, body, stream, credentials);
-      const headers = this.buildHeaders(credentials, stream, url, model, transformedBody);
+      // Use a separately selected, trusted wire contract, not a mutation of
+      // registry/CLI headers or a client opt-in. prepare still checks the wire.
+      const headers = buildAccountedHeaders
+        ? buildAccountedHeaders({ provider: this.provider, url, model, stream, credentials })
+        : this.buildHeaders(credentials, stream, url, model, transformedBody);
       // User per-provider override wins over registry headers (blocked names filtered at the API)
       if (providerOverrides?.headers) Object.assign(headers, providerOverrides.headers);
 
@@ -147,7 +161,7 @@ export class BaseExecutor {
         const effectiveProxyOptions = forceFreshSocketByUrl[urlIndex]
           ? { ...(proxyOptions || {}), forceFreshSocket: true }
           : proxyOptions;
-        const response = await proxyAwareFetch(url, {
+        const fetchOptions = {
           method: "POST",
           headers,
           body: bodyStr,
@@ -155,8 +169,26 @@ export class BaseExecutor {
           // Protocol adapters that need their own transport (opencode's TLS
           // fingerprint) override the direct path; proxies still take priority.
           ...(directFetch ? { directFetch } : {}),
-        }, effectiveProxyOptions);
+        };
+        // Transport preparation (agents/imports) happens before context mints an
+        // intent and final dispatch. Context uses existing proxyFetch opt-in
+        // prepared direct call, not proxyAwareFetch's hidden replay/fallback.
+        const accounted = accounting === null ? null : await accounting.prepare({
+          url, options: fetchOptions, proxyOptions: effectiveProxyOptions,
+          provider: this.provider, model, stream,
+        });
+        if (accounting !== null && typeof accounted?.dispatch !== 'function') {
+          throw new Error('Accounting dispatch authority unavailable');
+        }
+        const response = accounting === null
+          ? await proxyAwareFetch(url, fetchOptions, effectiveProxyOptions)
+          : await accounted.dispatch();
         clearTimeout(connectTimer);
+        if (accounting !== null) {
+          // Existing response owner must consume native evidence/terminal ACK
+          // before any successor. No hidden HTTP/base-url/status retry here.
+          return { response, url, headers, transformedBody, accounting: accounted };
+        }
         const ct = response.headers?.get?.("content-type") || "";
         const cl = response.headers?.get?.("content-length") || "?";
         dbg("FETCH", `${this.provider.toUpperCase()} ← ${response.status} | ttft=${Date.now() - fetchT0}ms | ct=${ct} | cl=${cl}`);
@@ -178,6 +210,7 @@ export class BaseExecutor {
       } catch (error) {
         clearTimeout(connectTimer);
         lastError = error;
+        if (accounting !== null) throw error; // Never replay an exposed/uncertain attempt.
         const isConnectTimeout = connectCtrl.signal.aborted && error.name === "AbortError";
         dbg("FETCH", `${this.provider.toUpperCase()} ✖ ${error.name}: ${error.message}${isConnectTimeout ? " (connect timeout)" : ""}`);
         // Connect timeout is internal — convert to retryable network error, don't propagate AbortError

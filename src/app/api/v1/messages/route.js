@@ -1,5 +1,7 @@
-import { handleChat } from "@/sse/handlers/chat.js";
+import { handleChat, handleAccountedChatCandidate } from "@/sse/handlers/chat.js";
 import { initTranslators } from "open-sse/translator/index.js";
+import { accountingUnavailableResponse, inspectAccountingRequest, selectedAccountingSecret } from '@/lib/accounting/request-boundary.js';
+import { findInstalledBudgetProfileForKey } from '@/lib/accounting/profile-registry.js';
 
 let initialized = false;
 
@@ -30,7 +32,24 @@ export async function OPTIONS() {
  * POST /v1/messages - Claude format (auto convert via handleChat)
  */
 export async function POST(request) {
-  await ensureInitialized();
-  return await handleChat(request);
+  const state = await inspectAccountingRequest(request);
+  if (state.kind === 'ordinary') {
+    await ensureInitialized();
+    return await handleChat(request);
+  }
+  const profile = state.kind === 'controlled' && await findInstalledBudgetProfileForKey(state.keyId);
+  if (!profile || new URL(request.url).pathname !== '/v1/messages') return accountingUnavailableResponse();
+  try {
+    const { getInstalledAccountingServices, bindAccountingIdentity } = await import('@/lib/accounting/installed-service.js');
+    const { createAnthropicDispatchContext } = await import('@/lib/accounting/anthropic-dispatch-context.js');
+    const identity = bindAccountingIdentity(await getInstalledAccountingServices(), selectedAccountingSecret(request));
+    if (identity?.keyId !== state.keyId) return accountingUnavailableResponse();
+    await ensureInitialized();
+    return await handleAccountedChatCandidate(request, { identity,
+      createContext: ({ routeProof, credentials }) => createAnthropicDispatchContext({ identity, routeProof, credentials, profile }),
+    });
+  } catch {
+    return accountingUnavailableResponse();
+  }
 }
 

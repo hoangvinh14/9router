@@ -305,13 +305,13 @@ function evictOldest(cacheMap) {
   }
 }
 
-async function getOrCreateDirectAgent(key, insecure, keepAliveTimeout, keepAliveMaxTimeout) {
+async function getOrCreateDirectAgent(key, insecure, keepAliveTimeout, keepAliveMaxTimeout, strict = false) {
   const cached = directDispatchers.get(key);
   if (cached) return cached;
   const { Agent } = await import("undici");
   evictOldest(directDispatchers);
   const agent = new Agent({
-    connect: buildConnectOptions(insecure),
+    connect: { ...buildConnectOptions(insecure), ...(strict ? { rejectUnauthorized: true } : {}) },
     keepAliveTimeout,
     keepAliveMaxTimeout,
   });
@@ -470,6 +470,67 @@ async function createBypassRequest(parsedUrl, realIP, options) {
     });
 
     socket.on("error", reject);
+  });
+}
+
+// Separate strict cache key: ordinary direct/insecure agent behavior unchanged.
+export function getAccountedDirectDispatcher() {
+  const { keepAliveTimeout, keepAliveMaxTimeout } = resolveKeepAliveTimeouts();
+  return getOrCreateDirectAgent(`accounted::strict::${keepAliveTimeout}::${keepAliveMaxTimeout}`,
+    false, keepAliveTimeout, keepAliveMaxTimeout, true);
+}
+
+function assertAccountedTransportEnvironment() {
+  if (['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy'].some(name => process.env[name]) ||
+      process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') throw new Error('Accounting direct transport configuration unsupported');
+}
+
+// Internal accounted path preparation. Resolve every asynchronous transport
+// dependency BEFORE granting a final gate; its returned invocation calls the
+// package's own undici immediately, with no redirects/replay/insecure fallback.
+// Only direct HTTPS is qualified by this candidate. Callers must reject saved
+// proxy/relay requirements rather than silently ignore them. No global patch or
+// ordinary proxyAwareFetch behavior is changed by this opt-in entry.
+export async function prepareAccountedDirectPost(url, options, proxyOptions = null) {
+  const target = new URL(url).href;
+  const parsed = new URL(target);
+  assertAccountedTransportEnvironment();
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.hash ||
+      proxyOptions && Object.entries(proxyOptions).some(([, value]) => value !== null && value !== undefined && value !== false && value !== '')) {
+    throw new Error('Accounting direct transport configuration unsupported');
+  }
+  const { method, body, signal, directFetch, dispatcher: customDispatcher, redirect } = options || {};
+  if (method !== 'POST' || typeof body !== 'string' || directFetch ||
+      customDispatcher || redirect && redirect !== 'error') {
+    throw new Error('Accounting direct POST required');
+  }
+  // Snapshot all caller-owned wire data BEFORE the first await. Later mutation
+  // of the options/header/proxy objects cannot alter the prepared direct call.
+  const headers = new Headers(options.headers);
+  if (hasClaudeCliHeader(headers)) throw new Error('Accounting CLI header profile unsupported');
+  const dispatcher = await getAccountedDirectDispatcher();
+  undiciFetch ??= (await import('undici')).fetch;
+  const invoke = undiciFetch;
+  // A string body lets undici's Fetch layer repeat the POST on HTTP 421
+  // even with redirect:'error'. A stream has no replayable body source.
+  // Keep the original UTF-8 bytes and fixed-length HTTP framing.
+  const bytes = new TextEncoder().encode(body);
+  headers.set('content-length', String(bytes.byteLength));
+  const bodyStream = new ReadableStream({
+    start(controller) {
+      if (bytes.byteLength) controller.enqueue(bytes);
+      controller.close();
+    },
+  });
+  const request = { method: 'POST', headers, body: bodyStream, duplex: 'half', signal, redirect: 'error', dispatcher };
+  let used = false;
+  return Object.freeze(() => {
+    if (used) throw new Error('Accounting transport invocation consumed');
+    used = true;
+    // Ambient prohibitions may change during preparation/admission. Recheck
+    // synchronously; no await/caller-owned getter/callback or fallback to fetch.
+    assertAccountedTransportEnvironment();
+    return invoke(target, request);
   });
 }
 

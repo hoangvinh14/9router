@@ -10,6 +10,7 @@ import { PROVIDER_MODELS } from "@/shared/constants/models";
 import { GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS } from "open-sse/config/runtimeConfig.js";
 import { initTranslators } from "open-sse/translator/index.js";
 import { getKeyAccessContext, enforceKeyAccessResolved } from "@/sse/services/keyAccess.js";
+import { refuseUnadmittedAccountingRequest } from "@/lib/accounting/request-boundary.js";
 
 let initialized = false;
 const GEMINI_NATIVE_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -52,6 +53,15 @@ export async function OPTIONS() {
  * Gemini SSE format on the fly via transformOpenAISSEToGeminiSSE().
  */
 export async function POST(request, { params }) {
+  const accountingRefusal = await refuseUnadmittedAccountingRequest(request);
+  if (accountingRefusal) return accountingRefusal;
+  // Native Gemini auth ignores x-api-key, unlike the general guard/chat path.
+  // Check that effective credential too: a shadowing ordinary x-api-key cannot
+  // hide an accounting-controlled x-goog-api-key/query key on native TTS.
+  const nativeHeaders = new Headers(request.headers);
+  nativeHeaders.delete('x-api-key');
+  const nativeRefusal = await refuseUnadmittedAccountingRequest({ headers: nativeHeaders, url: request.url });
+  if (nativeRefusal) return nativeRefusal;
   await ensureInitialized();
 
   try {

@@ -33,6 +33,7 @@ import { stripUnsupportedModalities } from "../translator/concerns/modality.js";
 import { prefetchRemoteImages } from "../translator/concerns/prefetch.js";
 import { defaultClaudeToolType, shouldDefaultClaudeToolType } from "../translator/concerns/toolCall.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
+import { markAccountingResponse } from "../utils/accountingResponse.js";
 
 /**
  * Core chat handler - shared between SSE and Worker
@@ -61,7 +62,24 @@ export function stripContinuityFields(body) {
   return body;
 }
 
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, customPromptEnabled, customPrompt, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, providerOverrides }) {
+// Keep ordinary exception/retry semantics unchanged. Once trusted accounting
+// is selected, every result is terminal for implicit account/member replay,
+// including a post-ACK logging/translation/completion exception. No second
+// read, settlement, completion callback or dispatch is attempted here.
+export async function handleChatCore(options) {
+  if (options.accounting == null) return handleChatCoreInternal(options);
+  try {
+    const result = await handleChatCoreInternal(options);
+    markAccountingResponse(result.response);
+    return { ...result, accountingRefused: true };
+  } catch {
+    const result = createErrorResult(503, 'Accounting response unavailable');
+    markAccountingResponse(result.response);
+    return { ...result, accountingRefused: true };
+  }
+}
+
+async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, customPromptEnabled, customPrompt, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, providerOverrides, accounting = null }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
   // Stable per-session color so all lines of one CLI conversation share a tag
@@ -75,6 +93,22 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const reqTag = log?.tagForSession ? log.tagForSession(sessionSeed) : (log?.nextTag ? log.nextTag() : "");
 
   const sourceFormat = sourceFormatOverride || detectFormat(body);
+  // Trusted app-side context fixes the native response mode before helpers run.
+  if (accounting !== null && (provider !== 'anthropic' || body.stream !== (accounting.stream === true) ||
+      sourceFormat !== FORMATS.CLAUDE || typeof accounting.prepare !== 'function' ||
+      headroomEnabled || pxpipeEnabled || rtkEnabled || cavemanEnabled || ponytailEnabled ||
+      customPromptEnabled || providerThinking?.mode && providerThinking.mode !== 'auto')) {
+    return { ...createErrorResult(503, 'Accounting profile unavailable'), accountingRefused: true };
+  }
+
+  if (accounting !== null) {
+    try {
+      if (typeof accounting.validateInput !== 'function') throw new Error('missing profile validation');
+      accounting.validateInput(body);
+    } catch {
+      return { ...createErrorResult(503, 'Accounting profile unavailable'), accountingRefused: true };
+    }
+  }
 
   // Check for bypass patterns (warmup, skip, cc naming)
   const bypassResponse = handleBypassRequest(body, model, userAgent, ccFilterNaming);
@@ -388,7 +422,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   }
 
   // Execute request
-  let providerResponse, providerUrl, providerHeaders, finalBody;
+  let providerResponse, providerUrl, providerHeaders, finalBody, accountingAttempt;
   // Most executors return their registry format. Cursor AgentService is an
   // exception: it is decoded by the executor into OpenAI-compatible output.
   let providerResponseFormat = targetFormat;
@@ -404,7 +438,12 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       log,
       proxyOptions,
       providerOverrides,
+      accounting,
     });
+    accountingAttempt = result.accounting;
+    if (accounting !== null && !accountingAttempt) {
+      return { ...createErrorResult(503, 'Accounting executor unavailable'), accountingRefused: true };
+    }
     providerResponse = result.response;
     providerUrl = result.url;
     providerHeaders = result.headers;
@@ -416,6 +455,11 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     }
     reqLogger.logTargetRequest(providerUrl, providerHeaders, finalBody);
   } catch (error) {
+    if (accounting !== null) {
+      // Do not feed accounting denial/storage failure into account cooldown or
+      // outer retry. Transport outcome may be exposed/unknown, never replay.
+      return { ...createErrorResult(503, 'Accounting request unavailable'), accountingRefused: true };
+    }
     trackPendingRequest(model, provider, connectionId, false, true);
     appendRequestLog({ model, provider, connectionId, status: `FAILED ${error.name === "AbortError" ? 499 : HTTP_STATUS.BAD_GATEWAY}` }).catch(() => { });
     saveRequestDetail(buildRequestDetail({
@@ -441,7 +485,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   }
 
   // Handle 401/403 - try token refresh (skip for noAuth providers)
-  if (!executor.noAuth && (providerResponse.status === HTTP_STATUS.UNAUTHORIZED || providerResponse.status === HTTP_STATUS.FORBIDDEN)) {
+  if (accounting === null && !executor.noAuth && (providerResponse.status === HTTP_STATUS.UNAUTHORIZED || providerResponse.status === HTTP_STATUS.FORBIDDEN)) {
     try {
       // Mutate credentials after each successful refresh: rotating refresh_token
       // providers (xAI/grok-cli) issue a new RT on every refresh; without this,
@@ -491,7 +535,14 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // Provider returned error
   if (!providerResponse.ok) {
     trackPendingRequest(model, provider, connectionId, false, true);
-    const { statusCode, message, resetsAtMs } = await parseUpstreamError(providerResponse, executor);
+    let parsedError;
+    try {
+      parsedError = await parseUpstreamError(providerResponse, executor, accountingAttempt
+        ? parsed => accountingAttempt.settleJson(parsed?.usage) : null);
+    } catch {
+      return { ...createErrorResult(503, 'Accounting recording unavailable'), accountingRefused: true };
+    }
+    const { statusCode, message, resetsAtMs } = parsedError;
     appendRequestLog({ model, provider, connectionId, status: `FAILED ${statusCode}` }).catch(() => { });
     saveRequestDetail(buildRequestDetail({
       provider, model, connectionId,
@@ -510,10 +561,11 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       log.errorLine(reqTag, "✗", `ERROR ${statusCode} · ${provider}/${model} · ${Date.now() - requestStartTime}ms${urlStr}\n    ${errMsg}`);
     }
     reqLogger.logError(new Error(message), finalBody || translatedBody);
-    return createErrorResult(statusCode, errMsg, resetsAtMs, upstreamResponseHeaders(providerResponse.headers));
+    const failure = createErrorResult(statusCode, errMsg, resetsAtMs, upstreamResponseHeaders(providerResponse.headers));
+    return accounting !== null ? { ...failure, accountingRefused: true } : failure;
   }
 
-  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, pxpipe: pxpipeSummary, reqTag, log };
+  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, pxpipe: pxpipeSummary, reqTag, log, accountingAttempt };
   const appendLog = (extra) => appendRequestLog({ model, provider, connectionId, ...extra }).catch(() => { });
   const trackDone = () => trackPendingRequest(model, provider, connectionId, false);
 

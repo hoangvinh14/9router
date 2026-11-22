@@ -3,6 +3,8 @@ import { getModelAliases, getComboByName, getProviderNodes, getProviderConnectio
 import { parseModel as parseModelCore, resolveModelAliasFromMap, getModelInfoCore } from "open-sse/services/model.js";
 import REGISTRY from "open-sse/providers/registry/index.js";
 
+const liveModelReads = Object.freeze({ getModelAliases, getComboByName, getProviderNodes, getProviderConnections });
+
 // Local provider alias overrides (HMR-friendly, applied on top of open-sse map)
 const LOCAL_PROVIDER_ALIASES = {
   xmtp: "xiaomi-tokenplan",
@@ -35,26 +37,28 @@ export async function resolveModelAlias(alias) {
 /**
  * Get full model info (parse or resolve)
  */
-export async function getModelInfo(modelStr) {
+// A caller with a detached routing snapshot can supply its readers. The
+// resolver never falls back to live reads when using that snapshot.
+export async function getModelInfo(modelStr, reads = liveModelReads) {
   const parsed = parseModel(modelStr);
 
   if (!parsed.isAlias) {
     // Provider-node prefixes are user-defined. They must not override built-in
     // provider ids/aliases such as `cf`, `cloudflare-ai`, `openai`, or `hf`.
     if (!RESERVED_PROVIDER_PREFIXES.has(parsed.providerAlias)) {
-      const openaiNodes = await getProviderNodes({ type: "openai-compatible" });
+      const openaiNodes = await reads.getProviderNodes({ type: "openai-compatible" });
       const matchedOpenAI = openaiNodes.find((node) => node.prefix === parsed.providerAlias);
       if (matchedOpenAI) {
         return { provider: matchedOpenAI.id, model: parsed.model };
       }
 
-      const anthropicNodes = await getProviderNodes({ type: "anthropic-compatible" });
+      const anthropicNodes = await reads.getProviderNodes({ type: "anthropic-compatible" });
       const matchedAnthropic = anthropicNodes.find((node) => node.prefix === parsed.providerAlias);
       if (matchedAnthropic) {
         return { provider: matchedAnthropic.id, model: parsed.model };
       }
 
-      const embeddingNodes = await getProviderNodes({ type: "custom-embedding" });
+      const embeddingNodes = await reads.getProviderNodes({ type: "custom-embedding" });
       const matchedEmbedding = embeddingNodes.find((node) => node.prefix === parsed.providerAlias);
       if (matchedEmbedding) {
         return { provider: matchedEmbedding.id, model: parsed.model };
@@ -68,25 +72,25 @@ export async function getModelInfo(modelStr) {
 
   // Check if this is a combo name before resolving as alias
   // This prevents combo names from being incorrectly routed to providers
-  const combo = await getComboByName(parsed.model);
+  const combo = await reads.getComboByName(parsed.model);
   if (combo) {
     // Return null provider to signal this should be handled as combo
     // The caller (handleChat) will detect this and handle it as combo
     return { provider: null, model: parsed.model };
   }
 
-  return fallbackToClaudeOAuth(await getModelInfoCore(modelStr, getModelAliases));
+  return fallbackToClaudeOAuth(await getModelInfoCore(modelStr, () => reads.getModelAliases()), reads);
 }
 
 /**
  * Check if model is a combo and get models list
  * @returns {Promise<string[]|null>} Array of models or null if not a combo
  */
-export async function getComboModels(modelStr) {
+export async function getComboModels(modelStr, reads = liveModelReads) {
   // Only check if it's not in provider/model format
   if (modelStr.includes("/")) return null;
 
-  const combo = await getComboByName(modelStr);
+  const combo = await reads.getComboByName(modelStr);
   if (combo && combo.models && combo.models.length > 0) {
     return combo.models;
   }
@@ -97,10 +101,10 @@ export async function getComboModels(modelStr) {
 // connection is active but a Claude OAuth connection is, use "claude" instead of
 // failing with "No active credentials for provider: anthropic" (same idea as the
 // Codex-only gpt-* rules in open-sse/services/model.js).
-async function fallbackToClaudeOAuth(info) {
+async function fallbackToClaudeOAuth(info, reads) {
   if (info?.provider !== "anthropic") return info;
   const hasActive = async (provider) =>
-    (await getProviderConnections({ provider, isActive: true })).length > 0;
+    (await reads.getProviderConnections({ provider, isActive: true })).length > 0;
   if (await hasActive("anthropic")) return info;
   if (!(await hasActive("claude"))) return info;
   return { ...info, provider: "claude" };

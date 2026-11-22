@@ -37,6 +37,7 @@ import * as log from "../utils/logger.js";
 
 const lower = (s) => String(s).toLowerCase();
 const canonicalModel = (provider, model) => lower(`${provider}/${model}`);
+const liveAccessReads = Object.freeze({ getCombos, getModelInfo, getComboModels });
 
 /**
  * The client key, read from the same places and in the same order as the
@@ -82,9 +83,11 @@ export async function getKeyAccessContext(request) {
 
 // Resolve the allow list once per request: combo names, resolved model ids,
 // and resolved provider ids (for provider-as-model kinds).
-async function getAllowSets(ctx) {
-  if (ctx._sets) return ctx._sets;
-  const comboNames = new Set((await getCombos()).map((c) => lower(c.name)));
+async function getAllowSets(ctx, reads = liveAccessReads) {
+  // Only the ordinary request path owns this cache. A detached recheck must
+  // use its own routing inputs, even if the request already resolved its ACL.
+  if (reads === liveAccessReads && ctx._sets) return ctx._sets;
+  const comboNames = new Set((await reads.getCombos()).map((c) => lower(c.name)));
   const combos = new Set();
   const models = new Set();
   const providers = new Set();
@@ -94,17 +97,18 @@ async function getAllowSets(ctx) {
       combos.add(key);
       continue;
     }
-    const info = await getModelInfo(entry);
+    const info = await reads.getModelInfo(entry);
     if (info?.provider && info.model) models.add(canonicalModel(info.provider, info.model));
     if (!entry.includes("/")) providers.add(lower(resolveProviderId(entry)));
   }
-  ctx._sets = { combos, models, providers };
-  return ctx._sets;
+  const sets = { combos, models, providers };
+  if (reads === liveAccessReads) ctx._sets = sets;
+  return sets;
 }
 
-async function isModelStringAllowed(ctx, requested) {
-  const sets = await getAllowSets(ctx);
-  const info = await getModelInfo(requested);
+async function isModelStringAllowed(ctx, requested, reads = liveAccessReads, sets = null) {
+  sets ??= await getAllowSets(ctx, reads);
+  const info = await reads.getModelInfo(requested);
   // provider null ⇔ an existing combo with no members (routes nowhere).
   if (!info?.provider) return sets.combos.has(lower(requested));
   return sets.models.has(canonicalModel(info.provider, info.model));
@@ -123,12 +127,18 @@ export function keyAccessDeniedResponse(ctx, requested) {
 export async function enforceKeyAccess(ctx, requested) {
   if (!ctx) return null;
   if (typeof requested !== "string" || !requested) return keyAccessDeniedResponse(ctx, String(requested ?? ""));
-  const sets = await getAllowSets(ctx);
-  const comboModels = await getComboModels(requested);
-  const allowed = comboModels
-    ? sets.combos.has(lower(requested))
-    : await isModelStringAllowed(ctx, requested);
+  const allowed = await isRequestedTargetAllowed(ctx, requested, liveAccessReads);
   return allowed ? null : keyAccessDeniedResponse(ctx, requested);
+}
+
+// Shared ACL decision, not an accounting authorization. Snapshot callers must
+// supply the current key's ACL and all readers from the same snapshot.
+export async function isRequestedTargetAllowed(ctx, requested, reads) {
+  if (!reads || typeof requested !== 'string' || !requested) return false;
+  if (!ctx) return true;
+  const sets = await getAllowSets(ctx, reads);
+  const comboModels = await reads.getComboModels(requested);
+  return comboModels ? sets.combos.has(lower(requested)) : isModelStringAllowed(ctx, requested, reads, sets);
 }
 
 /**

@@ -9,6 +9,7 @@ import {
 } from "../services/auth.js";
 import { handleAntigravityQuotaError, clearAntigravityStrikes } from "../services/antigravityQuota.js";
 import { getSettings } from "@/lib/localDb";
+import { mergeWithDefaults } from "@/lib/db/repos/settingsRepo.js";
 import { getModelInfo, getComboModels } from "../services/model.js";
 import { handleChatCore } from "open-sse/handlers/chatCore.js";
 import { DEFAULT_HEADROOM_URL } from "@/lib/headroom/detect";
@@ -26,8 +27,14 @@ import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { getProjectIdForConnection } from "open-sse/services/projectId.js";
 import { stripModelContextMarker } from "open-sse/utils/modelMarkers.js";
-import { getKeyAccessContext, enforceKeyAccess, filterAdapterModels } from "../services/keyAccess.js";
+import { getKeyAccessContext, enforceKeyAccess, filterAdapterModels, isRequestedTargetAllowed } from "../services/keyAccess.js";
 import { resolveSmartChoice } from "../services/systemoneRouter.js";
+import { refuseUnadmittedAccountingRequest, accountingUnavailableResponse, selectedAccountingSecret } from "@/lib/accounting/request-boundary.js";
+import { markAccountingResponse } from "open-sse/utils/accountingResponse.js";
+
+const refuseCandidate = () => markAccountingResponse(accountingUnavailableResponse());
+const extendBranch = (branch, target) => Object.freeze([...branch, target]);
+const supportsAccountedCombo = strategy => ["fallback", "round-robin"].includes(strategy);
 
 /**
  * Handle chat completion request
@@ -35,6 +42,28 @@ import { resolveSmartChoice } from "../services/systemoneRouter.js";
  * Format detection and translation handled by translator
  */
 export async function handleChat(request, clientRawRequest = null) {
+  // Direct/internal callers need the same check as the public guard, before
+  // parsing, routing, naming bypass, helper inference or credential discovery.
+  const accountingRefusal = await refuseUnadmittedAccountingRequest(request);
+  if (accountingRefusal) return accountingRefusal;
+  return routeChat(request, clientRawRequest, null);
+}
+
+// Internal candidate composition only. Public callers cannot select this entry
+// or supply an identity, routing readers, or context factory through a request.
+export async function handleAccountedChatCandidate(request, { identity, createContext }) {
+  try {
+    if (request.headers.has('anthropic-workspace-id') ||
+        !identity.matchesSecret(selectedAccountingSecret(request))) return refuseCandidate();
+    const view = await identity.captureRoute();
+    const settings = mergeWithDefaults(view.reads.getSettingsData());
+    return await routeChat(request, null, { view, settings, createContext });
+  } catch {
+    return refuseCandidate();
+  }
+}
+
+async function routeChat(request, clientRawRequest, candidate) {
   let body;
   try {
     body = await request.json();
@@ -74,13 +103,15 @@ export async function handleChat(request, clientRawRequest = null) {
   }
 
   // Enforce API key if enabled in settings
-  const settings = await getSettings();
+  const settings = candidate ? candidate.settings : await getSettings();
   if (settings.requireApiKey) {
     if (!apiKey) {
       log.warn("AUTH", "Missing API key (requireApiKey=true)");
       return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Missing API key");
     }
-    const valid = await isValidApiKey(apiKey);
+    // The candidate already matched the owner-bound secret; the final SQLite
+    // gate resolves that same secret again. Ordinary auth stays unchanged.
+    const valid = candidate || await isValidApiKey(apiKey);
     if (!valid) {
       log.warn("AUTH", "Invalid API key (requireApiKey=true)");
       return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Invalid API key");
@@ -95,25 +126,39 @@ export async function handleChat(request, clientRawRequest = null) {
   // Per-key access control: a restricted key may call only its listed combos and
   // models. Checked once on the requested target, before bypass, combo expansion
   // and any credential lookup; an allowed combo grants the members it routes to.
-  const keyAccess = await getKeyAccessContext(request);
-  const keyAccessDenied = await enforceKeyAccess(keyAccess, modelStr);
-  if (keyAccessDenied) return keyAccessDenied;
+  const keyAccess = candidate ? candidate.view.access : await getKeyAccessContext(request);
+  if (candidate) {
+    const { reads } = candidate.view;
+    if (contextMarker || !await isRequestedTargetAllowed(keyAccess, modelStr, {
+      getCombos: reads.getCombos,
+      getComboModels: target => getComboModels(target, reads),
+      getModelInfo: target => getModelInfo(target, reads),
+    })) return refuseCandidate();
+  } else {
+    const keyAccessDenied = await enforceKeyAccess(keyAccess, modelStr);
+    if (keyAccessDenied) return keyAccessDenied;
+  }
+  const branch = candidate ? Object.freeze([modelStr]) : null;
+  const runSingle = (b, m, nextBranch = branch, requestedModel = null) =>
+    handleSingleModelChat(b, m, clientRawRequest, request, apiKey, requestedModel, candidate, nextBranch);
 
   // Bypass naming/warmup requests before combo rotation to avoid wasting rotation slots
   const userAgent = request?.headers?.get("user-agent") || "";
   const bypassResponse = handleBypassRequest(body, modelStr, userAgent, !!settings.ccFilterNaming);
-  if (bypassResponse) return bypassResponse.response || bypassResponse;
+  if (bypassResponse) return candidate ? refuseCandidate() : bypassResponse.response || bypassResponse;
 
   const requiredCapabilities = detectRequiredCapabilities(body);
 
   // Check if model is a combo (has multiple models with fallback)
-  const comboModels = await getComboModels(modelStr);
+  const comboModels = await getComboModels(modelStr, candidate?.view.reads);
   if (comboModels) {
     // Check for combo-specific strategy first, fallback to global
     const comboStrategies = settings.comboStrategies || {};
     const comboSpecificStrategy = comboStrategies[modelStr]?.fallbackStrategy;
     const comboStrategy = comboSpecificStrategy || settings.comboStrategy || "fallback";
-    const augmentedModels = await filterAdapterModels(keyAccess, augmentModelsWithCapacityAdapter(comboModels, requiredCapabilities, settings), comboModels);
+    const expanded = augmentModelsWithCapacityAdapter(comboModels, requiredCapabilities, settings);
+    if (candidate && (!supportsAccountedCombo(comboStrategy) || expanded.some(m => !comboModels.includes(m)))) return refuseCandidate();
+    const augmentedModels = candidate ? expanded : await filterAdapterModels(keyAccess, expanded, comboModels);
     const adapterAdded = augmentedModels.filter((m) => !comboModels.includes(m));
 
     if (comboStrategy === "fusion") {
@@ -143,7 +188,7 @@ export async function handleChat(request, clientRawRequest = null) {
       body,
       models: augmentedModels,
       handleSingleModel: withCapacityAdapterStripping(
-        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey),
+        (b, m) => runSingle(b, m, branch ? extendBranch(branch, m) : null),
         adapterAdded
       ),
       log,
@@ -167,7 +212,9 @@ export async function handleChat(request, clientRawRequest = null) {
 
   // Single model request — may still switch to a capacity-adapter model if the
   // target lacks a capability the request needs (e.g. no vision, request has an image).
-  const soloAugmented = await filterAdapterModels(keyAccess, augmentModelsWithCapacityAdapter([modelStr], requiredCapabilities, settings), [modelStr]);
+  const expanded = augmentModelsWithCapacityAdapter([modelStr], requiredCapabilities, settings);
+  if (candidate && expanded.some(m => m !== modelStr)) return refuseCandidate();
+  const soloAugmented = candidate ? expanded : await filterAdapterModels(keyAccess, expanded, [modelStr]);
   if (soloAugmented.length > 1) {
     const adapterAdded = soloAugmented.filter((m) => m !== modelStr);
     log.info("CHAT", `Capacity adapter for [${[...requiredCapabilities].join(",")}] on "${modelStr}" → trying ${soloAugmented.join(", ")}`);
@@ -184,20 +231,33 @@ export async function handleChat(request, clientRawRequest = null) {
     });
   }
 
-  return handleSingleModelChat(body, modelStr, clientRawRequest, request, apiKey, contextMarker ? `${modelStr.slice(modelStr.indexOf("/") + 1)}[${contextMarker}]` : null);
+  return runSingle(body, modelStr, branch, contextMarker ? `${modelStr.slice(modelStr.indexOf("/") + 1)}[${contextMarker}]` : null);
 }
 
 /**
  * Handle single model chat request
  */
-async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null, requestedModel = null) {
-  const modelInfo = await getModelInfo(modelStr);
+async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null, requestedModel = null, candidate = null, branch = null) {
+  if (candidate) {
+    try {
+      return await dispatchSingleModel(body, modelStr, clientRawRequest, request, apiKey, requestedModel, candidate, branch);
+    } catch {
+      // Combo catches thrown errors and would otherwise try a successor.
+      return refuseCandidate();
+    }
+  }
+  return dispatchSingleModel(body, modelStr, clientRawRequest, request, apiKey, requestedModel, null, null);
+}
+
+async function dispatchSingleModel(body, modelStr, clientRawRequest, request, apiKey, requestedModel, candidate, branch) {
+  if (candidate && (branch.length > 16 || new Set(branch).size !== branch.length)) return refuseCandidate();
+  const modelInfo = await getModelInfo(modelStr, candidate?.view.reads);
 
   // If provider is null, this might be a combo name - check and handle
   if (!modelInfo.provider) {
-    const comboModels = await getComboModels(modelStr);
+    const comboModels = await getComboModels(modelStr, candidate?.view.reads);
     if (comboModels) {
-      const chatSettings = await getSettings();
+      const chatSettings = candidate ? candidate.settings : await getSettings();
       // Check for combo-specific strategy first, fallback to global
       const comboStrategies = chatSettings.comboStrategies || {};
       const comboSpecificStrategy = comboStrategies[modelStr]?.fallbackStrategy;
@@ -205,8 +265,10 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       const requiredCapabilities = detectRequiredCapabilities(body);
       // Nested combo (a combo member that is itself a combo): the access decision
       // was made on the outer target; only drop adapter models the key may not call.
-      const keyAccess = await getKeyAccessContext(request);
-      const augmentedModels = await filterAdapterModels(keyAccess, augmentModelsWithCapacityAdapter(comboModels, requiredCapabilities, chatSettings), comboModels);
+      const keyAccess = candidate ? candidate.view.access : await getKeyAccessContext(request);
+      const expanded = augmentModelsWithCapacityAdapter(comboModels, requiredCapabilities, chatSettings);
+      if (candidate && (!supportsAccountedCombo(comboStrategy) || expanded.some(m => !comboModels.includes(m)))) return refuseCandidate();
+      const augmentedModels = candidate ? expanded : await filterAdapterModels(keyAccess, expanded, comboModels);
       const adapterAdded = augmentedModels.filter((m) => !comboModels.includes(m));
 
       if (comboStrategy === "fusion") {
@@ -238,7 +300,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
         body,
         models: augmentedModels,
         handleSingleModel: withCapacityAdapterStripping(
-          (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey),
+          (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, null, candidate, branch ? extendBranch(branch, m) : null),
           adapterAdded
         ),
         log,
@@ -259,11 +321,14 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
           : null,
       });
     }
+    if (candidate) return refuseCandidate();
     log.warn("CHAT", "Invalid model format", { model: modelStr });
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid model format");
   }
 
   const { provider, model } = modelInfo;
+  if (candidate && provider !== "anthropic") return refuseCandidate();
+  const routeProof = candidate ? await candidate.view.select(branch, { provider, model }) : null;
 
   // Routing shown in the unified "▶" line (client model → provider/model)
 
@@ -277,10 +342,13 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
   let lastHeaders = null;
 
   while (true) {
-    const credentials = await getProviderCredentials(provider, excludeConnectionIds, model, { requestedModel: requestedModel || model });
+    const credentialOptions = { requestedModel: requestedModel || model };
+    if (candidate) credentialOptions.accountedSettings = candidate.settings;
+    const credentials = await getProviderCredentials(provider, excludeConnectionIds, model, credentialOptions);
 
     // All accounts unavailable
     if (!credentials || credentials.allRateLimited) {
+      if (candidate) return refuseCandidate();
       if (credentials?.allRateLimited) {
         const errorMsg = lastError || credentials.lastError || "Unavailable";
         const status = HTTP_STATUS.SERVICE_UNAVAILABLE;
@@ -296,7 +364,9 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     }
 
     // Account selection shown in the unified "▶" line (acc:...)
-    const refreshedCredentials = await checkAndRefreshToken(provider, credentials);
+    // This candidate does not authorize a refresh or a second account.
+    if (candidate && (credentials.authType !== "apikey" || !credentials.apiKey || credentials.accessToken || credentials.refreshToken)) return refuseCandidate();
+    const refreshedCredentials = candidate ? credentials : await checkAndRefreshToken(provider, credentials);
 
     // Ensure real project ID is available for providers that need it (P0 fix: cold miss)
     if ((provider === "antigravity" || provider === "gemini-cli") && !refreshedCredentials.projectId) {
@@ -309,9 +379,12 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     }
 
     // Use shared chatCore
-    const chatSettings = await getSettings();
+    const chatSettings = candidate ? candidate.settings : await getSettings();
     const providerThinking = (chatSettings.providerThinking || {})[provider] || null;
+    const accounting = candidate ? await candidate.createContext({ routeProof, provider, model, credentials, settings: chatSettings }) : null;
+    if (candidate && !accounting) return refuseCandidate();
     const result = await handleChatCore({
+      ...(candidate ? { accounting } : {}),
       body: { ...body, model: `${provider}/${model}` },
       modelInfo: { provider, model },
       credentials: refreshedCredentials,
@@ -336,7 +409,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       pxpipeMinChars: chatSettings.pxpipeMinChars,
       pxpipeTimeoutMs: chatSettings.pxpipeTimeoutMs,
       // Lazily warms the in-process module on first use; null when not installed (fail-open)
-      pxpipeTransform: chatSettings.pxpipeEnabled ? await getPxpipeTransform() : null,
+      pxpipeTransform: !candidate && chatSettings.pxpipeEnabled ? await getPxpipeTransform() : null,
       onPxpipeEvent: appendPxpipeEvent,
       providerThinking,
       // Per-provider user overrides (custom headers / connect timeout) from settings
@@ -357,6 +430,10 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       }
     });
 
+    // Accounting failures/refusals never become provider cooldown or implicit
+    // next-account retries. A fresh owned successor requires explicit evidence.
+    if (candidate) return markAccountingResponse(result.response);
+    if (result.accountingRefused) return result.response;
     if (result.success) return result.response;
 
     // Antigravity 409/429: refresh live quota to get exact resetAt before locking

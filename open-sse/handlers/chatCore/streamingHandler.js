@@ -1,13 +1,14 @@
 import { FORMATS } from "../../translator/formats.js";
 import { needsTranslation } from "../../translator/index.js";
 import { createSSETransformStreamWithLogger, createPassthroughStreamWithLogger } from "../../utils/stream.js";
+import { createAccountedAnthropicStream } from "../../utils/accounted-anthropic-stream.js";
 import { pipeWithDisconnect } from "../../utils/streamHandler.js";
 import { PROVIDERS } from "../../config/providers.js";
 import { HTTP_STATUS, STREAM_STALL_TIMEOUT_MS } from "../../config/runtimeConfig.js";
 import { buildAbortedResponsesTerminalBytes } from "../../utils/responsesStreamHelpers.js";
 import { buildStreamErrorBytes } from "../../utils/streamHelpers.js";
 import { buildRequestDetail, extractRequestConfig, saveUsageStats, formatDoneLine } from "./requestDetail.js";
-import { saveRequestDetail } from "@/lib/usageDb.js";
+import { saveRequestDetail, trackPendingRequest } from "@/lib/usageDb.js";
 import { SSE_HEADERS_CORS as SSE_HEADERS } from "../../utils/sseConstants.js";
 import { upstreamResponseHeaders } from "../../utils/upstreamHeaders.js";
 
@@ -48,7 +49,25 @@ function buildTransformStream({ provider, sourceFormat, targetFormat, userAgent,
 /**
  * Handle streaming response — pipe provider SSE through transform stream to client.
  */
-export async function handleStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, userAgent, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, streamDetailId, pxpipe, reqTag, log, credentials }) {
+export async function handleStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, userAgent, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, streamDetailId, pxpipe, reqTag, log, credentials, accountingAttempt }) {
+  if (accountingAttempt) {
+    const mediaType = providerResponse.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase();
+    if (provider !== "anthropic" || sourceFormat !== FORMATS.CLAUDE || targetFormat !== FORMATS.CLAUDE ||
+        mediaType !== "text/event-stream" || !providerResponse.body) {
+      await providerResponse.body?.cancel().catch(() => {});
+      streamController.handleError(new Error("Invalid accounted Anthropic SSE response"));
+      return { success: false, response: Response.json({ error: { message: "Accounting response unavailable" } }, { status: 502 }) };
+    }
+    const transform = createAccountedAnthropicStream(accountingAttempt,
+      () => trackPendingRequest(model, provider, connectionId, false));
+    const body = pipeWithDisconnect(providerResponse, transform, streamController,
+      () => buildStreamErrorBytes(HTTP_STATUS.BAD_GATEWAY, "Anthropic stream ended before completion", FORMATS.CLAUDE),
+      PROVIDERS[provider]?.stallTimeoutMs || STREAM_STALL_TIMEOUT_MS);
+    return { success: true, response: new Response(body, {
+      headers: { ...SSE_HEADERS, ...upstreamResponseHeaders(providerResponse.headers) },
+    }) };
+  }
+
   if (onRequestSuccess) {
     Promise.resolve()
       .then(onRequestSuccess)

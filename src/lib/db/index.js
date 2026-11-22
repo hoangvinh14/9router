@@ -3,6 +3,7 @@ import { getAdapter } from "./driver.js";
 import { stringifyJson, parseJson } from "./helpers/jsonCol.js";
 import { keyAccessFromColumns, keyAccessToColumns, validateKeyAccessInput } from "@/shared/utils/keyAccess.js";
 import { KEY_ACCESS_UNRESTRICTED } from "@/shared/constants/keyAccess.js";
+import { assertNoAccountingMutation } from "../accounting/mutation-barrier.js";
 
 // Settings
 export {
@@ -74,8 +75,13 @@ export async function exportDb() {
   const db = await getAdapter();
   const { exportSettings } = await import("./repos/settingsRepo.js");
 
+  const settings = await exportSettings();
+  return db.transaction(() => {
+    // Legacy JSON backup omits accounting tables; never emit a silently
+    // incomplete artifact once any accounting lifecycle schema is observed.
+    assertNoAccountingMutation(db);
   const out = {
-    settings: await exportSettings(),
+    settings,
     providerConnections: db.all(`SELECT * FROM providerConnections`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, provider: r.provider, authType: r.authType, name: r.name, email: r.email, priority: r.priority, isActive: r.isActive === 1, createdAt: r.createdAt, updatedAt: r.updatedAt })),
     providerNodes: db.all(`SELECT * FROM providerNodes`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, type: r.type, name: r.name, createdAt: r.createdAt, updatedAt: r.updatedAt })),
     proxyPools: db.all(`SELECT * FROM proxyPools`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, isActive: r.isActive === 1, testStatus: r.testStatus, createdAt: r.createdAt, updatedAt: r.updatedAt })),
@@ -93,6 +99,7 @@ export async function exportDb() {
   for (const r of db.all(`SELECT key, value FROM kv WHERE scope = 'pricing'`)) out.pricing[r.key] = parseJson(r.value);
 
   return out;
+  });
 }
 
 export async function importDb(payload) {
@@ -102,6 +109,9 @@ export async function importDb(payload) {
   const db = await getAdapter();
 
   db.transaction(() => {
+    // Refuse before EVERY write, not merely before apiKeys deletion. This
+    // temporary barrier does not implement accounting import/restore semantics.
+    assertNoAccountingMutation(db);
     // Wipe all tables (keep _meta)
     db.run(`DELETE FROM settings`);
     db.run(`DELETE FROM providerConnections`);
