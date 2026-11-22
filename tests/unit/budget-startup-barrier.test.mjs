@@ -136,15 +136,44 @@ for (const version of [2, 3, 4]) test('installed startup preserves donor account
      ...(usage && { usage }) });
    const amount = corrected ? 105900 : usage ? 120000 : state === 'waived' ? 0 : null;
    db.run(\`INSERT INTO apiKeyAccounting
-     (attemptId,requestId,apiKeyId,ownerInstanceId,startedAt,finishedAt,provider,model,endpoint,state,priceSnapshotJson,intentJson,terminalJson,usageJson,costNanoUsd,manuallyResolved)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)\`,
+     (attemptId,requestId,apiKeyId,ownerInstanceId,startedAt,finishedAt,provider,model,endpoint,state,priceSnapshotJson,intentJson,terminalJson,usageJson,costNanoUsd,resolutionVersion,manuallyResolved)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)\`,
    [id, 'request-' + state, 'donor-key', 'donor-owner', now, terminal ? now : null, 'fixture', 'fixture',
-     '/v1/messages', state, price, intent, terminal, usage ? JSON.stringify(usage) : null, amount, Number(corrected || state === 'waived')]);
+     '/v1/messages', state, price, intent, terminal, usage ? JSON.stringify(usage) : null, amount,
+     corrected || state === 'waived' ? 2 : Number(state !== 'pending'), Number(corrected || state === 'waived')]);
  }
  db.run('INSERT INTO apiKeyAccountingAudit VALUES (?,?,?,?,?,?,?,?,?,?,?)', [
    'audit-correction', 'donor-corrected', 'donor-key', null, 'correction', 'fixture-operator', 'fixture evidence',
-   'cost_correction', JSON.stringify({ state: 'unresolved' }), JSON.stringify({ costNanoUsd: '105900' }), now,
+   'cost_correction', JSON.stringify({ state: 'unresolved' }),
+   JSON.stringify({ action: 'cost_correction', operationId: 'correction', expectedVersion: 1, costNanoUsd: '105900' }), now,
  ]);
+ db.run('INSERT INTO apiKeyAccountingAudit VALUES (?,?,?,?,?,?,?,?,?,?,?)', [
+   'audit-waiver', 'donor-waived', 'donor-key', null, 'waiver', 'fixture-operator', 'fixture evidence',
+   'waive', JSON.stringify({ state: 'unresolved' }),
+   JSON.stringify({ action: 'waive', operationId: 'waiver', expectedVersion: 1 }), now,
+ ]);
+ const backup = DB_DIR + '/donor.sqlite';
+ db.run('VACUUM INTO ?', [backup]);
+ const {spawnSync} = await import('node:child_process');
+ const inspect = file => spawnSync('/runtime/node', ['/app/scripts/inspect-legacy-accounting.mjs', file], {encoding: 'utf8'});
+ const beforeBackup = fs.readFileSync(backup);
+ const result = inspect(backup);
+ assert.equal(result.status, 0, result.stderr);
+ assert.deepEqual(JSON.parse(result.stdout), {
+   attempts: { pending: 1, settled: 2, unresolved: 1, not_dispatched: 1, waived: 1, unrecorded: Number(version === 4) },
+   recordedNanoUsd: '225900',
+ });
+ assert.deepEqual(fs.readFileSync(backup), beforeBackup);
+ for (const suffix of ['-wal', '-shm', '-journal']) assert.equal(fs.existsSync(backup + suffix), false);
+ const corrupt = DB_DIR + '/corrupt-donor.sqlite';
+ fs.copyFileSync(backup, corrupt, fs.constants.COPYFILE_EXCL);
+ const {DatabaseSync} = await import('node:sqlite');
+ const altered = new DatabaseSync(corrupt);
+ altered.prepare("UPDATE apiKeyAccounting SET costNanoUsd = 1 WHERE attemptId = 'donor-corrected'").run();
+ altered.close();
+ const refusedInspection = inspect(corrupt);
+ assert.equal(refusedInspection.status, 1);
+ assert.equal(refusedInspection.stdout, '');
  const data = () => tables.map(table => db.all('SELECT * FROM ' + table + ' ORDER BY rowid'));
  const previous = data();
  const schema = snapshot();

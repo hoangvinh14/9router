@@ -14,7 +14,7 @@ const files=[
  'src/lib/accounting/terminal-cost.js','src/lib/accounting/node-key-policy.js','src/lib/accounting/mutation-barrier.js',
  'src/lib/accounting/node-existing-audit.js','src/lib/db/app-schema-work.js',
  'src/lib/pricing/constants.js','src/lib/pricing/decimalMoney.js','tests/fixtures/budget/alias-loader.mjs','tests/unit/budget-startup-barrier.test.mjs',
- 'scripts/provision-internal-accounting.mjs','tests/unit/budget-provisioning.test.mjs',
+ 'scripts/provision-internal-accounting.mjs','scripts/inspect-legacy-accounting.mjs','tests/unit/budget-provisioning.test.mjs',
  'src/lib/accounting/internal-binding.js','src/lib/accounting/node-anthropic-account.js',
  'src/lib/accounting/anthropic-reference-price.js','src/lib/accounting/node-routing-snapshot.js',
  'open-sse/services/accountFallback.js','open-sse/config/errorConfig.js','tests/unit/budget-internal-binding.test.mjs',
