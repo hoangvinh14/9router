@@ -49,6 +49,14 @@ Image Linux/amd64 `9router-budget-internal:claude-oauth-standard` (`sha256:60be1
 - Trên chính image này, Codex Standard và Anthropic API-key cũng vượt qua ca HTTP, HTTPS và restart. Các bộ kiểm thử hiện có đạt 119/119 budget, 33/33 startup, 32/32 composition, 12/12 native wire fidelity và 7/7 dashboard.
 - Phạm vi còn mở gồm refresh/retry có kiểm soát, các cấu hình Claude chuyển đổi hoặc ngoài Standard, và rollout trên instance thật.
 
+### Kiểm chứng token OAuth hết hạn và lỗi 401
+
+Commit `bd931085` kiểm tra thời điểm hết hạn trong credential đang lưu ở SQLite khi xác minh tài khoản Codex hoặc Claude OAuth, rồi kiểm tra lại trong giao dịch ngay trước POST. Quyết định này áp dụng cho inference. Dashboard vẫn đọc và quản lý budget khi token hết hạn. Một request mới có thể chạy sau khi credential hợp lệ đã được lưu.
+
+Trên Linux Node v24.21.0, hai lượt chạy composition với kiểm thử hồi quy tạm thời đạt 34/34, gồm cả HTTPS loopback. Token Codex hết hạn trước khi xác minh tài khoản hoặc giữa lúc ghi intent và gửi request đều tạo 0 POST. Request mới sau khi cập nhật credential tạo một POST và nhận terminal hợp lệ. HTTP 401 đầy đủ từ Codex được trả về đúng mã, chỉ có một POST và không có bản ghi chi phí từ body lỗi. Bộ core đạt 12/12 và backup SQLite đạt 16/16.
+
+C4 vẫn cần bằng chứng theo từng profile OAuth rằng lỗi upstream đủ điều kiện kết thúc attempt trước khi thử lại. Các tài liệu công khai giải thích mã lỗi API nhưng chưa xác nhận cutoff usage cho các endpoint OAuth đang dùng. Với cấu hình hiện tại, lỗi 401 không kích hoạt refresh/retry trong cùng request budget. Refresh có kiểm soát trong cùng request vẫn cần biên nhận lưu credential cho đúng connection và vòng kiểm tra budget mới trước mỗi POST. [OpenAI API errors](https://developers.openai.com/api/docs/guides/error-codes) · [Anthropic API errors](https://platform.claude.com/docs/en/api/errors).
+
 ### Luồng đã xác nhận trên hai instance
 
 - **Codex OAuth.** Ca đầu là Responses SSE passthrough cho `codex/gpt-6.2-sol`. Đọc usage ở terminal Responses gốc. Tách cached input khỏi input tổng, tính output một lần dù có reasoning, và dùng biểu giá tham chiếu theo đúng model. Kiểm tra cùng key qua Chat Completions streaming. Khoản đã ghi phải được chia sẻ giữa hai endpoint, hoặc đường chưa hỗ trợ phải từ chối trước POST.

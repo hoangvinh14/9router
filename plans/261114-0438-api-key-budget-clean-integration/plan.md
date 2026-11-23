@@ -36,6 +36,14 @@ Dùng SQLite hiện có của 9Router. Mỗi API key bắt đầu ghi chi phí t
 
 [Tiêu chí Phase 03](./phase-03-native-retry-and-compatibility.md#luồng-đã-xác-nhận-trên-hai-instance).
 
+## Tiêu chí còn mở sau nghiệm thu nội bộ
+
+Bốn luồng Docker Linux amd64 đã kiểm chứng ghi chi phí theo API key và chặn lượt kế ở đúng hạn mức, kể cả sau restart. [Kết quả nghiệm thu](./phase-03-native-retry-and-compatibility.md#nghiệm-thu-claude-oauth-standard-trên-docker-nội-bộ).
+
+- Phase 03 vẫn yêu cầu refresh/retry trong cùng request, luồng chuyển đổi và các profile ngoài những cấu hình đã nghiệm thu. Hiện tại lỗi 401 của Codex được trả về với một POST, còn credential hết hạn đã biết bị từ chối trước POST. Retry dương cần bằng chứng về attempt trước và biên nhận lưu credential. [Kiểm chứng OAuth](./phase-03-native-retry-and-compatibility.md#kiểm-chứng-token-oauth-hết-hạn-và-lỗi-401).
+- Chính sách thiếu usage đang lệch giữa Phase 04 và bản chạy. Phase 04 ghi tiếp tục tính phần đã biết. Codex hiện chặn key khi terminal đầy đủ thiếu usage, kể cả dưới hạn mức, và có thao tác miễn phần chưa xác định hoặc ghi khoản bổ sung. Cần thống nhất hành vi trước khi đóng tiêu chí này. [Hành vi Codex hiện tại](./phase-03-native-retry-and-compatibility.md#nguồn-đơn-giá-budget--quyết-định-2026-11-23) · [Phase 04](./phase-04-integrity-and-migration.md).
+- Ma trận runtime ngoài Docker Linux amd64 vẫn mở. Rollout trên hai instance đang chạy là quyết định riêng. [Ma trận nghiệm thu](./phase-05-acceptance-and-handoff.md#acceptance-matrix-beyond-helper-tests).
+
 ## 1. Authority và outcome
 
 Nguồn quyết định là [brainstorm contract B01–B08, đặc biệt §8](../261113-1952-api-key-budget-scope-audit/references/brainstorm-contract.md), [handoff](../261113-1952-api-key-budget-scope-audit/references/branch-handoff.md), và [audit §§3–8/11](../261113-1952-api-key-budget-scope-audit/references/audit-report.md). Không lập lại audit cũ, không hỏi lại key-vs-account, block-vs-monitor, master-vs-develop hay worktree.
