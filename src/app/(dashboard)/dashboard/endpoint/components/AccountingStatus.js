@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import PropTypes from "prop-types";
-import { loadAccountingStatus, loadBudget, saveBudget } from "./accountingStatusClient";
+import { loadAccountingStatus, loadBudget, saveBudget, waiveBudgetUsage } from "./accountingStatusClient";
 
 function useSnapshot(keyId, load) {
   const [state, setState] = useState({ loading: true, value: null, error: null });
@@ -114,6 +114,45 @@ function BudgetEditor({ keyId, budget, refresh }) {
 }
 BudgetEditor.propTypes = { keyId: PropTypes.string.isRequired, budget: PropTypes.object.isRequired, refresh: PropTypes.func.isRequired };
 
+function UsageWaiver({ keyId, attempt, version, refresh }) {
+  const [operation, setOperation] = useState(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  async function submit(event) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const next = operation ?? { operationId: Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, "0")).join(""), expectedVersion: version,
+      reason: form.get("reason"), evidence: form.get("evidence") };
+    setOperation(next);
+    setPending(true);
+    setError("");
+    try {
+      await waiveBudgetUsage(keyId, attempt.attemptId, next);
+      refresh();
+    } catch (failure) {
+      setError(failure.message);
+    } finally {
+      setPending(false);
+    }
+  }
+  return <details className="my-2">
+    <summary>Waive missing usage from {resetFormat.format(new Date(attempt.startedAt))}</summary>
+    <form onSubmit={submit} className="mt-2 space-y-2">
+      <p>Recorded cost of {attempt.knownCost} nano-USD stays charged. Waive only the unknown usage.</p>
+      <label className="block">Reason <input className="border border-border" name="reason" maxLength={512} required readOnly={Boolean(operation)} /></label>
+      <label className="block">Evidence reference <input className="border border-border" name="evidence" maxLength={1000} required readOnly={Boolean(operation)} /></label>
+      {error && <p role="alert">{error}</p>}
+      <button className="text-primary underline" disabled={pending} type="submit">
+        {pending ? "Saving waiver..." : operation ? "Retry waiver" : "Confirm waiver"}
+      </button>
+    </form>
+  </details>;
+}
+UsageWaiver.propTypes = {
+  keyId: PropTypes.string.isRequired, attempt: PropTypes.object.isRequired, version: PropTypes.number.isRequired,
+  refresh: PropTypes.func.isRequired,
+};
+
 function BudgetSnapshot({ keyId }) {
   const { state, refresh } = useSnapshot(keyId, loadBudget);
   const budget = state.value;
@@ -144,6 +183,9 @@ function BudgetSnapshot({ keyId }) {
           {budget.unrecorded > 0 && <p>{budget.unrecorded} attempt(s) have no recorded terminal cost. Their cost is excluded from recorded spend.</p>}
         </>}
       </div>
+      {budget?.lifecycle === "active" && budget.unresolvedAttempts?.map(attempt => (
+        <UsageWaiver key={attempt.attemptId} keyId={keyId} attempt={attempt} version={budget.version} refresh={refresh} />
+      ))}
       {(budget?.canCreate || budget?.lifecycle === "active") && <BudgetEditor key={budget.version} keyId={keyId} budget={budget} refresh={refresh} />}
       <button type="button" className="mt-2 text-primary underline disabled:opacity-50" disabled={state.loading} onClick={refresh}>
         Refresh budget

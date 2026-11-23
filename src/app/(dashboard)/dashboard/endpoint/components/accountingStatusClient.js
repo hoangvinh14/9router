@@ -55,7 +55,13 @@ function budgetView(body, keyId) {
     [rates?.input, rates?.cached, rates?.output].every(rate => typeof rate === "string" && /^\d+(?:\.\d+)?$/.test(rate))
     ? { input: rates.input, cached: rates.cached, output: rates.output, syncedAt: new Date(price.syncedAt).toISOString() }
     : null;
-  return { available: true, version: policy.version, lifecycle: policy.lifecycle, periods,
+  const unresolvedAttempts = usage.blockedByUnresolvedUsage === true && Array.isArray(usage.unresolvedAttempts)
+    ? usage.unresolvedAttempts.slice(0, 20)
+      .filter(item => validId(item?.attemptId) && typeof item.startedAt === "string" &&
+        Number.isFinite(Date.parse(item.startedAt)) && item.knownCost !== null && amount(item.knownCost))
+      .map(({ attemptId, startedAt, knownCost }) => ({ attemptId, startedAt, knownCost }))
+    : [];
+  return { available: true, version: policy.version, lifecycle: policy.lifecycle, periods, unresolvedAttempts,
     ...(referencePrice ? { referencePrice } : {}),
     ...(usage.blockedByUnresolvedUsage === true ? { blockedByUnresolvedUsage: true } : {}),
     unknownDefaulted: usage.unknownDefaulted, unrecorded: usage.unrecorded, timezone: usage.timezone };
@@ -105,4 +111,14 @@ export async function saveBudget(keyId, version, limits, signal) {
   const policy = (await response.json().catch(() => null))?.policy;
   if (policy?.keyId !== keyId || policy.version !== version + 1 ||
       policy.limits?.weekly !== limits.weekly || policy.limits?.monthly !== limits.monthly) throw new Error(failure);
+}
+
+export async function waiveBudgetUsage(keyId, attemptId, operation) {
+  const response = await fetch(`/api/keys/${encodeURIComponent(keyId)}/budget/attempts/${encodeURIComponent(attemptId)}/resolve`, {
+    method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ...operation, action: "waive" }),
+  });
+  if (response.status === 409) throw new Error("The attempt or policy changed. Refresh the budget.");
+  if (!response.ok) throw new Error("Waiver could not be confirmed. Refresh the budget or retry.");
 }

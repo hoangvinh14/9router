@@ -5,6 +5,7 @@ import {SignJWT} from 'jose';
 import {createDashboardAuthToken} from '../../src/lib/auth/dashboardSession.js';
 import { PATCH as patchPricing, DELETE as deletePricing } from '../../src/app/api/pricing/route.js';
 import { pricingMutations } from '../fixtures/budget/jwt-settings-stub.mjs';
+import { POST as resolveUsage } from '../../src/app/api/keys/[id]/budget/attempts/[attemptId]/resolve/route.js';
 import {GET,PUT} from '../../src/app/api/keys/[id]/budget/route.js';
 assert.equal(process.env.BUDGET_PURE_SANDBOX,'1');
 assert.notEqual(fs.readlinkSync('/proc/self/ns/net'),process.env.BUDGET_OUTER_NET);
@@ -73,4 +74,14 @@ test('Codex price updates and resets require a dashboard session and same origin
   }
   assert.equal((await patchPricing(change('PATCH', '', null, origin, { openai: { other: { input: 2 } } }))).status, 200);
   assert.equal((await deletePricing(change('DELETE', '?provider=openai&model=other', null, origin))).status, 200);
+});
+
+test('usage recovery requires signed dashboard session and same origin before reading the body', async () => {
+ const token = await createDashboardAuthToken();
+ const target = { params: Promise.resolve({ id: 'key-A', attemptId: 'attempt-A' }) };
+ assert.equal((await resolveUsage(request(null), target)).status, 401);
+ assert.equal((await resolveUsage(request(token, 'https://other.invalid'), target)).status, 403);
+ const invalid = await resolveUsage(request(token), target);
+ assert.equal(invalid.status, 400);
+ assert.equal(invalid.headers.get('cache-control'), 'no-store');
 });

@@ -273,6 +273,7 @@ async function fixture(run, { weekly = null, monthly = null, reply, interrupted 
     }
     await run({ chat, state, rows, reopen, path,
       rebind: presentedSecret => { owner = openOwner(presentedSecret); },
+      waiveUsage: (attemptId, command) => owner.ledger.waiveUnresolvedUsage('fixture-key', attemptId, command, clock),
       inspectPolicy: () => owner.policy.inspect('fixture-key'),
       setMonthly: (version, monthly) => owner.policy.save('fixture-key', version, { weekly: null, monthly }),
       totals: (instant = clock()) => owner.ledger.totals('fixture-key', instant),
@@ -1012,7 +1013,7 @@ if (stage === undefined) {
 
   test('Codex terminal without usage blocks another POST below the spend limit', () => {
     const terminal = 'data: {"type":"response.failed","response":{"id":"fixture","status":"failed","usage":null}}\n\n';
-    return codexFixture(async ({ request, rows, state, reopen }) => {
+    return codexFixture(async ({ request, rows, state, reopen, waiveUsage }) => {
       const response = await postResponses(request());
       assert.equal(response.status, 200);
       assert.equal(await response.text(), terminal);
@@ -1024,6 +1025,18 @@ if (stage === undefined) {
       assert.equal((await postResponses(request())).status, 503);
       assert.equal(state.wire.length, 1);
       assert.equal(rows().terminals.length, 1);
+      const { attemptId } = rows().attempts[0];
+      const command = { operationId: 'fixture-recovery', expectedVersion: 1, reason: 'Missing terminal usage',
+        evidence: 'Fixture upstream error' };
+      assert.throws(() => waiveUsage(attemptId, { ...command, expectedVersion: 2 }), { status: 409 });
+      const receipt = waiveUsage(attemptId, command);
+      await reopen();
+      assert.deepEqual(waiveUsage(attemptId, command), receipt);
+      assert.throws(() => waiveUsage(attemptId, { ...command, reason: 'Changed' }), { status: 409 });
+      const resumed = await postResponses(request());
+      assert.equal(resumed.status, 200);
+      assert.equal(await resumed.text(), terminal);
+      assert.equal(state.wire.length, 2);
     }, { reply: () => new Response(terminal, { headers: { 'content-type': 'text/event-stream' } }) });
   });
 

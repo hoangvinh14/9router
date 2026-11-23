@@ -24,6 +24,11 @@ const DEFINITIONS = Object.freeze({
   orphanTerminal: { method: 'get', sql: 'SELECT t.attempt_id FROM accounting_terminals_v1 t LEFT JOIN accounting_attempts_v1 a ON a.id = t.attempt_id WHERE a.id IS NULL LIMIT 1' },
   page: { method: 'all', sql: 'SELECT a.id, a.key_id, a.started_at, a.week_start, a.month_start, t.amount, t.evidence FROM accounting_attempts_v1 a LEFT JOIN accounting_terminals_v1 t ON t.attempt_id = a.id WHERE a.key_id = ? AND a.id > ? ORDER BY a.id LIMIT 3' },
 });
+const RECOVERY_READS = Object.freeze({
+  recovery: { method: 'get', sql: "SELECT value FROM kv WHERE scope = 'budgetUsageRecovery' AND key = ?" },
+});
+const RECOVERY_WRITE = { method: 'run', sql: "INSERT INTO kv(scope, key, value) VALUES ('budgetUsageRecovery', ?, ?)" };
+
 const CODEX_PRICE_READS = Object.freeze({
   codexReferencePrice: Object.freeze({ method: 'get', sql: 'SELECT value FROM kv WHERE scope = ? AND key = ?' }),
 });
@@ -200,11 +205,22 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
   };
   const { checkedSchema, parseOriginal, verifyOriginal, validateStoredRow, audit } = createLedgerReadValidator(corrupt);
   const { resolve, inspectPolicy, validateAttemptGeneration } = createKeyPolicyReadValidator(corrupt);
-  const finalReads = { ...runtimeDefinitions, ...KEY_POLICY_RESOLVE_DEFINITIONS };
+  const finalReads = { ...runtimeDefinitions, ...KEY_POLICY_RESOLVE_DEFINITIONS, ...RECOVERY_READS };
   const finalTransaction = createNodeOuterTransaction(adapter, finalReads);
   const ownRoutes = new WeakMap();
   const ownAccounts = new WeakMap();
   let checkRouteTransaction;
+  function readRecovery(scope, keyId, attemptId) {
+    const row = scope.recovery([`attempt:${attemptId}`]);
+    if (!row) return null;
+    try {
+      const record = JSON.parse(row.value);
+      if (record.keyId !== keyId || record.attemptId !== attemptId ||
+          record.actor !== 'dashboard-admin' || record.action !== 'waive' ||
+          scope.recovery([`operation:${identifier(record.operationId)}`])?.value !== row.value) throw unavailable();
+      return record;
+    } catch { corrupt(); }
+  }
   const totals = (scope, keyId, windows, observation) => {
     let after = ''; let weekly = 0n; let monthly = 0n; let unknown = 0; let blocksDispatch = false;
     // Bounded pages keep fixed-scope snapshots below payload limits. No REAL SUM
@@ -219,7 +235,12 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
           if (observation && (row.week_start === windows.weekly.startAt || row.month_start === windows.monthly.startAt)) observation.unrecorded++;
           continue;
         }
-        if (value.blocksDispatch) blocksDispatch = true;
+        if (value.blocksDispatch && !readRecovery(scope, keyId, row.id)) {
+          blocksDispatch = true;
+          if (observation?.unresolved.length < 20) {
+            observation.unresolved.push({ attemptId: row.id, startedAt: row.started_at, knownCost: row.amount });
+          }
+        }
         if (row.amount === null) continue;
         if (row.week_start === windows.weekly.startAt) weekly += BigInt(row.amount);
         if (row.month_start === windows.monthly.startAt) monthly += BigInt(row.amount);
@@ -232,6 +253,49 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
   };
 
   return Object.freeze({
+    waiveUnresolvedUsage(keyId, attemptId, command, clock) {
+      assertAccountingHealthy();
+      identifier(keyId);
+      identifier(attemptId);
+      const { operationId, expectedVersion, reason, evidence } = command;
+      identifier(operationId);
+      if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) throw conflict();
+      text(reason, 'reason');
+      text(evidence, 'evidence', 1000);
+      const requested = { keyId, attemptId, operationId, expectedVersion, reason, evidence,
+        actor: 'dashboard-admin', action: 'waive' };
+      const { value } = createNodeOuterTransaction(adapter, {
+        ...runtimeDefinitions, ...KEY_POLICY_AUDIT_DEFINITIONS, ...KEY_POLICY_EVENT_BY_KEY,
+        ...RECOVERY_READS, storeRecovery: RECOVERY_WRITE,
+      })(scope => {
+        checkedSchema(scope);
+        const existing = scope.recovery([`operation:${operationId}`]);
+        if (existing) {
+          const { resolvedAt } = JSON.parse(existing.value);
+          if (boundedCanonical({ ...requested, resolvedAt }) !== existing.value) return null;
+          if (!readRecovery(scope, keyId, attemptId)) corrupt();
+          return { operationId, resolvedAt };
+        }
+        const policy = inspectPolicy(scope, keyId);
+        if (policy?.lifecycle !== 'active' || policy.version !== expectedVersion) return null;
+        const originalRow = scope.original([attemptId]);
+        const terminal = scope.terminal([attemptId]);
+        if (!originalRow || !terminal) return null;
+        const original = parseOriginal(originalRow.original);
+        if (original.keyId !== keyId || readRecovery(scope, keyId, attemptId)) return null;
+        const value = validateStoredRow(scope, { ...terminal, id: attemptId, key_id: keyId,
+          started_at: original.startedAt, week_start: original.windows.weekly.startAt, month_start: original.windows.monthly.startAt },
+        validateAttemptGeneration);
+        if (!value?.blocksDispatch) return null;
+        const resolvedAt = budgetInstant(clock);
+        const record = boundedCanonical({ ...requested, resolvedAt });
+        scope.storeRecovery([`attempt:${attemptId}`, record]);
+        scope.storeRecovery([`operation:${operationId}`, record]);
+        return { operationId, resolvedAt };
+      });
+      if (!value) throw conflict();
+      return value;
+    },
     // Read-only startup prerequisite, not a new ACK or startup admission.
     // Unsettled intents remain unsettled (E2); never fabricate terminal zero.
     validateExistingAttempts() {
@@ -389,7 +453,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
     inspectBudget(keyId, clock, priceBasis) {
       identifier(keyId);
       const readSnapshot = createNodeOuterTransaction(adapter, {
-        ...KEY_POLICY_AUDIT_DEFINITIONS, ...KEY_POLICY_EVENT_BY_KEY, ...LEDGER_AUDIT_DEFINITIONS, page: DEFINITIONS.page, ...CODEX_PRICE_READS,
+        ...KEY_POLICY_AUDIT_DEFINITIONS, ...KEY_POLICY_EVENT_BY_KEY, ...LEDGER_AUDIT_DEFINITIONS, page: DEFINITIONS.page, ...CODEX_PRICE_READS, ...RECOVERY_READS,
       });
       return readSnapshot(scope => {
         const windows = budgetWindows(budgetInstant(clock));
@@ -400,7 +464,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
           if (scope.page([keyId, '']).length) corrupt();
           return { policy: null, usage: null };
         }
-        const observation = { unrecorded: 0 };
+        const observation = { unrecorded: 0, unresolved: [] };
         const spend = totals(scope, keyId, windows, observation);
         const period = name => {
           const limit = policy.limits[name];
@@ -411,12 +475,12 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         const reference = priceBasis === CODEX_STANDARD_REFERENCE ? readCodexPrice(scope) : null;
         return { ...(reference ? { referencePrice: reference } : {}), policy, usage: { weekly: period('weekly'), monthly: period('monthly'), timezone: windows.timezone,
           unknownDefaulted: spend.unknown, unrecorded: observation.unrecorded,
-          ...(spend.blocksDispatch ? { blockedByUnresolvedUsage: true } : {}) } };
+          ...(spend.blocksDispatch ? { blockedByUnresolvedUsage: true, unresolvedAttempts: observation.unresolved } : {}) } };
       }).value;
     },
     totals(keyId, instant) {
       identifier(keyId); const windows = budgetWindows(instant);
-      return transact(scope => {
+      return finalTransaction(scope => {
         checkedSchema(scope);
         const { weekly, monthly, unknown } = totals(scope, keyId, windows);
         return { weekly, monthly, unknown };

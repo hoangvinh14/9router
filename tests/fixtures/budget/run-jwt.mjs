@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 if(process.platform!=='linux'||process.version!=='v24.21.0'||process.argv.length!==2||process.env.NODE_OPTIONS||process.env.NODE_PATH)throw new Error('Clean pinned Linux Node required');
 const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
-const files=['src/app/api/pricing/route.js','src/app/api/keys/[id]/budget/route.js','src/lib/accounting/management-auth.js','src/lib/accounting/profile-registry.js',
+const files=['src/app/api/pricing/route.js','src/app/api/keys/[id]/budget/route.js','src/app/api/keys/[id]/budget/attempts/[attemptId]/resolve/route.js','src/lib/accounting/management-auth.js','src/lib/accounting/profile-registry.js',
  'src/lib/accounting/management-request.js','src/lib/accounting/exact-money.js','src/lib/accounting/attempt-payload.js','src/lib/pricing/decimalMoney.js','src/lib/pricing/constants.js',
  'src/lib/auth/dashboardSession.js','src/lib/dataDir.js','tests/fixtures/budget/jwt-loader.mjs','tests/fixtures/budget/jwt-settings-stub.mjs','tests/unit/budget-management-jwt.test.mjs'];
 const args=['--unshare-all','--die-with-parent','--new-session','--ro-bind','/usr','/usr','--symlink','usr/bin','/bin','--ro-bind','/lib','/lib'];
