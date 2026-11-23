@@ -27,7 +27,7 @@ const DEFINITIONS = Object.freeze({
 const RECOVERY_READS = Object.freeze({
   recovery: { method: 'get', sql: "SELECT value FROM kv WHERE scope = 'budgetUsageRecovery' AND key = ?" },
 });
-const RECOVERY_ACTIONS = new Set(['waive', 'exact_usage', 'cost_correction']);
+const RECOVERY_ACTIONS = new Set(['waive', 'cost_correction']);
 const RECOVERY_WRITE = { method: 'run', sql: "INSERT INTO kv(scope, key, value) VALUES ('budgetUsageRecovery', ?, ?)" };
 
 const CODEX_PRICE_READS = Object.freeze({
@@ -217,7 +217,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
     try {
       const record = JSON.parse(row.value);
       if (record.keyId !== keyId || record.attemptId !== attemptId ||
-          record.actor !== 'dashboard-admin' || !RECOVERY_ACTIONS.has(record.action) ||
+          record.actor !== 'dashboard-admin' || (!RECOVERY_ACTIONS.has(record.action) && record.action !== 'exact_usage') ||
           scope.recovery([`operation:${identifier(record.operationId)}`])?.value !== row.value) throw unavailable();
       if (record.action !== 'waive') nanoUsd(record.adjustmentNanoUsd);
       return record;
@@ -241,7 +241,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         if (value.blocksDispatch && !recovery) {
           blocksDispatch = true;
           if (observation?.unresolved.length < 20) {
-            observation.unresolved.push({ attemptId: row.id, startedAt: row.started_at, knownCost: row.amount, unknown: value.unknown });
+            observation.unresolved.push({ attemptId: row.id, startedAt: row.started_at, knownCost: row.amount });
           }
         }
         if (row.amount === null) continue;
@@ -261,7 +261,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
       assertAccountingHealthy();
       identifier(keyId);
       identifier(attemptId);
-      const { operationId, expectedVersion, reason, evidence, action, counts, additionalNanoUsd } = command;
+      const { operationId, expectedVersion, reason, evidence, action, additionalNanoUsd } = command;
       identifier(operationId);
       if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) throw conflict();
       text(reason, 'reason');
@@ -269,7 +269,6 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
       if (!RECOVERY_ACTIONS.has(action)) throw conflict();
       const requested = { keyId, attemptId, operationId, expectedVersion, reason, evidence,
         actor: 'dashboard-admin', action,
-        ...(action === 'exact_usage' ? { counts: snapshotPayload(counts) } : {}),
         ...(action === 'cost_correction' ? { additionalNanoUsd: nanoUsd(additionalNanoUsd) } : {}),
       };
       const { value } = createNodeOuterTransaction(adapter, {
@@ -297,18 +296,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         validateAttemptGeneration);
         if (!value?.blocksDispatch) return null;
         const resolvedAt = budgetInstant(clock);
-        let adjustmentNanoUsd = additionalNanoUsd;
-        if (action === 'exact_usage') {
-          if (!counts || Object.keys(counts).sort().join(',') !== [...value.unknown].sort().join(',')) return null;
-          const components = value.known.concat(value.unknown.map(category => ({
-            category, count: counts[category], unit: original.price.unit,
-          })));
-          try {
-            const corrected = terminalCost({ semantics: EXCLUSIVE_USAGE, components }, original.price);
-            if (corrected.unknown.length) return null;
-            adjustmentNanoUsd = nanoUsd(String(BigInt(corrected.amountNanoUsd) - BigInt(terminal.amount)));
-          } catch { return null; }
-        }
+        const adjustmentNanoUsd = additionalNanoUsd;
         if (action !== 'waive' && BigInt(terminal.amount) + BigInt(adjustmentNanoUsd) > MAX_NANO_USD) return null;
         const record = boundedCanonical({ ...requested, resolvedAt,
           ...(action === 'waive' ? {} : { adjustmentNanoUsd }),

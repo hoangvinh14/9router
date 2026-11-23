@@ -59,9 +59,7 @@ function budgetView(body, keyId) {
     ? usage.unresolvedAttempts.slice(0, 20)
       .filter(item => validId(item?.attemptId) && typeof item.startedAt === "string" &&
         Number.isFinite(Date.parse(item.startedAt)) && item.knownCost !== null && amount(item.knownCost))
-      .map(({ attemptId, startedAt, knownCost, unknown }) => ({ attemptId, startedAt, knownCost,
-        unknown: ["input", "cached", "output"].filter(category => Array.isArray(unknown) && unknown.includes(category)),
-      }))
+      .map(({ attemptId, startedAt, knownCost }) => ({ attemptId, startedAt, knownCost }))
     : [];
   return { available: true, version: policy.version, lifecycle: policy.lifecycle, periods, unresolvedAttempts,
     ...(referencePrice ? { referencePrice } : {}),

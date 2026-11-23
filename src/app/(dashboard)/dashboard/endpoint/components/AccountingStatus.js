@@ -124,7 +124,6 @@ function UsageResolution({ keyId, attempt, version, refresh }) {
     const form = new FormData(event.currentTarget);
     const next = operation ?? { operationId: Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, "0")).join(""), expectedVersion: version,
       reason: form.get("reason"), evidence: form.get("evidence"), action,
-      ...(action === "exact_usage" ? { counts: Object.fromEntries(attempt.unknown.map(category => [category, Number(form.get(category))])) } : {}),
       ...(action === "cost_correction" ? { additionalNanoUsd: form.get("additionalNanoUsd") } : {}),
     };
     setOperation(next);
@@ -147,14 +146,8 @@ function UsageResolution({ keyId, attempt, version, refresh }) {
       <label className="block">Evidence reference <input className="border border-border" name="evidence" maxLength={1000} required readOnly={Boolean(operation)} /></label>
       <label className="block">Resolution <select value={action} onChange={event => setAction(event.target.value)} disabled={Boolean(operation)}>
         <option value="waive">Waive missing usage</option>
-        <option value="exact_usage" disabled={!attempt.unknown.length}>Enter exact token counts</option>
         <option value="cost_correction">Add a charge</option>
       </select></label>
-      {action === "exact_usage" && attempt.unknown.map(category => (
-        <label key={category} className="block">{category === "cached" ? "Cached input" : category} tokens
-          <input className="border border-border" name={category} type="number" min="0" max="9007199254740991" step="1" required readOnly={Boolean(operation)} />
-        </label>
-      ))}
       {action === "cost_correction" && <label className="block">Additional charge (nano-USD)
         <input className="border border-border" name="additionalNanoUsd" inputMode="numeric" pattern="0|[1-9][0-9]{0,15}" required readOnly={Boolean(operation)} />
       </label>}
