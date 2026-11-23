@@ -25,6 +25,7 @@ const files = [
   'open-sse/utils/accounted-anthropic-stream.js', 'open-sse/utils/streamHandler.js',
   'open-sse/utils/debugLog.js', 'open-sse/config/runtimeConfig.js', 'open-sse/config/errorConfig.js',
   'tests/unit/budget-anthropic-stream.test.mjs',
+  'src/lib/accounting/responses-usage.js', 'tests/unit/budget-responses-usage.test.mjs',
   'src/lib/accounting/anthropic-usage.js', 'tests/unit/budget-anthropic-usage.test.mjs',
 ];
 const args = ['--unshare-all', '--die-with-parent', '--new-session',
@@ -48,6 +49,7 @@ args.push('--chdir', '/app', '--remount-ro', '/', '--',
   '/app/tests/unit/budget-process-state.test.mjs', '/app/tests/unit/budget-operation-scope.test.mjs',
   '/app/tests/unit/budget-outer-transaction.test.mjs', '/app/tests/unit/budget-node-lifecycle.test.mjs',
   '/app/tests/unit/budget-node-disposition.test.mjs', '/app/tests/unit/budget-ledger.test.mjs',
+  '/app/tests/unit/budget-responses-usage.test.mjs',
   '/app/tests/unit/budget-anthropic-usage.test.mjs', '/app/tests/unit/budget-anthropic-stream.test.mjs');
 const env = {
   PATH: '/runtime:/usr/bin:/bin', HOME: '/sandbox/home', DATA_DIR: '/sandbox/data',
