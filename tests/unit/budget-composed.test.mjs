@@ -13,6 +13,8 @@ import { bindAccountingIdentity } from '../../src/lib/accounting/installed-servi
 import { createNodeAttemptLedger, initializeNodeAttemptLedger } from '../../src/lib/accounting/node-attempt-ledger.js';
 import { createNodeKeyPolicy, initializeNodeKeyPolicy } from '../../src/lib/accounting/node-key-policy.js';
 import { createAnthropicDispatchContext } from '../../src/lib/accounting/anthropic-dispatch-context.js';
+import { handleChatCore } from '../../open-sse/handlers/chatCore.js';
+import { CodexExecutor } from '../../open-sse/executors/codex.js';
 import { handleStreamingResponse } from '../../open-sse/handlers/chatCore/streamingHandler.js';
 import { FORMATS } from '../../open-sse/translator/formats.js';
 import { createStreamController } from '../../open-sse/utils/streamHandler.js';
@@ -797,30 +799,120 @@ for (const mode of stage ? [] : ['complete-error', 'interrupted-error']) {
 }
 
 
-test('accounted Responses handler admits only native streaming and keeps its failure terminal', async () => {
-  const terminal = {
-    type: 'response.completed',
-    response: { id: 'fixture-response', status: 'completed', usage: { output_tokens: 25 } },
-  };
-  const bytes = `data: ${JSON.stringify(terminal)}\n\n`;
-  let acknowledgements = 0;
-  const call = (sourceFormat, settleResponses) => handleStreamingResponse({
-    provider: 'codex', model: 'fixture-model', sourceFormat, targetFormat: FORMATS.OPENAI_RESPONSES,
-    providerResponse: new Response(bytes, { headers: { 'content-type': 'text/event-stream' } }),
-    streamController: createStreamController({ log: { errorLine() {} } }),
-    accountingAttempt: { settleResponses },
+if (stage === undefined) {
+  test('accounted Responses handler admits only native streaming and keeps its failure terminal', async () => {
+    const terminal = {
+      type: 'response.completed',
+      response: { id: 'fixture-response', status: 'completed', usage: { output_tokens: 25 } },
+    };
+    const bytes = `data: ${JSON.stringify(terminal)}\n\n`;
+    let acknowledgements = 0;
+    const call = (sourceFormat, settleResponses) => handleStreamingResponse({
+      provider: 'codex', model: 'fixture-model', sourceFormat, targetFormat: FORMATS.OPENAI_RESPONSES,
+      providerResponse: new Response(bytes, { headers: { 'content-type': 'text/event-stream' } }),
+      streamController: createStreamController({ log: { errorLine() {} } }),
+      accountingAttempt: { settleResponses },
+    });
+
+    const complete = await call(FORMATS.OPENAI_RESPONSES, evidence => {
+      acknowledgements++;
+      assert.deepEqual(evidence.components.map(({ category, count }) => [category, count]), [['output', 25]]);
+    });
+    assert.equal(await complete.response.text(), bytes);
+    assert.equal(acknowledgements, 1);
+    const refused = await call(FORMATS.OPENAI, () => assert.fail('Unexpected settlement'));
+    assert.equal(refused.response.status, 502);
+    const failed = await call(FORMATS.OPENAI_RESPONSES, () => { throw new Error('Fixture settlement failure'); });
+    const output = await failed.response.text();
+    assert.match(output, /response.failed/);
+    assert.doesNotMatch(output, /event: response\.completed/);
   });
 
-  const complete = await call(FORMATS.OPENAI_RESPONSES, evidence => {
-    acknowledgements++;
-    assert.deepEqual(evidence.components.map(({ category, count }) => [category, count]), [['output', 25]]);
+
+  test('accounted Codex executor hands the original SSE response to its owner and dispatches once', async () => {
+    const executor = new CodexExecutor();
+    executor._isCompact = true;
+    executor.prefetchImages = () => assert.fail('Unexpected prefetch');
+    executor._peekSseTransientError = () => assert.fail('Unexpected SSE peek');
+    const response = new Response('event: error\ndata: {"type":"error","code":"server_is_overloaded"}\n\n',
+      { headers: { 'content-type': 'text/event-stream' } });
+    let preparations = 0;
+    let sends = 0;
+    const args = {
+      model: 'gpt-6.2-sol', stream: true,
+      body: { model: 'gpt-6.2-sol', stream: true, input: 'fixture input' },
+      credentials: { accessToken: 'fixture-token' },
+      accounting: {
+        async prepare({ url, options, provider, model, stream }) {
+          preparations++;
+          assert.equal(url, 'https://chatgpt.com/backend-api/codex/responses');
+          assert.equal(provider, 'codex');
+          assert.equal(model, 'gpt-6.2-sol');
+          assert.equal(stream, true);
+          assert.equal(options.method, 'POST');
+          assert.equal(JSON.parse(options.body).model, model);
+          return { dispatch: async () => { sends++; return response; } };
+        },
+      },
+    };
+    const result = await executor.execute(args);
+    assert.equal(result.response, response);
+    assert.equal(result.response.bodyUsed, false);
+    assert.equal(preparations, 1);
+    assert.equal(sends, 1);
+    await assert.rejects(executor.execute({ ...args, providerOverrides: { headers: {} } }), /native Codex/);
+    await assert.rejects(executor.execute({ ...args, body: { ...args.body, _compact: true } }), /native Codex/);
+    assert.equal(sends, 1);
   });
-  assert.equal(await complete.response.text(), bytes);
-  assert.equal(acknowledgements, 1);
-  const refused = await call(FORMATS.OPENAI, () => assert.fail('Unexpected settlement'));
-  assert.equal(refused.response.status, 502);
-  const failed = await call(FORMATS.OPENAI_RESPONSES, () => { throw new Error('Fixture settlement failure'); });
-  const output = await failed.response.text();
-  assert.match(output, /response.failed/);
-  assert.doesNotMatch(output, /event: response\.completed/);
-});
+
+
+  test('native Codex core settles the selected key and refuses its Chat Completions route before dispatch', async () => {
+    globalThis.__budgetCore = { helpers: 0 };
+    const dir = fs.mkdtempSync('/tmp/codex-accounting-');
+    const db = await createNodeSqliteAdapter(dir + '/budget.sqlite');
+    try {
+      db.exec('CREATE TABLE apiKeys (id TEXT PRIMARY KEY, key TEXT UNIQUE NOT NULL, isActive INTEGER NOT NULL)');
+      db.run("INSERT INTO apiKeys VALUES ('fixture-key','fixture-client',1)");
+      initializeNodeKeyPolicy(db);
+      initializeNodeAttemptLedger(db);
+      createNodeKeyPolicy(db).save('fixture-key', 0, { weekly: null, monthly: '250000' });
+      const ledger = createNodeAttemptLedger(db);
+      const now = '2026-11-16T10:00:00.000Z';
+      let prepared = 0;
+      let posts = 0;
+      const accounting = {
+        provider: 'codex', stream: true, validateInput: body => assert.equal(typeof body.input, 'string'),
+        async prepare({ url, provider, model }) {
+          assert.equal(url, 'https://chatgpt.com/backend-api/codex/responses');
+          const attempt = ledger.prepare({ attemptId: 'codex-' + (++prepared), keyId: 'fixture-key',
+            bindingGeneration: '1', provider, model, startedAt: now,
+            price: { currency: 'USD', unit: 'USD/1M tokens', revision: 'fixture', rates: { input: '2', output: '10' } } });
+          return {
+            dispatch: () => ledger.dispatch(attempt.ack, { presentedSecret: 'fixture-client', now }, () => {
+              posts++;
+              return new Response('data: {"type":"response.completed","response":{"id":"fixture","status":"completed","usage":{"output_tokens":25}}}\n\n',
+                { headers: { 'content-type': 'text/event-stream' } });
+            }),
+            settleResponses: attempt.settle,
+          };
+        },
+      };
+      const request = (endpoint, format) => handleChatCore({
+        modelInfo: { provider: 'codex', model: 'gpt-6.2-sol' }, credentials: { accessToken: 'fixture-token' },
+        body: { stream: true, input: 'fixture input' }, clientRawRequest: { endpoint },
+        sourceFormatOverride: format, accounting,
+      });
+      const first = await request('/v1/responses', FORMATS.OPENAI_RESPONSES);
+      assert.equal(first.response.status, 200);
+      assert.match(await first.response.text(), /response.completed/);
+      assert.equal(ledger.totals('fixture-key', now).monthly, '250000');
+      const exhausted = await request('/v1/responses', FORMATS.OPENAI_RESPONSES);
+      assert.equal(exhausted.response.status, 503);
+      const alternate = await request('/v1/chat/completions', FORMATS.OPENAI);
+      assert.equal(alternate.response.status, 503);
+      assert.equal(prepared, 2);
+      assert.equal(posts, 1);
+      assert.equal(db.get('SELECT count(*) AS n FROM accounting_terminals_v1').n, 1);
+    } finally { db.close(); }
+  });
+}

@@ -10,6 +10,7 @@ const coreStubs = `${root}tests/fixtures/budget/core-stubs.mjs`;
 const ordinaryStreaming = new Set([
   '../../translator/index.js', '../../utils/stream.js', './requestDetail.js', '@/lib/usageDb.js',
 ]);
+const codex = `${root}open-sse/executors/codex.js`;
 const auth = `${root}src/sse/services/auth.js`;
 const proxyConfig = `${root}src/lib/network/connectionProxy.js`;
 const fixtureDb = `${root}tests/fixtures/budget/composed-account-db.mjs`;
@@ -22,7 +23,7 @@ const accountAliases = new Map([
   ['./antigravityQuota.js', stub],
 ]);
 const executorDependencies = new Map([
-  ['../services/oauthCredentialManager.js', ['open-sse/executors/base.js']],
+  ['../services/oauthCredentialManager.js', ['open-sse/executors/base.js', 'open-sse/executors/codex.js']],
   ['../services/provider.js', ['open-sse/executors/base.js', 'open-sse/executors/default.js']],
   ['../config/appConstants.js', ['open-sse/executors/default.js']],
   ['../shared/clineAuth.js', ['open-sse/executors/default.js']],
@@ -31,8 +32,8 @@ const executorDependencies = new Map([
   ['../utils/proxyFetch.js', ['open-sse/executors/base.js', 'open-sse/executors/default.js']],
   ['../../../open-sse/utils/proxyFetch.js', ['src/lib/accounting/anthropic-dispatch-context.js']],
 ]);
-const providerConfigParents = new Set([core, `${root}open-sse/executors/default.js`, `${root}open-sse/utils/reasoningContentInjector.js`]);
-const providerConfig = `data:text/javascript,import anthropic from '${root}open-sse/providers/registry/anthropic.js';export const PROVIDERS={anthropic:anthropic.transport}, PROVIDER_OAUTH={};`;
+const providerConfigParents = new Set([core, codex, `${root}open-sse/executors/default.js`, `${root}open-sse/utils/reasoningContentInjector.js`]);
+const providerConfig = `data:text/javascript,import anthropic from '${root}open-sse/providers/registry/anthropic.js';import codex from '${root}open-sse/providers/registry/codex.js';export const PROVIDERS={anthropic:anthropic.transport,codex:codex.transport}, PROVIDER_OAUTH={};`;
 const realAppImports = new Map([
   ['open-sse/handlers/chatCore.js', 'open-sse/handlers/chatCore.js'],
   ['open-sse/translator/formats.js', 'open-sse/translator/formats.js'],
@@ -60,7 +61,18 @@ export function resolve(specifier, context, nextResolve) {
   if (parent === streaming && specifier === '../../config/providers.js') return nextResolve(providerConfig, context);
   if (specifier === '../config/providers.js' && providerConfigParents.has(parent)) return nextResolve(providerConfig, context);
   if (parent === core && specifier === '../executors/index.js') {
-    return nextResolve(`data:text/javascript,import {DefaultExecutor} from '${root}open-sse/executors/default.js';export const getExecutor=provider=>new DefaultExecutor(provider);`, context);
+    return nextResolve(`data:text/javascript,import {DefaultExecutor} from '${root}open-sse/executors/default.js';import {CodexExecutor} from '${root}open-sse/executors/codex.js';export const getExecutor=provider=>provider==='codex'?new CodexExecutor():new DefaultExecutor(provider);`, context);
+  }
+  if (parent === codex) {
+    if (specifier === '../translator/concerns/image.js') {
+      return nextResolve('data:text/javascript,export function fetchImageAsBase64(){throw new Error("Unexpected image prefetch");}', context);
+    }
+    if (specifier === '../config/providerModels.js') {
+      return nextResolve('data:text/javascript,export const getModelUpstreamId=(_,model)=>model,getProviderModels=()=>[];', context);
+    }
+    if (specifier === '../providers/thinkingLevels.js') {
+      return nextResolve('data:text/javascript,export const getThinkingLevels=()=>null;', context);
+    }
   }
   if (executorDependencies.get(specifier)?.some(path => parent === root + path)) {
     return nextResolve(stub, context);

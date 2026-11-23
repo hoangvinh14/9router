@@ -94,8 +94,12 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
 
   const sourceFormat = sourceFormatOverride || detectFormat(body);
   // Trusted app-side context fixes the native response mode before helpers run.
-  if (accounting !== null && (provider !== 'anthropic' || body.stream !== (accounting.stream === true) ||
-      sourceFormat !== FORMATS.CLAUDE || typeof accounting.prepare !== 'function' ||
+  const nativeCodexAccounting = provider === 'codex' && accounting?.provider === 'codex' &&
+    accounting.stream === true && sourceFormat === FORMATS.OPENAI_RESPONSES &&
+    clientRawRequest?.endpoint === '/v1/responses';
+  const nativeAnthropicAccounting = provider === 'anthropic' && sourceFormat === FORMATS.CLAUDE;
+  if (accounting !== null && ((!nativeAnthropicAccounting && !nativeCodexAccounting) ||
+      body.stream !== (accounting.stream === true) || typeof accounting.prepare !== 'function' ||
       headroomEnabled || pxpipeEnabled || rtkEnabled || cavemanEnabled || ponytailEnabled ||
       customPromptEnabled || providerThinking?.mode && providerThinking.mode !== 'auto')) {
     return { ...createErrorResult(503, 'Accounting profile unavailable'), accountingRefused: true };
@@ -143,6 +147,9 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   // OpenAI clients should stay on /chat/completions; other clients can fall
   // back to its declared Claude target).
   const targetFormat = useTransport?.format || modelTargetFormat || getTargetFormat(provider, credentials);
+  if (nativeCodexAccounting && targetFormat !== FORMATS.OPENAI_RESPONSES) {
+    return { ...createErrorResult(503, 'Accounting profile unavailable'), accountingRefused: true };
+  }
   if (useTransport && credentials) credentials.runtimeTransport = useTransport;
   const stripList = getModelStrip(alias, model);
 
@@ -235,7 +242,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   if (passthrough) {
     log?.debug?.("PASSTHROUGH", `${clientTool} → ${provider} | native lossless`);
     translatedBody = { ...body, model: stripThinkingSuffix(upstreamModel) };
-    if (provider === "codex") {
+    if (provider === "codex" && !nativeCodexAccounting) {
       const suffixThinking = {};
       applyThinking(sourceFormat, upstreamModel, suffixThinking, provider);
       if (suffixThinking.reasoning_effort) {

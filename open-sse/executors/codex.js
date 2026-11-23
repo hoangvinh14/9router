@@ -277,6 +277,15 @@ export class CodexExecutor extends BaseExecutor {
   }
 
   async execute(args) {
+    if (args.accounting != null) {
+      if (!args.stream || args.body?.stream !== true || args.body._compact || args.providerOverrides != null) {
+        throw new Error("Accounting requires native Codex Responses streaming");
+      }
+      // The accounted response handler is the sole reader. In particular,
+      // the ordinary SSE peek must never send a successor on this attempt.
+      this._isCompact = false;
+      return super.execute(args);
+    }
     const imgCount = Array.isArray(args.body?.input) ? args.body.input.reduce((n, it) => n + (Array.isArray(it.content) ? it.content.filter(c => c.type === "image_url").length : 0), 0) : 0;
     const inputLen = Array.isArray(args.body?.input) ? args.body.input.length : 0;
     dbg("CODEX", `execute start | inputItems=${inputLen} | images=${imgCount} | sessionId=${this._currentSessionId || "pending"}`);
