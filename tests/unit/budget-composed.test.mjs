@@ -37,7 +37,7 @@ assert.ok(process.env.BUDGET_OUTER_NET);
 if (stage !== undefined) {
   assert.equal(process.argv.length, 5);
   assert.ok(['--restart-write', '--restart-read'].includes(stage));
-  assert.ok(Object.hasOwn(restartCases, checkpoint));
+  assert.ok(checkpoint === 'codex' || Object.hasOwn(restartCases, checkpoint));
   assert.match(stageDir, /^\/tmp\/budget-restart-[A-Za-z0-9]+$/);
   assert.equal(fs.realpathSync(stageDir), stageDir);
   assert.equal(fs.statSync(stageDir).isDirectory(), true);
@@ -690,7 +690,48 @@ if (!stage) test('a new owner of reopened SQLite blocks at the persisted limit b
   assert.equal(totals().monthly, (2n * BigInt(limit)).toString());
 }, { monthly: limit, reply: success }));
 
-for (const point of stage ? [] : Object.keys(restartCases)) {
+function codexFixture(run, options) {
+  const model = 'gpt-6.2-sol';
+  const profile = { provider: 'codex', auth: 'oauth', producerAdmitted: true, connectionId: 'fixture-codex',
+    model, price: { currency: 'USD', unit: 'USD/1M tokens', revision: 'fixture', rates: { input: '2', output: '10' } } };
+  const reply = () => new Response('data: {"type":"response.completed","response":{"id":"fixture","status":"completed","usage":{"output_tokens":25}}}\n\n',
+    { headers: { 'content-type': 'text/event-stream' } });
+  const request = (overrides = {}) => new Request('https://fixture.invalid/v1/responses', {
+    method: 'POST', headers: { authorization: 'Bearer fixture-client' },
+    body: JSON.stringify({ model: `codex/${model}`, input: 'fixture prompt', stream: true, ...overrides }),
+  });
+  function prepareDb(db) {
+    db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [JSON.stringify([`codex/${model}`]), 'fixture-key']);
+    db.run(`INSERT INTO providerConnections (id, provider, authType, priority, isActive, data, createdAt, updatedAt)
+      VALUES ('fixture-codex','codex','oauth',1,1,?,?,?)`, [
+      JSON.stringify({ accessToken: 'fixture-token', providerSpecificData: { chatgptAccountId: 'fixture-account' } }), now, now,
+    ]);
+  }
+  return fixture(context => run({ ...context, request }), {
+    monthly: '250000', profile, reply, prepareDb, ...options,
+  });
+}
+
+if (checkpoint === 'codex') {
+  const writing = stage === '--restart-write';
+  await codexFixture(async ({ state, rows, totals, request }) => {
+    assert.equal(totals().monthly, writing ? '0' : '250000');
+    const saved = rows();
+    assert.equal(saved.terminals.length, writing ? 0 : 1);
+    const response = await postResponses(request());
+    assert.equal(response.status, writing ? 200 : 503);
+    assert.equal(isAccountingResponse(response), true);
+    if (writing) assert.match(await response.text(), /response.completed/);
+    assert.equal(state.wire.length, writing ? 1 : 0);
+    assert.equal(totals().monthly, '250000');
+    const result = rows();
+    assert.equal(result.terminals.length, 1);
+    assert.equal(result.attempts[0].keyId, 'fixture-key');
+    if (!writing) assert.deepEqual(result.terminals, saved.terminals);
+  }, { sharedDir: stageDir, existing: !writing });
+}
+
+for (const point of stage ? [] : [...Object.keys(restartCases), 'codex']) {
   test(`a fresh Node process restores accounting for checkpoint ${point}`, () => {
     const dir = fs.mkdtempSync('/tmp/budget-restart-');
     try {
@@ -702,7 +743,7 @@ for (const point of stage ? [] : Object.keys(restartCases)) {
         });
         const output = `${phase}\n${child.stdout}\n${child.stderr}`;
         assert.ifError(child.error);
-        const expectedSignal = phase === '--restart-write' && point !== 'clean' ? 'SIGKILL' : null;
+        const expectedSignal = phase === '--restart-write' && point !== 'clean' && point !== 'codex' ? 'SIGKILL' : null;
         assert.equal(child.signal, expectedSignal, output);
         assert.equal(child.status, expectedSignal ? null : 0, output);
       }
@@ -712,7 +753,7 @@ for (const point of stage ? [] : Object.keys(restartCases)) {
   });
 }
 
-if (stage === '--restart-write') {
+if (stage === '--restart-write' && checkpoint !== 'codex') {
   const partialResponse = checkpoint === 'during-response-read';
   let writerState;
   function killAt(point) {
@@ -741,7 +782,7 @@ if (stage === '--restart-write') {
   });
 }
 
-if (stage === '--restart-read') {
+if (stage === '--restart-read' && checkpoint !== 'codex') {
   await fixture(async ({ chat, state, rows, totals, inspectPolicy, setMonthly }) => {
     const saved = rows();
     const policy = inspectPolicy();
@@ -872,17 +913,8 @@ if (stage === undefined) {
 
 
   test('Responses HTTP handler binds the selected Codex account and persists spend', () => {
-    const model = 'gpt-6.2-sol';
-    const profile = { provider: 'codex', auth: 'oauth', producerAdmitted: true, connectionId: 'fixture-codex',
-      model, price: { currency: 'USD', unit: 'USD/1M tokens', revision: 'fixture', rates: { input: '2', output: '10' } } };
-    const reply = () => new Response('data: {"type":"response.completed","response":{"id":"fixture","status":"completed","usage":{"output_tokens":25}}}\n\n',
-      { headers: { 'content-type': 'text/event-stream' } });
-    const request = (overrides = {}) => new Request('https://fixture.invalid/v1/responses', {
-      method: 'POST', headers: { authorization: 'Bearer fixture-client' },
-      body: JSON.stringify({ model: `codex/${model}`, input: 'fixture prompt', stream: true, ...overrides }),
-    });
     let rotateAfterIntent;
-    return fixture(async ({ state, rows, reopen, path }) => {
+    return codexFixture(async ({ state, rows, reopen, path, request }) => {
       assert.equal((await postResponses(request({ service_tier: 'priority' }))).status, 503);
       assert.equal(state.preparations, 0);
       assert.deepEqual(rows(), { attempts: [], terminals: [] });
@@ -910,20 +942,14 @@ if (stage === undefined) {
       assert.equal(rows().terminals.length, 1);
       assert.equal(state.wire[0].headers['chatgpt-account-id'], 'fixture-account');
       assert.equal(state.wire[0].headers.authorization, 'Bearer fixture-token');
-    }, { monthly: '250000', profile, reply,
+    }, {
       onCheckpoint(point) {
         if (point !== 'after-intent-commit' || !rotateAfterIntent) return;
         const rotate = rotateAfterIntent;
         rotateAfterIntent = null;
         rotate();
       },
-      prepareDb(db) {
-      db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [JSON.stringify([`codex/${model}`]), 'fixture-key']);
-      db.run(`INSERT INTO providerConnections (id, provider, authType, priority, isActive, data, createdAt, updatedAt)
-        VALUES ('fixture-codex','codex','oauth',1,1,?,?,?)`, [
-        JSON.stringify({ accessToken: 'fixture-token', providerSpecificData: { chatgptAccountId: 'fixture-account' } }), now, now,
-      ]);
-    } });
+    });
   });
 
   test('native Codex core settles once and reopened SQLite blocks another upstream POST', async () => {
