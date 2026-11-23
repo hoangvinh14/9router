@@ -57,6 +57,7 @@ function budgetView(body, keyId) {
     : null;
   return { available: true, version: policy.version, lifecycle: policy.lifecycle, periods,
     ...(referencePrice ? { referencePrice } : {}),
+    ...(usage.blockedByUnresolvedUsage === true ? { blockedByUnresolvedUsage: true } : {}),
     unknownDefaulted: usage.unknownDefaulted, unrecorded: usage.unrecorded, timezone: usage.timezone };
 }
 

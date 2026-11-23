@@ -65,12 +65,11 @@ export function createAccountedResponsesStream(settle, onTerminal, priceCacheWri
           if (status && (!id || event.response.status !== status)) {
             throw new Error("Invalid Responses SSE terminal");
           }
-          let evidence;
-          if (status === "completed" || status === "failed" ||
-              (status === "incomplete" && meteredIncompleteReasons.has(event.response.incomplete_details?.reason))) {
-            const usage = responsesTokenUsage(event.response.usage, priceCacheWrites);
-            if (status === "completed" || usage.components.length > 0) evidence = usage;
-          }
+          const metered = status === "completed" || status === "failed" ||
+            (status === "incomplete" && meteredIncompleteReasons.has(event.response.incomplete_details?.reason));
+          const usage = responsesTokenUsage(metered ? event.response.usage : null, priceCacheWrites);
+          const evidence = priceCacheWrites === "included-in-input" || status === "completed" || usage.components.length
+            ? usage : undefined;
           terminal = { output, evidence };
         } else {
           if (event.type === "response.done") throw new Error("Unsupported Responses SSE terminal");

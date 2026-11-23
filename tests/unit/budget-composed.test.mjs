@@ -1010,6 +1010,23 @@ if (stage === undefined) {
     });
   }
 
+  test('Codex terminal without usage blocks another POST below the spend limit', () => {
+    const terminal = 'data: {"type":"response.failed","response":{"id":"fixture","status":"failed","usage":null}}\n\n';
+    return codexFixture(async ({ request, rows, state, reopen }) => {
+      const response = await postResponses(request());
+      assert.equal(response.status, 200);
+      assert.equal(await response.text(), terminal);
+      assert.equal(rows().terminals.length, 1);
+      assert.equal(rows().terminals[0].amount, '0');
+      assert.equal(rows().terminals[0].provenance, 'unknown/defaulted');
+      assert.deepEqual(rows().terminals[0].unknown, ['cached', 'input', 'output']);
+      await reopen();
+      assert.equal((await postResponses(request())).status, 503);
+      assert.equal(state.wire.length, 1);
+      assert.equal(rows().terminals.length, 1);
+    }, { reply: () => new Response(terminal, { headers: { 'content-type': 'text/event-stream' } }) });
+  });
+
   test('native Codex core settles once and reopened SQLite blocks another upstream POST', async () => {
     globalThis.__budgetCore = { helpers: 0 };
     const dir = fs.mkdtempSync('/tmp/codex-accounting-');

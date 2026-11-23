@@ -139,6 +139,7 @@ function BudgetSnapshot({ keyId }) {
               <p>Resets <time dateTime={period.resetAt}>{resetFormat.format(new Date(period.resetAt))}</time> ({budget.timezone})</p>
             </section>)}
           </div>
+          {budget.blockedByUnresolvedUsage && <p>Requests are blocked because a previous Codex response has unresolved usage.</p>}
           {budget.unknownDefaulted > 0 && <p>Unknown/defaulted usage on {budget.unknownDefaulted} attempt(s). Recorded spend may be understated.</p>}
           {budget.unrecorded > 0 && <p>{budget.unrecorded} attempt(s) have no recorded terminal cost. Their cost is excluded from recorded spend.</p>}
         </>}

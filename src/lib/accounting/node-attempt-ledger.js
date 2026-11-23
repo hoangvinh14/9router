@@ -156,7 +156,11 @@ export function createLedgerReadValidator(corrupt) {
       const value = JSON.parse(row.evidence);
       if (value.amountNanoUsd !== row.amount ||
           boundedCanonical(terminalCost({ semantics: EXCLUSIVE_USAGE, components: value.known }, original.price)) !== row.evidence) throw unavailable();
-      return value;
+      return {
+        ...value,
+        blocksDispatch: original.provider === 'codex' && original.price.revision === CODEX_STANDARD_REFERENCE &&
+          value.provenance === 'unknown/defaulted',
+      };
     } catch { corrupt(); }
   };
   return Object.freeze({
@@ -202,7 +206,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
   const ownAccounts = new WeakMap();
   let checkRouteTransaction;
   const totals = (scope, keyId, windows, observation) => {
-    let after = ''; let weekly = 0n; let monthly = 0n; let unknown = 0;
+    let after = ''; let weekly = 0n; let monthly = 0n; let unknown = 0; let blocksDispatch = false;
     // Bounded pages keep fixed-scope snapshots below payload limits. No REAL SUM
     // or signed64 aggregate overflow, no unrelated keys loaded into this process.
     for (let pages = 0; pages < 33334; pages++) {
@@ -215,13 +219,14 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
           if (observation && (row.week_start === windows.weekly.startAt || row.month_start === windows.monthly.startAt)) observation.unrecorded++;
           continue;
         }
+        if (value.blocksDispatch) blocksDispatch = true;
         if (row.amount === null) continue;
         if (row.week_start === windows.weekly.startAt) weekly += BigInt(row.amount);
         if (row.month_start === windows.monthly.startAt) monthly += BigInt(row.amount);
         if ((row.week_start === windows.weekly.startAt || row.month_start === windows.monthly.startAt) &&
             value.provenance === 'unknown/defaulted') unknown++;
       }
-      if (rows.length < 3) return { weekly: weekly.toString(), monthly: monthly.toString(), unknown };
+      if (rows.length < 3) return { weekly: weekly.toString(), monthly: monthly.toString(), unknown, blocksDispatch };
     }
     throw unavailable(); // Explicit capacity refusal, never silently truncate spend.
   };
@@ -372,7 +377,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
           checkedSchema(scope); verifyOriginal(scope, state.original, state.encoded);
           if (scope.terminal([state.original.attemptId])) throw unavailable();
           const spend = totals(scope, state.original.keyId, windows);
-          return ['weekly', 'monthly'].every(period => binding[period] === null || BigInt(spend[period]) < BigInt(binding[period]));
+          return !spend.blocksDispatch && ['weekly', 'monthly'].every(period => binding[period] === null || BigInt(spend[period]) < BigInt(binding[period]));
         });
         // COMMIT orders concurrent changes; only successful cleanup and the
         // final process health check can lead to actual invocation.
@@ -405,12 +410,17 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         };
         const reference = priceBasis === CODEX_STANDARD_REFERENCE ? readCodexPrice(scope) : null;
         return { ...(reference ? { referencePrice: reference } : {}), policy, usage: { weekly: period('weekly'), monthly: period('monthly'), timezone: windows.timezone,
-          unknownDefaulted: spend.unknown, unrecorded: observation.unrecorded } };
+          unknownDefaulted: spend.unknown, unrecorded: observation.unrecorded,
+          ...(spend.blocksDispatch ? { blockedByUnresolvedUsage: true } : {}) } };
       }).value;
     },
     totals(keyId, instant) {
       identifier(keyId); const windows = budgetWindows(instant);
-      return transact(scope => { checkedSchema(scope); return totals(scope, keyId, windows); }).value;
+      return transact(scope => {
+        checkedSchema(scope);
+        const { weekly, monthly, unknown } = totals(scope, keyId, windows);
+        return { weekly, monthly, unknown };
+      }).value;
     },
   });
 }
