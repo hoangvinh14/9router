@@ -507,7 +507,12 @@ export async function prepareAccountedDirectPost(url, options, proxyOptions = nu
   // Snapshot all caller-owned wire data BEFORE the first await. Later mutation
   // of the options/header/proxy objects cannot alter the prepared direct call.
   const headers = new Headers(options.headers);
-  if (hasClaudeCliHeader(headers)) throw new Error('Accounting CLI header profile unsupported');
+  // Keep the installed Claude OAuth headers on its exact native Messages route.
+  // The accounted transport never enters the ordinary CLI version refresh path.
+  const nativeClaudeOAuth = parsed.origin === 'https://api.anthropic.com' &&
+    parsed.pathname === '/v1/messages' && parsed.search === '?beta=true' &&
+    headers.get('authorization')?.startsWith('Bearer ') && !headers.has('x-api-key');
+  if (hasClaudeCliHeader(headers) && !nativeClaudeOAuth) throw new Error('Accounting CLI header profile unsupported');
   const dispatcher = await getAccountedDirectDispatcher();
   undiciFetch ??= (await import('undici')).fetch;
   const invoke = undiciFetch;

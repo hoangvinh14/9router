@@ -22,6 +22,7 @@ export function bindAccountingIdentity({ policy, ledger }, presentedSecret) {
     bindAnthropicAccount: (routeProof, connectionId, apiKey, inferenceGeo) => ledger.bindAnthropicAccount(routeProof, connectionId, apiKey, inferenceGeo),
     bindCodexAccount: (routeProof, connectionId, accessToken, accountId, priceBasis) =>
       ledger.bindCodexAccount(routeProof, connectionId, accessToken, accountId, priceBasis),
+    bindClaudeAccount: (routeProof, connectionId, accessToken) => ledger.bindClaudeAccount(routeProof, connectionId, accessToken),
     prepare(command, routeProof, accountProof) {
       return ledger.prepare({ ...command, keyId: original.keyId, bindingGeneration: original.bindingGeneration }, routeProof, accountProof);
     },

@@ -55,6 +55,16 @@ function budgetView(body, keyId) {
     [rates?.input, rates?.cached, rates?.output].every(rate => typeof rate === "string" && /^\d+(?:\.\d+)?$/.test(rate))
     ? { input: rates.input, cached: rates.cached, output: rates.output, syncedAt: new Date(price.syncedAt).toISOString() }
     : null;
+  const referencePrices = Array.isArray(body.referencePrices)
+    ? body.referencePrices.slice(0, 2).flatMap(price => {
+      const model = /^anthropic:claude\/(claude-opus-5-5|claude-sonnet-5):standard:v1$/.exec(price?.revision)?.[1];
+      const rates = price?.rates;
+      if (!model || !Number.isSafeInteger(price.syncedAt) || price.syncedAt <= 0 || price.syncedAt > 8640000000000000 ||
+          ![rates?.input, rates?.output, rates?.cached, rates?.cache_creation, rates?.cache_creation_1h]
+            .every(rate => typeof rate === "string" && /^\d+(?:\.\d+)?$/.test(rate))) return [];
+      return [{ model, rates, syncedAt: new Date(price.syncedAt).toISOString() }];
+    })
+    : [];
   const unresolvedAttempts = usage.blockedByUnresolvedUsage === true && Array.isArray(usage.unresolvedAttempts)
     ? usage.unresolvedAttempts.slice(0, 20)
       .filter(item => validId(item?.attemptId) && typeof item.startedAt === "string" &&
@@ -63,6 +73,7 @@ function budgetView(body, keyId) {
     : [];
   return { available: true, version: policy.version, lifecycle: policy.lifecycle, periods, unresolvedAttempts,
     ...(referencePrice ? { referencePrice } : {}),
+    ...(referencePrices.length ? { referencePrices } : {}),
     ...(usage.blockedByUnresolvedUsage === true ? { blockedByUnresolvedUsage: true } : {}),
     unknownDefaulted: usage.unknownDefaulted, unrecorded: usage.unrecorded, timezone: usage.timezone };
 }

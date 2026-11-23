@@ -51,15 +51,17 @@ export async function handleChat(request, clientRawRequest = null) {
 
 // Internal candidate composition only. Public callers cannot select this entry
 // or supply an identity, routing readers, or context factory through a request.
-export async function handleAccountedChatCandidate(request, { identity, createContext, provider = "anthropic" }) {
+export async function handleAccountedChatCandidate(request, { identity, createContext, provider = "anthropic", connectionId }) {
   try {
     const endpoint = provider === 'codex' ? '/v1/responses' : '/v1/messages';
-    if (!['anthropic', 'codex'].includes(provider) || request.method !== 'POST' || new URL(request.url).pathname !== endpoint ||
+    const pathname = new URL(request.url).pathname;
+    if (!['anthropic', 'claude', 'codex'].includes(provider) || request.method !== 'POST' ||
+        (pathname !== endpoint && !(provider === 'claude' && pathname === '/v1/v1/messages')) ||
         request.headers.has('anthropic-workspace-id') ||
         !identity.matchesSecret(selectedAccountingSecret(request))) return refuseCandidate();
     const view = await identity.captureRoute();
     const settings = mergeWithDefaults(view.reads.getSettingsData());
-    return await routeChat(request, null, { view, settings, createContext, provider });
+    return await routeChat(request, null, { view, settings, createContext, provider, connectionId });
   } catch {
     return refuseCandidate();
   }
@@ -346,7 +348,10 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
 
   while (true) {
     const credentialOptions = { requestedModel: requestedModel || model };
-    if (candidate) credentialOptions.accountedSettings = candidate.settings;
+    if (candidate) {
+      credentialOptions.accountedSettings = candidate.settings;
+      credentialOptions.preferredConnectionId = candidate.connectionId;
+    }
     const credentials = await getProviderCredentials(provider, excludeConnectionIds, model, credentialOptions);
 
     // All accounts unavailable
@@ -369,7 +374,7 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
     // Account selection shown in the unified "▶" line (acc:...)
     // This candidate does not authorize a refresh or a second account.
     if (candidate) {
-      const matchesAuth = provider === "codex"
+      const matchesAuth = provider === "codex" || provider === "claude"
         ? credentials.authType === "oauth" && credentials.accessToken && !credentials.apiKey
         : credentials.authType === "apikey" && credentials.apiKey && !credentials.accessToken && !credentials.refreshToken;
       if (!matchesAuth) return refuseCandidate();

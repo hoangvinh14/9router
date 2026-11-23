@@ -179,6 +179,12 @@ function BudgetSnapshot({ keyId }) {
             cached input {budget.referencePrice.cached}, output {budget.referencePrice.output}.
             Synced <time dateTime={budget.referencePrice.syncedAt}>{resetFormat.format(new Date(budget.referencePrice.syncedAt))}</time>.
           </p>}
+          {budget.referencePrices?.map(({ model, rates, syncedAt }) => <p key={model}>
+            <a className="underline" href="https://platform.claude.com/docs/en/about-claude/pricing#model-pricing">Anthropic Standard price</a>
+            {" for "}{model} (USD per million tokens). Input {rates.input}, cache read {rates.cached},
+            cache write (5m) {rates.cache_creation}, cache write (1h) {rates.cache_creation_1h}, output {rates.output}.
+            Synced <time dateTime={syncedAt}>{resetFormat.format(new Date(syncedAt))}</time>.
+          </p>)}
           <div className="my-2 grid gap-3 sm:grid-cols-2">
             {budget.periods.map(period => <section key={period.name}>
               <h4 className="font-medium capitalize">{period.name} budget</h4>

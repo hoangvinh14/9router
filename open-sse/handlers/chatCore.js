@@ -97,10 +97,11 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   const nativeCodexAccounting = provider === 'codex' && accounting?.provider === 'codex' &&
     accounting.stream === true && sourceFormat === FORMATS.OPENAI_RESPONSES &&
     clientRawRequest?.endpoint === '/v1/responses';
-  const nativeAnthropicAccounting = provider === 'anthropic' && sourceFormat === FORMATS.CLAUDE;
+  const nativeClaudeOAuthAccounting = provider === 'claude' && accounting?.provider === 'claude';
+  const nativeAnthropicAccounting = (provider === 'anthropic' || nativeClaudeOAuthAccounting) && sourceFormat === FORMATS.CLAUDE;
   if (accounting !== null && ((!nativeAnthropicAccounting && !nativeCodexAccounting) ||
       body.stream !== (accounting.stream === true) || typeof accounting.prepare !== 'function' ||
-      headroomEnabled || pxpipeEnabled || rtkEnabled || cavemanEnabled || ponytailEnabled ||
+      headroomEnabled || pxpipeEnabled || (rtkEnabled && !nativeClaudeOAuthAccounting) || cavemanEnabled || ponytailEnabled ||
       customPromptEnabled || providerThinking?.mode && providerThinking.mode !== 'auto')) {
     return { ...createErrorResult(503, 'Accounting profile unavailable'), accountingRefused: true };
   }
@@ -218,7 +219,8 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   const clientTool = detectClientTool(clientRawRequest?.headers || {}, body);
   // Preserve signed history from the validated native Messages request.
   const nativeAccountedStream = accounting?.stream === true;
-  const passthrough = nativeAccountedStream || isNativePassthrough(clientTool, provider);
+  const nativeAccountedWire = nativeAccountedStream || nativeClaudeOAuthAccounting;
+  const passthrough = nativeAccountedWire || isNativePassthrough(clientTool, provider);
 
   // Expose raw client headers to translators/executors for session-id resolution
   if (credentials) credentials.rawHeaders = clientRawRequest?.headers || {};

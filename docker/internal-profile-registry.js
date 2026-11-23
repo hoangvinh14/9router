@@ -1,7 +1,7 @@
 // Installed in src/lib/accounting by the internal Docker build only.
 import fs from 'node:fs';
 import { getAccountingAdapter } from '../db/driver.js';
-import { resolveInternalBudgetBinding } from './internal-binding.js';
+import { resolveInternalOperatorBinding } from './internal-binding.js';
 
 const bindingPath = '/run/9router/accounting-binding.json';
 
@@ -20,7 +20,7 @@ export async function findInstalledBudgetProfileForKey(keyId) {
   try {
     const binding = readBinding();
     if (!binding || binding.clientKeyId !== keyId) return null;
-    return resolveInternalBudgetBinding(await getAccountingAdapter(), binding);
+    return await resolveInternalOperatorBinding(await getAccountingAdapter(), binding);
   } catch { return null; }
 }
 

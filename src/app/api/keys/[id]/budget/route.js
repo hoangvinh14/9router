@@ -25,7 +25,9 @@ export async function GET(request, { params }) {
     const { ledger } = await getInstalledAccountingServices();
     const snapshot = ledger.inspectBudget(id, undefined, profile.provider === 'codex' ? profile.priceBasis : undefined);
     if (!snapshot.policy) return json({ keyId: id, error: { code: 'budget_not_configured' } }, 503);
-    return json({ readiness: { ready: true, reason: null }, ...snapshot });
+    return json({ readiness: { ready: true, reason: null }, ...snapshot,
+      ...(profile.provider === 'claude' ? { referencePrices: profile.referencePrices } : {}),
+    });
   } catch { return unavailable(); }
 }
 

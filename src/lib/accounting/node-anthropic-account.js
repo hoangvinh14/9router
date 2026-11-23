@@ -3,6 +3,7 @@ import { unavailable } from './attempt-payload.js';
 import { isModelLockActive } from '../../../open-sse/services/accountFallback.js';
 
 export const ACCOUNTED_ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
+export const ACCOUNTED_CLAUDE_URL = ACCOUNTED_ANTHROPIC_URL + '?beta=true';
 export const PROVIDER_ACCOUNT_READS = Object.freeze({
   providerAccount: Object.freeze({ method:'get', sql:'SELECT provider, authType, isActive, data FROM providerConnections WHERE id = ?' }),
 });
@@ -67,4 +68,17 @@ export function readCodexAccount(scope, connectionId, model) {
       !directAccountData(providerSpecificData) || settings.outboundProxyEnabled || settings.outboundProxyUrl ||
       settings.outboundNoProxy || settings.providerOverrides?.codex) return null;
   return { digest: credentialDigest(accessToken), accountId };
+}
+
+export function readClaudeAccount(scope, connectionId, model) {
+  const row = scope.providerAccount([connectionId]);
+  if (row?.provider !== 'claude' || row.authType !== 'oauth' || row.isActive !== 1) return null;
+  const account = objectJson(row.data);
+  const { apiKey, accessToken, providerSpecificData } = account;
+  const rowSettings = scope.routingSettings();
+  const settings = rowSettings === null ? {} : objectJson(rowSettings.data);
+  if (apiKey || !accessToken || isModelLockActive(account, model) ||
+      !directAccountData(providerSpecificData) || settings.outboundProxyEnabled || settings.outboundProxyUrl ||
+      settings.outboundNoProxy || settings.providerOverrides?.claude) return null;
+  return credentialDigest(accessToken);
 }

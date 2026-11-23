@@ -16,7 +16,7 @@ OpenAI công bố Codex GPT-6.2 Sol Standard giá 2 USD input, 0,10 USD cached i
 
 Ca HTTPS loopback Codex Standard đã kiểm chứng terminal lỗi thiếu usage. 9Router ghi nhận các hạng mục chưa xác định, giữ nguyên số đã xác định, chuyển nguyên terminal lỗi và chặn lượt kế của cùng key ngay cả dưới hạn mức. Mở lại SQLite vẫn chặn với 0 POST bổ sung. Dashboard báo key đang bị chặn vì thiếu usage. Số tiền của các hạng mục đã xác định được lưu theo schema hiện có, còn phần thiếu được đánh dấu trong evidence. Dashboard có thể miễn phần chưa xác định hoặc ghi thêm khoản chi phí cho từng attempt. 9Router đọc bộ đếm token từ upstream. Khoản bổ sung được ghi riêng và tính vào kỳ gốc. Thao tác yêu cầu phiên quản trị, cùng origin, phiên bản policy hiện hành, lý do và tham chiếu bằng chứng. SQLite ghi biên nhận cùng mã thao tác trong một transaction, giữ nguyên khoản đã biết và terminal gốc. Gửi lại đúng thao tác trả biên nhận cũ.
 
-Registry Docker có binding Codex Standard theo client key, connection ID và account ID. Hồ sơ khác hoặc thiếu giá đồng bộ bị từ chối. Kiểm thử dùng chính mã registry được Docker đóng gói, cùng handler, SQLite và HTTPS loopback. Đạt 33/33 ca startup và 32/32 ca HTTPS, gồm restart và 0 POST tại hạn mức. Còn cần xác minh cấu hình Standard của instance đích trước rollout. Claude OAuth đã có snapshot giá chuẩn đồng bộ. Binding và nghiệm thu native Opus streaming/Sonnet JSON còn mở. Ca offline không dùng credential hay dữ liệu của hai container hiện chạy.
+Registry Docker có binding Codex Standard theo client key, connection ID và account ID. Hồ sơ khác hoặc thiếu giá đồng bộ bị từ chối. Kiểm thử dùng chính mã registry được Docker đóng gói, cùng handler, SQLite và HTTPS loopback. Đạt 33/33 ca startup và 32/32 ca HTTPS, gồm restart và 0 POST tại hạn mức. Còn cần xác minh cấu hình Standard của instance đích trước rollout. Claude OAuth Standard đã qua nghiệm thu Docker cho native Opus streaming và Sonnet JSON qua combo. Ca offline không dùng credential hay dữ liệu của hai container hiện chạy.
 
 ### Nghiệm thu Codex Standard trên Docker nội bộ
 
@@ -35,9 +35,19 @@ Anthropic xác nhận Claude subscription usage credits tính theo đơn giá AP
 | `claude-opus-5-5` | 4 | 0,20 | 5 | 8 | 20 |
 | `claude-sonnet-5` | 2 | 0,20 | 2,50 | 4 | 10 |
 
-Opus 5.5 fast mode có giá input/output riêng là 8/40 USD, và Claude Code có thể giữ lựa chọn fast qua các phiên. Hai log do owner cung cấp xác định model và dạng phản hồi, còn tốc độ thực tế cần xác minh trên request hiệu lực. Nghiệm thu luồng giá chuẩn phải kiểm tra điều này trước POST và trước khi ghi giá vào attempt, kể cả khi qua combo. Trên Messages API, tốc độ fast được chọn bằng `speed: "fast"`. Binding OAuth và kiểm thử Docker cho hai model vẫn mở. [Fast mode Claude Code](https://code.claude.com/docs/en/fast-mode.md) · [Fast mode Messages API](https://platform.claude.com/docs/en/build-with-claude/fast-mode.md).
+Opus 5.5 fast mode có giá input/output riêng là 8/40 USD, và Claude Code có thể giữ lựa chọn fast qua các phiên. Hai log do owner cung cấp xác định model và dạng phản hồi, còn tốc độ thực tế cần xác minh trên request hiệu lực. Nghiệm thu luồng giá chuẩn phải kiểm tra điều này trước POST và trước khi ghi giá vào attempt, kể cả khi qua combo. Trên Messages API, tốc độ fast được chọn bằng `speed: "fast"`. Binding OAuth và kiểm thử Docker cho hai model đã qua nghiệm thu offline. [Fast mode Claude Code](https://code.claude.com/docs/en/fast-mode.md) · [Fast mode Messages API](https://platform.claude.com/docs/en/build-with-claude/fast-mode.md).
 
 Lịch model catalog hiện tự đọc hai dòng giá chuẩn và lưu cùng lúc vào SQLite với nguồn và thời điểm đồng bộ. Bảng thiếu dòng hoặc sai đơn vị giữ cả hai snapshot hợp lệ trước đó. Codex vẫn cập nhật độc lập. Kiểm thử lịch chạy và SQLite cô lập dùng nội dung Anthropic công bố, xác nhận số tiền theo từng loại cache, giữ bản giá cũ khi nội dung sai và cập nhật Codex trong cùng lần chạy. Hồi quy budget đạt 119/119.
+
+### Nghiệm thu Claude OAuth Standard trên Docker nội bộ
+
+Image Linux/amd64 `9router-budget-internal:claude-oauth-standard` (`sha256:60be18db30fdc55c58e2b5cc6b727b4596080cf47ebffcf602fbca6ae3694605`) chạy trong container chỉ có loopback với SQLite dùng một lần. Operator sao lưu database trước khi bật schema budget, sau đó kiểm tra binding theo key đầu vào, connection OAuth đã chọn và hai snapshot giá Standard.
+
+- Budget ban đầu bằng 0. Dashboard GET trả hai snapshot giá Anthropic. PUT chưa đăng nhập trả 401, sai origin trả 403, phiên bản cũ trả 409.
+- Opus 5.5 streaming qua `/v1/messages` (tool, thinking và cache) gửi một HTTPS POST và ghi 140.600 nanoUSD. Sonnet 5 JSON qua combo `cc/claude-sonnet-5` và đường `/v1/v1/messages` gửi một HTTPS POST và ghi 70.600 nanoUSD vào cùng key. Kiểm thử xác nhận model và Bearer fixture ở upstream, SSE hoàn tất và nguyên usage JSON.
+- Fast mode và đường `/api/v1/messages` bị từ chối trước POST. Khi tổng đạt 211.200 nanoUSD, lượt kế trả 503 với thêm 0 POST và 0 khoản. Sau restart, dashboard GET vẫn trả đúng số tiền và số dư 0. Sonnet tiếp tục bị chặn trước upstream. Hai lần dừng đều thoát 0.
+- Trên chính image này, Codex Standard và Anthropic API-key cũng vượt qua ca HTTP, HTTPS và restart. Các bộ kiểm thử hiện có đạt 119/119 budget, 33/33 startup, 32/32 composition, 12/12 native wire fidelity và 7/7 dashboard.
+- Phạm vi còn mở gồm refresh/retry có kiểm soát, các cấu hình Claude chuyển đổi hoặc ngoài Standard, và rollout trên instance thật.
 
 ### Luồng đã xác nhận trên hai instance
 

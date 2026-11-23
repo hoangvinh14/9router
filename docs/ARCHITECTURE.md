@@ -225,6 +225,9 @@ Pass the file on stdin to the companion’s `--check-binding /work/instance` wit
 
 The Codex Standard binding uses `clientKeyId` and `codexBinding` in the same mount. Set `codexBinding.connectionId` to the selected 9Router connection, `accountId` to its effective ChatGPT workspace or account ID and `serviceTier` to `standard`. Select an account configured for Standard speed. The file contains identifiers only. The app requires an active matching OAuth connection with direct transport and a valid synchronized OpenAI reference price. The profile covers native `POST /v1/responses` streaming for `codex/gpt-6.2-sol`. The middleware refuses other inference routes for that budget key.
 
+
+The Claude OAuth Standard binding uses `clientKeyId` and `claudeBinding` with `connectionId` and `serviceTier` set to `standard`. The internal app requires an active, direct connection and synchronized Anthropic prices for both models. The budget applies to native Opus 5.5 streaming and Sonnet 5 JSON, including the single-provider Sonnet combo, through `/v1/messages` and `/v1/v1/messages`. The app refuses fast mode or an unsupported model before dispatch. Both models charge the same client key budget. The budget panel displays the two Standard reference prices and their sync times.
+
 ## Combo + Account Fallback Flow
 
 ```mermaid

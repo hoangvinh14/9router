@@ -232,10 +232,11 @@ export async function proxy(request) {
     // bypass an existing accounting binding.
     const accounting = await inspectAccountingRequest(request);
     if (accounting.kind !== 'ordinary') {
-      const provider = pathname === '/v1/messages' ? 'anthropic' : pathname === '/v1/responses' ? 'codex' : null;
-      if (accounting.kind === 'controlled' && request.method === 'POST' && provider) {
+      const providers = pathname === '/v1/messages' ? ['anthropic', 'claude']
+        : pathname === '/v1/v1/messages' ? ['claude'] : pathname === '/v1/responses' ? ['codex'] : [];
+      if (accounting.kind === 'controlled' && request.method === 'POST' && providers.length) {
         const profile = await findInstalledBudgetProfileForKey(accounting.keyId);
-        if (profile?.provider === provider) return NextResponse.next();
+        if (providers.includes(profile?.provider)) return NextResponse.next();
       }
       return accountingUnavailableResponse();
     }

@@ -1,3 +1,4 @@
+import { BUDGET_REFERENCE_SCOPE } from './constants.js';
 import { validatePriceSnapshot } from '../accounting/exact-money.js';
 
 export const CLAUDE_STANDARD_PRICING_URL = 'https://platform.claude.com/docs/en/about-claude/pricing.md';
@@ -6,6 +7,23 @@ const standardModels = {
   'claude-opus-5-5': 'Claude Opus 5.5',
   'claude-sonnet-5': 'Claude Sonnet 5',
 };
+export const CLAUDE_STANDARD_MODELS = Object.freeze(Object.keys(standardModels));
+export const claudeStandardReferenceKey = model => CLAUDE_STANDARD_MODELS.includes(model)
+  ? `anthropic:claude/${model}:standard:v1` : null;
+
+export function readClaudeStandardReference(scope, model) {
+  const revision = claudeStandardReferenceKey(model);
+  if (!revision) return null;
+  const row = scope.referencePrice([BUDGET_REFERENCE_SCOPE, revision]);
+  try {
+    const price = row && validatePriceSnapshot(JSON.parse(row.value));
+    if (price?.revision === revision && price.source === CLAUDE_STANDARD_PRICING_URL &&
+        Number.isSafeInteger(price.syncedAt) && price.syncedAt > 0 &&
+        Object.keys(price.rates).sort().join(',') === 'cache_creation,cache_creation_1h,cached,input,output') return price;
+  } catch { /* Missing or malformed snapshots cannot authorize dispatch. */ }
+  return null;
+}
+
 const columns = ['Model', 'Base input tokens', '5m cache writes', '1h cache writes', 'Cache hits and refreshes', 'Output tokens'];
 const rateFields = ['input', 'cache_creation', 'cache_creation_1h', 'cached', 'output'];
 function readColumns(line) {
@@ -43,7 +61,7 @@ export function parseClaudeStandardReferences(markdown, syncedAt) {
       if (!rate) throw new Error('Invalid Claude Standard rate');
       return [rateFields[index], rate];
     }));
-    const revision = `anthropic:claude/${model}:standard:v1`;
+    const revision = claudeStandardReferenceKey(model);
     return [revision, validatePriceSnapshot({ currency: 'USD', unit: 'USD/1M tokens', revision, syncedAt,
       source: CLAUDE_STANDARD_PRICING_URL, rates })];
   }));

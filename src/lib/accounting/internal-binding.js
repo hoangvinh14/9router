@@ -1,10 +1,12 @@
 import { unavailable, snapshotPayload } from './attempt-payload.js';
 import { createNodeOuterTransaction } from './node-outer-transaction.js';
-import { PROVIDER_ACCOUNT_READS, isSingleWorkspaceBinding, readAnthropicAccount, readCodexAccount } from './node-anthropic-account.js';
+import { PROVIDER_ACCOUNT_READS, isSingleWorkspaceBinding, readAnthropicAccount, readClaudeAccount, readCodexAccount } from './node-anthropic-account.js';
 import { ANTHROPIC_REFERENCE_MODEL } from './anthropic-reference-price.js';
 import { BUDGET_REFERENCE_SCOPE, CODEX_BUDGET_PRICE, CODEX_STANDARD_REFERENCE } from '../pricing/constants.js';
 import { validateCodexStandardReference } from './exact-money.js';
 import { ROUTING_READS } from './node-routing-snapshot.js';
+
+const priceRead = Object.freeze({ method: 'get', sql: 'SELECT value FROM kv WHERE scope = ? AND key = ?' });
 
 const definitions = Object.freeze({
   ...PROVIDER_ACCOUNT_READS,
@@ -47,7 +49,7 @@ export function resolveInternalBudgetBinding(adapter, input) {
   const model = CODEX_BUDGET_PRICE.model;
   const { value: matches } = createNodeOuterTransaction(adapter, {
     ...definitions,
-    price: { method: 'get', sql: 'SELECT value FROM kv WHERE scope = ? AND key = ?' },
+    price: priceRead,
   })(scope => {
     if (scope.activeClient([value.clientKeyId])?.present !== 1 ||
         readCodexAccount(scope, binding.connectionId, model)?.accountId !== binding.accountId) return false;
@@ -58,4 +60,25 @@ export function resolveInternalBudgetBinding(adapter, input) {
   if (!matches) throw unavailable();
   return Object.freeze({ enabled: true, producerAdmitted: true, provider: 'codex', auth: 'oauth', model,
     connectionId: binding.connectionId, accountId: binding.accountId, priceBasis: CODEX_STANDARD_REFERENCE });
+}
+
+export async function resolveInternalOperatorBinding(adapter, input) {
+  const value = snapshotPayload(input);
+  if (value?.claudeBinding) {
+    const binding = value.claudeBinding;
+    if (Object.keys(value).sort().join(',') !== 'claudeBinding,clientKeyId' ||
+        Object.keys(binding).sort().join(',') !== 'connectionId,serviceTier' ||
+        !validId(value.clientKeyId) || !validId(binding.connectionId) || binding.serviceTier !== 'standard') throw unavailable();
+    const { CLAUDE_STANDARD_MODELS, readClaudeStandardReference } = await import('../pricing/claude-standard-reference.js');
+    const { value: referencePrices } = createNodeOuterTransaction(adapter, { ...definitions, referencePrice: priceRead })(scope => {
+      if (scope.activeClient([value.clientKeyId])?.present !== 1) return null;
+      return CLAUDE_STANDARD_MODELS.map(model => readClaudeAccount(scope, binding.connectionId, model)
+        ? readClaudeStandardReference(scope, model) : null);
+    });
+    if (!referencePrices?.every(Boolean)) throw unavailable();
+    return Object.freeze({ enabled: true, producerAdmitted: true, provider: 'claude', auth: 'oauth',
+      connectionId: binding.connectionId, serviceTier: binding.serviceTier, referencePrices });
+  }
+
+  return resolveInternalBudgetBinding(adapter, value);
 }

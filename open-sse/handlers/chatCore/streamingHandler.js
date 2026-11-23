@@ -53,7 +53,7 @@ function buildTransformStream({ provider, sourceFormat, targetFormat, userAgent,
 export async function handleStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, userAgent, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, streamDetailId, pxpipe, reqTag, log, credentials, accountingAttempt }) {
   if (accountingAttempt) {
     const mediaType = providerResponse.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase();
-    const nativeClaude = provider === "anthropic" && sourceFormat === FORMATS.CLAUDE && targetFormat === FORMATS.CLAUDE;
+    const nativeClaude = ["anthropic", "claude"].includes(provider) && sourceFormat === FORMATS.CLAUDE && targetFormat === FORMATS.CLAUDE;
     const nativeResponses = provider === "codex" && sourceFormat === FORMATS.OPENAI_RESPONSES &&
       targetFormat === FORMATS.OPENAI_RESPONSES && typeof accountingAttempt.settleResponses === "function";
     if ((!nativeClaude && !nativeResponses) || mediaType !== "text/event-stream" || !providerResponse.body) {

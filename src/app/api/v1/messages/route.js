@@ -38,15 +38,19 @@ export async function POST(request) {
     return await handleChat(request);
   }
   const profile = state.kind === 'controlled' && await findInstalledBudgetProfileForKey(state.keyId);
-  if (!profile || new URL(request.url).pathname !== '/v1/messages') return accountingUnavailableResponse();
+  const pathname = new URL(request.url).pathname;
+  if (!profile || !(profile.provider === 'anthropic' && pathname === '/v1/messages' ||
+      profile.provider === 'claude' && ['/v1/messages', '/v1/v1/messages'].includes(pathname))) return accountingUnavailableResponse();
   try {
     const { getInstalledAccountingServices, bindAccountingIdentity } = await import('@/lib/accounting/installed-service.js');
     const { createAnthropicDispatchContext } = await import('@/lib/accounting/anthropic-dispatch-context.js');
     const identity = bindAccountingIdentity(await getInstalledAccountingServices(), selectedAccountingSecret(request));
     if (identity?.keyId !== state.keyId) return accountingUnavailableResponse();
     await ensureInitialized();
-    return await handleAccountedChatCandidate(request, { identity,
-      createContext: ({ routeProof, credentials }) => createAnthropicDispatchContext({ identity, routeProof, credentials, profile }),
+    return await handleAccountedChatCandidate(request, { identity, provider: profile.provider, connectionId: profile.connectionId,
+      createContext: ({ routeProof, credentials, model }) => createAnthropicDispatchContext({ identity, routeProof, credentials, profile,
+        ...(profile.provider === 'claude' ? { model, stream: model === 'claude-opus-5-5' } : {}),
+      }),
     });
   } catch {
     return accountingUnavailableResponse();

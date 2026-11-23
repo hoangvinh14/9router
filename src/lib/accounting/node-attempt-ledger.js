@@ -31,11 +31,11 @@ const RECOVERY_ACTIONS = new Set(['waive', 'cost_correction']);
 const RECOVERY_WRITE = { method: 'run', sql: "INSERT INTO kv(scope, key, value) VALUES ('budgetUsageRecovery', ?, ?)" };
 
 const CODEX_PRICE_READS = Object.freeze({
-  codexReferencePrice: Object.freeze({ method: 'get', sql: 'SELECT value FROM kv WHERE scope = ? AND key = ?' }),
+  referencePrice: Object.freeze({ method: 'get', sql: 'SELECT value FROM kv WHERE scope = ? AND key = ?' }),
 });
 
 function readCodexPrice(scope) {
-  const row = scope.codexReferencePrice([BUDGET_REFERENCE_SCOPE, CODEX_STANDARD_REFERENCE]);
+  const row = scope.referencePrice([BUDGET_REFERENCE_SCOPE, CODEX_STANDARD_REFERENCE]);
   if (!row) return null;
   try { return validateCodexStandardReference(JSON.parse(row.value)); }
   catch { return null; }
@@ -377,6 +377,25 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
       ownAccounts.set(proof, { routeProof, encodedPrice,
         matches: scope => matches(scope) && canonical(readCodexPrice(scope)) === encodedPrice });
       return Object.freeze({ proof, price: Object.freeze({ ...price, rates: Object.freeze(price.rates) }) });
+    },
+    async bindClaudeAccount(routeProof, connectionId, accessToken) {
+      const route = ownRoutes.get(routeProof);
+      if (!requireAccount || route?.provider !== 'claude') throw unavailable();
+      identifier(connectionId);
+      const [{ credentialDigest, readClaudeAccount }, { readClaudeStandardReference }] = await Promise.all([
+        import('./node-anthropic-account.js'), import('../pricing/claude-standard-reference.js'),
+      ]);
+      const digest = credentialDigest(accessToken);
+      const matches = scope => readClaudeAccount(scope, connectionId, route.model) === digest;
+      const readPrice = scope => readClaudeStandardReference(scope, route.model);
+      const { value: price } = checkRouteTransaction(scope =>
+        route.matches(scope, route.keyId, route.stamp) && matches(scope) ? readPrice(scope) : null);
+      if (!price) throw unavailable();
+      const encodedPrice = canonical(price);
+      const proof = Object.freeze(Object.create(null));
+      ownAccounts.set(proof, { routeProof, encodedPrice,
+        matches: scope => matches(scope) && canonical(readPrice(scope)) === encodedPrice });
+      return Object.freeze({ proof, price });
     },
     prepare(command, routeProof, accountProof) {
       assertAccountingHealthy();
