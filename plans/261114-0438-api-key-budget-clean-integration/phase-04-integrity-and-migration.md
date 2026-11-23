@@ -29,6 +29,12 @@ The startup regression suite covers refusal before migrations on unqualified acc
 - [ ] Platform matrix Node/SQL.js, node:sqlite, better-sqlite3, Bun; optional dep absence falls back safely. Windows atomic paths/build/locking get appropriate CI/evidence; unavailable runner recorded **OPEN**, not waived. User-authorized narrower deployment would require exact disposition, not assumption.
 - [ ] Operational rollback design: code branch switch **không rollback DB**; no old binary on migrated DB without compatibility proof. Synthetic copied schema validation first; future real rollout needs authorized backup/restore+quiescence/migration plan. Never access/copy host DB in this plan/execution by inference.
 
+## Phục hồi cho Docker nội bộ
+
+Dừng app trước khi đổi image hoặc thay database. Giữ riêng snapshot SQLite hiện hành trước mọi thao tác phục hồi. Nếu cần quay lại thời điểm trước khi bật budget, khôi phục bản sao từ thư mục `before-budget-*` vào một thư mục dữ liệu riêng và ghép với image đã chạy trước khi bật. Nếu cần giữ budget, dùng snapshot có schema budget với image nội bộ tương thích. Kiểm tra binding và đọc lại policy/số đã dùng trong bản cô lập trước khi mở ingress.
+
+Snapshot cũ có thể chứa API key hoặc credential đã bị thu hồi sau thời điểm sao lưu. Trước khi mở ingress, đối chiếu thay đổi credential xảy ra sau thời điểm đó và xác nhận chúng đã được vô hiệu hóa hoặc thay thế ở bản phục hồi. Nếu thiếu bằng chứng để làm việc này, giữ bản phục hồi offline. Chính sách vận hành cho credential thật vẫn cần quyền rollout.
+
 ## Success evidence
 
 **Existing 9Router SQLite.** The offline companion's `--enable-existing` takes a full SQLite backup, then adds empty accounting tables. The regression uses an ordinary DB with an existing key and request log and no legacy import state. Both records match the backup. The key starts at zero after its first policy save, one dispatch records 105,900 nanoUSD, and a new process at the exact limit refuses the next dispatch before transport. The companion refuses repeat provisioning. The startup and provisioning suite passed 33/33, the composed regression suite passed 23/23, and the same provisioning tests passed 7/7 in the Linux amd64 Docker companion with networking disabled. [Operator instructions](../../docs/ARCHITECTURE.md#operator-binding-for-the-internal-docker-image).

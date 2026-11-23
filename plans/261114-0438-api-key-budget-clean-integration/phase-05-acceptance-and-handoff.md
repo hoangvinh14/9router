@@ -56,6 +56,12 @@ Command paths/exact CLI args validated in sandbox before launch; no hardcoded ro
 | Security review | Auth/CSRF/key authority/admin separation; no raw key in ledger/UI/response; TLS/proxy/SSRF/final URL/redirect/header authority; no client-spoofed permissions; reviewed touched seams only, no broad certification |
 | Build/performance | Isolated standalone packaging/traced SQL.js wasm and optional deps/host-path compatibility; bounded per-request operations/queues; ordinary startup/request comparison against exact pinned-master baseline, not invented benchmark |
 
+## Nghiệm thu hiện có trên Linux amd64
+
+Cùng image Docker nội bộ đã qua HTTP thật, HTTPS loopback và restart cho Codex Standard Responses SSE, Anthropic API-key Sonnet 4.6 JSON, Claude OAuth Opus 5.5 SSE và Sonnet 5 JSON qua combo. Mỗi đường đã kiểm tra đúng chi phí và 0 POST sau khi chạm hạn mức. Admin route kiểm tra phiên, origin và phiên bản policy. Bản backup SQLite qua lại 16/16 ca trên Node 24. Startup, composition, native wire và dashboard đều có kết quả theo image hoặc revision ghi trong Phase 03. [Nghiệm thu Phase 03](./phase-03-native-retry-and-compatibility.md#nghiệm-thu-claude-oauth-standard-trên-docker-nội-bộ) · [Phục hồi SQLite](./phase-04-integrity-and-migration.md#phục-hồi-cho-docker-nội-bộ).
+
+Nghiệm thu này để mở các hàng bắt buộc về refresh/retry có kết toán, các cấu hình chưa được qualification, ma trận runtime ngoài Docker Linux amd64 và rollout. Việc đối chiếu credential trên bản phục hồi thuộc rollout và cần được thực hiện trước khi mở ingress thật.
+
 ## Completion / handoff
 
 - [ ] Freeze reviewed source/test/config/dep hashes and exact selectors, expected cases/skips, adapter/environment/isolation proof; run affected/security matrix, preserve outputs without private payloads.
