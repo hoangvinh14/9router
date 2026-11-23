@@ -21,6 +21,8 @@ created: 2026-11-14
 
 Dùng SQLite hiện có của 9Router. Mỗi API key bắt đầu ghi chi phí từ khi bật budget, với lịch sử và số đã dùng của tính năng bắt đầu từ 0. Dashboard hiển thị hạn mức, số đã dùng và số còn lại. Khi chi phí đã ghi đạt hoặc vượt hạn mức, request kế tiếp bị chặn trước POST upstream. Phạm vi triển khai và nghiệm thu loại bỏ nhập hoặc chuyển đổi dữ liệu từ schema budget thử nghiệm v2–v4 của nhánh develop. SQLite đã có dữ liệu dùng lệnh offline `--enable-existing` để sao lưu trước khi thêm bảng budget. Ca nghiệm thu từ database có key sẵn đã kiểm chứng số dư ban đầu bằng 0, một khoản mới và chặn sau khi khởi động lại. [Kiểm chứng SQLite hiện có](./phase-04-integrity-and-migration.md#success-evidence).
 
+Đơn giá dùng để trừ budget được đồng bộ từ nguồn bên ngoài. Giá nhập tay trên dashboard không ảnh hưởng budget. [Nguồn đơn giá và tiêu chí nghiệm thu](./phase-03-native-retry-and-compatibility.md#nguồn-đơn-giá-budget--quyết-định-2026-11-23).
+
 ## Thứ tự triển khai đã xác nhận
 
 1. **`9router-2` (20133).** Ưu tiên Codex OAuth `gpt-6.2-sol` qua `/v1/responses` streaming. Kiểm tra cả `/v1/chat/completions` với cùng key để xác nhận đường chuyển đổi chịu cùng hạn mức hoặc bị từ chối trước upstream nếu chưa hỗ trợ.
