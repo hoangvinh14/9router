@@ -15,6 +15,12 @@ created: 2026-11-14
 
 # Implementation plan — API-key budget, clean integration
 
+## Cách tiếp tục đã chốt — 2026-11-24
+
+Owner yêu cầu tự triển khai liên tục trong phạm vi đã chốt cho đến khi đạt các tiêu chí nghiệm thu của plan. Tự thực hiện, kiểm thử, sửa lỗi có thể xử lý, cập nhật plan, rồi commit và push phần đã kiểm chứng lên nhánh tích hợp theo quyền đã cấp. Báo mốc trung gian trong lúc làm và tiếp tục ngay các việc đã được giao.
+
+Chỉ dừng chờ owner khi có quyết định quan trọng cần duyệt, chẳng hạn đổi phạm vi, đổi hành vi tính hoặc chặn budget, triển khai lên instance thật hay thao tác lên dữ liệu thật. Trước khi hỏi, hoàn tất phần việc độc lập còn làm được và nêu rõ quyết định cùng ảnh hưởng của nó. Khi một bước gặp lỗi hoặc thiếu bằng chứng, xử lý trong phạm vi hiện có và tiếp tục phần độc lập. Nếu mọi đường đều bị chặn, báo rõ nguyên nhân và điều kiện để làm tiếp. Đoạn này là chỉ dẫn thực thi hiện hành cho mọi phase. Các mốc và yêu cầu xác nhận lịch sử không mở lại quyết định đã chốt.
+
 **Current continuation:** owner đã authorize sync master, tạo integration branch trong checkout hiện tại và tiếp tục tự động trong phạm vi plan. Phase00 transition đã verified; xem [execution record](./references/phase00-execution.md) và [fresh integration baseline](./references/integration-baseline.json). Owner đã authorize commit và push phần hoàn tất lên nhánh tích hợp. Deploy, live inference và sử dụng dữ liệu hoặc dịch vụ thật nằm ngoài lần nghiệm thu offline này. Các đoạn planning/Validation Session 1 bên dưới là chronology, không phủ nhận authority mới và không cấp thêm producer/policy/sandbox authority. `blockedBy: []` không có nghĩa positive slice ready.
 
 ## Phạm vi đã chốt — 2026-11-23
