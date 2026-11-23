@@ -56,7 +56,17 @@ export function codexAccountId(data) {
   return typeof accountId === 'string' && accountId ? accountId : null;
 }
 
-export function readCodexAccount(scope, connectionId, model) {
+function oauthTokenExpired(account, now) {
+  if (now === undefined) return false;
+  const expiry = account.expiresAt ?? account.tokenExpiresAt;
+  if (expiry === undefined || expiry === null || expiry === '') return false;
+  const time = typeof expiry === 'number'
+    ? (expiry < 1e12 ? expiry * 1000 : expiry)
+    : typeof expiry === 'string' ? Date.parse(expiry) : NaN;
+  return Number.isFinite(time) && time <= now;
+}
+
+export function readCodexAccount(scope, connectionId, model, now) {
   const row = scope.providerAccount([connectionId]);
   if (row?.provider !== 'codex' || row.authType !== 'oauth' || row.isActive !== 1) return null;
   const account = objectJson(row.data);
@@ -64,20 +74,20 @@ export function readCodexAccount(scope, connectionId, model) {
   const rowSettings = scope.routingSettings();
   const settings = rowSettings === null ? {} : objectJson(rowSettings.data);
   const accountId = codexAccountId(providerSpecificData);
-  if (apiKey || !accessToken || !accountId || isModelLockActive(account, model) ||
+  if (apiKey || !accessToken || oauthTokenExpired(account, now) || !accountId || isModelLockActive(account, model) ||
       !directAccountData(providerSpecificData) || settings.outboundProxyEnabled || settings.outboundProxyUrl ||
       settings.outboundNoProxy || settings.providerOverrides?.codex) return null;
   return { digest: credentialDigest(accessToken), accountId };
 }
 
-export function readClaudeAccount(scope, connectionId, model) {
+export function readClaudeAccount(scope, connectionId, model, now) {
   const row = scope.providerAccount([connectionId]);
   if (row?.provider !== 'claude' || row.authType !== 'oauth' || row.isActive !== 1) return null;
   const account = objectJson(row.data);
   const { apiKey, accessToken, providerSpecificData } = account;
   const rowSettings = scope.routingSettings();
   const settings = rowSettings === null ? {} : objectJson(rowSettings.data);
-  if (apiKey || !accessToken || isModelLockActive(account, model) ||
+  if (apiKey || !accessToken || oauthTokenExpired(account, now) || isModelLockActive(account, model) ||
       !directAccountData(providerSpecificData) || settings.outboundProxyEnabled || settings.outboundProxyUrl ||
       settings.outboundNoProxy || settings.providerOverrides?.claude) return null;
   return credentialDigest(accessToken);

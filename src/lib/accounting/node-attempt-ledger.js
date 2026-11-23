@@ -366,7 +366,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
       const { credentialDigest, readCodexAccount } = await import('./node-anthropic-account.js');
       const digest = credentialDigest(accessToken);
       const matches = scope => {
-        const current = readCodexAccount(scope, connectionId, route.model);
+        const current = readCodexAccount(scope, connectionId, route.model, Date.now());
         return current?.digest === digest && current.accountId === accountId;
       };
       const { value: price } = checkRouteTransaction(scope =>
@@ -386,7 +386,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         import('./node-anthropic-account.js'), import('../pricing/claude-standard-reference.js'),
       ]);
       const digest = credentialDigest(accessToken);
-      const matches = scope => readClaudeAccount(scope, connectionId, route.model) === digest;
+      const matches = scope => readClaudeAccount(scope, connectionId, route.model, Date.now()) === digest;
       const readPrice = scope => readClaudeStandardReference(scope, route.model);
       const { value: price } = checkRouteTransaction(scope =>
         route.matches(scope, route.keyId, route.stamp) && matches(scope) ? readPrice(scope) : null);

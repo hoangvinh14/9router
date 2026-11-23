@@ -548,8 +548,11 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
     trackPendingRequest(model, provider, connectionId, false, true);
     let parsedError;
     try {
-      parsedError = await parseUpstreamError(providerResponse, executor, accountingAttempt
-        ? parsed => accountingAttempt.settleJson(parsed?.usage) : null);
+      // Codex meters authenticated Responses SSE terminals. A bare HTTP error
+      // has no admitted usage evidence, but must still be read without replay.
+      const readNativeError = accountingAttempt
+        ? parsed => accountingAttempt.settleJson?.(parsed?.usage) : null;
+      parsedError = await parseUpstreamError(providerResponse, executor, readNativeError);
     } catch {
       return { ...createErrorResult(503, 'Accounting recording unavailable'), accountingRefused: true };
     }
