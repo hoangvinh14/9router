@@ -690,11 +690,13 @@ if (!stage) test('a new owner of reopened SQLite blocks at the persisted limit b
   assert.equal(totals().monthly, (2n * BigInt(limit)).toString());
 }, { monthly: limit, reply: success }));
 
+const codexFixtureLimit = '440000';
+
 function codexFixture(run, options) {
   const model = 'gpt-6.2-sol';
   const profile = { provider: 'codex', auth: 'oauth', producerAdmitted: true, connectionId: 'fixture-codex',
-    model, price: { currency: 'USD', unit: 'USD/1M tokens', revision: 'fixture', rates: { input: '2', output: '10' } } };
-  const reply = () => new Response('data: {"type":"response.completed","response":{"id":"fixture","status":"completed","usage":{"output_tokens":25}}}\n\n',
+    model, price: { currency: 'USD', unit: 'USD/1M tokens', revision: 'fixture', rates: { input: '2', cached: '0.25', cache_creation: '3', output: '10' } } };
+  const reply = () => new Response('data: {"type":"response.completed","response":{"id":"fixture","status":"completed","usage":{"input_tokens":100,"input_tokens_details":{"cached_tokens":40,"cache_write_tokens":60},"output_tokens":25,"total_tokens":125}}}\n\n',
     { headers: { 'content-type': 'text/event-stream' } });
   const request = (overrides = {}) => new Request('https://fixture.invalid/v1/responses', {
     method: 'POST', headers: { authorization: 'Bearer fixture-client' },
@@ -708,14 +710,14 @@ function codexFixture(run, options) {
     ]);
   }
   return fixture(context => run({ ...context, request }), {
-    monthly: '250000', profile, reply, prepareDb, ...options,
+    monthly: codexFixtureLimit, profile, reply, prepareDb, ...options,
   });
 }
 
 if (checkpoint === 'codex') {
   const writing = stage === '--restart-write';
   await codexFixture(async ({ state, rows, totals, request }) => {
-    assert.equal(totals().monthly, writing ? '0' : '250000');
+    assert.equal(totals().monthly, writing ? '0' : codexFixtureLimit);
     const saved = rows();
     assert.equal(saved.terminals.length, writing ? 0 : 1);
     const response = await postResponses(request());
@@ -723,7 +725,7 @@ if (checkpoint === 'codex') {
     assert.equal(isAccountingResponse(response), true);
     if (writing) assert.match(await response.text(), /response.completed/);
     assert.equal(state.wire.length, writing ? 1 : 0);
-    assert.equal(totals().monthly, '250000');
+    assert.equal(totals().monthly, codexFixtureLimit);
     const result = rows();
     assert.equal(result.terminals.length, 1);
     assert.equal(result.attempts[0].keyId, 'fixture-key');
@@ -934,7 +936,7 @@ if (stage === undefined) {
       const first = await postResponses(request());
       assert.equal(first.status, 200);
       assert.match(await first.text(), /response.completed/);
-      assert.equal(rows().terminals[0].amount, '250000');
+      assert.equal(rows().terminals[0].amount, codexFixtureLimit);
       assert.equal(rows().attempts[0].keyId, 'fixture-key');
       await reopen();
       assert.equal((await postResponses(request())).status, 503);

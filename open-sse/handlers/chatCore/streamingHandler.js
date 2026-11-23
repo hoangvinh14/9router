@@ -63,7 +63,7 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
     }
     const onTerminal = () => trackPendingRequest(model, provider, connectionId, false);
     const transform = nativeResponses
-      ? createAccountedResponsesStream(usage => accountingAttempt.settleResponses(usage), onTerminal)
+      ? createAccountedResponsesStream(usage => accountingAttempt.settleResponses(usage), onTerminal, accountingAttempt.priceCacheWrites)
       : createAccountedAnthropicStream(accountingAttempt, onTerminal);
     const onAbortTerminal = nativeResponses ? buildAbortedResponsesTerminalBytes
       : () => buildStreamErrorBytes(HTTP_STATUS.BAD_GATEWAY, "Anthropic stream ended before completion", FORMATS.CLAUDE);

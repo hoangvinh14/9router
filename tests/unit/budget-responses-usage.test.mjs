@@ -45,3 +45,21 @@ test('explicit zero remains reported and absent usage defaults all categories', 
     output_tokens: 0, total_tokens: 0 }).provenance, 'provider-reported');
   assert.deepEqual(cost(undefined).unknown, ['cached', 'input', 'output']);
 });
+
+
+test('Codex aggregate writes have their own price and are subtracted from ordinary input', () => {
+  const writePrice = { ...price, rates: { ...price.rates, cache_creation: '3' } };
+  const withWrites = (cached_tokens, cache_write_tokens) => ({
+    ...usage, input_tokens_details: { cached_tokens, cache_write_tokens },
+  });
+  const priced = raw => terminalCost(responsesTokenUsage(raw, true), writePrice);
+  const complete = priced(withWrites(127744, 1000));
+  assert.equal(complete.amountNanoUsd, '38630000');
+  assert.deepEqual(complete.unknown, []);
+  assert.deepEqual(priced(usage).unknown, ['cache_creation', 'input']);
+  assert.deepEqual(priced(withWrites(127744, 2723)).unknown, ['cache_creation', 'cached', 'input']);
+  assert.equal(priced(withWrites(127744, 0)).amountNanoUsd, '37630000');
+  const unpricedWrite = cost(withWrites(127744, 1000));
+  assert.deepEqual(unpricedWrite.unknown, ['input']);
+  assert.equal(unpricedWrite.amountNanoUsd, '32186000');
+});

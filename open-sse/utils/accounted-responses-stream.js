@@ -8,7 +8,7 @@ const terminalStatuses = new Map([
   ["response.incomplete", "incomplete"],
 ]);
 
-export function createAccountedResponsesStream(settle, onTerminal) {
+export function createAccountedResponsesStream(settle, onTerminal, priceCacheWrites = false) {
   const decoder = new TextDecoder("utf-8", { fatal: true });
   let buffer = "";
   let frame = "";
@@ -78,7 +78,7 @@ export function createAccountedResponsesStream(settle, onTerminal) {
         if (trailing && (terminal.done || !"data: [DONE]\n\n".startsWith(trailing))) {
           throw new Error("Partial frame after Responses terminal");
         }
-        if (terminal.success) await settle(responsesTokenUsage(terminal.usage));
+        if (terminal.success) await settle(responsesTokenUsage(terminal.usage, priceCacheWrites));
         onTerminal();
         controller.enqueue(encoder.encode(terminal.output + (terminal.done || "")));
         controller.terminate();

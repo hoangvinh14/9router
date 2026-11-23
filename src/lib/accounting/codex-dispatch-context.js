@@ -57,6 +57,7 @@ export function createCodexDispatchContext({ identity, routeProof, credentials, 
       const attempt = identity.prepare({ attemptId: randomUUID(), provider, model, startedAt: budgetInstant(clock), price }, routeProof, proof);
       return Object.freeze({
         dispatch: () => identity.dispatch(attempt.ack, budgetInstant(clock), initiate),
+        priceCacheWrites: Object.hasOwn(price.rates, 'cache_creation'),
         settleResponses: attempt.settle,
       });
     },
