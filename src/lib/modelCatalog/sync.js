@@ -8,6 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { parseCodexStandardReference } from "../accounting/exact-money.js";
 import { makeKv } from "../db/helpers/kvStore.js";
+import { CLAUDE_STANDARD_PRICING_URL, parseClaudeStandardReferences } from "../pricing/claude-standard-reference.js";
 import { BUDGET_REFERENCE_SCOPE, CODEX_STANDARD_REFERENCE } from "../pricing/constants.js";
 import { CATALOG_FILE, CATALOG_RAW_FILE, CATALOG_VERSION, invalidateCatalog, installCatalogSource } from "open-sse/providers/catalogOverride.js";
 
@@ -16,14 +17,14 @@ const FETCH_TIMEOUT_MS = 60000;
 const CODEX_PRICING_URL = "https://learn.chatgpt.com/docs/pricing.md";
 const referencePricing = makeKv(BUDGET_REFERENCE_SCOPE);
 
-async function syncBudgetReference() {
+async function syncBudgetReference(url, parse) {
   try {
-    const response = await fetch(CODEX_PRICING_URL, {
+    const response = await fetch(url, {
       headers: { accept: "text/markdown" }, redirect: "error", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     if (!response.ok) return false;
-    const price = parseCodexStandardReference(await response.text(), Date.now());
-    await referencePricing.set(CODEX_STANDARD_REFERENCE, price);
+    const prices = parse(await response.text(), Date.now());
+    await referencePricing.setMany(prices);
     return true;
   } catch {
     return false;
@@ -279,8 +280,14 @@ export function startModelCatalogSync() {
 
   const schedule = (delay) => {
     timer = setTimeout(async () => {
-      const [catalog, pricing] = await Promise.all([syncModelCatalog(), syncBudgetReference()]);
-      schedule(catalog && pricing ? SYNC_INTERVAL_MS : RETRY_DELAY_MS);
+      const [catalog, codexPricing, claudePricing] = await Promise.all([
+        syncModelCatalog(),
+        syncBudgetReference(CODEX_PRICING_URL, (markdown, syncedAt) => ({
+          [CODEX_STANDARD_REFERENCE]: parseCodexStandardReference(markdown, syncedAt),
+        })),
+        syncBudgetReference(CLAUDE_STANDARD_PRICING_URL, parseClaudeStandardReferences),
+      ]);
+      schedule(catalog && codexPricing && claudePricing ? SYNC_INTERVAL_MS : RETRY_DELAY_MS);
     }, delay);
     timer.unref?.();
   };
