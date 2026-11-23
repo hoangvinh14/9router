@@ -698,7 +698,7 @@ const referenceScope = 'budgetReferencePricing';
 function codexFixture(run, options) {
   const model = 'gpt-6.2-sol';
   const profile = { provider: 'codex', auth: 'oauth', producerAdmitted: true, connectionId: 'fixture-codex',
-    model, priceBasis };
+    accountId: 'fixture-account', model, priceBasis };
   const reply = () => new Response('data: {"type":"response.completed","response":{"id":"fixture","status":"completed","usage":{"input_tokens":100,"input_tokens_details":{"cached_tokens":40,"cache_write_tokens":60},"output_tokens":25,"total_tokens":125}}}\n\n',
     { headers: { 'content-type': 'text/event-stream' } });
   const request = (overrides = {}) => new Request('https://fixture.invalid/v1/responses', {
@@ -719,9 +719,13 @@ function codexFixture(run, options) {
       JSON.stringify({ accessToken: 'fixture-token', providerSpecificData: { chatgptAccountId: 'fixture-account' } }), now, now,
     ]);
   }
+  const bindingPath = '/run/9router/accounting-binding.json';
+  fs.writeFileSync(bindingPath, JSON.stringify({ clientKeyId: 'fixture-key', codexBinding: {
+    connectionId: profile.connectionId, accountId: profile.accountId, serviceTier: 'standard',
+  } }));
   return fixture(context => run({ ...context, request }), {
     monthly: codexFixtureLimit, profile, reply, prepareDb, ...options,
-  });
+  }).finally(() => fs.rmSync(bindingPath, { force: true }));
 }
 
 if (checkpoint === 'codex') {

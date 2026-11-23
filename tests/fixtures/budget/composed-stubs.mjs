@@ -9,7 +9,6 @@ export function getAdapter() {
   return db;
 }
 export const getAccountingAdapter = getAdapter;
-export const findInstalledBudgetProfileForKey = keyId => keyId === 'fixture-key' ? globalThis.routeFixture?.profile : null;
 export const getAntigravityQuotaCache = blocked, getAntigravityModelQuota = blocked;
 export const clearAntigravityStrikes = () => {};
 export const handleAntigravityQuotaError = blocked;

@@ -1,8 +1,7 @@
 // Installed in src/lib/accounting by the internal Docker build only.
 import fs from 'node:fs';
 import { getAccountingAdapter } from '../db/driver.js';
-import { verifyInternalAnthropicBinding } from './internal-binding.js';
-import { ANTHROPIC_REFERENCE_MODEL } from './anthropic-reference-price.js';
+import { resolveInternalBudgetBinding } from './internal-binding.js';
 
 const bindingPath = '/run/9router/accounting-binding.json';
 
@@ -21,10 +20,7 @@ export async function findInstalledBudgetProfileForKey(keyId) {
   try {
     const binding = readBinding();
     if (!binding || binding.clientKeyId !== keyId) return null;
-    verifyInternalAnthropicBinding(await getAccountingAdapter(), binding);
-    return Object.freeze({ enabled: true, producerAdmitted: true, provider: 'anthropic', auth: 'api-key',
-      model: ANTHROPIC_REFERENCE_MODEL, serviceTier: 'standard_only', inferenceGeo: 'global',
-      workspaceBinding: Object.freeze(binding.workspaceBinding) });
+    return resolveInternalBudgetBinding(await getAccountingAdapter(), binding);
   } catch { return null; }
 }
 

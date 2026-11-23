@@ -2,7 +2,7 @@
 
 Status: in-progress. Priority: P1. Depends on: phase02 + exact applicable producer evidence. Target C1–C4 không được đóng bằng chỉ C0.
 
-The internal C0 JSON path has passed packaged browser, durable debit and restart checks. For the next candidate, collect the exact model and authentication contract, retained request and output shapes, source-backed usage category rules, applicable tariff and terminal evidence on success and failure. The [support manifest](./references/phase01-support-manifest.json) records the outstanding evidence for C1-C3. The current registry admits only the internal C0 path. C4 has no eligible predecessor in this phase yet.
+The internal C0 JSON path has passed packaged browser, durable debit and restart checks. For the next candidate, collect the exact model and authentication contract, retained request and output shapes, source-backed usage category rules, applicable tariff and terminal evidence on success and failure. The [support manifest](./references/phase01-support-manifest.json) records the outstanding evidence for C1-C3. The internal registry supports C0 and an explicit Codex Standard binding with synchronized prices. C4 has no eligible predecessor in this phase yet.
 
 ### Nguồn đơn giá budget — quyết định 2026-11-23
 
@@ -16,7 +16,7 @@ OpenAI công bố Codex GPT-6.2 Sol Standard giá 2 USD input, 0,10 USD cached i
 
 Ca HTTPS loopback Codex Standard đã kiểm chứng terminal lỗi thiếu usage. 9Router ghi nhận các hạng mục chưa xác định, giữ nguyên số đã xác định, chuyển nguyên terminal lỗi và chặn lượt kế của cùng key ngay cả dưới hạn mức. Mở lại SQLite vẫn chặn với 0 POST bổ sung. Dashboard báo key đang bị chặn vì thiếu usage. Số tiền của các hạng mục đã xác định được lưu theo schema hiện có, còn phần thiếu được đánh dấu trong evidence. Dashboard có thể miễn phần chưa xác định hoặc ghi thêm khoản chi phí cho từng attempt. 9Router đọc bộ đếm token từ upstream. Khoản bổ sung được ghi riêng và tính vào kỳ gốc. Thao tác yêu cầu phiên quản trị, cùng origin, phiên bản policy hiện hành, lý do và tham chiếu bằng chứng. SQLite ghi biên nhận cùng mã thao tác trong một transaction, giữ nguyên khoản đã biết và terminal gốc. Gửi lại đúng thao tác trả biên nhận cũ.
 
-Registry Docker vẫn cần kiểm chứng hồ sơ OAuth đã chọn, bao gồm Standard và binding, cùng nghiệm thu khôi phục qua HTTP trong bản Docker. Claude OAuth vẫn cần kiểm chứng bảng giá tham chiếu áp dụng và nghiệm thu native Opus streaming/Sonnet JSON. Ca offline không dùng credential hay dữ liệu của hai container hiện chạy.
+Registry Docker có binding Codex Standard theo client key, connection ID và account ID. Hồ sơ khác hoặc thiếu giá đồng bộ bị từ chối. Kiểm thử dùng chính mã registry được Docker đóng gói, cùng handler, SQLite và HTTPS loopback. Đạt 33/33 ca startup và 32/32 ca HTTPS, gồm restart và 0 POST tại hạn mức. Còn cần chạy nghiệm thu HTTP trên image dựng mới và xác minh cấu hình Standard của instance đích. Claude OAuth vẫn cần kiểm chứng bảng giá tham chiếu áp dụng và nghiệm thu native Opus streaming/Sonnet JSON. Ca offline không dùng credential hay dữ liệu của hai container hiện chạy.
 
 ### Luồng đã xác nhận trên hai instance
 

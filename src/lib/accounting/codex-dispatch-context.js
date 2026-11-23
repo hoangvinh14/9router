@@ -14,7 +14,7 @@ export function createCodexDispatchContext({ identity, routeProof, credentials, 
   const accountId = codexAccountId(providerSpecificData);
   const { model } = profile;
   if (profile.provider !== 'codex' || profile.auth !== 'oauth' || profile.producerAdmitted !== true ||
-      profile.connectionId !== connectionId || credentials.authType !== 'oauth' || credentials.apiKey ||
+      profile.connectionId !== connectionId || profile.accountId !== accountId || credentials.authType !== 'oauth' || credentials.apiKey ||
       !accessToken || !accountId || !routeProof || !directAccountData(providerSpecificData)) throw unavailable();
   let validated = false;
   let prepared = false;

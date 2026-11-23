@@ -27,6 +27,9 @@ for(const file of [...files,'tests/fixtures/budget/module-scope.json']){
  args.push('--ro-bind',source,file.endsWith('module-scope.json')?'/app/package.json':`/app/${file}`);
 }
 args.push('--ro-bind',fs.realpathSync(process.execPath),'/runtime/node','--proc','/proc','--dev','/dev','--tmpfs','/tmp','--tmpfs','/sandbox');
+const registry = path.join(repo, 'docker/internal-profile-registry.js');
+if (fs.realpathSync(registry) !== registry || !fs.statSync(registry).isFile()) throw new Error('Unsafe Docker registry input');
+args.push('--ro-bind', registry, '/app/src/lib/accounting/profile-registry.js', '--tmpfs', '/run/9router');
 for(const name of ['home','data','config','cache','tmp'])args.push('--dir',`/sandbox/${name}`);
 args.push('--chdir','/app','--remount-ro','/','--','/runtime/node','--unhandled-rejections=strict','--test-concurrency=1','--test','/app/tests/unit/budget-startup-barrier.test.mjs','/app/tests/unit/budget-provisioning.test.mjs','/app/tests/unit/budget-internal-binding.test.mjs');
 const env={PATH:'/runtime:/usr/bin:/bin',HOME:'/sandbox/home',DATA_DIR:'/sandbox/data',XDG_DATA_HOME:'/sandbox/data',XDG_CONFIG_HOME:'/sandbox/config',

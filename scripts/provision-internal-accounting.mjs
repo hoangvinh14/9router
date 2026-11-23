@@ -81,8 +81,8 @@ try {
     const adapter = await (checking ? driver.getMarkedAccountingAdapterForOfflineCheck() : driver.getAccountingAdapter());
     try {
       if (checking) {
-        const { verifyInternalAnthropicBinding } = await import('../src/lib/accounting/internal-binding.js');
-        verifyInternalAnthropicBinding(adapter, binding);
+        const { resolveInternalBudgetBinding } = await import('../src/lib/accounting/internal-binding.js');
+        resolveInternalBudgetBinding(adapter, binding);
       } else {
         const { provisionEmptyNodeAccountingSchema } = await import('../src/lib/accounting/node-existing-audit.js');
         provisionEmptyNodeAccountingSchema(adapter, { existingSqlite: enabling });

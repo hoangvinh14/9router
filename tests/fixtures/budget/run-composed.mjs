@@ -16,7 +16,7 @@ const files = [
   'src/lib/db/helpers/jsonCol.js', 'src/lib/db/repos/settingsRepo.js', 'src/lib/db/schema.js',
   'src/lib/db/repos/connectionsRepo.js', 'src/lib/db/repos/proxyPoolsRepo.js', 'src/lib/network/connectionProxy.js',
   'src/lib/db/adapters/nodeSqliteAdapter.js', 'src/lib/db/adapters/nodeClosure.js',
-  'src/lib/accounting/installed-service.js', 'src/lib/accounting/request-boundary.js', 'src/lib/accounting/mutation-barrier.js',
+  'src/lib/accounting/internal-binding.js', 'src/lib/accounting/installed-service.js', 'src/lib/accounting/request-boundary.js', 'src/lib/accounting/mutation-barrier.js',
   'src/lib/accounting/node-routing-snapshot.js', 'src/lib/accounting/node-outer-transaction.js', 'src/lib/accounting/sql-operation-scope.js',
   'src/lib/accounting/node-attempt-ledger.js', 'src/lib/accounting/node-key-policy.js', 'src/lib/accounting/node-anthropic-account.js',
   'src/lib/accounting/anthropic-reference-price.js', 'src/lib/accounting/responses-usage.js', 'src/lib/accounting/anthropic-dispatch-context.js', 'src/lib/accounting/anthropic-usage.js',
@@ -59,6 +59,9 @@ for (const file of files) {
   if (fs.realpathSync(source) !== source || !fs.statSync(source).isFile()) throw new Error(`Unsafe fixture input: ${file}`);
   args.push('--ro-bind', source, file.endsWith('/module-scope.json') ? '/app/package.json' : `/app/${file}`);
 }
+const registry = path.resolve(repo, 'docker/internal-profile-registry.js');
+if (fs.realpathSync(registry) !== registry || !fs.statSync(registry).isFile()) throw new Error('Unsafe Docker registry input');
+args.push('--ro-bind', registry, '/app/src/lib/accounting/profile-registry.js', '--tmpfs', '/run/9router');
 args.push('--proc', '/proc', '--dev', '/dev', '--tmpfs', '/tmp', '--ro-bind', fs.realpathSync(process.execPath), '/runtime/node',
   '--chdir', '/app', '--remount-ro', '/', '--', '/runtime/node', '--unhandled-rejections=strict');
 if (tls) args.push('/app/tests/fixtures/budget/composed-tls-bootstrap.mjs');

@@ -45,10 +45,9 @@ export function resolve(specifier, context, nextResolve) {
   if (parent === `${root}src/app/api/v1/responses/route.js`) {
     if (specifier === '@/sse/handlers/chat.js') return nextResolve(chat, context);
     if (specifier === 'open-sse/translator/index.js') return nextResolve('data:text/javascript,export const initTranslators=()=>{};', context);
-    if (specifier === '@/lib/accounting/profile-registry.js') return nextResolve(stub, context);
     if (specifier.startsWith('@/lib/accounting/')) return nextResolve(root + specifier.replace('@/', 'src/'), context);
   }
-  if (['installed-service.js', 'request-boundary.js'].some(name => parent === `${root}src/lib/accounting/${name}`) &&
+  if (['installed-service.js', 'request-boundary.js', 'profile-registry.js'].some(name => parent === `${root}src/lib/accounting/${name}`) &&
       specifier === '../db/driver.js') return nextResolve(stub, context);
   if (parent === chat && realAppImports.has(specifier)) {
     return nextResolve(root + realAppImports.get(specifier), context);
