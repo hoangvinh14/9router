@@ -273,7 +273,7 @@ async function fixture(run, { weekly = null, monthly = null, reply, interrupted 
     }
     await run({ chat, state, rows, reopen, path,
       rebind: presentedSecret => { owner = openOwner(presentedSecret); },
-      waiveUsage: (attemptId, command) => owner.ledger.waiveUnresolvedUsage('fixture-key', attemptId, command, clock),
+      resolveUsage: (attemptId, command) => owner.ledger.resolveUnresolvedUsage('fixture-key', attemptId, { action: 'waive', ...command }, clock),
       inspectPolicy: () => owner.policy.inspect('fixture-key'),
       setMonthly: (version, monthly) => owner.policy.save('fixture-key', version, { weekly: null, monthly }),
       totals: (instant = clock()) => owner.ledger.totals('fixture-key', instant),
@@ -1013,7 +1013,7 @@ if (stage === undefined) {
 
   test('Codex terminal without usage blocks another POST below the spend limit', () => {
     const terminal = 'data: {"type":"response.failed","response":{"id":"fixture","status":"failed","usage":null}}\n\n';
-    return codexFixture(async ({ request, rows, state, reopen, waiveUsage }) => {
+    return codexFixture(async ({ request, rows, state, reopen, resolveUsage }) => {
       const response = await postResponses(request());
       assert.equal(response.status, 200);
       assert.equal(await response.text(), terminal);
@@ -1028,17 +1028,43 @@ if (stage === undefined) {
       const { attemptId } = rows().attempts[0];
       const command = { operationId: 'fixture-recovery', expectedVersion: 1, reason: 'Missing terminal usage',
         evidence: 'Fixture upstream error' };
-      assert.throws(() => waiveUsage(attemptId, { ...command, expectedVersion: 2 }), { status: 409 });
-      const receipt = waiveUsage(attemptId, command);
+      assert.throws(() => resolveUsage(attemptId, { ...command, expectedVersion: 2 }), { status: 409 });
+      const receipt = resolveUsage(attemptId, command);
       await reopen();
-      assert.deepEqual(waiveUsage(attemptId, command), receipt);
-      assert.throws(() => waiveUsage(attemptId, { ...command, reason: 'Changed' }), { status: 409 });
+      assert.deepEqual(resolveUsage(attemptId, command), receipt);
+      assert.throws(() => resolveUsage(attemptId, { ...command, reason: 'Changed' }), { status: 409 });
       const resumed = await postResponses(request());
       assert.equal(resumed.status, 200);
       assert.equal(await resumed.text(), terminal);
       assert.equal(state.wire.length, 2);
     }, { reply: () => new Response(terminal, { headers: { 'content-type': 'text/event-stream' } }) });
   });
+
+  for (const operation of [
+    { action: 'exact_usage', counts: { input: 60, cached: 40 } },
+    { action: 'cost_correction', additionalNanoUsd: '124000' },
+  ]) {
+    test(`Codex ${operation.action} preserves known spend and applies the adjustment once`, () => {
+      const terminal = 'data: {"type":"response.failed","response":{"id":"fixture","status":"failed","usage":{"output_tokens":25}}}\n\n';
+      return codexFixture(async ({ request, totals, rows, state, reopen, resolveUsage }) => {
+        assert.equal(await (await postResponses(request())).text(), terminal);
+        assert.equal(totals().monthly, '250000');
+        const { attemptId } = rows().attempts[0];
+        const command = { operationId: 'fixture-adjustment', expectedVersion: 1,
+          reason: 'Verified remaining usage', evidence: 'Fixture evidence', ...operation };
+        if (operation.action === 'exact_usage') {
+          assert.throws(() => resolveUsage(attemptId, { ...command, counts: { ...command.counts, output: 0 } }), { status: 409 });
+        }
+        const receipt = resolveUsage(attemptId, command);
+        await reopen();
+        assert.deepEqual(resolveUsage(attemptId, command), receipt);
+        assert.equal(totals().monthly, codexFixtureLimit);
+        assert.equal(rows().terminals[0].amount, '250000');
+        assert.equal((await postResponses(request())).status, 503);
+        assert.equal(state.wire.length, 1);
+      }, { reply: () => new Response(terminal, { headers: { 'content-type': 'text/event-stream' } }) });
+    });
+  }
 
   test('native Codex core settles once and reopened SQLite blocks another upstream POST', async () => {
     globalThis.__budgetCore = { helpers: 0 };

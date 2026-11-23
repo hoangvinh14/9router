@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import PropTypes from "prop-types";
-import { loadAccountingStatus, loadBudget, saveBudget, waiveBudgetUsage } from "./accountingStatusClient";
+import { loadAccountingStatus, loadBudget, saveBudget, resolveBudgetUsage } from "./accountingStatusClient";
 
 function useSnapshot(keyId, load) {
   const [state, setState] = useState({ loading: true, value: null, error: null });
@@ -114,7 +114,8 @@ function BudgetEditor({ keyId, budget, refresh }) {
 }
 BudgetEditor.propTypes = { keyId: PropTypes.string.isRequired, budget: PropTypes.object.isRequired, refresh: PropTypes.func.isRequired };
 
-function UsageWaiver({ keyId, attempt, version, refresh }) {
+function UsageResolution({ keyId, attempt, version, refresh }) {
+  const [action, setAction] = useState("waive");
   const [operation, setOperation] = useState(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -122,12 +123,15 @@ function UsageWaiver({ keyId, attempt, version, refresh }) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const next = operation ?? { operationId: Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, "0")).join(""), expectedVersion: version,
-      reason: form.get("reason"), evidence: form.get("evidence") };
+      reason: form.get("reason"), evidence: form.get("evidence"), action,
+      ...(action === "exact_usage" ? { counts: Object.fromEntries(attempt.unknown.map(category => [category, Number(form.get(category))])) } : {}),
+      ...(action === "cost_correction" ? { additionalNanoUsd: form.get("additionalNanoUsd") } : {}),
+    };
     setOperation(next);
     setPending(true);
     setError("");
     try {
-      await waiveBudgetUsage(keyId, attempt.attemptId, next);
+      await resolveBudgetUsage(keyId, attempt.attemptId, next);
       refresh();
     } catch (failure) {
       setError(failure.message);
@@ -136,19 +140,32 @@ function UsageWaiver({ keyId, attempt, version, refresh }) {
     }
   }
   return <details className="my-2">
-    <summary>Waive missing usage from {resetFormat.format(new Date(attempt.startedAt))}</summary>
+    <summary>Resolve missing usage from {resetFormat.format(new Date(attempt.startedAt))}</summary>
     <form onSubmit={submit} className="mt-2 space-y-2">
-      <p>Recorded cost of {attempt.knownCost} nano-USD stays charged. Waive only the unknown usage.</p>
+      <p>Recorded cost of {attempt.knownCost} nano-USD stays charged. Resolve only the unknown usage.</p>
       <label className="block">Reason <input className="border border-border" name="reason" maxLength={512} required readOnly={Boolean(operation)} /></label>
       <label className="block">Evidence reference <input className="border border-border" name="evidence" maxLength={1000} required readOnly={Boolean(operation)} /></label>
+      <label className="block">Resolution <select value={action} onChange={event => setAction(event.target.value)} disabled={Boolean(operation)}>
+        <option value="waive">Waive missing usage</option>
+        <option value="exact_usage" disabled={!attempt.unknown.length}>Enter exact token counts</option>
+        <option value="cost_correction">Add a charge</option>
+      </select></label>
+      {action === "exact_usage" && attempt.unknown.map(category => (
+        <label key={category} className="block">{category === "cached" ? "Cached input" : category} tokens
+          <input className="border border-border" name={category} type="number" min="0" max="9007199254740991" step="1" required readOnly={Boolean(operation)} />
+        </label>
+      ))}
+      {action === "cost_correction" && <label className="block">Additional charge (nano-USD)
+        <input className="border border-border" name="additionalNanoUsd" inputMode="numeric" pattern="0|[1-9][0-9]{0,15}" required readOnly={Boolean(operation)} />
+      </label>}
       {error && <p role="alert">{error}</p>}
       <button className="text-primary underline" disabled={pending} type="submit">
-        {pending ? "Saving waiver..." : operation ? "Retry waiver" : "Confirm waiver"}
+        {pending ? "Saving resolution..." : operation ? "Retry resolution" : "Confirm resolution"}
       </button>
     </form>
   </details>;
 }
-UsageWaiver.propTypes = {
+UsageResolution.propTypes = {
   keyId: PropTypes.string.isRequired, attempt: PropTypes.object.isRequired, version: PropTypes.number.isRequired,
   refresh: PropTypes.func.isRequired,
 };
@@ -184,7 +201,7 @@ function BudgetSnapshot({ keyId }) {
         </>}
       </div>
       {budget?.lifecycle === "active" && budget.unresolvedAttempts?.map(attempt => (
-        <UsageWaiver key={attempt.attemptId} keyId={keyId} attempt={attempt} version={budget.version} refresh={refresh} />
+        <UsageResolution key={attempt.attemptId} keyId={keyId} attempt={attempt} version={budget.version} refresh={refresh} />
       ))}
       {(budget?.canCreate || budget?.lifecycle === "active") && <BudgetEditor key={budget.version} keyId={keyId} budget={budget} refresh={refresh} />}
       <button type="button" className="mt-2 text-primary underline disabled:opacity-50" disabled={state.loading} onClick={refresh}>

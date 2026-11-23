@@ -1,4 +1,4 @@
-import { BUDGET_REFERENCE_SCOPE, CODEX_STANDARD_REFERENCE, CODEX_BUDGET_PRICE } from '../pricing/constants.js';
+import { BUDGET_REFERENCE_SCOPE, CODEX_STANDARD_REFERENCE, CODEX_BUDGET_PRICE, MAX_NANO_USD } from '../pricing/constants.js';
 import { canonical, conflict, snapshotPayload, text, timestamp, unavailable } from './attempt-payload.js';
 import { budgetInstant, budgetWindows } from './budget-windows.js';
 import { nanoUsd, validateCodexStandardReference, validatePriceSnapshot } from './exact-money.js';
@@ -27,6 +27,7 @@ const DEFINITIONS = Object.freeze({
 const RECOVERY_READS = Object.freeze({
   recovery: { method: 'get', sql: "SELECT value FROM kv WHERE scope = 'budgetUsageRecovery' AND key = ?" },
 });
+const RECOVERY_ACTIONS = new Set(['waive', 'exact_usage', 'cost_correction']);
 const RECOVERY_WRITE = { method: 'run', sql: "INSERT INTO kv(scope, key, value) VALUES ('budgetUsageRecovery', ?, ?)" };
 
 const CODEX_PRICE_READS = Object.freeze({
@@ -216,8 +217,9 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
     try {
       const record = JSON.parse(row.value);
       if (record.keyId !== keyId || record.attemptId !== attemptId ||
-          record.actor !== 'dashboard-admin' || record.action !== 'waive' ||
+          record.actor !== 'dashboard-admin' || !RECOVERY_ACTIONS.has(record.action) ||
           scope.recovery([`operation:${identifier(record.operationId)}`])?.value !== row.value) throw unavailable();
+      if (record.action !== 'waive') nanoUsd(record.adjustmentNanoUsd);
       return record;
     } catch { corrupt(); }
   }
@@ -235,15 +237,17 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
           if (observation && (row.week_start === windows.weekly.startAt || row.month_start === windows.monthly.startAt)) observation.unrecorded++;
           continue;
         }
-        if (value.blocksDispatch && !readRecovery(scope, keyId, row.id)) {
+        const recovery = value.blocksDispatch ? readRecovery(scope, keyId, row.id) : null;
+        if (value.blocksDispatch && !recovery) {
           blocksDispatch = true;
           if (observation?.unresolved.length < 20) {
-            observation.unresolved.push({ attemptId: row.id, startedAt: row.started_at, knownCost: row.amount });
+            observation.unresolved.push({ attemptId: row.id, startedAt: row.started_at, knownCost: row.amount, unknown: value.unknown });
           }
         }
         if (row.amount === null) continue;
-        if (row.week_start === windows.weekly.startAt) weekly += BigInt(row.amount);
-        if (row.month_start === windows.monthly.startAt) monthly += BigInt(row.amount);
+        const amount = BigInt(row.amount) + BigInt(recovery?.adjustmentNanoUsd ?? '0');
+        if (row.week_start === windows.weekly.startAt) weekly += amount;
+        if (row.month_start === windows.monthly.startAt) monthly += amount;
         if ((row.week_start === windows.weekly.startAt || row.month_start === windows.monthly.startAt) &&
             value.provenance === 'unknown/defaulted') unknown++;
       }
@@ -253,17 +257,21 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
   };
 
   return Object.freeze({
-    waiveUnresolvedUsage(keyId, attemptId, command, clock) {
+    resolveUnresolvedUsage(keyId, attemptId, command, clock) {
       assertAccountingHealthy();
       identifier(keyId);
       identifier(attemptId);
-      const { operationId, expectedVersion, reason, evidence } = command;
+      const { operationId, expectedVersion, reason, evidence, action, counts, additionalNanoUsd } = command;
       identifier(operationId);
       if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) throw conflict();
       text(reason, 'reason');
       text(evidence, 'evidence', 1000);
+      if (!RECOVERY_ACTIONS.has(action)) throw conflict();
       const requested = { keyId, attemptId, operationId, expectedVersion, reason, evidence,
-        actor: 'dashboard-admin', action: 'waive' };
+        actor: 'dashboard-admin', action,
+        ...(action === 'exact_usage' ? { counts: snapshotPayload(counts) } : {}),
+        ...(action === 'cost_correction' ? { additionalNanoUsd: nanoUsd(additionalNanoUsd) } : {}),
+      };
       const { value } = createNodeOuterTransaction(adapter, {
         ...runtimeDefinitions, ...KEY_POLICY_AUDIT_DEFINITIONS, ...KEY_POLICY_EVENT_BY_KEY,
         ...RECOVERY_READS, storeRecovery: RECOVERY_WRITE,
@@ -271,8 +279,9 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         checkedSchema(scope);
         const existing = scope.recovery([`operation:${operationId}`]);
         if (existing) {
-          const { resolvedAt } = JSON.parse(existing.value);
-          if (boundedCanonical({ ...requested, resolvedAt }) !== existing.value) return null;
+          const { resolvedAt, adjustmentNanoUsd } = JSON.parse(existing.value);
+          const replay = { ...requested, resolvedAt, ...(action === 'waive' ? {} : { adjustmentNanoUsd }) };
+          if (boundedCanonical(replay) !== existing.value) return null;
           if (!readRecovery(scope, keyId, attemptId)) corrupt();
           return { operationId, resolvedAt };
         }
@@ -288,7 +297,22 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         validateAttemptGeneration);
         if (!value?.blocksDispatch) return null;
         const resolvedAt = budgetInstant(clock);
-        const record = boundedCanonical({ ...requested, resolvedAt });
+        let adjustmentNanoUsd = additionalNanoUsd;
+        if (action === 'exact_usage') {
+          if (!counts || Object.keys(counts).sort().join(',') !== [...value.unknown].sort().join(',')) return null;
+          const components = value.known.concat(value.unknown.map(category => ({
+            category, count: counts[category], unit: original.price.unit,
+          })));
+          try {
+            const corrected = terminalCost({ semantics: EXCLUSIVE_USAGE, components }, original.price);
+            if (corrected.unknown.length) return null;
+            adjustmentNanoUsd = nanoUsd(String(BigInt(corrected.amountNanoUsd) - BigInt(terminal.amount)));
+          } catch { return null; }
+        }
+        if (action !== 'waive' && BigInt(terminal.amount) + BigInt(adjustmentNanoUsd) > MAX_NANO_USD) return null;
+        const record = boundedCanonical({ ...requested, resolvedAt,
+          ...(action === 'waive' ? {} : { adjustmentNanoUsd }),
+        });
         scope.storeRecovery([`attempt:${attemptId}`, record]);
         scope.storeRecovery([`operation:${operationId}`, record]);
         return { operationId, resolvedAt };

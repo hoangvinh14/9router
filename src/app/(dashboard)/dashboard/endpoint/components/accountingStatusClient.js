@@ -59,7 +59,9 @@ function budgetView(body, keyId) {
     ? usage.unresolvedAttempts.slice(0, 20)
       .filter(item => validId(item?.attemptId) && typeof item.startedAt === "string" &&
         Number.isFinite(Date.parse(item.startedAt)) && item.knownCost !== null && amount(item.knownCost))
-      .map(({ attemptId, startedAt, knownCost }) => ({ attemptId, startedAt, knownCost }))
+      .map(({ attemptId, startedAt, knownCost, unknown }) => ({ attemptId, startedAt, knownCost,
+        unknown: ["input", "cached", "output"].filter(category => Array.isArray(unknown) && unknown.includes(category)),
+      }))
     : [];
   return { available: true, version: policy.version, lifecycle: policy.lifecycle, periods, unresolvedAttempts,
     ...(referencePrice ? { referencePrice } : {}),
@@ -113,12 +115,13 @@ export async function saveBudget(keyId, version, limits, signal) {
       policy.limits?.weekly !== limits.weekly || policy.limits?.monthly !== limits.monthly) throw new Error(failure);
 }
 
-export async function waiveBudgetUsage(keyId, attemptId, operation) {
+export async function resolveBudgetUsage(keyId, attemptId, operation) {
   const response = await fetch(`/api/keys/${encodeURIComponent(keyId)}/budget/attempts/${encodeURIComponent(attemptId)}/resolve`, {
     method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ ...operation, action: "waive" }),
+    body: JSON.stringify(operation),
   });
   if (response.status === 409) throw new Error("The attempt or policy changed. Refresh the budget.");
-  if (!response.ok) throw new Error("Waiver could not be confirmed. Refresh the budget or retry.");
+  const receipt = response.ok ? await response.json().catch(() => null) : null;
+  if (receipt?.operationId !== operation.operationId) throw new Error("Resolution could not be confirmed. Refresh the budget or retry.");
 }
