@@ -16,7 +16,7 @@ OpenAI công bố Codex GPT-6.2 Sol Standard giá 2 USD input, 0,10 USD cached i
 
 Ca HTTPS loopback Codex Standard đã kiểm chứng terminal lỗi thiếu usage. 9Router ghi nhận các hạng mục chưa xác định, giữ nguyên số đã xác định, chuyển nguyên terminal lỗi và chặn lượt kế của cùng key ngay cả dưới hạn mức. Mở lại SQLite vẫn chặn với 0 POST bổ sung. Dashboard báo key đang bị chặn vì thiếu usage. Số tiền của các hạng mục đã xác định được lưu theo schema hiện có, còn phần thiếu được đánh dấu trong evidence. Dashboard có thể miễn phần chưa xác định hoặc ghi thêm khoản chi phí cho từng attempt. 9Router đọc bộ đếm token từ upstream. Khoản bổ sung được ghi riêng và tính vào kỳ gốc. Thao tác yêu cầu phiên quản trị, cùng origin, phiên bản policy hiện hành, lý do và tham chiếu bằng chứng. SQLite ghi biên nhận cùng mã thao tác trong một transaction, giữ nguyên khoản đã biết và terminal gốc. Gửi lại đúng thao tác trả biên nhận cũ.
 
-Registry Docker có binding Codex Standard theo client key, connection ID và account ID. Hồ sơ khác hoặc thiếu giá đồng bộ bị từ chối. Kiểm thử dùng chính mã registry được Docker đóng gói, cùng handler, SQLite và HTTPS loopback. Đạt 33/33 ca startup và 32/32 ca HTTPS, gồm restart và 0 POST tại hạn mức. Còn cần xác minh cấu hình Standard của instance đích trước rollout. Claude OAuth vẫn cần kiểm chứng bảng giá tham chiếu áp dụng và nghiệm thu native Opus streaming/Sonnet JSON. Ca offline không dùng credential hay dữ liệu của hai container hiện chạy.
+Registry Docker có binding Codex Standard theo client key, connection ID và account ID. Hồ sơ khác hoặc thiếu giá đồng bộ bị từ chối. Kiểm thử dùng chính mã registry được Docker đóng gói, cùng handler, SQLite và HTTPS loopback. Đạt 33/33 ca startup và 32/32 ca HTTPS, gồm restart và 0 POST tại hạn mức. Còn cần xác minh cấu hình Standard của instance đích trước rollout. Claude OAuth vẫn cần nối đồng bộ giá và nghiệm thu native Opus streaming/Sonnet JSON. Ca offline không dùng credential hay dữ liệu của hai container hiện chạy.
 
 ### Nghiệm thu Codex Standard trên Docker nội bộ
 
@@ -25,6 +25,17 @@ Image Linux/amd64 `9router-budget-internal:66542a51` (`sha256:d1b0664e60848baaa4
 - Phiên quản trị lưu hạn mức tháng 374.000 nanoUSD và đọc số đã dùng bằng 0. Thiếu phiên trả 401, sai origin trả 403, ghi với phiên bản cũ trả 409.
 - `POST /v1/responses` trả SSE `response.completed`, gửi đúng một HTTPS POST tới upstream loopback và ghi đúng một khoản 374.000 nanoUSD từ 100 input tokens, gồm 40 cached tokens, và 25 output tokens. Request tiếp theo trả 503 với thêm 0 POST và 0 khoản. `/v1/chat/completions` cũng từ chối trước upstream cho key này.
 - Sau khi khởi động lại tiến trình trên cùng SQLite, GET trả 374.000 đã dùng, 0 còn lại và request tiếp theo vẫn trả 503, thêm 0 POST. Cả hai tiến trình thoát 0 khi nhận SIGTERM.
+
+### Đơn giá tham chiếu Claude OAuth
+
+Anthropic xác nhận Claude subscription usage credits tính theo đơn giá API chuẩn. Dùng biểu giá first-party làm giá tham chiếu USD từ token upstream, tách khỏi số tiền trừ theo gói subscription. Bảng giá công bố các hạng mục sau, theo USD trên một triệu token. [Usage credits](https://support.claude.com/en/articles/12429409-extra-usage-for-paid-claude-plans) · [Bảng giá Anthropic](https://platform.claude.com/docs/en/about-claude/pricing.md).
+
+| Model | Input | Cache đọc | Cache ghi 5 phút | Cache ghi 1 giờ | Output |
+|---|---:|---:|---:|---:|---:|
+| `claude-opus-5-5` | 4 | 0,20 | 5 | 8 | 20 |
+| `claude-sonnet-5` | 2 | 0,20 | 2,50 | 4 | 10 |
+
+Opus 5.5 fast mode có giá input/output riêng là 8/40 USD, và Claude Code có thể giữ lựa chọn fast qua các phiên. Hai log do owner cung cấp xác định model và dạng phản hồi, còn tốc độ thực tế cần xác minh trên request hiệu lực. Nghiệm thu luồng giá chuẩn phải kiểm tra điều này trước POST và trước khi ghi giá vào attempt, kể cả khi qua combo. Bảng giá đã xác định được nguồn để nối vào lịch đồng bộ hiện có. Binding OAuth và kiểm thử Docker cho hai model vẫn mở. [Fast mode](https://code.claude.com/docs/en/fast-mode.md).
 
 ### Luồng đã xác nhận trên hai instance
 
