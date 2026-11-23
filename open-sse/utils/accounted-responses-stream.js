@@ -8,6 +8,9 @@ const terminalStatuses = new Map([
   ["response.incomplete", "incomplete"],
 ]);
 
+// The Codex client reads usage on these terminal incomplete responses.
+const meteredIncompleteReasons = new Set(["max_output_tokens", "interrupted"]);
+
 export function createAccountedResponsesStream(settle, onTerminal, priceCacheWrites = false) {
   const decoder = new TextDecoder("utf-8", { fatal: true });
   let buffer = "";
@@ -62,7 +65,11 @@ export function createAccountedResponsesStream(settle, onTerminal, priceCacheWri
           if (status && (!id || event.response.status !== status)) {
             throw new Error("Invalid Responses SSE terminal");
           }
-          terminal = { output, success: status === "completed", usage: event.response?.usage };
+          const usage = event.response?.usage;
+          const meterIncomplete = status === "incomplete" &&
+            meteredIncompleteReasons.has(event.response.incomplete_details?.reason) &&
+            usage != null;
+          terminal = { output, meter: status === "completed" || meterIncomplete, usage };
         } else {
           if (event.type === "response.done") throw new Error("Unsupported Responses SSE terminal");
           controller.enqueue(encoder.encode(output));
@@ -78,7 +85,10 @@ export function createAccountedResponsesStream(settle, onTerminal, priceCacheWri
         if (trailing && (terminal.done || !"data: [DONE]\n\n".startsWith(trailing))) {
           throw new Error("Partial frame after Responses terminal");
         }
-        if (terminal.success) await settle(responsesTokenUsage(terminal.usage, priceCacheWrites));
+        if (terminal.meter) {
+          const evidence = responsesTokenUsage(terminal.usage, priceCacheWrites);
+          await settle(evidence);
+        }
         onTerminal();
         controller.enqueue(encoder.encode(terminal.output + (terminal.done || "")));
         controller.terminate();

@@ -954,6 +954,29 @@ if (stage === undefined) {
     });
   });
 
+  test('Codex records reported incomplete usage and blocks the next Responses request', () => {
+    const terminal = {
+      type: 'response.incomplete',
+      response: {
+        id: 'fixture-response', status: 'incomplete', incomplete_details: { reason: 'max_output_tokens' },
+        usage: {
+          input_tokens: 100, input_tokens_details: { cached_tokens: 40, cache_write_tokens: 60 },
+          output_tokens: 25, total_tokens: 125,
+        },
+      },
+    };
+    const bytes = `data: ${JSON.stringify(terminal)}\n\n`;
+    return codexFixture(async ({ request, rows, state }) => {
+      const response = await postResponses(request());
+      assert.equal(response.status, 200);
+      assert.equal(await response.text(), bytes);
+      assert.equal(rows().terminals[0].amount, codexFixtureLimit);
+      assert.equal((await postResponses(request())).status, 503);
+      assert.equal(state.wire.length, 1);
+      assert.equal(rows().terminals.length, 1);
+    }, { reply: () => new Response(bytes, { headers: { 'content-type': 'text/event-stream' } }) });
+  });
+
   test('native Codex core settles once and reopened SQLite blocks another upstream POST', async () => {
     globalThis.__budgetCore = { helpers: 0 };
     const dir = fs.mkdtempSync('/tmp/codex-accounting-');

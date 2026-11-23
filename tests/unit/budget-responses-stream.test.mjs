@@ -92,3 +92,23 @@ test('Responses preserves a native failure and refuses invalid or interrupted te
   }
   await assert.rejects(new Response(pipe([completed], () => Promise.reject(new Error('failed ACK')))).text(), /failed ACK/);
 });
+
+
+test('Codex preserves an incomplete terminal and awaits the acknowledgement for its reported usage', async () => {
+  const incomplete = (reason, usage) => frame('response.incomplete', {
+    response: { id: 'fixture-response', status: 'incomplete', incomplete_details: { reason }, usage },
+  });
+  for (const reason of ['max_output_tokens', 'interrupted']) {
+    const terminal = incomplete(reason, { output_tokens: 25 });
+    const output = await new Response(pipe([created, terminal], evidence => {
+      assert.deepEqual(evidence.components.map(({ category, count }) => [category, count]), [['output', 25]]);
+    })).text();
+    assert.equal(output, created + terminal);
+    await assert.rejects(new Response(pipe([terminal], () => {
+      throw new Error('failed ACK');
+    })).text(), /failed ACK/);
+  }
+  for (const terminal of [incomplete('max_output_tokens', null), incomplete('content_filter', { output_tokens: 25 })]) {
+    assert.equal(await new Response(pipe([terminal], () => assert.fail('unexpected settlement'))).text(), terminal);
+  }
+});
