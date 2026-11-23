@@ -112,3 +112,20 @@ test('Codex preserves an incomplete terminal and awaits the acknowledgement for 
     assert.equal(await new Response(pipe([terminal], () => assert.fail('unexpected settlement'))).text(), terminal);
   }
 });
+
+test('Codex meters only usable nested response.failed usage and preserves the error frame', async () => {
+  const failure = usage => frame('response.failed', {
+    response: { id: 'fixture-response', status: 'failed', usage },
+  });
+  const metered = failure({ output_tokens: 25 });
+  let settled = 0;
+  assert.equal(await new Response(pipe([created, metered], evidence => {
+    settled++;
+    assert.deepEqual(evidence.components.map(({ category, count }) => [category, count]), [['output', 25]]);
+  })).text(), created + metered);
+  assert.equal(settled, 1);
+  const topLevelError = frame('error', { usage: { output_tokens: 25 }, message: 'fixture failure' });
+  for (const terminal of [failure(null), failure({ output_tokens: -1 }), topLevelError]) {
+    assert.equal(await new Response(pipe([terminal], () => assert.fail('unexpected settlement'))).text(), terminal);
+  }
+});

@@ -65,11 +65,13 @@ export function createAccountedResponsesStream(settle, onTerminal, priceCacheWri
           if (status && (!id || event.response.status !== status)) {
             throw new Error("Invalid Responses SSE terminal");
           }
-          const usage = event.response?.usage;
-          const meterIncomplete = status === "incomplete" &&
-            meteredIncompleteReasons.has(event.response.incomplete_details?.reason) &&
-            usage != null;
-          terminal = { output, meter: status === "completed" || meterIncomplete, usage };
+          let evidence;
+          if (status === "completed" || status === "failed" ||
+              (status === "incomplete" && meteredIncompleteReasons.has(event.response.incomplete_details?.reason))) {
+            const usage = responsesTokenUsage(event.response.usage, priceCacheWrites);
+            if (status === "completed" || usage.components.length > 0) evidence = usage;
+          }
+          terminal = { output, evidence };
         } else {
           if (event.type === "response.done") throw new Error("Unsupported Responses SSE terminal");
           controller.enqueue(encoder.encode(output));
@@ -85,10 +87,7 @@ export function createAccountedResponsesStream(settle, onTerminal, priceCacheWri
         if (trailing && (terminal.done || !"data: [DONE]\n\n".startsWith(trailing))) {
           throw new Error("Partial frame after Responses terminal");
         }
-        if (terminal.meter) {
-          const evidence = responsesTokenUsage(terminal.usage, priceCacheWrites);
-          await settle(evidence);
-        }
+        if (terminal.evidence) await settle(terminal.evidence);
         onTerminal();
         controller.enqueue(encoder.encode(terminal.output + (terminal.done || "")));
         controller.terminate();
