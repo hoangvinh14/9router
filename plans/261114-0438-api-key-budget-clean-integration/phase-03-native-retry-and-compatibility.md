@@ -14,7 +14,9 @@ OpenAI công bố Codex GPT-6.2 Sol Standard giá 2 USD input, 0,10 USD cached i
 
 9Router dùng lịch đồng bộ danh mục sẵn có để tải bảng giá Codex. Lần tải lỗi hoặc nội dung không hợp lệ giữ nguyên giá gần nhất. Ledger đọc snapshot riêng trong SQLite, kiểm tra lại trước POST và giữ đơn giá, nguồn, thời điểm đồng bộ trong attempt. Token ghi cache nằm trong input thường theo giá tham chiếu Standard. Giá chỉnh qua dashboard nằm ở scope riêng. Kiểm thử loopback dùng profile fixture và xác nhận 374.000 nanoUSD từ 100 input (40 cached) và 25 output, sau đó chặn lượt tiếp theo ở đúng hạn mức kể cả sau restart.
 
-Registry Docker vẫn cần kiểm chứng hồ sơ OAuth đã chọn, bao gồm Standard, binding và nhánh terminal lỗi thiếu usage. Claude OAuth vẫn cần kiểm chứng bảng giá tham chiếu áp dụng và nghiệm thu native Opus streaming/Sonnet JSON. Ca offline không dùng credential hay dữ liệu của hai container hiện chạy.
+Ca HTTPS loopback Codex Standard đã kiểm chứng terminal lỗi thiếu usage. 9Router ghi nhận các hạng mục chưa xác định, giữ nguyên số đã xác định, chuyển nguyên terminal lỗi và chặn lượt kế của cùng key ngay cả dưới hạn mức. Mở lại SQLite vẫn chặn với 0 POST bổ sung. Dashboard báo key đang bị chặn vì thiếu usage. Số tiền của các hạng mục đã xác định được lưu theo schema hiện có, còn phần thiếu được đánh dấu trong evidence. Luồng này chưa có thao tác khôi phục có audit.
+
+Registry Docker vẫn cần kiểm chứng hồ sơ OAuth đã chọn, bao gồm Standard và binding, cùng thao tác khôi phục có audit cho key bị chặn. Claude OAuth vẫn cần kiểm chứng bảng giá tham chiếu áp dụng và nghiệm thu native Opus streaming/Sonnet JSON. Ca offline không dùng credential hay dữ liệu của hai container hiện chạy.
 
 ### Luồng đã xác nhận trên hai instance
 
