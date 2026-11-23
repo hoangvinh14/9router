@@ -13,6 +13,9 @@ import { bindAccountingIdentity } from '../../src/lib/accounting/installed-servi
 import { createNodeAttemptLedger, initializeNodeAttemptLedger } from '../../src/lib/accounting/node-attempt-ledger.js';
 import { createNodeKeyPolicy, initializeNodeKeyPolicy } from '../../src/lib/accounting/node-key-policy.js';
 import { createAnthropicDispatchContext } from '../../src/lib/accounting/anthropic-dispatch-context.js';
+import { handleStreamingResponse } from '../../open-sse/handlers/chatCore/streamingHandler.js';
+import { FORMATS } from '../../open-sse/translator/formats.js';
+import { createStreamController } from '../../open-sse/utils/streamHandler.js';
 import { isAccountingResponse } from '../../open-sse/utils/accountingResponse.js';
 
 const restartCases = {
@@ -792,3 +795,32 @@ for (const mode of stage ? [] : ['complete-error', 'interrupted-error']) {
     : new Response(new ReadableStream({ start(controller) { controller.error(new Error('fixture interrupted')); } }), { status: 401 }),
   }));
 }
+
+
+test('accounted Responses handler admits only native streaming and keeps its failure terminal', async () => {
+  const terminal = {
+    type: 'response.completed',
+    response: { id: 'fixture-response', status: 'completed', usage: { output_tokens: 25 } },
+  };
+  const bytes = `data: ${JSON.stringify(terminal)}\n\n`;
+  let acknowledgements = 0;
+  const call = (sourceFormat, settleResponses) => handleStreamingResponse({
+    provider: 'codex', model: 'fixture-model', sourceFormat, targetFormat: FORMATS.OPENAI_RESPONSES,
+    providerResponse: new Response(bytes, { headers: { 'content-type': 'text/event-stream' } }),
+    streamController: createStreamController({ log: { errorLine() {} } }),
+    accountingAttempt: { settleResponses },
+  });
+
+  const complete = await call(FORMATS.OPENAI_RESPONSES, evidence => {
+    acknowledgements++;
+    assert.deepEqual(evidence.components.map(({ category, count }) => [category, count]), [['output', 25]]);
+  });
+  assert.equal(await complete.response.text(), bytes);
+  assert.equal(acknowledgements, 1);
+  const refused = await call(FORMATS.OPENAI, () => assert.fail('Unexpected settlement'));
+  assert.equal(refused.response.status, 502);
+  const failed = await call(FORMATS.OPENAI_RESPONSES, () => { throw new Error('Fixture settlement failure'); });
+  const output = await failed.response.text();
+  assert.match(output, /response.failed/);
+  assert.doesNotMatch(output, /event: response\.completed/);
+});

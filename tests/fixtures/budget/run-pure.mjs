@@ -22,9 +22,9 @@ const files = [
   'tests/unit/budget-node-lifecycle.test.mjs',
   'src/lib/accounting/node-connection-admission.js', 'tests/unit/budget-node-disposition.test.mjs',
   'src/lib/accounting/terminal-cost.js', 'src/lib/accounting/node-attempt-ledger.js', 'src/lib/accounting/node-key-policy.js', 'tests/unit/budget-ledger.test.mjs',
-  'open-sse/utils/accounted-anthropic-stream.js', 'open-sse/utils/streamHandler.js',
+  'open-sse/utils/accounted-anthropic-stream.js', 'open-sse/utils/accounted-responses-stream.js', 'open-sse/utils/streamHandler.js',
   'open-sse/utils/debugLog.js', 'open-sse/config/runtimeConfig.js', 'open-sse/config/errorConfig.js',
-  'tests/unit/budget-anthropic-stream.test.mjs',
+  'tests/unit/budget-anthropic-stream.test.mjs', 'tests/unit/budget-responses-stream.test.mjs',
   'src/lib/accounting/responses-usage.js', 'tests/unit/budget-responses-usage.test.mjs',
   'src/lib/accounting/anthropic-usage.js', 'tests/unit/budget-anthropic-usage.test.mjs',
 ];
@@ -50,7 +50,7 @@ args.push('--chdir', '/app', '--remount-ro', '/', '--',
   '/app/tests/unit/budget-outer-transaction.test.mjs', '/app/tests/unit/budget-node-lifecycle.test.mjs',
   '/app/tests/unit/budget-node-disposition.test.mjs', '/app/tests/unit/budget-ledger.test.mjs',
   '/app/tests/unit/budget-responses-usage.test.mjs',
-  '/app/tests/unit/budget-anthropic-usage.test.mjs', '/app/tests/unit/budget-anthropic-stream.test.mjs');
+  '/app/tests/unit/budget-anthropic-usage.test.mjs', '/app/tests/unit/budget-anthropic-stream.test.mjs', '/app/tests/unit/budget-responses-stream.test.mjs');
 const env = {
   PATH: '/runtime:/usr/bin:/bin', HOME: '/sandbox/home', DATA_DIR: '/sandbox/data',
   XDG_CONFIG_HOME: '/sandbox/config', XDG_DATA_HOME: '/sandbox/data', XDG_CACHE_HOME: '/sandbox/cache',
