@@ -695,7 +695,7 @@ const codexFixtureLimit = '440000';
 function codexFixture(run, options) {
   const model = 'gpt-6.2-sol';
   const profile = { provider: 'codex', auth: 'oauth', producerAdmitted: true, connectionId: 'fixture-codex',
-    model, price: { currency: 'USD', unit: 'USD/1M tokens', revision: 'fixture', rates: { input: '2', cached: '0.25', cache_creation: '3', output: '10' } } };
+    model, price: { currency: 'USD', unit: 'USD/1M tokens', revision: 'fixture', rates: { input: '2', cached: '0.25', cache_creation: '5', output: '10' } } };
   const reply = () => new Response('data: {"type":"response.completed","response":{"id":"fixture","status":"completed","usage":{"input_tokens":100,"input_tokens_details":{"cached_tokens":40,"cache_write_tokens":60},"output_tokens":25,"total_tokens":125}}}\n\n',
     { headers: { 'content-type': 'text/event-stream' } });
   const request = (overrides = {}) => new Request('https://fixture.invalid/v1/responses', {
@@ -703,6 +703,9 @@ function codexFixture(run, options) {
     body: JSON.stringify({ model: `codex/${model}`, input: 'fixture prompt', stream: true, ...overrides }),
   });
   function prepareDb(db) {
+    db.run("INSERT INTO kv VALUES ('pricing','openai',?)", [JSON.stringify({
+      [model]: { input: 2, cached: 0.25, cache_creation: 3, output: 10 },
+    })]);
     db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [JSON.stringify([`codex/${model}`]), 'fixture-key']);
     db.run(`INSERT INTO providerConnections (id, provider, authType, priority, isActive, data, createdAt, updatedAt)
       VALUES ('fixture-codex','codex','oauth',1,1,?,?,?)`, [
@@ -915,7 +918,7 @@ if (stage === undefined) {
 
 
   test('Responses HTTP handler binds the selected Codex account and persists spend', () => {
-    let rotateAfterIntent;
+    let changeAfterIntent;
     return codexFixture(async ({ state, rows, reopen, path, request }) => {
       assert.equal((await postResponses(request({ service_tier: 'priority' }))).status, 503);
       assert.equal(state.preparations, 0);
@@ -925,12 +928,28 @@ if (stage === undefined) {
       const updateToken = accessToken => peer.prepare("UPDATE providerConnections SET data = ? WHERE id = 'fixture-codex'")
         .run(JSON.stringify({ accessToken, providerSpecificData: { chatgptAccountId: 'fixture-account' } }));
       try {
-        rotateAfterIntent = () => updateToken('fixture-replacement');
+        changeAfterIntent = () => updateToken('fixture-replacement');
         assert.equal((await postResponses(request())).status, 503);
         assert.equal(state.wire.length, 0);
         assert.equal(rows().attempts.length, 1);
         assert.equal(rows().terminals.length, 0);
         updateToken('fixture-token');
+        const readPrices = peer.prepare("SELECT value FROM kv WHERE scope = 'pricing' AND key = 'openai'");
+        const writePrices = peer.prepare("UPDATE kv SET value = ? WHERE scope = 'pricing' AND key = 'openai'");
+        const savedPrices = readPrices.get().value;
+        const changed = JSON.parse(savedPrices);
+        changed['gpt-6.2-sol'].output = 12;
+        changeAfterIntent = () => writePrices.run(JSON.stringify(changed));
+        assert.equal((await postResponses(request())).status, 503);
+        assert.equal(state.wire.length, 0);
+        assert.equal(rows().attempts.length, 2);
+        assert.equal(rows().terminals.length, 0);
+
+        writePrices.run(JSON.stringify({ 'gpt-6.2-sol': { input: 2, output: 10 } }));
+        assert.equal((await postResponses(request())).status, 503);
+        assert.equal(state.preparations, 2);
+        assert.equal(rows().attempts.length, 2);
+        writePrices.run(savedPrices);
       } finally { peer.close(); }
 
       const first = await postResponses(request());
@@ -938,6 +957,7 @@ if (stage === undefined) {
       assert.match(await first.text(), /response.completed/);
       assert.equal(rows().terminals[0].amount, codexFixtureLimit);
       assert.equal(rows().attempts[0].keyId, 'fixture-key');
+      assert.equal(rows().attempts.at(-1).price.revision, 'openai-manual-v1');
       await reopen();
       assert.equal((await postResponses(request())).status, 503);
       assert.equal(state.wire.length, 1);
@@ -946,10 +966,10 @@ if (stage === undefined) {
       assert.equal(state.wire[0].headers.authorization, 'Bearer fixture-token');
     }, {
       onCheckpoint(point) {
-        if (point !== 'after-intent-commit' || !rotateAfterIntent) return;
-        const rotate = rotateAfterIntent;
-        rotateAfterIntent = null;
-        rotate();
+        if (point !== 'after-intent-commit' || !changeAfterIntent) return;
+        const change = changeAfterIntent;
+        changeAfterIntent = null;
+        change();
       },
     });
   });

@@ -23,6 +23,30 @@ const DEFINITIONS = Object.freeze({
   orphanTerminal: { method: 'get', sql: 'SELECT t.attempt_id FROM accounting_terminals_v1 t LEFT JOIN accounting_attempts_v1 a ON a.id = t.attempt_id WHERE a.id IS NULL LIMIT 1' },
   page: { method: 'all', sql: 'SELECT a.id, a.key_id, a.started_at, a.week_start, a.month_start, t.amount, t.evidence FROM accounting_attempts_v1 a LEFT JOIN accounting_terminals_v1 t ON t.attempt_id = a.id WHERE a.key_id = ? AND a.id > ? ORDER BY a.id LIMIT 3' },
 });
+const CODEX_PRICE_READS = Object.freeze({
+  codexManualPrice: Object.freeze({ method: 'get', sql: "SELECT value FROM kv WHERE scope = 'pricing' AND key = 'openai'" }),
+});
+const CODEX_RATES = ['input', 'cached', 'cache_creation', 'output'];
+
+function readCodexPrice(scope, model, referencePrice) {
+  const manual = scope.codexManualPrice();
+  try {
+    if (manual) {
+      const models = JSON.parse(manual.value);
+      if (!models || typeof models !== 'object' || Array.isArray(models)) return null;
+      if (Object.hasOwn(models, model)) {
+        const row = models[model];
+        if (!row || CODEX_RATES.some(field => !Object.hasOwn(row, field) ||
+            typeof row[field] !== 'number' || !Number.isFinite(row[field]))) return null;
+        const rates = Object.fromEntries(CODEX_RATES.map(field => [field, String(row[field])]));
+        if (Object.hasOwn(row, 'reasoning') && row.reasoning !== row.output) return null;
+        return validatePriceSnapshot({ currency: 'USD', unit: 'USD/1M tokens', revision: 'openai-manual-v1', rates });
+      }
+    }
+  } catch { return null; }
+  return scope.referenceCatalogPresent() === null ? referencePrice : null;
+}
+
 const identifier = value => {
   text(value, 'accounting identity', 128);
   if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value)) throw unavailable();
@@ -233,7 +257,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
       const priceOwner = requireAccount ? await import('./anthropic-reference-price.js') : null;
       const snapshot = captureNodeRoutingSnapshot(adapter, keyId);
       checkRouteTransaction ??= createNodeOuterTransaction(adapter, {
-        ...finalReads, ...ROUTING_READS, ...accountOwner?.PROVIDER_ACCOUNT_READS, ...priceOwner?.ANTHROPIC_PRICE_READS,
+        ...finalReads, ...ROUTING_READS, ...accountOwner?.PROVIDER_ACCOUNT_READS, ...priceOwner?.ANTHROPIC_PRICE_READS, ...(requireAccount ? CODEX_PRICE_READS : {}),
       });
       let selectedOnce = false;
       return Object.freeze({ access: snapshot.access, reads: snapshot.reads, async select(branch, { provider, model }) {
@@ -269,18 +293,21 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
       if (!requireAccount || route?.provider !== 'codex') throw unavailable();
       identifier(connectionId);
       if (typeof accountId !== 'string' || !accountId) throw unavailable();
-      const price = validatePriceSnapshot(referencePrice);
+      const fallback = validatePriceSnapshot(referencePrice);
       const { credentialDigest, readCodexAccount } = await import('./node-anthropic-account.js');
       const digest = credentialDigest(accessToken);
       const matches = scope => {
         const current = readCodexAccount(scope, connectionId, route.model);
         return current?.digest === digest && current.accountId === accountId;
       };
-      const { value: allowed } = checkRouteTransaction(scope =>
-        route.matches(scope, route.keyId, route.stamp) && matches(scope));
-      if (!allowed) throw unavailable();
+      const readPrice = scope => readCodexPrice(scope, route.model, fallback);
+      const { value: price } = checkRouteTransaction(scope =>
+        route.matches(scope, route.keyId, route.stamp) && matches(scope) ? readPrice(scope) : null);
+      if (!price) throw unavailable();
+      const encodedPrice = canonical(price);
       const proof = Object.freeze(Object.create(null));
-      ownAccounts.set(proof, { routeProof, encodedPrice: canonical(price), matches });
+      ownAccounts.set(proof, { routeProof, encodedPrice,
+        matches: scope => matches(scope) && canonical(readPrice(scope)) === encodedPrice });
       return Object.freeze({ proof, price: Object.freeze({ ...price, rates: Object.freeze(price.rates) }) });
     },
     prepare(command, routeProof, accountProof) {

@@ -52,8 +52,8 @@ export function createCodexDispatchContext({ identity, routeProof, credentials, 
           headers.get('chatgpt-account-id') !== accountId || headers.get('content-type') !== 'application/json' ||
           headers.has('x-openai-internal-codex-responses-lite')) throw unavailable();
 
-      const initiate = await prepareAccountedDirectPost(url, options, proxyOptions);
       const { proof, price } = await identity.bindCodexAccount(routeProof, connectionId, accessToken, accountId, referencePrice);
+      const initiate = await prepareAccountedDirectPost(url, options, proxyOptions);
       const attempt = identity.prepare({ attemptId: randomUUID(), provider, model, startedAt: budgetInstant(clock), price }, routeProof, proof);
       return Object.freeze({
         dispatch: () => identity.dispatch(attempt.ack, budgetInstant(clock), initiate),
