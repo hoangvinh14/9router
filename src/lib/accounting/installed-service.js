@@ -20,6 +20,8 @@ export function bindAccountingIdentity({ policy, ledger }, presentedSecret) {
     matchesSecret: secret => secret === presentedSecret,
     captureRoute: () => ledger.captureRoute(original.keyId),
     bindAnthropicAccount: (routeProof, connectionId, apiKey, inferenceGeo) => ledger.bindAnthropicAccount(routeProof, connectionId, apiKey, inferenceGeo),
+    bindCodexAccount: (routeProof, connectionId, accessToken, accountId, price) =>
+      ledger.bindCodexAccount(routeProof, connectionId, accessToken, accountId, price),
     prepare(command, routeProof, accountProof) {
       return ledger.prepare({ ...command, keyId: original.keyId, bindingGeneration: original.bindingGeneration }, routeProof, accountProof);
     },

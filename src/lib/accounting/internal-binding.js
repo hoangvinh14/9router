@@ -1,11 +1,11 @@
 import { unavailable, snapshotPayload } from './attempt-payload.js';
 import { createNodeOuterTransaction } from './node-outer-transaction.js';
-import { ANTHROPIC_ACCOUNT_READS, isSingleWorkspaceBinding, readAnthropicAccount } from './node-anthropic-account.js';
+import { PROVIDER_ACCOUNT_READS, isSingleWorkspaceBinding, readAnthropicAccount } from './node-anthropic-account.js';
 import { ANTHROPIC_REFERENCE_MODEL } from './anthropic-reference-price.js';
 import { ROUTING_READS } from './node-routing-snapshot.js';
 
 const definitions = Object.freeze({
-  ...ANTHROPIC_ACCOUNT_READS,
+  ...PROVIDER_ACCOUNT_READS,
   routingSettings: ROUTING_READS.routingSettings,
   activeClient: Object.freeze({ method: 'get', sql: `SELECT 1 AS present FROM apiKeys
     WHERE id = ? AND isActive = 1 AND typeof(key) = 'text' AND length(key) > 0 AND instr(key, char(0)) = 0` }),

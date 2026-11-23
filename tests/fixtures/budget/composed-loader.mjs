@@ -30,7 +30,7 @@ const executorDependencies = new Map([
   ['../utils/claudeCloaking.js', ['open-sse/executors/default.js']],
   ['../../providers/capabilities.js', ['open-sse/translator/concerns/paramSupport.js']],
   ['../utils/proxyFetch.js', ['open-sse/executors/base.js', 'open-sse/executors/default.js']],
-  ['../../../open-sse/utils/proxyFetch.js', ['src/lib/accounting/anthropic-dispatch-context.js']],
+  ['../../../open-sse/utils/proxyFetch.js', ['src/lib/accounting/anthropic-dispatch-context.js', 'src/lib/accounting/codex-dispatch-context.js']],
 ]);
 const providerConfigParents = new Set([core, codex, `${root}open-sse/executors/default.js`, `${root}open-sse/utils/reasoningContentInjector.js`]);
 const providerConfig = `data:text/javascript,import anthropic from '${root}open-sse/providers/registry/anthropic.js';import codex from '${root}open-sse/providers/registry/codex.js';export const PROVIDERS={anthropic:anthropic.transport,codex:codex.transport}, PROVIDER_OAUTH={};`;
@@ -42,6 +42,14 @@ const realAppImports = new Map([
 
 export function resolve(specifier, context, nextResolve) {
   const parent = context.parentURL;
+  if (parent === `${root}src/app/api/v1/responses/route.js`) {
+    if (specifier === '@/sse/handlers/chat.js') return nextResolve(chat, context);
+    if (specifier === 'open-sse/translator/index.js') return nextResolve('data:text/javascript,export const initTranslators=()=>{};', context);
+    if (specifier === '@/lib/accounting/profile-registry.js') return nextResolve(stub, context);
+    if (specifier.startsWith('@/lib/accounting/')) return nextResolve(root + specifier.replace('@/', 'src/'), context);
+  }
+  if (['installed-service.js', 'request-boundary.js'].some(name => parent === `${root}src/lib/accounting/${name}`) &&
+      specifier === '../db/driver.js') return nextResolve(stub, context);
   if (parent === chat && realAppImports.has(specifier)) {
     return nextResolve(root + realAppImports.get(specifier), context);
   }

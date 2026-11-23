@@ -51,14 +51,15 @@ export async function handleChat(request, clientRawRequest = null) {
 
 // Internal candidate composition only. Public callers cannot select this entry
 // or supply an identity, routing readers, or context factory through a request.
-export async function handleAccountedChatCandidate(request, { identity, createContext }) {
+export async function handleAccountedChatCandidate(request, { identity, createContext, provider = "anthropic" }) {
   try {
-    if (request.method !== 'POST' || new URL(request.url).pathname !== '/v1/messages' ||
+    const endpoint = provider === 'codex' ? '/v1/responses' : '/v1/messages';
+    if (!['anthropic', 'codex'].includes(provider) || request.method !== 'POST' || new URL(request.url).pathname !== endpoint ||
         request.headers.has('anthropic-workspace-id') ||
         !identity.matchesSecret(selectedAccountingSecret(request))) return refuseCandidate();
     const view = await identity.captureRoute();
     const settings = mergeWithDefaults(view.reads.getSettingsData());
-    return await routeChat(request, null, { view, settings, createContext });
+    return await routeChat(request, null, { view, settings, createContext, provider });
   } catch {
     return refuseCandidate();
   }
@@ -153,6 +154,7 @@ async function routeChat(request, clientRawRequest, candidate) {
   // Check if model is a combo (has multiple models with fallback)
   const comboModels = await getComboModels(modelStr, candidate?.view.reads);
   if (comboModels) {
+    if (candidate?.provider === "codex") return refuseCandidate();
     // Check for combo-specific strategy first, fallback to global
     const comboStrategies = settings.comboStrategies || {};
     const comboSpecificStrategy = comboStrategies[modelStr]?.fallbackStrategy;
@@ -328,7 +330,7 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
   }
 
   const { provider, model } = modelInfo;
-  if (candidate && provider !== "anthropic") return refuseCandidate();
+  if (candidate && provider !== candidate.provider) return refuseCandidate();
   const routeProof = candidate ? await candidate.view.select(branch, { provider, model }) : null;
 
   // Routing shown in the unified "▶" line (client model → provider/model)
@@ -366,7 +368,12 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
 
     // Account selection shown in the unified "▶" line (acc:...)
     // This candidate does not authorize a refresh or a second account.
-    if (candidate && (credentials.authType !== "apikey" || !credentials.apiKey || credentials.accessToken || credentials.refreshToken)) return refuseCandidate();
+    if (candidate) {
+      const matchesAuth = provider === "codex"
+        ? credentials.authType === "oauth" && credentials.accessToken && !credentials.apiKey
+        : credentials.authType === "apikey" && credentials.apiKey && !credentials.accessToken && !credentials.refreshToken;
+      if (!matchesAuth) return refuseCandidate();
+    }
     const refreshedCredentials = candidate ? credentials : await checkAndRefreshToken(provider, credentials);
 
     // Ensure real project ID is available for providers that need it (P0 fix: cold miss)
