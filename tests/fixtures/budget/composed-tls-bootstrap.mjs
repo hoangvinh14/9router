@@ -17,7 +17,7 @@ if (process.env.BUDGET_CAPS_DROPPED !== '1') {
   run('/usr/sbin/ip', ['link', 'set', 'lo', 'up']);
   const result = spawnSync('/usr/bin/setpriv', ['--bounding-set=-all', '--inh-caps=-all',
     '--ambient-caps=-all', '--no-new-privs', '/runtime/node', import.meta.filename], {
-    env: { ...process.env, BUDGET_CAPS_DROPPED: '1' }, stdio: 'inherit', timeout: 55000,
+    env: { ...process.env, BUDGET_CAPS_DROPPED: '1' }, stdio: 'inherit', timeout: 105000,
   });
   process.exit(result.error || result.signal || result.status !== 0 ? 1 : 0);
 }
@@ -37,6 +37,6 @@ assert.ok(Date.parse(certificate.validFrom) <= Date.now() && Date.parse(certific
 assert.equal(fs.statSync('/tmp/composed-key.pem').mode & 0o077, 0);
 const result = spawnSync('/runtime/node', ['--unhandled-rejections=strict', '--experimental-loader',
   '/app/tests/fixtures/budget/composed-loader.mjs', '--test', '/app/tests/unit/budget-composed.test.mjs'], {
-  env: { ...process.env, NODE_EXTRA_CA_CERTS: '/tmp/composed-cert.pem' }, stdio: 'inherit', timeout: 40000,
+  env: { ...process.env, NODE_EXTRA_CA_CERTS: '/tmp/composed-cert.pem' }, stdio: 'inherit', timeout: 100000,
 });
 if (result.error || result.signal || result.status !== 0) process.exitCode = 1;

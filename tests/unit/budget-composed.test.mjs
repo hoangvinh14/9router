@@ -65,17 +65,19 @@ const usage = {
 
 const partialJson = '{"type":"message",';
 
-async function startLoopback(state, reply, interrupted, partialResponse) {
+async function startLoopback(state, reply, interrupted, partialResponse, {
+  pathname = '/v1/messages', headerNames = ['anthropic-version', 'content-type', 'x-api-key'],
+} = {}) {
   const server = https.createServer({ key: fs.readFileSync('/tmp/composed-key.pem'), cert: fs.readFileSync('/tmp/composed-cert.pem') });
   server.on('request', (req, res) => {
     // Count at actual HTTP ingress, even if the body is malformed or cut short.
-    const wire = { headers: Object.fromEntries(['anthropic-version', 'content-type', 'x-api-key'].map(name => [name, req.headers[name]])), body: null };
+    const wire = { headers: Object.fromEntries(headerNames.map(name => [name, req.headers[name]])), body: null };
     state.wire.push(wire);
     (async () => {
       assert.equal(req.socket.encrypted, true);
       assert.equal(req.socket.remoteAddress, '127.0.0.1');
       assert.equal(req.method, 'POST');
-      assert.equal(req.url, '/v1/messages');
+      assert.equal(req.url, pathname);
       assert.equal(req.headers['anthropic-beta'], undefined);
       assert.equal(req.headers['anthropic-workspace-id'], undefined);
       const chunks = [];
@@ -99,15 +101,20 @@ async function startLoopback(state, reply, interrupted, partialResponse) {
   });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
-  state.endpoint = `https://127.0.0.1:${server.address().port}/v1/messages`;
-  return server;
+  state.endpoint = `https://127.0.0.1:${server.address().port}${pathname}`;
+  return async () => {
+    const closed = once(server, 'close');
+    server.close();
+    server.closeAllConnections();
+    await closed;
+  };
 }
 
 async function fixture(run, { weekly = null, monthly = null, reply, interrupted = false, prepareDb, beforeFinalBegin,
   sharedDir, existing = false, stream = false, onCheckpoint = () => {}, partialResponse = false, clock = () => now } = {}) {
   const dir = sharedDir ?? fs.mkdtempSync('/tmp/budget-composed-');
   const path = `${dir}/budget.sqlite`;
-  let db, server, peer, atFinal = false;
+  let db, closeLoopback, peer, atFinal = false;
   let accounts = 0, poolReads = 0, finalChanges = 0;
   async function openObservedAdapter() {
     const adapter = await createNodeSqliteAdapter(path);
@@ -233,7 +240,7 @@ async function fixture(run, { weekly = null, monthly = null, reply, interrupted 
         return state.trackRead(reply());
       },
     };
-    if (tls) server = await startLoopback(state, reply, interrupted, partialResponse);
+    if (tls) closeLoopback = await startLoopback(state, reply, interrupted, partialResponse);
     globalThis.routeFixture = state;
     globalThis.__budgetCore = { helpers: 0, peeks: 0, refresh: 0 };
     const chat = (target = 'Root', overrides = {}, headers = {}, pathname = '/v1/messages') => handleAccountedChatCandidate(new Request(`https://fixture.invalid${pathname}`, {
@@ -274,12 +281,7 @@ async function fixture(run, { weekly = null, monthly = null, reply, interrupted 
     delete globalThis.routeFixture;
     delete globalThis.__budgetCore;
     try {
-      if (server) {
-        const closed = once(server, 'close');
-        server.close();
-        server.closeAllConnections();
-        await closed;
-      }
+      await closeLoopback?.();
     } finally {
       peer?.close();
       try {
@@ -866,45 +868,65 @@ if (stage === undefined) {
   });
 
 
-  test('native Codex core settles the selected key and refuses its Chat Completions route before dispatch', async () => {
+  test('native Codex core settles once and reopened SQLite blocks another upstream POST', async () => {
     globalThis.__budgetCore = { helpers: 0 };
     const dir = fs.mkdtempSync('/tmp/codex-accounting-');
-    const db = await createNodeSqliteAdapter(dir + '/budget.sqlite');
+    const path = dir + '/budget.sqlite';
+    let db = await createNodeSqliteAdapter(path);
+    let closeLoopback;
+    const upstream = { wire: [] };
+    const reply = () => new Response('data: {"type":"response.completed","response":{"id":"fixture","status":"completed","usage":{"output_tokens":25}}}\n\n',
+      { headers: { 'content-type': 'text/event-stream' } });
     try {
       db.exec('CREATE TABLE apiKeys (id TEXT PRIMARY KEY, key TEXT UNIQUE NOT NULL, isActive INTEGER NOT NULL)');
       db.run("INSERT INTO apiKeys VALUES ('fixture-key','fixture-client',1)");
       initializeNodeKeyPolicy(db);
       initializeNodeAttemptLedger(db);
       createNodeKeyPolicy(db).save('fixture-key', 0, { weekly: null, monthly: '250000' });
-      const ledger = createNodeAttemptLedger(db);
-      const now = '2026-11-16T10:00:00.000Z';
+      let ledger = createNodeAttemptLedger(db);
       let prepared = 0;
       let posts = 0;
+      if (tls) {
+        closeLoopback = await startLoopback(upstream, reply, false, false, {
+          pathname: '/backend-api/codex/responses',
+          headerNames: ['authorization', 'chatgpt-account-id', 'content-type'],
+        });
+      }
       const accounting = {
         provider: 'codex', stream: true, validateInput: body => assert.equal(typeof body.input, 'string'),
-        async prepare({ url, provider, model }) {
+        async prepare({ url, options, proxyOptions, provider, model }) {
           assert.equal(url, 'https://chatgpt.com/backend-api/codex/responses');
+          let send = async () => reply();
+          if (tls) {
+            const { prepareAccountedDirectPost } = await import('../../open-sse/utils/proxyFetch.js');
+            send = await prepareAccountedDirectPost(upstream.endpoint, options, proxyOptions);
+          }
           const attempt = ledger.prepare({ attemptId: 'codex-' + (++prepared), keyId: 'fixture-key',
             bindingGeneration: '1', provider, model, startedAt: now,
             price: { currency: 'USD', unit: 'USD/1M tokens', revision: 'fixture', rates: { input: '2', output: '10' } } });
           return {
             dispatch: () => ledger.dispatch(attempt.ack, { presentedSecret: 'fixture-client', now }, () => {
               posts++;
-              return new Response('data: {"type":"response.completed","response":{"id":"fixture","status":"completed","usage":{"output_tokens":25}}}\n\n',
-                { headers: { 'content-type': 'text/event-stream' } });
+              return send();
             }),
             settleResponses: attempt.settle,
           };
         },
       };
       const request = (endpoint, format) => handleChatCore({
-        modelInfo: { provider: 'codex', model: 'gpt-6.2-sol' }, credentials: { accessToken: 'fixture-token' },
+        modelInfo: { provider: 'codex', model: 'gpt-6.2-sol' },
+        credentials: { accessToken: 'fixture-token', providerSpecificData: { chatgptAccountId: 'fixture-account' } },
         body: { stream: true, input: 'fixture input' }, clientRawRequest: { endpoint },
         sourceFormatOverride: format, accounting,
       });
+      assert.equal(ledger.totals('fixture-key', now).monthly, '0');
       const first = await request('/v1/responses', FORMATS.OPENAI_RESPONSES);
       assert.equal(first.response.status, 200);
       assert.match(await first.response.text(), /response.completed/);
+      assert.equal(ledger.totals('fixture-key', now).monthly, '250000');
+      db.close();
+      db = await createNodeSqliteAdapter(path);
+      ledger = createNodeAttemptLedger(db);
       assert.equal(ledger.totals('fixture-key', now).monthly, '250000');
       const exhausted = await request('/v1/responses', FORMATS.OPENAI_RESPONSES);
       assert.equal(exhausted.response.status, 503);
@@ -913,6 +935,20 @@ if (stage === undefined) {
       assert.equal(prepared, 2);
       assert.equal(posts, 1);
       assert.equal(db.get('SELECT count(*) AS n FROM accounting_terminals_v1').n, 1);
-    } finally { db.close(); }
+      if (tls) {
+        assert.equal(upstream.serverError, undefined);
+        assert.equal(upstream.wire.length, 1);
+        const [wire] = upstream.wire;
+        assert.deepEqual(wire.headers, {
+          authorization: 'Bearer fixture-token', 'chatgpt-account-id': 'fixture-account', 'content-type': 'application/json',
+        });
+        assert.equal(wire.body.model, 'gpt-6.2-sol');
+        assert.equal(wire.body.stream, true);
+        assert.equal(wire.body.store, false);
+      }
+    } finally {
+      await closeLoopback?.();
+      db.close();
+    }
   });
 }
