@@ -6,10 +6,29 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { parseCodexStandardReference } from "../accounting/exact-money.js";
+import { makeKv } from "../db/helpers/kvStore.js";
+import { BUDGET_REFERENCE_SCOPE, CODEX_STANDARD_REFERENCE } from "../pricing/constants.js";
 import { CATALOG_FILE, CATALOG_RAW_FILE, CATALOG_VERSION, invalidateCatalog, installCatalogSource } from "open-sse/providers/catalogOverride.js";
 
 const CATALOG_URL = "https://models.dev/api.json";
 const FETCH_TIMEOUT_MS = 60000;
+const CODEX_PRICING_URL = "https://learn.chatgpt.com/docs/pricing.md";
+const referencePricing = makeKv(BUDGET_REFERENCE_SCOPE);
+
+async function syncBudgetReference() {
+  try {
+    const response = await fetch(CODEX_PRICING_URL, {
+      headers: { accept: "text/markdown" }, redirect: "error", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    if (!response.ok) return false;
+    const price = parseCodexStandardReference(await response.text(), Date.now());
+    await referencePricing.set(CODEX_STANDARD_REFERENCE, price);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export const SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const STARTUP_DELAY_MS = 60 * 1000;   // let the server boot and serve first requests
@@ -260,8 +279,8 @@ export function startModelCatalogSync() {
 
   const schedule = (delay) => {
     timer = setTimeout(async () => {
-      const result = await syncModelCatalog();
-      schedule(result ? SYNC_INTERVAL_MS : RETRY_DELAY_MS);
+      const [catalog, pricing] = await Promise.all([syncModelCatalog(), syncBudgetReference()]);
+      schedule(catalog && pricing ? SYNC_INTERVAL_MS : RETRY_DELAY_MS);
     }, delay);
     timer.unref?.();
   };

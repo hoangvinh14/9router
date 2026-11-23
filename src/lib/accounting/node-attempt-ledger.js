@@ -1,7 +1,7 @@
-import { CODEX_BUDGET_PRICE } from '../pricing/constants.js';
+import { BUDGET_REFERENCE_SCOPE, CODEX_STANDARD_REFERENCE, CODEX_BUDGET_PRICE } from '../pricing/constants.js';
 import { canonical, conflict, snapshotPayload, text, timestamp, unavailable } from './attempt-payload.js';
 import { budgetInstant, budgetWindows } from './budget-windows.js';
-import { nanoUsd, validatePriceSnapshot } from './exact-money.js';
+import { nanoUsd, validateCodexStandardReference, validatePriceSnapshot } from './exact-money.js';
 import { terminalCost, EXCLUSIVE_USAGE } from './terminal-cost.js';
 import { assertAccountingHealthy, faultAccounting, finalAccountingDispatch } from './process-state.js';
 import { createNodeOuterTransaction, quarantineNodeAccountingConnection } from './node-outer-transaction.js';
@@ -25,27 +25,14 @@ const DEFINITIONS = Object.freeze({
   page: { method: 'all', sql: 'SELECT a.id, a.key_id, a.started_at, a.week_start, a.month_start, t.amount, t.evidence FROM accounting_attempts_v1 a LEFT JOIN accounting_terminals_v1 t ON t.attempt_id = a.id WHERE a.key_id = ? AND a.id > ? ORDER BY a.id LIMIT 3' },
 });
 const CODEX_PRICE_READS = Object.freeze({
-  codexManualPrice: Object.freeze({ method: 'get', sql: "SELECT value FROM kv WHERE scope = 'pricing' AND key = ?" }),
+  codexReferencePrice: Object.freeze({ method: 'get', sql: 'SELECT value FROM kv WHERE scope = ? AND key = ?' }),
 });
-const CODEX_RATES = ['input', 'cached', 'cache_creation', 'output'];
 
-function readCodexPrice(scope, model, referencePrice) {
-  const manual = scope.codexManualPrice([CODEX_BUDGET_PRICE.provider]);
-  try {
-    if (manual) {
-      const models = JSON.parse(manual.value);
-      if (!models || typeof models !== 'object' || Array.isArray(models)) return null;
-      if (Object.hasOwn(models, model)) {
-        const row = models[model];
-        if (!row || CODEX_RATES.some(field => !Object.hasOwn(row, field) ||
-            typeof row[field] !== 'number' || !Number.isFinite(row[field]))) return null;
-        const rates = Object.fromEntries(CODEX_RATES.map(field => [field, String(row[field])]));
-        if (Object.hasOwn(row, 'reasoning') && row.reasoning !== row.output) return null;
-        return validatePriceSnapshot({ currency: 'USD', unit: 'USD/1M tokens', revision: 'openai-manual-v1', rates });
-      }
-    }
-  } catch { return null; }
-  return scope.referenceCatalogPresent() === null ? referencePrice : null;
+function readCodexPrice(scope) {
+  const row = scope.codexReferencePrice([BUDGET_REFERENCE_SCOPE, CODEX_STANDARD_REFERENCE]);
+  if (!row) return null;
+  try { return validateCodexStandardReference(JSON.parse(row.value)); }
+  catch { return null; }
 }
 
 const identifier = value => {
@@ -289,26 +276,25 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         matches: scope => accountMatches(scope) && canonical(readPrice(scope)) === encodedPrice });
       return Object.freeze({ proof, price: Object.freeze({ ...price, rates: Object.freeze(price.rates) }) });
     },
-    async bindCodexAccount(routeProof, connectionId, accessToken, accountId, referencePrice) {
+    async bindCodexAccount(routeProof, connectionId, accessToken, accountId, priceBasis) {
       const route = ownRoutes.get(routeProof);
-      if (!requireAccount || route?.provider !== 'codex' || route.model !== CODEX_BUDGET_PRICE.model) throw unavailable();
+      if (!requireAccount || route?.provider !== 'codex' || route.model !== CODEX_BUDGET_PRICE.model ||
+          priceBasis !== CODEX_STANDARD_REFERENCE) throw unavailable();
       identifier(connectionId);
       if (typeof accountId !== 'string' || !accountId) throw unavailable();
-      const fallback = validatePriceSnapshot(referencePrice);
       const { credentialDigest, readCodexAccount } = await import('./node-anthropic-account.js');
       const digest = credentialDigest(accessToken);
       const matches = scope => {
         const current = readCodexAccount(scope, connectionId, route.model);
         return current?.digest === digest && current.accountId === accountId;
       };
-      const readPrice = scope => readCodexPrice(scope, route.model, fallback);
       const { value: price } = checkRouteTransaction(scope =>
-        route.matches(scope, route.keyId, route.stamp) && matches(scope) ? readPrice(scope) : null);
+        route.matches(scope, route.keyId, route.stamp) && matches(scope) ? readCodexPrice(scope) : null);
       if (!price) throw unavailable();
       const encodedPrice = canonical(price);
       const proof = Object.freeze(Object.create(null));
       ownAccounts.set(proof, { routeProof, encodedPrice,
-        matches: scope => matches(scope) && canonical(readPrice(scope)) === encodedPrice });
+        matches: scope => matches(scope) && canonical(readCodexPrice(scope)) === encodedPrice });
       return Object.freeze({ proof, price: Object.freeze({ ...price, rates: Object.freeze(price.rates) }) });
     },
     prepare(command, routeProof, accountProof) {
@@ -395,10 +381,10 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         return true;
       }, initiate);
     },
-    inspectBudget(keyId, clock) {
+    inspectBudget(keyId, clock, priceBasis) {
       identifier(keyId);
       const readSnapshot = createNodeOuterTransaction(adapter, {
-        ...KEY_POLICY_AUDIT_DEFINITIONS, ...KEY_POLICY_EVENT_BY_KEY, ...LEDGER_AUDIT_DEFINITIONS, page: DEFINITIONS.page,
+        ...KEY_POLICY_AUDIT_DEFINITIONS, ...KEY_POLICY_EVENT_BY_KEY, ...LEDGER_AUDIT_DEFINITIONS, page: DEFINITIONS.page, ...CODEX_PRICE_READS,
       });
       return readSnapshot(scope => {
         const windows = budgetWindows(budgetInstant(clock));
@@ -417,7 +403,8 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
           return { spent: spend[name], remaining: difference === null ? null : String(difference > 0n ? difference : 0n),
             resetAt: windows[name].resetAt };
         };
-        return { policy, usage: { weekly: period('weekly'), monthly: period('monthly'), timezone: windows.timezone,
+        const reference = priceBasis === CODEX_STANDARD_REFERENCE ? readCodexPrice(scope) : null;
+        return { ...(reference ? { referencePrice: reference } : {}), policy, usage: { weekly: period('weekly'), monthly: period('monthly'), timezone: windows.timezone,
           unknownDefaulted: spend.unknown, unrecorded: observation.unrecorded } };
       }).value;
     },

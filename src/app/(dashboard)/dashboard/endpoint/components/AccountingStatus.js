@@ -125,6 +125,11 @@ function BudgetSnapshot({ keyId }) {
         {budget?.available === false && !budget.canCreate && <p>No budget profile is available for this key.</p>}
         {budget?.available && <>
           <p>Policy version {budget.version} ({budget.lifecycle})</p>
+          {budget.referencePrice && <p>
+            OpenAI Codex Standard reference (USD per million tokens): input {budget.referencePrice.input},
+            cached input {budget.referencePrice.cached}, output {budget.referencePrice.output}.
+            Synced <time dateTime={budget.referencePrice.syncedAt}>{resetFormat.format(new Date(budget.referencePrice.syncedAt))}</time>.
+          </p>}
           <div className="my-2 grid gap-3 sm:grid-cols-2">
             {budget.periods.map(period => <section key={period.name}>
               <h4 className="font-medium capitalize">{period.name} budget</h4>

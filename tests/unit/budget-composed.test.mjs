@@ -690,12 +690,14 @@ if (!stage) test('a new owner of reopened SQLite blocks at the persisted limit b
   assert.equal(totals().monthly, (2n * BigInt(limit)).toString());
 }, { monthly: limit, reply: success }));
 
-const codexFixtureLimit = '440000';
+const codexFixtureLimit = '374000';
+const priceBasis = 'openai:codex/gpt-6.2-sol:standard:v1';
+const referenceScope = 'budgetReferencePricing';
 
 function codexFixture(run, options) {
   const model = 'gpt-6.2-sol';
   const profile = { provider: 'codex', auth: 'oauth', producerAdmitted: true, connectionId: 'fixture-codex',
-    model, price: { currency: 'USD', unit: 'USD/1M tokens', revision: 'fixture', rates: { input: '2', cached: '0.25', cache_creation: '5', output: '10' } } };
+    model, priceBasis };
   const reply = () => new Response('data: {"type":"response.completed","response":{"id":"fixture","status":"completed","usage":{"input_tokens":100,"input_tokens_details":{"cached_tokens":40,"cache_write_tokens":60},"output_tokens":25,"total_tokens":125}}}\n\n',
     { headers: { 'content-type': 'text/event-stream' } });
   const request = (overrides = {}) => new Request('https://fixture.invalid/v1/responses', {
@@ -703,8 +705,12 @@ function codexFixture(run, options) {
     body: JSON.stringify({ model: `codex/${model}`, input: 'fixture prompt', stream: true, ...overrides }),
   });
   function prepareDb(db) {
+    db.run('INSERT INTO kv VALUES (?,?,?)', [referenceScope, priceBasis, JSON.stringify({
+      currency: 'USD', unit: 'USD/1M tokens', revision: priceBasis, syncedAt: 1,
+      rates: { input: '2', cached: '0.1', output: '10' },
+    })]);
     db.run("INSERT INTO kv VALUES ('pricing','openai',?)", [JSON.stringify({
-      [model]: { input: 2, cached: 0.25, cache_creation: 3, output: 10 },
+      [model]: { input: 9, cached: 9, cache_creation: 9, output: 9 },
     })]);
     db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [JSON.stringify([`codex/${model}`]), 'fixture-key']);
     db.run(`INSERT INTO providerConnections (id, provider, authType, priority, isActive, data, createdAt, updatedAt)
@@ -934,22 +940,23 @@ if (stage === undefined) {
         assert.equal(rows().attempts.length, 1);
         assert.equal(rows().terminals.length, 0);
         updateToken('fixture-token');
-        const readPrices = peer.prepare("SELECT value FROM kv WHERE scope = 'pricing' AND key = 'openai'");
-        const writePrices = peer.prepare("UPDATE kv SET value = ? WHERE scope = 'pricing' AND key = 'openai'");
-        const savedPrices = readPrices.get().value;
+        const readPrices = peer.prepare('SELECT value FROM kv WHERE scope = ? AND key = ?');
+        const updatePrices = peer.prepare('UPDATE kv SET value = ? WHERE scope = ? AND key = ?');
+        const savedPrices = readPrices.get(referenceScope, priceBasis).value;
+        const writePrices = value => updatePrices.run(value, referenceScope, priceBasis);
         const changed = JSON.parse(savedPrices);
-        changed['gpt-6.2-sol'].output = 12;
-        changeAfterIntent = () => writePrices.run(JSON.stringify(changed));
+        changed.rates.output = '12';
+        changeAfterIntent = () => writePrices(JSON.stringify(changed));
         assert.equal((await postResponses(request())).status, 503);
         assert.equal(state.wire.length, 0);
         assert.equal(rows().attempts.length, 2);
         assert.equal(rows().terminals.length, 0);
 
-        writePrices.run(JSON.stringify({ 'gpt-6.2-sol': { input: 2, output: 10 } }));
+        writePrices(JSON.stringify({ 'gpt-6.2-sol': { input: 2, output: 10 } }));
         assert.equal((await postResponses(request())).status, 503);
         assert.equal(state.preparations, 2);
         assert.equal(rows().attempts.length, 2);
-        writePrices.run(savedPrices);
+        writePrices(savedPrices);
       } finally { peer.close(); }
 
       const first = await postResponses(request());
@@ -957,7 +964,8 @@ if (stage === undefined) {
       assert.match(await first.text(), /response.completed/);
       assert.equal(rows().terminals[0].amount, codexFixtureLimit);
       assert.equal(rows().attempts[0].keyId, 'fixture-key');
-      assert.equal(rows().attempts.at(-1).price.revision, 'openai-manual-v1');
+      assert.equal(rows().attempts.at(-1).price.revision, priceBasis);
+      assert.equal(rows().attempts.at(-1).price.syncedAt, 1);
       await reopen();
       assert.equal((await postResponses(request())).status, 503);
       assert.equal(state.wire.length, 1);

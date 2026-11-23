@@ -26,3 +26,5 @@ export const RATE_UNITS = Object.freeze(Object.fromEntries([
 ]));
 
 export const CODEX_BUDGET_PRICE = Object.freeze({ provider: 'openai', model: 'gpt-6.2-sol' });
+export const BUDGET_REFERENCE_SCOPE = 'budgetReferencePricing';
+export const CODEX_STANDARD_REFERENCE = 'openai:codex/gpt-6.2-sol:standard:v1';

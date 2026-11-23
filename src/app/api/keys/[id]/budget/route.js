@@ -16,13 +16,14 @@ export async function GET(request, { params }) {
   if (denied) return denied;
   const { id } = await params;
   if (!validId(id)) return json({ error: { message: 'Invalid key ID' } }, 400);
-  if (!await findInstalledBudgetProfileForKey(id)) {
+  const profile = await findInstalledBudgetProfileForKey(id);
+  if (!profile) {
     return json({ readiness: { ready: false, reason: 'no_admitted_profile' }, policy: null, usage: null });
   }
   try {
     const { getInstalledAccountingServices } = await import('../../../../../lib/accounting/installed-service.js');
     const { ledger } = await getInstalledAccountingServices();
-    const snapshot = ledger.inspectBudget(id);
+    const snapshot = ledger.inspectBudget(id, undefined, profile.provider === 'codex' ? profile.priceBasis : undefined);
     if (!snapshot.policy) return json({ keyId: id, error: { code: 'budget_not_configured' } }, 503);
     return json({ readiness: { ready: true, reason: null }, ...snapshot });
   } catch { return unavailable(); }

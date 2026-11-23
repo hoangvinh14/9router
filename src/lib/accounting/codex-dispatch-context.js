@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import { prepareAccountedDirectPost } from '../../../open-sse/utils/proxyFetch.js';
 import { unavailable } from './attempt-payload.js';
 import { budgetInstant } from './budget-windows.js';
-import { validatePriceSnapshot } from './exact-money.js';
 import { codexAccountId, directAccountData } from './node-anthropic-account.js';
 
 const endpoint = 'https://chatgpt.com/backend-api/codex/responses';
@@ -17,7 +16,6 @@ export function createCodexDispatchContext({ identity, routeProof, credentials, 
   if (profile.provider !== 'codex' || profile.auth !== 'oauth' || profile.producerAdmitted !== true ||
       profile.connectionId !== connectionId || credentials.authType !== 'oauth' || credentials.apiKey ||
       !accessToken || !accountId || !routeProof || !directAccountData(providerSpecificData)) throw unavailable();
-  const referencePrice = validatePriceSnapshot(profile.price);
   let validated = false;
   let prepared = false;
 
@@ -52,12 +50,12 @@ export function createCodexDispatchContext({ identity, routeProof, credentials, 
           headers.get('chatgpt-account-id') !== accountId || headers.get('content-type') !== 'application/json' ||
           headers.has('x-openai-internal-codex-responses-lite')) throw unavailable();
 
-      const { proof, price } = await identity.bindCodexAccount(routeProof, connectionId, accessToken, accountId, referencePrice);
+      const { proof, price } = await identity.bindCodexAccount(routeProof, connectionId, accessToken, accountId, profile.priceBasis);
       const initiate = await prepareAccountedDirectPost(url, options, proxyOptions);
       const attempt = identity.prepare({ attemptId: randomUUID(), provider, model, startedAt: budgetInstant(clock), price }, routeProof, proof);
       return Object.freeze({
         dispatch: () => identity.dispatch(attempt.ack, budgetInstant(clock), initiate),
-        priceCacheWrites: Object.hasOwn(price.rates, 'cache_creation'),
+        priceCacheWrites: 'included-in-input',
         settleResponses: attempt.settle,
       });
     },

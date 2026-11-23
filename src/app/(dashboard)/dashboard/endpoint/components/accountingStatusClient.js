@@ -48,7 +48,15 @@ function budgetView(body, keyId) {
         new Date(resetAt).toISOString() !== resetAt) throw unavailable();
     return { name, limit, spent, remaining, resetAt };
   });
+  const price = body.referencePrice;
+  const rates = price?.rates;
+  const referencePrice = price?.revision === "openai:codex/gpt-6.2-sol:standard:v1" &&
+    Number.isSafeInteger(price.syncedAt) && price.syncedAt > 0 && price.syncedAt <= 8640000000000000 &&
+    [rates?.input, rates?.cached, rates?.output].every(rate => typeof rate === "string" && /^\d+(?:\.\d+)?$/.test(rate))
+    ? { input: rates.input, cached: rates.cached, output: rates.output, syncedAt: new Date(price.syncedAt).toISOString() }
+    : null;
   return { available: true, version: policy.version, lifecycle: policy.lifecycle, periods,
+    ...(referencePrice ? { referencePrice } : {}),
     unknownDefaulted: usage.unknownDefaulted, unrecorded: usage.unrecorded, timezone: usage.timezone };
 }
 

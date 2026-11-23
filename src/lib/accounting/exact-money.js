@@ -1,5 +1,5 @@
 import { decimalToNanoUsd } from "../pricing/decimalMoney.js";
-import { ALL_RATE_FIELDS, EXTENDED_RATE_FIELDS, MAX_NANO_USD, RATE_UNITS } from "../pricing/constants.js";
+import { ALL_RATE_FIELDS, CODEX_STANDARD_REFERENCE, EXTENDED_RATE_FIELDS, MAX_NANO_USD, RATE_UNITS } from "../pricing/constants.js";
 import { snapshotPayload } from "./attempt-payload.js";
 
 const TOKEN_UNIT = 1_000_000n;
@@ -22,6 +22,28 @@ export function validatePriceSnapshot(snapshot) {
   decimalToNanoUsd(copy.rates.input);
   decimalToNanoUsd(copy.rates.output);
   return copy;
+}
+
+export function validateCodexStandardReference(snapshot) {
+  const price = validatePriceSnapshot(snapshot);
+  if (price.revision !== CODEX_STANDARD_REFERENCE ||
+      !Number.isSafeInteger(price.syncedAt) || price.syncedAt <= 0 ||
+      Object.keys(price.rates).sort().join(',') !== 'cached,input,output') {
+    throw new Error('Invalid Codex Standard reference price');
+  }
+  return price;
+}
+
+export function parseCodexStandardReference(markdown, syncedAt) {
+  const rows = [...markdown.matchAll(/For USD usage-based billing, GPT-6\.2 Astra at Standard speed costs[^<]*?GPT-6\.2 Sol costs \$([\d.]+), \$([\d.]+), and \$([\d.]+)\s+per million input, cached input, and output tokens, respectively\./g)];
+  if (rows.length !== 1 || !markdown.includes('Codex credit billing has no separate cache-write charge.')) {
+    throw new Error('Missing Codex Standard tariff');
+  }
+  const [, input, cached, output] = rows[0];
+  return validateCodexStandardReference({
+    currency: 'USD', unit: 'USD/1M tokens', revision: CODEX_STANDARD_REFERENCE, syncedAt,
+    rates: { input, cached, output },
+  });
 }
 
 // Provider adapters own observed category/provenance mapping. This core never estimates.

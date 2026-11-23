@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readlinkSync } from 'node:fs';
 import { test } from 'node:test';
+import { parseCodexStandardReference } from '../../src/lib/accounting/exact-money.js';
 import { responsesTokenUsage } from '../../src/lib/accounting/responses-usage.js';
 import { terminalCost } from '../../src/lib/accounting/terminal-cost.js';
 
@@ -62,4 +63,22 @@ test('Codex aggregate writes have their own price and are subtracted from ordina
   const unpricedWrite = cost(withWrites(127744, 1000));
   assert.deepEqual(unpricedWrite.unknown, ['input']);
   assert.equal(unpricedWrite.amountNanoUsd, '32186000');
+});
+
+test('Codex Standard reference uses the published USD rates and includes cache writes in ordinary input', () => {
+  const billing = 'Codex credit billing has no separate cache-write charge.';
+  const rateRow = `For USD usage-based billing, GPT-6.2 Astra at Standard speed costs $8
+per million input tokens, $0.40 per million cached input tokens, and
+$40 per million output tokens. GPT-6.2 Sol costs $2, $0.10, and $10
+per million input, cached input, and output tokens, respectively.`;
+  const snapshot = parseCodexStandardReference(billing + '\n' + rateRow, 42);
+  assert.deepEqual({ ...snapshot.rates }, { input: '2', cached: '0.10', output: '10' });
+  assert.equal(snapshot.syncedAt, 42);
+  assert.throws(() => parseCodexStandardReference(rateRow, 42), /Missing Codex Standard tariff/);
+  assert.throws(() => parseCodexStandardReference(billing + rateRow + rateRow, 42), /Missing Codex Standard tariff/);
+  const usage = responsesTokenUsage({
+    input_tokens: 100, output_tokens: 25, total_tokens: 125,
+    input_tokens_details: { cached_tokens: 40, cache_write_tokens: 60 },
+  }, 'included-in-input');
+  assert.equal(terminalCost(usage, snapshot).amountNanoUsd, '374000');
 });

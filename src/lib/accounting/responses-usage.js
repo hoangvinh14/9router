@@ -25,10 +25,10 @@ export function responsesTokenUsage(rawUsage, priceCacheWrites = false) {
     if (validCount(input) && validCount(cached) && cached <= input &&
         (!validCount(written) || written <= input - cached)) {
       components.push(component('cached', cached));
-      if (priceCacheWrites && validCount(written)) {
+      if (priceCacheWrites === true && validCount(written)) {
         components.push(component('cache_creation', written));
         components.push(component('input', input - cached - written));
-      } else if (!priceCacheWrites && (!hasWriteEvidence || written === 0)) {
+      } else if (priceCacheWrites === 'included-in-input' || (!priceCacheWrites && (!hasWriteEvidence || written === 0))) {
         components.push(component('input', input - cached));
       }
     }
