@@ -229,11 +229,14 @@ export async function proxy(request) {
 
   if (isPublicLlmApi(pathname)) {
     // Before loopback/CLI shortcuts: those authorize access, never permission to
-    // bypass an existing accounting binding. No production profile admitted yet.
+    // bypass an existing accounting binding.
     const accounting = await inspectAccountingRequest(request);
     if (accounting.kind !== 'ordinary') {
-      if (accounting.kind === 'controlled' && request.method === 'POST' && pathname === '/v1/messages' &&
-          await findInstalledBudgetProfileForKey(accounting.keyId)) return NextResponse.next();
+      const provider = pathname === '/v1/messages' ? 'anthropic' : pathname === '/v1/responses' ? 'codex' : null;
+      if (accounting.kind === 'controlled' && request.method === 'POST' && provider) {
+        const profile = await findInstalledBudgetProfileForKey(accounting.keyId);
+        if (profile?.provider === provider) return NextResponse.next();
+      }
       return accountingUnavailableResponse();
     }
     if (await canAccessPublicLlmApi(request)) return NextResponse.next();

@@ -16,12 +16,16 @@ mock.module('/app/fixtures/local-db.js',{namedExports:{getSettings:async()=>({re
 mock.module('/app/fixtures/machine-id.js',{namedExports:{getConsistentMachineId:async()=>{authReads++;return 'fixture-cli';}}});
 mock.module('/app/fixtures/dashboard-session.js',{namedExports:{verifyDashboardAuthToken:async()=>true}});
 mock.module('/app/fixtures/trusted-peer.js',{namedExports:{hasTrustedPeerHeaders:()=>true}});
+let budgetProfile = null;
+mock.module('/app/src/lib/accounting/profile-registry.js', {
+  namedExports: { findInstalledBudgetProfileForKey: async keyId => keyId === 'key-A' ? budgetProfile : null },
+});
 const {proxy}=await import('/app/src/dashboardGuard.js');
 const request=(path,headers={})=>({url:'https://fixture.invalid'+path,nextUrl:new URL('https://fixture.invalid'+path),headers:new Headers(headers),cookies:{get:()=>({value:'fixture-jwt'})}});
 
 test('actual guard refuses controlled identity before local CLI and permissive dashboard authorization on every public prefix',async()=>{
  const before=authReads;
- for(const path of ['/v1/chat/completions','/api/v1/messages','/v1beta/models/x:generateContent','/api/v1beta/models/x:generateContent','/codex/responses','/responses']){
+ for(const path of ['/v1/chat/completions','/v1/responses','/api/v1/messages','/v1beta/models/x:generateContent','/api/v1beta/models/x:generateContent','/codex/responses','/responses']){
   for(const identity of [{'authorization':'Bearer controlled'},{'x-api-key':'controlled'},{'x-goog-api-key':'controlled'}]){
    const result=await proxy(request(path,{...identity,'x-9r-real-ip':'127.0.0.1','x-9r-cli-token':'fixture-cli'}));
    assert.equal(result.status,503);assert.equal(result.headers.get('cache-control'),'no-store');assert.equal((await result.text()).includes('controlled'),false);
@@ -45,4 +49,20 @@ test('actual guard uses authoritative credential precedence without granting sha
  // remains subject to original auth. Handler closure must use same extraction.
  assert.equal((await proxy(request('/v1/messages',{'authorization':'Bearer ordinary','x-api-key':'controlled'}))).status,204);
  assert.equal((await proxy(request('/v1/messages',{'x-api-key':'controlled','x-goog-api-key':'ordinary'}))).status,503);
+});
+
+
+test('middleware admits only the exact POST route for the installed provider profile', async () => {
+  const run = (path, method = 'POST') => proxy({ ...request(path, { authorization: 'Bearer controlled' }), method });
+  try {
+    budgetProfile = { provider: 'codex' };
+    assert.equal((await run('/v1/responses')).status, 204);
+    for (const path of ['/v1/messages', '/api/v1/responses', '/v1/responses/compact', '/v1/chat/completions']) {
+      assert.equal((await run(path)).status, 503);
+    }
+    assert.equal((await run('/v1/responses', 'GET')).status, 503);
+    budgetProfile = { provider: 'anthropic' };
+    assert.equal((await run('/v1/messages')).status, 204);
+    assert.equal((await run('/v1/responses')).status, 503);
+  } finally { budgetProfile = null; }
 });

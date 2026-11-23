@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {SignJWT} from 'jose';
 import {createDashboardAuthToken} from '../../src/lib/auth/dashboardSession.js';
+import { PATCH as patchPricing, DELETE as deletePricing } from '../../src/app/api/pricing/route.js';
+import { pricingMutations } from '../fixtures/budget/jwt-settings-stub.mjs';
 import {GET,PUT} from '../../src/app/api/keys/[id]/budget/route.js';
 assert.equal(process.env.BUDGET_PURE_SANDBOX,'1');
 assert.notEqual(fs.readlinkSync('/proc/self/ns/net'),process.env.BUDGET_OUTER_NET);
@@ -41,4 +43,34 @@ test('valid signed missing-authenticated or mandatory-password-change claims do 
 test('actual signed session does not bypass Origin CSRF and creates no host/session secret file',async()=>{
  const token=await createDashboardAuthToken();assert.equal((await PUT(request(token,'https://evil.invalid'),params)).status,403);
  assert.equal(fs.existsSync('/sandbox/data/jwt-secret'),false);assert.equal(fs.existsSync('/app/.env'),false);assert.equal(fs.existsSync('/home/gmo'),false);
+});
+
+
+test('Codex price updates and resets require a dashboard session and same origin', async () => {
+  const token = await createDashboardAuthToken();
+  const body = { openai: { 'gpt-6.2-sol': { input: 2, output: 10, cached: 0.1, cache_creation: 2.5 } } };
+  const change = (method, query, session, origin, data) => {
+    const r = new Request('https://dashboard.invalid/api/pricing' + query, {
+      method, headers: { origin, 'content-type': 'application/json', 'x-9r-cli-token': 'fixture-cli' },
+      body: data && JSON.stringify(data),
+    });
+    Object.defineProperty(r, 'cookies', { value: { get: () => session ? { value: session } : undefined } });
+    return r;
+  };
+  const origin = 'https://dashboard.invalid';
+  for (const [handler, method, query, data] of [
+    [patchPricing, 'PATCH', '', body],
+    [deletePricing, 'DELETE', '?provider=openai&model=gpt-6.2-sol'],
+    [deletePricing, 'DELETE', '?provider=openai'],
+    [deletePricing, 'DELETE', ''],
+  ]) {
+    const before = pricingMutations.length;
+    assert.equal((await handler(change(method, query, null, origin, data))).status, 401);
+    assert.equal((await handler(change(method, query, token, 'https://foreign.invalid', data))).status, 403);
+    assert.equal(pricingMutations.length, before);
+    assert.equal((await handler(change(method, query, token, origin, data))).status, 200);
+    assert.equal(pricingMutations.length, before + 1);
+  }
+  assert.equal((await patchPricing(change('PATCH', '', null, origin, { openai: { other: { input: 2 } } }))).status, 200);
+  assert.equal((await deletePricing(change('DELETE', '?provider=openai&model=other', null, origin))).status, 200);
 });

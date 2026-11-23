@@ -1,3 +1,4 @@
+import { CODEX_BUDGET_PRICE } from '../pricing/constants.js';
 import { canonical, conflict, snapshotPayload, text, timestamp, unavailable } from './attempt-payload.js';
 import { budgetInstant, budgetWindows } from './budget-windows.js';
 import { nanoUsd, validatePriceSnapshot } from './exact-money.js';
@@ -24,12 +25,12 @@ const DEFINITIONS = Object.freeze({
   page: { method: 'all', sql: 'SELECT a.id, a.key_id, a.started_at, a.week_start, a.month_start, t.amount, t.evidence FROM accounting_attempts_v1 a LEFT JOIN accounting_terminals_v1 t ON t.attempt_id = a.id WHERE a.key_id = ? AND a.id > ? ORDER BY a.id LIMIT 3' },
 });
 const CODEX_PRICE_READS = Object.freeze({
-  codexManualPrice: Object.freeze({ method: 'get', sql: "SELECT value FROM kv WHERE scope = 'pricing' AND key = 'openai'" }),
+  codexManualPrice: Object.freeze({ method: 'get', sql: "SELECT value FROM kv WHERE scope = 'pricing' AND key = ?" }),
 });
 const CODEX_RATES = ['input', 'cached', 'cache_creation', 'output'];
 
 function readCodexPrice(scope, model, referencePrice) {
-  const manual = scope.codexManualPrice();
+  const manual = scope.codexManualPrice([CODEX_BUDGET_PRICE.provider]);
   try {
     if (manual) {
       const models = JSON.parse(manual.value);
@@ -290,7 +291,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
     },
     async bindCodexAccount(routeProof, connectionId, accessToken, accountId, referencePrice) {
       const route = ownRoutes.get(routeProof);
-      if (!requireAccount || route?.provider !== 'codex') throw unavailable();
+      if (!requireAccount || route?.provider !== 'codex' || route.model !== CODEX_BUDGET_PRICE.model) throw unavailable();
       identifier(connectionId);
       if (typeof accountId !== 'string' || !accountId) throw unavailable();
       const fallback = validatePriceSnapshot(referencePrice);

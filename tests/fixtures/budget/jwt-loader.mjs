@@ -6,5 +6,11 @@ export function resolve(specifier,context,nextResolve){
   if(specifier==='@/lib/dataDir')return nextResolve(pathToFileURL('/app/src/lib/dataDir.js').href,context);
   if(specifier==='@/lib/localDb')return nextResolve(pathToFileURL('/app/tests/fixtures/budget/jwt-settings-stub.mjs').href,context);
  }
+ if(context.parentURL==='file:///app/src/app/api/pricing/route.js'){
+  if(specifier==='next/server')return nextResolve('data:text/javascript,export const NextResponse=Response;',context);
+  if(specifier==='open-sse/providers/pricing.js')return nextResolve('data:text/javascript,export const getDefaultPricing=()=>({});',context);
+  if(specifier==='@/lib/localDb.js')return nextResolve('/app/tests/fixtures/budget/jwt-settings-stub.mjs',context);
+  if(specifier.startsWith('@/lib/'))return nextResolve('/app/src/'+specifier.slice(2),context);
+ }
  return nextResolve(specifier,context);
 }

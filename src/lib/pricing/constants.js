@@ -24,3 +24,5 @@ export const RATE_UNITS = Object.freeze(Object.fromEntries([
   ...PROCESSING_RATE_FIELDS.map(field => [field, "USD/1M tokens"]),
   ["web_search_per_1000", "USD/1000 uses"],
 ]));
+
+export const CODEX_BUDGET_PRICE = Object.freeze({ provider: 'openai', model: 'gpt-6.2-sol' });

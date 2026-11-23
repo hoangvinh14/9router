@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPricing, updatePricing, resetPricing, resetAllPricing } from "@/lib/localDb.js";
+import { requireAccountingAdmin } from "@/lib/accounting/management-auth.js";
+import { CODEX_BUDGET_PRICE } from "@/lib/pricing/constants.js";
 import { getDefaultPricing } from "open-sse/providers/pricing.js";
 
 /**
@@ -72,6 +74,10 @@ export async function PATCH(request) {
       }
     }
 
+    if (Object.hasOwn(body[CODEX_BUDGET_PRICE.provider] ?? {}, CODEX_BUDGET_PRICE.model)) {
+      const denied = await requireAccountingAdmin(request, true);
+      if (denied) return denied;
+    }
     const updatedPricing = await updatePricing(body);
     return NextResponse.json(updatedPricing);
   } catch (error) {
@@ -93,6 +99,11 @@ export async function DELETE(request) {
     const { searchParams } = new URL(request.url);
     const provider = searchParams.get("provider");
     const model = searchParams.get("model");
+
+    if (!provider || (provider === CODEX_BUDGET_PRICE.provider && (!model || model === CODEX_BUDGET_PRICE.model))) {
+      const denied = await requireAccountingAdmin(request, true);
+      if (denied) return denied;
+    }
 
     if (provider && model) {
       // Reset specific model
