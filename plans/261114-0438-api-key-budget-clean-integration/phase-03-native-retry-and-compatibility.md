@@ -49,6 +49,14 @@ Image Linux/amd64 `9router-budget-internal:claude-oauth-standard` (`sha256:60be1
 - Trên chính image này, Codex Standard và Anthropic API-key cũng vượt qua ca HTTP, HTTPS và restart. Các bộ kiểm thử hiện có đạt 119/119 budget, 33/33 startup, 32/32 composition, 12/12 native wire fidelity và 7/7 dashboard.
 - Phạm vi còn mở gồm refresh/retry có kiểm soát, các cấu hình Claude chuyển đổi hoặc ngoài Standard, và rollout trên instance thật.
 
+### Chat Completions và usage ước tính
+
+Codex Standard `gpt-6.2-sol` nhận `/v1/chat/completions` cho nội dung chữ và function tools, trả SSE hoặc JSON. 9Router chuyển sang Responses SSE ở upstream, tính tiền trên terminal gốc rồi trả theo định dạng client. Cả hai endpoint dùng cùng hạn mức theo API key. Các trường và nội dung media ngoài phạm vi được từ chối trước POST.
+
+OmniRoute giữ các số liệu hợp lệ đã nhận, ước tính input từ request và output từ độ dài nội dung quan sát được, rồi kiểm tra lượt tiếp theo theo chi phí đã ghi. 9Router áp dụng quy tắc đó cho terminal Codex hoàn tất. Mỗi phần ước tính được đánh dấu trong SQLite. Với cache không rõ, phần input chưa xác định tỷ lệ cache dùng đơn giá input thường và được đánh dấu ước tính. Lỗi SSE hoặc stream thiếu terminal giữ quy tắc chứng cứ hiện có. Thiếu usage tự nó không khóa key. Khoản điều chỉnh đã ghi trước đây vẫn tham gia tổng của kỳ gốc. [OmniRoute usage finalization](https://github.com/cheaper-inference/OmniRoute/blob/a334036c150d8ae3777b9f7fffa4261477a5bd82/open-sse/utils/finalizeStreamingUsage.ts) · [OmniRoute budget check](https://github.com/cheaper-inference/OmniRoute/blob/a334036c150d8ae3777b9f7fffa4261477a5bd82/src/domain/costRules.ts#L621-L646).
+
+Kiểm thử HTTPS loopback đạt 35/35 trên Node v24.21.0, gồm cả Chat Completions SSE và JSON, 0 POST khi media chưa hỗ trợ, đúng một khoản theo usage gốc, chặn qua cả hai endpoint sau restart, và ghi khoản ước tính trong ca terminal thiếu toàn bộ usage. Các bộ kiểm thử primitives, core, middleware và dashboard lần lượt đạt 119/119, 12/12, 4/4 và 7/7.
+
 ### Kiểm chứng token OAuth hết hạn và lỗi 401
 
 Commit `bd931085` kiểm tra thời điểm hết hạn trong credential đang lưu ở SQLite khi xác minh tài khoản Codex hoặc Claude OAuth, rồi kiểm tra lại trong giao dịch ngay trước POST. Quyết định này áp dụng cho inference. Dashboard vẫn đọc và quản lý budget khi token hết hạn. Một request mới có thể chạy sau khi credential hợp lệ đã được lưu.

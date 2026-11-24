@@ -31,7 +31,7 @@ Dùng SQLite hiện có của 9Router. Mỗi API key bắt đầu ghi chi phí t
 
 ## Thứ tự triển khai đã xác nhận
 
-1. **`9router-2` (20133).** Ưu tiên Codex OAuth `gpt-6.2-sol` qua `/v1/responses` streaming. Kiểm tra cả `/v1/chat/completions` với cùng key để xác nhận đường chuyển đổi chịu cùng hạn mức hoặc bị từ chối trước upstream nếu chưa hỗ trợ.
+1. **`9router-2` (20133).** Ưu tiên Codex OAuth `gpt-6.2-sol` qua `/v1/responses` streaming. Bổ sung `/v1/chat/completions` SSE và JSON cùng API key và hạn mức.
 2. **`9router` (20132).** Tiếp theo là Claude OAuth native Messages. Nghiệm thu `claude-opus-5-5` streaming có tool, thinking và cache, cùng `claude-sonnet-5` JSON qua combo đã chọn.
 
 [Tiêu chí Phase 03](./phase-03-native-retry-and-compatibility.md#luồng-đã-xác-nhận-trên-hai-instance).
@@ -41,7 +41,7 @@ Dùng SQLite hiện có của 9Router. Mỗi API key bắt đầu ghi chi phí t
 Bốn luồng Docker Linux amd64 đã kiểm chứng ghi chi phí theo API key và chặn lượt kế ở đúng hạn mức, kể cả sau restart. [Kết quả nghiệm thu](./phase-03-native-retry-and-compatibility.md#nghiệm-thu-claude-oauth-standard-trên-docker-nội-bộ).
 
 - Phase 03 vẫn yêu cầu refresh/retry trong cùng request, luồng chuyển đổi và các profile ngoài những cấu hình đã nghiệm thu. Hiện tại lỗi 401 của Codex được trả về với một POST, còn credential hết hạn đã biết bị từ chối trước POST. Retry dương cần bằng chứng về attempt trước và biên nhận lưu credential. [Kiểm chứng OAuth](./phase-03-native-retry-and-compatibility.md#kiểm-chứng-token-oauth-hết-hạn-và-lỗi-401).
-- Chính sách thiếu usage đang lệch giữa Phase 04 và bản chạy. Phase 04 ghi tiếp tục tính phần đã biết. Codex hiện chặn key khi terminal đầy đủ thiếu usage, kể cả dưới hạn mức, và có thao tác miễn phần chưa xác định hoặc ghi khoản bổ sung. Cần thống nhất hành vi trước khi đóng tiêu chí này. [Hành vi Codex hiện tại](./phase-03-native-retry-and-compatibility.md#nguồn-đơn-giá-budget--quyết-định-2026-11-23) · [Phase 04](./phase-04-integrity-and-migration.md).
+- Codex Standard bổ sung Chat Completions SSE và JSON dùng chung budget với Responses. Khi phản hồi hoàn tất mà thiếu usage, tính phần ước tính có thể xác định theo cách OmniRoute và chặn theo tổng đã ghi. [Phạm vi và cách tính](./phase-03-native-retry-and-compatibility.md#chat-completions-và-usage-ước-tính).
 - Ma trận runtime ngoài Docker Linux amd64 vẫn mở. Rollout trên hai instance đang chạy là quyết định riêng. [Ma trận nghiệm thu](./phase-05-acceptance-and-handoff.md#acceptance-matrix-beyond-helper-tests).
 
 ## 1. Authority và outcome

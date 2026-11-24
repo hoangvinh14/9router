@@ -2,7 +2,7 @@
 
 Status: pending. Priority: P1. Depends on: phase03. Foundation đã phải có từ phase01/02; phase04 **mở rộng kiểm chứng/integration**, không là lần đầu thêm durability.
 
-**Current D01 amendment:** usage không xác định đóng góp 0 và được đánh dấu unknown/defaulted; không chặn key hoặc yêu cầu admin duyệt vì lý do đó. Bảo toàn known cost, xử lý late/conflicting evidence idempotent; D02/D03 và E2 riêng. Amendment này thay mọi yêu cầu unresolved-block cũ trong phase.
+**Current D01 amendment:** Codex Standard ước tính input/output còn thiếu trên terminal hoàn tất khi có dữ liệu phù hợp. Phần còn lại đóng góp 0 và được đánh dấu unknown/defaulted; không chặn key hoặc yêu cầu admin duyệt vì lý do đó. Bảo toàn known cost, xử lý late/conflicting evidence idempotent; D02/D03 và E2 riêng. Amendment này thay mọi yêu cầu unresolved-block cũ trong phase.
 
 **Current D05 amendment:** SQLite-only, no external accounting integrity file. Old-DB restore may rewind recorded money/history; test snapshot fidelity, not detection of all historical financial rollback. DB-contained credential revocation can also rewind; that consequence needs separate restore disposition, not blanket D04 waiver. Existing source filename candidates below do not require porting sidecar modules.
 
