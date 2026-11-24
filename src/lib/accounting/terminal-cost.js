@@ -30,14 +30,21 @@ export function terminalCost(evidence, originalPrice) {
       unknown.push(category);
     }
   }
+  const inputCategories = ['input', 'cached', 'cache_creation', 'cache_creation_1h'];
+  const promptTokens = known.filter(item => inputCategories.includes(item.category))
+    .reduce((sum, item) => sum + BigInt(item.count), 0n);
+  const aboveThreshold = price.inputThreshold !== undefined && promptTokens > BigInt(price.inputThreshold);
+  const uncertainBand = price.inputThreshold !== undefined && !aboveThreshold &&
+    unknown.some(category => inputCategories.includes(category));
   // Round ONCE over the union of valid disjoint components, never each fragment.
   const amountNanoUsd = known.length ? costFromExactUsageSnapshot({ exact: true,
     components: known, provenance: 'provider-reported-disjoint' }, { ...price,
+    rates: aboveThreshold ? price.aboveThresholdRates : price.rates,
     rateUnits: Object.fromEntries(categories.map(category => [category, RATE_UNITS[category]])),
     usageSemantics: { requiredCategories: known.map(item => item.category) },
   }) : '0';
   const estimated = known.map(item => item.category).filter(category =>
-    Array.isArray(observed?.estimated) && observed.estimated.includes(category));
+    uncertainBand || Array.isArray(observed?.estimated) && observed.estimated.includes(category));
   return snapshotPayload({ amountNanoUsd, known, unknown,
     ...(estimated.length ? { estimated } : {}),
     provenance: estimated.length ? 'estimated' : unknown.length ? 'unknown/defaulted' : 'provider-reported' });

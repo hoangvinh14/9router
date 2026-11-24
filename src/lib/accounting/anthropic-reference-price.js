@@ -29,9 +29,10 @@ export function readAnthropicReferencePrice(scope, model, geo) {
     if (geo === 'global') return synced;
     const version = /^claude-[a-z]+-(\d+)(?:-(\d+))?(?:-|$)/.exec(model);
     if (!version || Number(version[1]) < 4 || Number(version[1]) === 4 && Number(version[2] ?? 0) < 6) return null;
-    const rates = Object.fromEntries(Object.entries(synced.rates).map(([field, rate]) =>
+    const usRates = rates => Object.fromEntries(Object.entries(rates).map(([field, rate]) =>
       [field, nanoUsdToDecimal(String(BigInt(decimalToNanoUsd(rate)) * 11n / 10n))]));
-    return { ...synced, revision: synced.revision + ':us', rates };
+    return { ...synced, revision: synced.revision + ':us', rates: usRates(synced.rates),
+      ...(synced.aboveThresholdRates && { aboveThresholdRates: usRates(synced.aboveThresholdRates) }) };
   }
   if (model !== ANTHROPIC_REFERENCE_MODEL) return null;
   const manual = scope.anthropicManualPrice();

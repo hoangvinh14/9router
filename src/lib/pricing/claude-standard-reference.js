@@ -45,10 +45,11 @@ export function parseClaudeStandardReferences(markdown, syncedAt) {
     throw new Error('Missing Claude Standard price table');
   }
   const prices = {};
+  const bands = new Map();
   for (const line of lines.slice(header + 2)) {
     const cells = readColumns(line);
     if (!cells.length) break;
-    const match = /^Claude ([A-Za-z]+) (\d+(?:\.\d+)*)(?: \(\[.*\))?$/.exec(cells[0]);
+    const match = /^Claude ([A-Za-z]+) (\d+(?:\.\d+)*)(?: \(\[.*\)| \(for prompts (up to|over) ([0-9,]+) tokens\))?$/.exec(cells[0]);
     if (!match) continue;
     const model = `claude-${match[1].toLowerCase()}-${match[2].replaceAll('.', '-')}`;
     const revision = claudeStandardReferenceKey(model);
@@ -60,8 +61,22 @@ export function parseClaudeStandardReferences(markdown, syncedAt) {
       if (!rate) throw new Error('Invalid Claude Standard rate');
       return [rateFields[index], rate];
     }));
-    prices[revision] = validatePriceSnapshot({ currency: 'USD', unit: 'USD/1M tokens', revision, syncedAt,
-      source: CLAUDE_STANDARD_PRICING_URL, rates });
+    const price = { currency: 'USD', unit: 'USD/1M tokens', revision, syncedAt,
+      source: CLAUDE_STANDARD_PRICING_URL, rates };
+    if (!match[3]) {
+      if (bands.has(revision)) throw new Error('Ambiguous Claude Standard tariff');
+      prices[revision] = validatePriceSnapshot(price);
+      continue;
+    }
+    const threshold = Number(match[4].replaceAll(',', ''));
+    const band = bands.get(revision) ?? { threshold };
+    if (band.threshold !== threshold || Object.hasOwn(band, match[3])) throw new Error('Ambiguous Claude Standard context band');
+    band[match[3]] = price;
+    bands.set(revision, band);
+  }
+  for (const [revision, { threshold, 'up to': base, over }] of bands) {
+    if (!base || !over) throw new Error('Incomplete Claude Standard context bands');
+    prices[revision] = validatePriceSnapshot({ ...base, inputThreshold: threshold, aboveThresholdRates: over.rates });
   }
   if (!Object.keys(prices).length) throw new Error('Missing Claude Standard tariffs');
   return prices;

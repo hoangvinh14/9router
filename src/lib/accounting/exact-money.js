@@ -21,6 +21,15 @@ export function validatePriceSnapshot(snapshot) {
   }
   decimalToNanoUsd(copy.rates.input);
   decimalToNanoUsd(copy.rates.output);
+  if (copy.inputThreshold !== undefined || copy.aboveThresholdRates !== undefined) {
+    const higher = copy.aboveThresholdRates;
+    if (!Number.isSafeInteger(copy.inputThreshold) || copy.inputThreshold <= 0 ||
+        !higher || typeof higher !== 'object' || Array.isArray(higher) ||
+        Object.keys(higher).sort().join(',') !== Object.keys(copy.rates).sort().join(',')) {
+      throw new Error('Invalid context-band tariff');
+    }
+    for (const rate of Object.values(higher)) decimalToNanoUsd(rate);
+  }
   return copy;
 }
 
@@ -33,7 +42,7 @@ export function codexModelFromReference(revision) {
 
 export function validateCodexStandardReference(snapshot) {
   const price = validatePriceSnapshot(snapshot);
-  if (!codexModelFromReference(price.revision) ||
+  if (!codexModelFromReference(price.revision) || price.inputThreshold !== undefined ||
       !Number.isSafeInteger(price.syncedAt) || price.syncedAt <= 0 ||
       Object.keys(price.rates).sort().join(',') !== 'cached,input,output') {
     throw new Error('Invalid Codex Standard reference price');

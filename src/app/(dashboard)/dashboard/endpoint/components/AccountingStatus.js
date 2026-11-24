@@ -179,11 +179,11 @@ function BudgetSnapshot({ keyId }) {
             cached input {budget.referencePrice.cached}, output {budget.referencePrice.output}.
             Synced <time dateTime={budget.referencePrice.syncedAt}>{resetFormat.format(new Date(budget.referencePrice.syncedAt))}</time>.
           </p>}
-          {budget.referencePrices?.map(({ model, rates, syncedAt, codex }) => <p key={model}>
+          {budget.referencePrices?.map(({ model, rates, syncedAt, codex, inputThreshold }) => <p key={model}>
             {codex
               ? <a className="underline" href="https://help.openai.com/en/articles/20001415-chatgpt-rate-card-enterprise-token-based-pricing">OpenAI Codex USD reference</a>
               : <a className="underline" href="https://platform.claude.com/docs/en/about-claude/pricing#model-pricing">Anthropic Standard price</a>}
-            {" for "}{model} (USD per million tokens). Input {rates.input}, cache read {rates.cached},
+            {" for "}{model}{inputThreshold && ` up to ${inputThreshold.toLocaleString()} prompt tokens`} (USD per million tokens). Input {rates.input}, cache read {rates.cached},
             {!codex && <> cache write (5m) {rates.cache_creation}, cache write (1h) {rates.cache_creation_1h}, </>}
             output {rates.output}.
             Synced <time dateTime={syncedAt}>{resetFormat.format(new Date(syncedAt))}</time>.

@@ -63,7 +63,9 @@ function budgetView(body, keyId) {
       const required = ["input", "output", "cached", ...(codex ? [] : ["cache_creation", "cache_creation_1h"])];
       if (!match || !Number.isSafeInteger(price.syncedAt) || price.syncedAt <= 0 || price.syncedAt > 8640000000000000 ||
           !required.every(field => typeof rates?.[field] === "string" && /^\d+(?:\.\d+)?$/.test(rates[field]))) return [];
-      return [{ model: match[2], rates, codex, syncedAt: new Date(price.syncedAt).toISOString() }];
+      const inputThreshold = Number.isSafeInteger(price.inputThreshold) && price.inputThreshold > 0
+        ? price.inputThreshold : undefined;
+      return [{ model: match[2], rates, codex, inputThreshold, syncedAt: new Date(price.syncedAt).toISOString() }];
     })
     : [];
   const unresolvedAttempts = usage.blockedByUnresolvedUsage === true && Array.isArray(usage.unresolvedAttempts)
