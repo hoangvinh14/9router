@@ -49,7 +49,7 @@ export async function POST(request) {
     await ensureInitialized();
     return await handleAccountedChatCandidate(request, { identity, provider: profile.provider, connectionId: profile.connectionId,
       createContext: ({ routeProof, credentials, model, body }) => createAnthropicDispatchContext({ identity, routeProof, credentials, profile,
-        ...(profile.provider === 'claude' ? { model, stream: body.stream === true } : {}),
+        model, stream: body.stream === true,
       }),
     });
   } catch {

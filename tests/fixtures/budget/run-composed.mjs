@@ -9,7 +9,7 @@ if (process.platform !== 'linux' || process.version !== 'v24.21.0' || (!tls && p
     process.env.NODE_OPTIONS || process.env.NODE_PATH) throw new Error('Clean pinned Linux Node required');
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const files = [
-  'src/app/api/v1/responses/route.js', 'src/app/api/v1/chat/completions/route.js',
+  'src/app/api/v1/messages/route.js', 'src/app/api/v1/responses/route.js', 'src/app/api/v1/chat/completions/route.js',
   'open-sse/utils/usageTracking.js', 'open-sse/translator/request/openai-responses.js', 'open-sse/translator/response/openai-responses.js',
   'open-sse/translator/concerns/chunk.js', 'open-sse/translator/concerns/usage.js',
   'open-sse/translator/concerns/reasoning.js', 'open-sse/translator/concerns/claudeMessage.js',
@@ -26,7 +26,7 @@ const files = [
   'src/lib/accounting/node-attempt-ledger.js', 'src/lib/accounting/node-key-policy.js', 'src/lib/accounting/node-anthropic-account.js',
   'src/lib/accounting/anthropic-reference-price.js', 'src/lib/accounting/responses-usage.js', 'src/lib/accounting/anthropic-dispatch-context.js', 'src/lib/accounting/anthropic-usage.js',
   'src/lib/accounting/attempt-payload.js', 'src/lib/accounting/process-state.js', 'src/lib/accounting/budget-windows.js',
-  'src/lib/accounting/exact-money.js', 'src/lib/accounting/terminal-cost.js', 'src/lib/pricing/constants.js', 'src/lib/pricing/decimalMoney.js',
+  'src/lib/accounting/exact-money.js', 'src/lib/accounting/terminal-cost.js', 'src/lib/pricing/claude-standard-reference.js', 'src/lib/pricing/constants.js', 'src/lib/pricing/decimalMoney.js',
   'open-sse/services/model.js', 'open-sse/services/combo.js', 'open-sse/services/capacityAdapter.js',
   'open-sse/services/accountFallback.js', 'open-sse/services/systemoneRouter.js',
   'open-sse/handlers/chatCore.js', 'open-sse/handlers/chatCore/nonStreamingHandler.js',

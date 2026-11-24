@@ -3,7 +3,7 @@ import { prepareAccountedDirectPost } from '../../../open-sse/utils/proxyFetch.j
 import { ANTHROPIC_API_VERSION } from '../../../open-sse/providers/shared.js';
 import { snapshotPayload, canonical, unavailable } from './attempt-payload.js';
 import { budgetInstant } from './budget-windows.js';
-import { ANTHROPIC_REFERENCE_MODEL, isAnthropicReferenceGeo } from './anthropic-reference-price.js';
+import { isAnthropicReferenceGeo } from './anthropic-reference-price.js';
 import { anthropicJsonUsage, createAnthropicUsageAccumulator } from './anthropic-usage.js';
 import { ACCOUNTED_ANTHROPIC_URL, ACCOUNTED_CLAUDE_URL, credentialDigest, directAccountData, isSingleWorkspaceBinding } from './node-anthropic-account.js';
 
@@ -69,14 +69,18 @@ function oauthMessageBlock(block, role) {
 export function createAnthropicDispatchContext({ identity, routeProof, credentials, profile, model = profile?.model, clock, stream = false }) {
   const config = snapshotPayload(profile);
   const oauth = config?.provider === 'claude';
+  const nativeDefaults = oauth || config?.model === undefined;
+  const anthropicProfileFields = nativeDefaults
+    ? 'auth,connectionId,enabled,inferenceGeo,producerAdmitted,provider,serviceTier,workspaceBinding'
+    : 'auth,enabled,inferenceGeo,model,producerAdmitted,provider,serviceTier,workspaceBinding';
   const wireUrl = oauth ? ACCOUNTED_CLAUDE_URL : ACCOUNTED_ANTHROPIC_URL;
   if (config?.enabled !== true || config?.producerAdmitted !== true ||
       !(oauth
         ? config.auth === 'oauth' && config.serviceTier === 'standard' && nonempty(model)
         : config.provider === 'anthropic' && config.auth === 'api-key' &&
-          config.model === ANTHROPIC_REFERENCE_MODEL && model === config.model && isAnthropicReferenceGeo(config.inferenceGeo) &&
-          config.serviceTier === 'standard_only' &&
-          Object.keys(config).sort().join(',') === 'auth,enabled,inferenceGeo,model,producerAdmitted,provider,serviceTier,workspaceBinding') ||
+          nonempty(model) && (config.model === undefined || model === config.model) &&
+          isAnthropicReferenceGeo(config.inferenceGeo) && config.serviceTier === 'standard_only' &&
+          Object.keys(config).sort().join(',') === anthropicProfileFields) ||
       typeof stream !== 'boolean' ||
       !routeProof || typeof identity?.prepare !== 'function' || typeof identity?.dispatch !== 'function') throw unavailable();
   const { connectionId, apiKey, authType, providerSpecificData, accessToken, refreshToken } = credentials ?? {};
@@ -95,14 +99,15 @@ export function createAnthropicDispatchContext({ identity, routeProof, credentia
   const validateShape = body => {
     const request = snapshotPayload(body);
     if (!fields(request, oauth ? CLAUDE_FIELDS : stream ? SSE_FIELDS : JSON_FIELDS) ||
-        ![model, `${config.provider}/${model}`].includes(request.model) || (oauth ? (request.stream ?? false) !== stream : request.stream !== stream) ||
+        ![model, `${config.provider}/${model}`].includes(request.model) || ((nativeDefaults ? request.stream ?? false : request.stream) !== stream) ||
         !Array.isArray(request.messages) || !request.messages.length) throw unavailable();
     if (oauth) {
       if ((request.speed !== undefined && request.speed !== 'standard') ||
           (request.inference_geo !== undefined && request.inference_geo !== 'global') ||
           (request.service_tier !== undefined && request.service_tier !== 'standard_only') ||
           !validCache(request.cache_control)) throw unavailable();
-    } else if (request.inference_geo !== config.inferenceGeo || request.service_tier !== config.serviceTier) {
+    } else if ((nativeDefaults ? request.inference_geo ?? 'global' : request.inference_geo) !== config.inferenceGeo ||
+        request.service_tier !== config.serviceTier) {
       throw unavailable();
     }
     for (const message of request.messages) {
@@ -129,15 +134,16 @@ export function createAnthropicDispatchContext({ identity, routeProof, credentia
   return Object.freeze({
     stream,
     ...(oauth ? { provider: 'claude' } : {}),
+    nativeDefaults,
     validateInput(body) {
       if (acceptedBody !== null || preparationStarted) throw unavailable();
       acceptedBody = validateShape(body); // detached pre-helper immutable JSON
     },
-    ...(oauth ? {} : { buildHeaders({ provider, url, model, stream: wireStream, credentials: effective }) {
+    ...(oauth ? {} : { buildHeaders({ provider, url, model: wireModel, stream: wireStream, credentials: effective }) {
       // The ordinary executor merges a client beta header. This contract does
       // not support that request; refuse instead of silently dropping it.
       const rawHeaders = new Headers(effective?.rawHeaders);
-      if (provider !== config.provider || url !== ACCOUNTED_ANTHROPIC_URL || model !== config.model || wireStream !== stream ||
+      if (provider !== config.provider || url !== ACCOUNTED_ANTHROPIC_URL || wireModel !== model || wireStream !== stream ||
           effective?.connectionId !== connectionId || effective.apiKey !== apiKey || effective.authType !== 'apikey' ||
           effective.accessToken || effective.refreshToken || rawHeaders.has('anthropic-beta') ||
           rawHeaders.has('anthropic-workspace-id')) throw unavailable();
@@ -163,7 +169,7 @@ export function createAnthropicDispatchContext({ identity, routeProof, credentia
       const initiate = await prepareAccountedDirectPost(url, { ...options, body: encodedBody, headers }, proxyOptions);
       const { proof: accountProof, price } = await (oauth
         ? identity.bindClaudeAccount(routeProof, connectionId, accessToken)
-        : identity.bindAnthropicAccount(routeProof, connectionId, apiKey, body.inference_geo));
+        : identity.bindAnthropicAccount(routeProof, connectionId, apiKey, body.inference_geo ?? config.inferenceGeo));
       const attempt = identity.prepare({ attemptId: randomUUID(), provider, model,
         startedAt: budgetInstant(clock), price }, routeProof, accountProof);
       const usage = createAnthropicUsageAccumulator();

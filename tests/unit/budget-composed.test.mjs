@@ -6,6 +6,7 @@ import { once } from 'node:events';
 import { test } from 'node:test';
 import { spawnSync } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
+import { POST as postMessages } from '../../src/app/api/v1/messages/route.js';
 import { POST as postResponses } from '../../src/app/api/v1/responses/route.js';
 import { handleAccountedChatCandidate } from '../../src/sse/handlers/chat.js';
 import { createNodeSqliteAdapter } from '../../src/lib/db/adapters/nodeSqliteAdapter.js';
@@ -734,6 +735,34 @@ function codexFixture(run, { additionalPrices = {}, ...options } = {}) {
     monthly: codexFixtureLimit, profile, reply, prepareDb, ...options,
   }).finally(() => fs.rmSync(bindingPath, { force: true }));
 }
+
+if (!stage) test('Anthropic API key uses the synchronized price for a second model', async () => {
+  const target = 'claude-haiku-4-5';
+  const revision = `anthropic:claude/${target}:standard:v1`;
+  const bindingPath = '/run/9router/accounting-binding.json';
+  fs.writeFileSync(bindingPath, JSON.stringify({ clientKeyId: 'fixture-key', workspaceBinding }));
+  try {
+    await fixture(async ({ rows, state, totals }) => {
+      const send = () => postMessages(new Request('https://fixture.invalid/v1/messages', {
+        method: 'POST', headers: { authorization: 'Bearer fixture-client', 'user-agent': 'claude-code fixture' },
+        body: JSON.stringify({ ...body, model: `anthropic/${target}` }),
+      }));
+      assert.equal((await send()).status, 200);
+      assert.equal(state.wire[0].body.model, target);
+      assert.equal(rows().attempts[0].price.revision, revision);
+      assert.equal(totals().monthly, '35300');
+      assert.equal((await send()).status, 503);
+      assert.equal(state.wire.length, 1);
+    }, { monthly: '35300', reply: success, prepareDb(db) {
+      db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [JSON.stringify([`anthropic/${target}`]), 'fixture-key']);
+      db.run('INSERT INTO kv VALUES (?,?,?)', [referenceScope, revision, JSON.stringify({
+        currency: 'USD', unit: 'USD/1M tokens', revision, syncedAt: 2,
+        source: 'https://platform.claude.com/docs/en/about-claude/pricing.md',
+        rates: { input: '1', cached: '0.10', cache_creation: '1.25', cache_creation_1h: '2', output: '5' },
+      })]);
+    } });
+  } finally { fs.rmSync(bindingPath, { force: true }); }
+});
 
 if (!stage) test('two Codex models share one budget and use their own synchronized prices', () =>
   codexFixture(async ({ request, rows, state, totals }) => {

@@ -42,7 +42,7 @@ const realAppImports = new Map([
 
 export function resolve(specifier, context, nextResolve) {
   const parent = context.parentURL;
-  if (parent === `${root}src/app/api/v1/responses/route.js`) {
+  if (['messages', 'responses'].some(path => parent === `${root}src/app/api/v1/${path}/route.js`)) {
     if (specifier === '@/sse/handlers/chat.js') return nextResolve(chat, context);
     if (specifier === 'open-sse/translator/index.js') return nextResolve('data:text/javascript,export const initTranslators=()=>{};', context);
     if (specifier.startsWith('@/lib/accounting/')) return nextResolve(root + specifier.replace('@/', 'src/'), context);

@@ -1,7 +1,6 @@
 import { unavailable, snapshotPayload } from './attempt-payload.js';
 import { createNodeOuterTransaction } from './node-outer-transaction.js';
 import { PROVIDER_ACCOUNT_READS, isSingleWorkspaceBinding, readAnthropicAccount, readClaudeAccount, readCodexAccount } from './node-anthropic-account.js';
-import { ANTHROPIC_REFERENCE_MODEL } from './anthropic-reference-price.js';
 import { BUDGET_REFERENCE_SCOPE } from '../pricing/constants.js';
 import { codexModelFromReference, validateCodexStandardReference } from './exact-money.js';
 import { ROUTING_READS } from './node-routing-snapshot.js';
@@ -36,7 +35,7 @@ export function resolveInternalBudgetBinding(adapter, input) {
   if (value?.workspaceBinding) {
     verifyInternalAnthropicBinding(adapter, value);
     return Object.freeze({ enabled: true, producerAdmitted: true, provider: 'anthropic', auth: 'api-key',
-      model: ANTHROPIC_REFERENCE_MODEL, serviceTier: 'standard_only', inferenceGeo: 'global',
+      connectionId: value.workspaceBinding.connectionId, serviceTier: 'standard_only', inferenceGeo: 'global',
       workspaceBinding: Object.freeze(value.workspaceBinding) });
   }
 

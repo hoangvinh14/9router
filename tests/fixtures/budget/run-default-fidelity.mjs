@@ -9,7 +9,7 @@ const files=[
  'src/lib/accounting/attempt-payload.js','src/lib/accounting/budget-windows.js','src/lib/accounting/exact-money.js',
  'src/lib/accounting/anthropic-usage.js','src/lib/accounting/terminal-cost.js','src/lib/accounting/anthropic-dispatch-context.js',
  'src/lib/accounting/node-anthropic-account.js','src/lib/accounting/anthropic-reference-price.js','open-sse/services/accountFallback.js',
- 'src/lib/pricing/constants.js','src/lib/pricing/decimalMoney.js',
+ 'src/lib/pricing/constants.js','src/lib/pricing/decimalMoney.js','src/lib/pricing/claude-standard-reference.js',
  'open-sse/executors/base.js','open-sse/executors/default.js','open-sse/providers/registry/anthropic.js','open-sse/providers/shared.js',
  'open-sse/config/runtimeConfig.js','open-sse/config/errorConfig.js','open-sse/utils/debugLog.js','open-sse/utils/claudeCliVersion.js',
  'open-sse/utils/reasoningContentInjector.js','open-sse/translator/concerns/paramSupport.js','tests/unit/budget-default-fidelity.test.mjs',

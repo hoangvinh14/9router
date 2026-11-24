@@ -1,3 +1,5 @@
+import { readClaudeStandardReference } from '../pricing/claude-standard-reference.js';
+import { decimalToNanoUsd, nanoUsdToDecimal } from '../pricing/decimalMoney.js';
 import { unavailable } from './attempt-payload.js';
 
 export const ANTHROPIC_REFERENCE_MODEL = 'claude-sonnet-4-6';
@@ -20,7 +22,18 @@ export const ANTHROPIC_PRICE_READS = Object.freeze({
 });
 
 export function readAnthropicReferencePrice(scope, model, geo) {
-  if (model !== ANTHROPIC_REFERENCE_MODEL || !isAnthropicReferenceGeo(geo)) throw unavailable();
+  if (!isAnthropicReferenceGeo(geo)) throw unavailable();
+  const synced = readClaudeStandardReference(scope, model) ??
+    readClaudeStandardReference(scope, model.replace(/-\d{8}$/, ''));
+  if (synced) {
+    if (geo === 'global') return synced;
+    const version = /^claude-[a-z]+-(\d+)(?:-(\d+))?(?:-|$)/.exec(model);
+    if (!version || Number(version[1]) < 4 || Number(version[1]) === 4 && Number(version[2] ?? 0) < 6) return null;
+    const rates = Object.fromEntries(Object.entries(synced.rates).map(([field, rate]) =>
+      [field, nanoUsdToDecimal(String(BigInt(decimalToNanoUsd(rate)) * 11n / 10n))]));
+    return { ...synced, revision: synced.revision + ':us', rates };
+  }
+  if (model !== ANTHROPIC_REFERENCE_MODEL) return null;
   const manual = scope.anthropicManualPrice();
   if (manual !== null) {
     let models;

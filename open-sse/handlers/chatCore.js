@@ -102,7 +102,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   const nativeClaudeOAuthAccounting = provider === 'claude' && accounting?.provider === 'claude';
   const nativeAnthropicAccounting = (provider === 'anthropic' || nativeClaudeOAuthAccounting) && sourceFormat === FORMATS.CLAUDE;
   if (accounting !== null && ((!nativeAnthropicAccounting && !nativeCodexAccounting) ||
-      (!codexChatAccounting && (nativeClaudeOAuthAccounting ? body.stream ?? false : body.stream) !== (accounting.stream === true)) || typeof accounting.prepare !== 'function' ||
+      (!codexChatAccounting && (accounting.nativeDefaults ? body.stream ?? false : body.stream) !== (accounting.stream === true)) || typeof accounting.prepare !== 'function' ||
       headroomEnabled || pxpipeEnabled || (rtkEnabled && !nativeClaudeOAuthAccounting) || cavemanEnabled || ponytailEnabled ||
       customPromptEnabled || providerThinking?.mode && providerThinking.mode !== 'auto')) {
     return { ...createErrorResult(503, 'Accounting profile unavailable'), accountingRefused: true };
@@ -188,7 +188,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
 
   const clientRequestedStreaming = body.stream === true || sourceFormat === FORMATS.ANTIGRAVITY || sourceFormat === FORMATS.GEMINI || sourceFormat === FORMATS.GEMINI_CLI;
   const providerRequiresStreaming = PROVIDERS[provider]?.forceStream === true;
-  let stream = nativeClaudeOAuthAccounting ? accounting.stream : nativeCodexAccounting || providerRequiresStreaming || body.stream !== false;
+  let stream = accounting?.nativeDefaults ? accounting.stream : nativeCodexAccounting || providerRequiresStreaming || body.stream !== false;
 
   // Image generation models require non-streaming (Google v1internal:generateContent)
   const modelType = getModelType(alias, model);

@@ -19,7 +19,7 @@ const files = [
   'src/sse/handlers/chat.js', 'src/lib/accounting/installed-service.js', 'src/lib/accounting/request-boundary.js',
   'src/lib/accounting/node-attempt-ledger.js', 'src/lib/accounting/node-key-policy.js', 'src/lib/accounting/budget-windows.js',
   'src/lib/accounting/node-anthropic-account.js', 'src/lib/accounting/anthropic-reference-price.js',
-  'src/lib/accounting/exact-money.js', 'src/lib/accounting/terminal-cost.js', 'src/lib/pricing/constants.js', 'src/lib/pricing/decimalMoney.js',
+  'src/lib/accounting/exact-money.js', 'src/lib/accounting/terminal-cost.js', 'src/lib/pricing/constants.js', 'src/lib/pricing/decimalMoney.js','src/lib/pricing/claude-standard-reference.js',
   'open-sse/services/combo.js', 'open-sse/services/capacityAdapter.js', 'open-sse/services/accountFallback.js',
   'open-sse/services/systemoneRouter.js', 'open-sse/utils/accountingResponse.js',
   'tests/fixtures/budget/route-chat-stubs.mjs', 'tests/unit/budget-route-chat-cases.mjs', test, loader, scope,
