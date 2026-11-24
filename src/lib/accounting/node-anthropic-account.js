@@ -24,15 +24,19 @@ export function directAccountData(data) {
 // Hash only security-relevant account state, not mutable bookkeeping such as
 // lastUsedAt. Never put the upstream key, digest or settings into the ledger row.
 export function readAnthropicAccount(scope, connectionId, model) {
+  return readApiKeyAccount(scope, connectionId, model, 'anthropic');
+}
+
+export function readApiKeyAccount(scope, connectionId, model, provider) {
   const row = scope.providerAccount([connectionId]);
-  if (row?.provider !== 'anthropic' || row.authType !== 'apikey' || row.isActive !== 1) return null;
+  if (row?.provider !== provider || row.authType !== 'apikey' || row.isActive !== 1) return null;
   const account = objectJson(row.data);
   const { apiKey, providerSpecificData, accessToken, refreshToken } = account;
   const rowSettings = scope.routingSettings();
   const settings = rowSettings === null ? {} : objectJson(rowSettings.data);
   if (typeof apiKey !== 'string' || !apiKey || accessToken || refreshToken || isModelLockActive(account, model) ||
       !directAccountData(providerSpecificData) || settings.outboundProxyEnabled || settings.outboundProxyUrl ||
-      settings.outboundNoProxy || settings.providerOverrides?.anthropic) return null;
+      settings.outboundNoProxy || settings.providerOverrides?.[provider]) return null;
   return credentialDigest(apiKey);
 }
 
@@ -56,7 +60,7 @@ export function codexAccountId(data) {
   return typeof accountId === 'string' && accountId ? accountId : null;
 }
 
-function oauthTokenExpired(account, now) {
+export function oauthTokenExpired(account, now) {
   if (now === undefined) return false;
   const expiry = account.expiresAt ?? account.tokenExpiresAt;
   if (expiry === undefined || expiry === null || expiry === '') return false;

@@ -12,7 +12,7 @@ const terminalStatuses = new Map([
 // The Codex client reads usage on these terminal incomplete responses.
 const meteredIncompleteReasons = new Set(["max_output_tokens", "interrupted"]);
 
-export function createAccountedResponsesStream(settle, onTerminal, priceCacheWrites = false, render = null, inputEstimate = 0) {
+export function createAccountedResponsesStream(settle, onTerminal, priceCacheWrites = false, render = null, inputEstimate = 0, mapUsage = null) {
   const decoder = new TextDecoder("utf-8", { fatal: true });
   let buffer = "";
   let frame = "";
@@ -70,7 +70,7 @@ export function createAccountedResponsesStream(settle, onTerminal, priceCacheWri
           const metered = status === "completed" || status === "failed" ||
             (status === "incomplete" && meteredIncompleteReasons.has(event.response.incomplete_details?.reason));
           const rawUsage = metered ? event.response.usage : null;
-          const reported = responsesTokenUsage(rawUsage, priceCacheWrites);
+          const reported = mapUsage ? mapUsage(rawUsage) : responsesTokenUsage(rawUsage, priceCacheWrites);
           const usage = status === "completed" && inputEstimate > 0
             ? estimateMissingCodexUsage(reported, rawUsage, inputEstimate, estimateOutputTokens(outputCharacters))
             : reported;

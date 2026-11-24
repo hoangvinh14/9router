@@ -37,6 +37,36 @@ export function responsesTokenUsage(rawUsage, priceCacheWrites = false) {
   return { semantics: EXCLUSIVE_USAGE, components };
 }
 
+// OpenAI Standard uses the native protocol's counters; reasoning is already in output.
+// Explicit cache lifetime overrides are refused at admission. A conflicting TTL
+// breakdown cannot be billed as default writes.
+export function openAIStandardUsage(raw, price, responses) {
+  const normalized = {};
+  for (const [chat, key] of [['prompt_tokens', 'input_tokens'], ['completion_tokens', 'output_tokens'],
+    ['total_tokens', 'total_tokens'], ['prompt_tokens_details', 'input_tokens_details']]) {
+    const source = responses ? key : chat;
+    if (raw?.[source] !== undefined) normalized[key] = raw[source];
+  }
+  const details = normalized.input_tokens_details;
+  const write = details?.cache_write_tokens;
+  const breakdown = details?.cache_write_tokens_details;
+  const hasWrite = Object.hasOwn(price.rates, 'cache_creation');
+  const hasCache = Object.hasOwn(price.rates, 'cached');
+  if (!hasCache && !details?.cached_tokens && !write) {
+    // A flat input tariff prices all input alike without a cache breakdown.
+    normalized.input_tokens_details = { cached_tokens: 0 };
+  } else if (hasWrite && breakdown !== undefined &&
+      (!validCount(breakdown?.ttl_30m_tokens) || breakdown.ttl_30m_tokens !== write || breakdown.ttl_12h_tokens !== 0)) {
+    normalized.input_tokens_details = { cached_tokens: details.cached_tokens ?? null };
+  }
+  const evidence = responsesTokenUsage(normalized, hasWrite);
+  if (!hasCache) {
+    evidence.components = evidence.components.filter(item => item.category === 'output' ||
+      (item.category === 'input' && !details?.cached_tokens && !write));
+  }
+  return evidence;
+}
+
 export function estimateMissingCodexUsage(usage, rawUsage, inputEstimate, outputEstimate) {
   const components = [...usage.components];
   const estimated = [];

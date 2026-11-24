@@ -30,10 +30,10 @@ const executorDependencies = new Map([
   ['../utils/claudeCloaking.js', ['open-sse/executors/default.js']],
   ['../../providers/capabilities.js', ['open-sse/translator/concerns/paramSupport.js']],
   ['../utils/proxyFetch.js', ['open-sse/executors/base.js', 'open-sse/executors/default.js']],
-  ['../../../open-sse/utils/proxyFetch.js', ['src/lib/accounting/anthropic-dispatch-context.js', 'src/lib/accounting/codex-dispatch-context.js']],
+  ['../../../open-sse/utils/proxyFetch.js', ['src/lib/accounting/oauth-refresh.js', 'src/lib/accounting/anthropic-dispatch-context.js', 'src/lib/accounting/codex-dispatch-context.js', 'src/lib/accounting/openai-dispatch-context.js']],
 ]);
 const providerConfigParents = new Set([core, codex, `${root}open-sse/executors/default.js`, `${root}open-sse/utils/reasoningContentInjector.js`]);
-const providerConfig = `data:text/javascript,import anthropic from '${root}open-sse/providers/registry/anthropic.js';import codex from '${root}open-sse/providers/registry/codex.js';export const PROVIDERS={anthropic:anthropic.transport,codex:codex.transport}, PROVIDER_OAUTH={};`;
+const providerConfig = `data:text/javascript,import openai from '${root}open-sse/providers/registry/openai.js';import anthropic from '${root}open-sse/providers/registry/anthropic.js';import claude from '${root}open-sse/providers/registry/claude.js';import codex from '${root}open-sse/providers/registry/codex.js';export const PROVIDERS={openai:openai.transport,anthropic:anthropic.transport,codex:codex.transport,claude:claude.transport}, PROVIDER_OAUTH={claude:claude.oauth,codex:codex.oauth};`;
 const realAppImports = new Map([
   ['open-sse/handlers/chatCore.js', 'open-sse/handlers/chatCore.js'],
   ['open-sse/translator/formats.js', 'open-sse/translator/formats.js'],
@@ -47,7 +47,7 @@ export function resolve(specifier, context, nextResolve) {
     if (specifier === 'open-sse/translator/index.js') return nextResolve('data:text/javascript,export const initTranslators=()=>{};', context);
     if (specifier.startsWith('@/lib/accounting/')) return nextResolve(root + specifier.replace('@/', 'src/'), context);
   }
-  if (['installed-service.js', 'request-boundary.js', 'profile-registry.js'].some(name => parent === `${root}src/lib/accounting/${name}`) &&
+  if (['oauth-refresh.js', 'installed-service.js', 'request-boundary.js', 'profile-registry.js'].some(name => parent === `${root}src/lib/accounting/${name}`) &&
       specifier === '../db/driver.js') return nextResolve(stub, context);
   if (parent === root + 'open-sse/handlers/chatCore/sseToJsonHandler.js' &&
       ['./requestDetail.js', '@/lib/usageDb.js'].includes(specifier)) return nextResolve(coreStubs, context);
@@ -61,6 +61,10 @@ export function resolve(specifier, context, nextResolve) {
     parent === root + `open-sse/translator/${kind}/openai-responses.js`)) {
     return nextResolve('data:text/javascript,export const register = () => {};', context);
   }
+  if (parent === chat && specifier === '@/lib/accounting/oauth-refresh.js') return nextResolve(root + 'src/lib/accounting/oauth-refresh.js', context);
+  if (parent === root + 'open-sse/utils/proxyFetch.js' && specifier === 'undici') {
+    return nextResolve(root + 'tests/fixtures/budget/composed-undici.mjs', context);
+  }
   if (parent === chat && realAppImports.has(specifier)) {
     return nextResolve(root + realAppImports.get(specifier), context);
   }
@@ -68,7 +72,7 @@ export function resolve(specifier, context, nextResolve) {
   if (parent === chat && specifier === '../services/antigravityQuota.js') return nextResolve(stub, context);
   if (parent === auth && accountAliases.has(specifier)) return nextResolve(accountAliases.get(specifier), context);
   if (parent === proxyConfig && specifier === '@/models') return nextResolve(fixtureDb, context);
-  if (dbRepos.has(parent) && specifier === '../driver.js') return nextResolve(stub, context);
+  if ((dbRepos.has(parent) || parent === root + 'src/lib/db/helpers/kvStore.js') && specifier === '../driver.js') return nextResolve(stub, context);
   if (dbRepos.has(parent) && specifier === 'uuid') {
     return nextResolve('data:text/javascript,export function v4(){throw new Error("Unexpected account creation in fixture");}', context);
   }

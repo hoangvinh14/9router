@@ -1,3 +1,4 @@
+import { usesRotatingOAuth, refreshStoredOAuth } from "@/lib/db/repos/connectionsRepo.js";
 import { getProviderConnectionById, updateProviderConnection } from "@/lib/localDb";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { testProxyUrl } from "@/lib/network/proxyTest";
@@ -262,7 +263,13 @@ async function probeCloudCodeAssistAccess(connection, accessToken, effectiveProx
   };
 }
 
-async function refreshOAuthToken(connection) {
+function refreshOAuthToken(connection) {
+  const grant = () => exchangeOAuthToken(connection);
+  return usesRotatingOAuth(connection.provider, connection)
+    ? refreshStoredOAuth(connection.provider, connection, grant) : grant();
+}
+
+async function exchangeOAuthToken(connection) {
   const provider = connection.provider;
   const refreshToken = connection.refreshToken;
   if (!refreshToken) return null;
@@ -1021,7 +1028,7 @@ export async function testSingleConnection(id) {
       : new Date().toISOString(),
   };
 
-  if (result.refreshed && result.newTokens) {
+  if (result.refreshed && result.newTokens && !usesRotatingOAuth(connection.provider, connection)) {
     if (result.newTokens.accessToken) updateData.accessToken = result.newTokens.accessToken;
     if (result.newTokens.refreshToken) updateData.refreshToken = result.newTokens.refreshToken;
     if (result.newTokens.apiKey) updateData.apiKey = result.newTokens.apiKey;

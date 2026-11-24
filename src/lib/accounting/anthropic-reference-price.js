@@ -21,10 +21,9 @@ export const ANTHROPIC_PRICE_READS = Object.freeze({
   referenceCatalogPresent: Object.freeze({ method: 'get', sql: "SELECT 1 AS present FROM kv WHERE scope = 'referencePricing' AND key = 'catalog'" }),
 });
 
-export function readAnthropicReferencePrice(scope, model, geo) {
+export function readAnthropicReferencePrice(scope, model, geo, requireSynced = false) {
   if (!isAnthropicReferenceGeo(geo)) throw unavailable();
-  const synced = readClaudeStandardReference(scope, model) ??
-    readClaudeStandardReference(scope, model.replace(/-\d{8}$/, ''));
+  const synced = readClaudeStandardReference(scope, model);
   if (synced) {
     if (geo === 'global') return synced;
     const version = /^claude-[a-z]+-(\d+)(?:-(\d+))?(?:-|$)/.exec(model);
@@ -34,7 +33,7 @@ export function readAnthropicReferencePrice(scope, model, geo) {
     return { ...synced, revision: synced.revision + ':us', rates: usRates(synced.rates),
       ...(synced.aboveThresholdRates && { aboveThresholdRates: usRates(synced.aboveThresholdRates) }) };
   }
-  if (model !== ANTHROPIC_REFERENCE_MODEL) return null;
+  if (requireSynced || model !== ANTHROPIC_REFERENCE_MODEL) return null;
   const manual = scope.anthropicManualPrice();
   if (manual !== null) {
     let models;

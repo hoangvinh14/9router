@@ -1,3 +1,4 @@
+import { exerciseClaudeConversion } from '../fixtures/budget/claude-conversion-cases.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
@@ -74,13 +75,23 @@ async function startLoopback(state, reply, interrupted, partialResponse, {
   server.on('request', (req, res) => {
     // Count at actual HTTP ingress, even if the body is malformed or cut short.
     const wire = { headers: Object.fromEntries(headerNames.map(name => [name, req.headers[name]])), body: null };
-    state.wire.push(wire);
+    if (req.url !== '/oauth/token') state.wire.push(wire);
     (async () => {
       assert.equal(req.socket.encrypted, true);
       assert.equal(req.socket.remoteAddress, '127.0.0.1');
       assert.equal(req.method, 'POST');
+      if (req.url === '/oauth/token') {
+        const chunks = [];
+        for await (const chunk of req) chunks.push(chunk);
+        const raw = Buffer.concat(chunks).toString();
+        const grant = await state.grant(req.headers['content-type'] === 'application/json'
+          ? JSON.parse(raw) : Object.fromEntries(new URLSearchParams(raw)));
+        res.writeHead(grant.status, Object.fromEntries(grant.headers));
+        res.end(await grant.text());
+        return;
+      }
       assert.equal(req.url, pathname);
-      assert.equal(req.headers['anthropic-beta'], undefined);
+      if (state.profile?.provider !== 'claude') assert.equal(req.headers['anthropic-beta'], undefined);
       assert.equal(req.headers['anthropic-workspace-id'], undefined);
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
@@ -242,9 +253,10 @@ async function fixture(run, { weekly = null, monthly = null, reply, interrupted 
         return state.trackRead(reply());
       },
     };
-    if (tls) closeLoopback = await startLoopback(state, reply, interrupted, partialResponse, profile?.provider === 'codex'
+    if (tls) closeLoopback = await startLoopback(state, reply, interrupted, partialResponse, profile?.provider === 'openai'
+      ? { pathname: profile.endpoint || '/v1/chat/completions', headerNames: ['authorization', 'content-type'] } : profile?.provider === 'codex'
       ? { pathname: '/backend-api/codex/responses', headerNames: ['authorization', 'chatgpt-account-id', 'content-type'] }
-      : undefined);
+      : profile?.provider === 'claude' ? { pathname: '/v1/messages?beta=true', headerNames: ['authorization'] } : undefined);
     globalThis.routeFixture = state;
     globalThis.__budgetCore = { helpers: 0, peeks: 0, refresh: 0 };
     const chat = (target = 'Root', overrides = {}, headers = {}, pathname = '/v1/messages') => handleAccountedChatCandidate(new Request(`https://fixture.invalid${pathname}`, {
@@ -736,33 +748,55 @@ function codexFixture(run, { additionalPrices = {}, ...options } = {}) {
   }).finally(() => fs.rmSync(bindingPath, { force: true }));
 }
 
-if (!stage) test('Anthropic API key uses the synchronized price for a second model', async () => {
-  const target = 'claude-haiku-4-5';
-  const revision = `anthropic:claude/${target}:standard:v1`;
+if (!stage) test('operator Anthropic binding requires a synchronized tariff before the first POST', async () => {
   const bindingPath = '/run/9router/accounting-binding.json';
   fs.writeFileSync(bindingPath, JSON.stringify({ clientKeyId: 'fixture-key', workspaceBinding }));
   try {
-    await fixture(async ({ rows, state, totals }) => {
-      const send = () => postMessages(new Request('https://fixture.invalid/v1/messages', {
-        method: 'POST', headers: { authorization: 'Bearer fixture-client', 'user-agent': 'claude-code fixture' },
-        body: JSON.stringify({ ...body, model: `anthropic/${target}` }),
+    await fixture(async ({ rows, state }) => {
+      const response = await postMessages(new Request('https://fixture.invalid/v1/messages', {
+        method: 'POST', headers: { authorization: 'Bearer fixture-client' },
+        body: JSON.stringify({ ...body, model: `anthropic/${model}` }),
       }));
-      assert.equal((await send()).status, 200);
-      assert.equal(state.wire[0].body.model, target);
-      assert.equal(rows().attempts[0].price.revision, revision);
-      assert.equal(totals().monthly, '35300');
-      assert.equal((await send()).status, 503);
-      assert.equal(state.wire.length, 1);
-    }, { monthly: '35300', reply: success, prepareDb(db) {
-      db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [JSON.stringify([`anthropic/${target}`]), 'fixture-key']);
-      db.run('INSERT INTO kv VALUES (?,?,?)', [referenceScope, revision, JSON.stringify({
-        currency: 'USD', unit: 'USD/1M tokens', revision, syncedAt: 2,
-        source: 'https://platform.claude.com/docs/en/about-claude/pricing.md',
-        rates: { input: '1', cached: '0.10', cache_creation: '1.25', cache_creation_1h: '2', output: '5' },
-      })]);
+      assert.equal(response.status, 503);
+      assert.equal(state.wire.length, 0);
+      assert.equal(rows().attempts.length, 0);
+    }, { prepareDb(db) {
+      db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [JSON.stringify([`anthropic/${model}`]), 'fixture-key']);
     } });
   } finally { fs.rmSync(bindingPath, { force: true }); }
 });
+
+for (const target of ['claude-haiku-4-5', 'claude-haiku-4-5-20251001']) {
+  if (!stage) test(`Anthropic API key uses the synchronized Haiku tariff for ${target}`, async () => {
+    const revision = 'anthropic:claude/claude-haiku-4-5:standard:v1';
+    const requested = target.endsWith('20251001') ? 'dated-haiku' : `anthropic/${target}`;
+    const bindingPath = '/run/9router/accounting-binding.json';
+    fs.writeFileSync(bindingPath, JSON.stringify({ clientKeyId: 'fixture-key', workspaceBinding }));
+    try {
+      await fixture(async ({ rows, state, totals }) => {
+        const send = () => postMessages(new Request('https://fixture.invalid/v1/messages', {
+          method: 'POST', headers: { authorization: 'Bearer fixture-client', 'user-agent': 'claude-code fixture' },
+          body: JSON.stringify({ ...body, model: requested }),
+        }));
+        assert.equal((await send()).status, 200);
+        assert.equal(state.wire[0].body.model, target);
+        assert.equal(rows().attempts[0].price.revision, revision);
+        assert.equal(totals().monthly, '35300');
+        assert.equal((await send()).status, 503);
+        assert.equal(state.wire.length, 1);
+      }, { monthly: '35300', reply: success, prepareDb(db) {
+        db.run('INSERT INTO kv VALUES (?,?,?)', ['modelAliases', 'dated-haiku', JSON.stringify(`anthropic/${target}`)]);
+        db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [JSON.stringify([`anthropic/${target}`]), 'fixture-key']);
+        db.run('INSERT INTO kv VALUES (?,?,?)', [referenceScope, revision, JSON.stringify({
+          currency: 'USD', unit: 'USD/1M tokens', revision, syncedAt: 2,
+          source: 'https://platform.claude.com/docs/en/about-claude/pricing.md',
+          rates: { input: '1', cached: '0.10', cache_creation: '1.25', cache_creation_1h: '2', output: '5' },
+        })]);
+      } });
+    } finally { fs.rmSync(bindingPath, { force: true }); }
+  });
+
+}
 
 if (!stage) test('two Codex models share one budget and use their own synchronized prices', () =>
   codexFixture(async ({ request, rows, state, totals }) => {
@@ -1197,4 +1231,316 @@ if (stage === undefined) {
       db.close();
     }
   });
+}
+
+const failedCodex = { type: 'response.failed', response: { status: 'failed', error: { code: 'token_expired' },
+  usage: { input_tokens: 10, input_tokens_details: { cached_tokens: 0 }, output_tokens: 0 } } };
+const failedClaude = { type: 'error', error: { type: 'authentication_error', message: 'fixture token expired' }, usage };
+for (const provider of stage ? [] : ['codex', 'claude']) {
+  for (const scenario of ['reactive', 'success', 'proactive', 'auth-failure', 'usage-absent', '403', 'expired-403', 'limit', 'acl', 'rotation', 'write-refused', 'cancelled']) {
+    test(`OAuth accounting ${provider} ${scenario}`, async () => {
+      let sends = 0, auth = 0;
+      const id = 'fixture-' + provider;
+      const target = provider === 'claude' ? 'claude-sonnet-5' : 'gpt-6.2-sol';
+      const expired = ['proactive', 'auth-failure'].includes(scenario);
+      const reject = provider === 'claude' ? structuredClone(failedClaude) : structuredClone(failedCodex);
+      if (scenario === 'expired-403' && provider === 'claude') reject.error.code = 'token_expired';
+      if (scenario === '403' && provider === 'codex') reject.response.error.code = 'insufficient_quota';
+      if (scenario === '403' && provider === 'claude') reject.error.type = 'permission_error';
+      if (scenario === 'usage-absent') delete (provider === 'claude' ? reject : reject.response).usage;
+      let databasePath;
+      const reply = () => {
+        sends++;
+        if (sends === 1 && !expired) return Response.json(reject, { status: ['expired-403', '403'].includes(scenario) ? 403 : 401 });
+        const persisted = new DatabaseSync(databasePath, { readOnly: true });
+        try {
+          const account = persisted.prepare('SELECT data FROM providerConnections WHERE id = ?').get(id);
+          assert.equal(JSON.parse(account.data).accessToken, 'fixture-new');
+          assert.equal(persisted.prepare('SELECT COUNT(*) AS n FROM accounting_terminals_v1').get().n, expired ? 0 : 1);
+        } finally { persisted.close(); }
+        if (scenario === 'success') {
+          if (provider === 'claude') return success();
+          return new Response('data: ' + JSON.stringify({ type: 'response.completed', response: { id: 'fixture-response',
+            status: 'completed', usage: failedCodex.response.usage } }) + '\n\n', { headers: { 'content-type': 'text/event-stream' } });
+        }
+        return Response.json({ error: { message: 'successor unavailable' } }, { status: 429 });
+      };
+      const run = async ({ state, request, rows, reopen, totals, path }) => {
+        databasePath = path;
+        const controller = new AbortController();
+        const initial = { accessToken: 'fixture-token', refreshToken: 'fixture-old',
+          ...(expired ? { expiresAt: '2000-01-01T00:00:00Z' } : {}),
+          ...(provider === 'codex' ? { providerSpecificData: { chatgptAccountId: 'fixture-account' } } : {}) };
+        state.db.run('UPDATE providerConnections SET data = ? WHERE id = ?', [JSON.stringify(initial), id]);
+        state.grant = body => {
+          auth++;
+          assert.equal(body.refresh_token, 'fixture-old');
+          assert.equal(state.wire.length, expired ? 0 : 1);
+          if (scenario === 'write-refused') state.db.exec("CREATE TRIGGER refuse_rotation BEFORE UPDATE OF data ON providerConnections BEGIN SELECT RAISE(IGNORE); END");
+          if (scenario === 'cancelled') controller.abort();
+          if (scenario === 'acl') state.db.run('UPDATE apiKeys SET accessAllow = ?', ['[]']);
+          if (scenario === 'rotation') state.db.run("UPDATE providerConnections SET data = json_set(data,'$.refreshToken','peer') WHERE id = ?", [id]);
+          return Response.json({ access_token: 'fixture-new', refresh_token: 'fixture-rotated', expires_in: 3600 },
+            { status: scenario === 'auth-failure' ? 400 : 200 });
+        };
+        const response = provider === 'codex' ? await postResponses(new Request(request(), { signal: controller.signal })) : await postMessages(new Request('https://fixture.invalid/v1/messages', {
+          method: 'POST', signal: controller.signal, headers: { authorization: 'Bearer fixture-client' }, body: JSON.stringify({ model: 'claude/' + target,
+            stream: false, max_tokens: 20, messages: [{ role: 'user', content: 'fixture' }] }) }));
+        assert.ifError(state.serverError);
+        const status = { success: 200, reactive: 429, 'expired-403': 429, proactive: 429, 'auth-failure': 503, 'usage-absent': 401, '403': 403, limit: 503, acl: 503, rotation: 503, 'write-refused': 503, cancelled: 503 }[scenario];
+        assert.equal(response.status, status, await response.text());
+        assert.equal(auth, ['usage-absent','403'].includes(scenario) ? 0 : 1);
+        assert.equal(sends, ['success','reactive','expired-403'].includes(scenario) ? 2 : scenario === 'auth-failure' ? 0 : 1);
+        if (scenario === 'success') {
+          assert.equal(rows().terminals.length, 2);
+          assert.equal(totals().monthly, provider === 'codex' ? '40000' : '211800');
+        }
+        if (['reactive','success','expired-403','proactive'].includes(scenario)) {
+          assert.equal(state.wire.at(-1).headers.authorization, 'Bearer fixture-new');
+          assert.equal(rows().attempts.length, sends);
+          assert.equal(new Set(rows().attempts.map(x => x.attemptId)).size, sends);
+        }
+        const stored = JSON.parse(state.db.get('SELECT data FROM providerConnections WHERE id = ?', [id]).data);
+        if (scenario === 'rotation') assert.equal(stored.refreshToken, 'peer');
+        else if (scenario === 'write-refused') assert.equal(stored.refreshToken, 'fixture-old');
+        else if (auth && scenario !== 'auth-failure') assert.equal(stored.refreshToken, 'fixture-rotated');
+        if (scenario === 'limit') {
+          await reopen();
+          assert.equal(totals().monthly, provider === 'codex' ? '20000' : '105900');
+        }
+      };
+      const monthly = scenario === 'limit' ? '1' : '9999999';
+      if (provider === 'codex') return codexFixture(run, { monthly, reply });
+      const bindingPath = '/run/9router/accounting-binding.json';
+      fs.writeFileSync(bindingPath, JSON.stringify({ clientKeyId: 'fixture-key', claudeBinding: { connectionId: id, serviceTier: 'standard' } }));
+      try {
+        await fixture(run, { monthly, reply, profile: { provider }, prepareDb(db) {
+          const revision = 'anthropic:claude/' + target + ':standard:v1';
+          db.run('INSERT INTO kv VALUES (?,?,?)', [referenceScope, revision, JSON.stringify({ currency: 'USD', unit: 'USD/1M tokens',
+            revision, syncedAt: 2, source: 'https://platform.claude.com/docs/en/about-claude/pricing.md',
+            rates: { input: '3', cached: '0.30', cache_creation: '3.75', cache_creation_1h: '6', output: '15' } })]);
+          db.run('UPDATE apiKeys SET accessAllow = ?', [JSON.stringify(['claude/' + target])]);
+          db.run("INSERT INTO providerConnections(id, provider, authType, isActive, data, createdAt, updatedAt) VALUES (?, 'claude', 'oauth', 1, '{}', ?, ?)", [id, now, now]);
+        } });
+      } finally { fs.rmSync(bindingPath, { force: true }); }
+    });
+  }
+}
+
+if (!stage) test('OpenAI API Chat JSON and SSE share synchronized model-specific prices and block the next POST', async () => {
+  const { syncOpenAIStandardReferences } = await import('../../src/lib/pricing/openai-standard-reference.js');
+  const models = ['gpt-4.1', 'gpt-new-model'];
+  const catalogModel = (id, input) => ({ id, modalities: { output: ['text'] }, cost: { input, cache_read: 0.25, output: 8 } });
+  const catalog = { openai: { id: 'openai', models: {
+    [models[0]]: catalogModel(models[0], 2), [models[1]]: catalogModel(models[1], 1),
+  } } };
+  const usage = { prompt_tokens: 100, completion_tokens: 25, total_tokens: 125, prompt_tokens_details: { cached_tokens: 40 } };
+  let streaming = false;
+  const reply = () => {
+    const choice = { index: 0, finish_reason: 'stop', message: { role: 'assistant', content: 'fixture' } };
+    if (!streaming) return Response.json({ id: 'chatcmpl-fixture', object: 'chat.completion', choices: [choice], usage });
+    const frame = fields => 'data: ' + JSON.stringify({ id: 'chatcmpl-fixture', object: 'chat.completion.chunk', ...fields }) + '\n\n';
+    return new Response(frame({ choices: [{ index: 0, delta: { content: 'fixture' }, finish_reason: 'stop' }] }) +
+      frame({ choices: [], usage }) + 'data: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } });
+  };
+  const bindingPath = '/run/9router/accounting-binding.json';
+  fs.writeFileSync(bindingPath, JSON.stringify({ clientKeyId: 'fixture-key', openaiBinding: { connectionId: 'fixture-openai', serviceTier: 'standard' } }));
+  try {
+    await fixture(async ({ rows, state, totals }) => {
+      await syncOpenAIStandardReferences(catalog, 12345);
+      const send = (model, extra = {}) => postResponses(new Request('https://fixture.invalid/v1/chat/completions', {
+        method: 'POST', headers: { authorization: 'Bearer fixture-client' }, body: JSON.stringify({
+          model: 'openai/' + model, messages: [{ role: 'user', content: 'fixture prompt' }], stream: streaming, ...extra,
+        }),
+      }));
+      await syncOpenAIStandardReferences({ openai: { id: 'openai', models: {
+        ...catalog.openai.models, [models[0]]: { ...catalog.openai.models[models[0]],
+          cost: { ...catalog.openai.models[models[0]].cost, search_call: 10 } },
+      } } }, 12346);
+      assert.equal((await send(models[0])).status, 503);
+      await syncOpenAIStandardReferences(catalog, 12347);
+      await assert.rejects(syncOpenAIStandardReferences({}, 12348));
+      assert.equal((await send(models[0], { service_tier: 'priority' })).status, 503);
+      assert.equal(state.wire.length, 0);
+      const json = await send(models[0]);
+      assert.equal(json.status, 200);
+      assert.deepEqual((await json.json()).usage, usage);
+      streaming = true;
+      const sse = await send(models[1]);
+      assert.equal(sse.status, 200);
+      const bytes = await sse.text();
+      assert.match(bytes, /data: \[DONE\]/);
+      assert.doesNotMatch(bytes, /"usage"/);
+      assert.equal(state.wire[1].body.stream_options.include_usage, true);
+      assert.deepEqual(state.wire.map(wire => [wire.body.model, wire.body.service_tier, wire.headers.authorization]),
+        models.map(model => [model, 'default', 'Bearer fixture-upstream-api']));
+      assert.deepEqual(rows().terminals.map(t => t.amount).sort(), ['270000', '330000']);
+      assert.equal(totals().monthly, '600000');
+      assert.equal((await send(models[0])).status, 503);
+      assert.equal(state.wire.length, 2);
+    }, { profile: { provider: 'openai' }, monthly: '600000', reply, prepareDb(db) {
+      db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [JSON.stringify(models.map(m => 'openai/' + m)), 'fixture-key']);
+      db.run("INSERT INTO providerConnections(id,provider,authType,priority,isActive,data,createdAt,updatedAt) VALUES('fixture-openai','openai','apikey',1,1,?,?,?)",
+        [JSON.stringify({ apiKey: 'fixture-upstream-api' }), now, now]);
+      db.run("INSERT INTO kv VALUES('pricing','openai',?)", [JSON.stringify({ [models[0]]: { input: 0, output: 0 } })]);
+    } });
+  } finally { fs.rmSync(bindingPath, { force: true }); }
+});
+
+if (!stage) exerciseClaudeConversion({ test, fixture, postResponses, workspaceBinding, fs, usage, sseFrame, sseReply });
+
+if (!stage) test('OpenAI API Responses uses native JSON and SSE with cached writes and the long context tariff', async () => {
+  const { parseOpenAIStandardReferences } = await import('../../src/lib/pricing/openai-standard-reference.js');
+  const model = 'gpt-6.2-sol', endpoint = '/v1/responses';
+  const prices = parseOpenAIStandardReferences({ openai: { id: 'openai', models: { [model]: { id: model,
+    modalities: { output: ['text'] }, cost: { input: 2, output: 10, cache_read: 0.1, cache_write: 2.5,
+      tiers: [{ tier: { type: 'context', size: 100 }, input: 4, output: 15, cache_read: 0.2, cache_write: 5 }] } } } } }, 12345);
+  let streaming = false;
+  const reply = () => {
+    const response = { id: 'resp_fixture', object: 'response', status: 'completed', output: [], usage: {
+      input_tokens: streaming ? 101 : 100, input_tokens_details: { cached_tokens: 40, cache_write_tokens: 20 },
+      output_tokens: 10, total_tokens: streaming ? 111 : 110,
+    } };
+    return streaming ? new Response('data: ' + JSON.stringify({ type: 'response.completed', response }) + '\n\n',
+      { headers: { 'content-type': 'text/event-stream' } }) : Response.json(response);
+  };
+  const bindingPath = '/run/9router/accounting-binding.json';
+  fs.writeFileSync(bindingPath, JSON.stringify({ clientKeyId: 'fixture-key', openaiBinding: { connectionId: 'fixture-openai', serviceTier: 'standard' } }));
+  try {
+    await fixture(async ({ rows, state, totals }) => {
+      const send = (extra = {}) => postResponses(new Request('https://fixture.invalid' + endpoint, {
+        method: 'POST', headers: { authorization: 'Bearer fixture-client' }, body: JSON.stringify({
+          model: 'openai/' + model, input: 'fixture prompt', stream: streaming, ...extra,
+        }),
+      }));
+      assert.equal((await send({ prompt_cache_options: { ttl: '12h' } })).status, 503);
+      assert.equal(state.wire.length, 0);
+      const json = await send();
+      assert.equal(json.status, 200);
+      assert.equal((await json.json()).usage.input_tokens, 100);
+      streaming = true;
+      const sse = await send();
+      assert.equal(sse.status, 200);
+      assert.match(await sse.text(), /response.completed/);
+      assert.deepEqual(rows().terminals.map(t => t.amount).sort(), ['234000', '422000']);
+      assert.equal(totals().monthly, '656000');
+      assert.equal((await send()).status, 503);
+      assert.equal(state.wire.length, 2);
+    }, { profile: { provider: 'openai', endpoint }, monthly: '656000', reply, prepareDb(db) {
+      db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [JSON.stringify(['openai/' + model]), 'fixture-key']);
+      db.run("INSERT INTO providerConnections(id,provider,authType,priority,isActive,data,createdAt,updatedAt) VALUES('fixture-openai','openai','apikey',1,1,?,?,?)",
+        [JSON.stringify({ apiKey: 'fixture-upstream-api' }), now, now]);
+      for (const [key, price] of Object.entries(prices)) db.run('INSERT INTO kv VALUES(?,?,?)', [referenceScope, key, JSON.stringify(price)]);
+    } });
+  } finally { fs.rmSync(bindingPath, { force: true }); }
+});
+
+if (!stage) test('OAuth accounting concurrent rejections rotate once and require the owning acknowledgement', () => {
+  let sends = 0;
+  return codexFixture(async ({ state, request, rows }) => {
+    state.db.run("UPDATE providerConnections SET data = json_set(data,'$.refreshToken','fixture-old') WHERE id = 'fixture-codex'");
+    let release;
+    const bothRecorded = new Promise(resolve => { release = resolve; });
+    let terminals = 0;
+    const run = state.db.run.bind(state.db);
+    state.db.run = (sql, params) => {
+      const result = run(sql, params);
+      if (sql.startsWith('INSERT INTO accounting_terminals_v1 ') && ++terminals === 2) release();
+      return result;
+    };
+    let grants = 0;
+    state.grant = async () => {
+      grants++;
+      await bothRecorded;
+      return Response.json({ access_token: 'fixture-new', refresh_token: 'fixture-rotated', expires_in: 3600 });
+    };
+    const responses = await Promise.all([postResponses(request()), postResponses(request())]);
+    assert.deepEqual(responses.map(r => r.status).sort(), [429, 503]);
+    assert.equal(grants, 1);
+    assert.deepEqual(state.wire.map(w => w.headers.authorization), ['Bearer fixture-token', 'Bearer fixture-token', 'Bearer fixture-new']);
+    assert.equal(rows().attempts.length, 3);
+    assert.equal(rows().terminals.length, 2);
+  }, { monthly: '9999999', reply: () => ++sends <= 2 ? Response.json(failedCodex, { status: 401 }) : Response.json({}, { status: 429 }) });
+});
+
+if (!stage) test('OAuth accounting credential commit with a lost acknowledgement prevents a successor', async () => {
+  if (process.env.BUDGET_OAUTH_LOST_ACK !== '1') {
+    // The uncertain COMMIT deliberately latches this process's storage fault.
+    const child = spawnSync('/runtime/node', ['--experimental-loader', '/app/tests/fixtures/budget/composed-loader.mjs',
+      '--test', '--test-name-pattern=credential commit with a lost acknowledgement', import.meta.filename], {
+      env: { ...process.env, NODE_TEST_CONTEXT: undefined, BUDGET_OAUTH_LOST_ACK: '1' }, encoding: 'utf8', timeout: 15000,
+    });
+    assert.ifError(child.error);
+    assert.equal(child.status, 0, child.stdout + child.stderr);
+    assert.match(child.stdout, /pass 1|# pass 1/);
+    return;
+  }
+  await codexFixture(async ({ state, request, path }) => {
+    state.db.run("UPDATE providerConnections SET data = json_set(data,'$.refreshToken','fixture-old') WHERE id = 'fixture-codex'");
+    let auth = 0;
+    state.grant = () => {
+      auth++;
+      return Response.json({ access_token: 'fixture-new', refresh_token: 'fixture-rotated', expires_in: 3600 });
+    };
+    // The adapter transaction owner captures its methods before the grant.
+    // Inject at that captured boundary when it handles the credential COMMIT.
+    const exec = state.db.exec.bind(state.db);
+    state.db.exec = sql => {
+      exec(sql);
+      if (sql === 'COMMIT' && auth) throw new Error('fixture lost acknowledgement');
+    };
+    const response = await postResponses(request());
+    assert.equal(response.status, 503);
+    assert.equal(auth, 1);
+    assert.equal(state.wire.length, 1);
+    const peer = new DatabaseSync(path, { readOnly: true });
+    try {
+      assert.equal(peer.prepare("SELECT json_extract(data,'$.accessToken') AS token FROM providerConnections WHERE id='fixture-codex'").get().token, 'fixture-new');
+      assert.equal(peer.prepare('SELECT count(*) AS n FROM accounting_terminals_v1').get().n, 1);
+    } finally { peer.close(); }
+  }, { monthly: '9999999', reply: () => Response.json(failedCodex, { status: 401 }) });
+});
+
+for (const first of stage ? [] : ['ordinary', 'budget']) {
+  test(`OAuth accounting serializes ${first} refresh with the other mode`, () => codexFixture(async ({ state, request }) => {
+    const { refreshStoredOAuth } = await import('../../src/lib/db/repos/connectionsRepo.js');
+    const id = 'fixture-codex';
+    state.db.run("UPDATE providerConnections SET data = json_set(data,'$.refreshToken','old','$.expiresAt','2000-01-01T00:00:00Z') WHERE id = ?", [id]);
+    const creds = { connectionId: id, accessToken: 'fixture-token', refreshToken: 'old' };
+    let entered, resume;
+    const started = new Promise(resolve => { entered = resolve; });
+    const wait = new Promise(resolve => { resume = resolve; });
+    let grants = 0;
+    const exchange = async () => {
+      grants++;
+      entered();
+      await wait;
+      return { accessToken: 'winner', refreshToken: 'winner-refresh', expiresIn: 3600 };
+    };
+    state.grant = async () => {
+      const tokens = await exchange();
+      return Response.json({ access_token: tokens.accessToken, refresh_token: tokens.refreshToken, expires_in: 3600 });
+    };
+    const ordinary = () => refreshStoredOAuth('codex', creds, exchange);
+    const budget = () => postResponses(request());
+    let runFirst = first === 'ordinary' ? ordinary() : budget();
+    await started;
+    let selected;
+    const readSelection = new Promise(resolve => { selected = resolve; });
+    const all = state.db.all.bind(state.db);
+    state.db.all = (sql, params) => {
+      const rows = all(sql, params);
+      if (sql.startsWith('SELECT * FROM providerConnections WHERE provider =')) selected();
+      return rows;
+    };
+    const other = first === 'ordinary' ? budget() : ordinary();
+    if (first === 'ordinary') await readSelection;
+    resume();
+    const [a, b] = await Promise.all([runFirst, other]);
+    const response = first === 'ordinary' ? b : a;
+    assert.equal(response.status, first === 'ordinary' ? 503 : 429);
+    assert.equal(grants, 1);
+    assert.equal(state.wire.length, first === 'ordinary' ? 0 : 1);
+    assert.equal((first === 'ordinary' ? a : b).refreshToken, 'winner-refresh');
+  }, { reply: () => Response.json({}, { status: 429 }) }));
 }

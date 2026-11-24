@@ -12,6 +12,9 @@ const catalogFile = path.join(dataDir, "model-catalog.json");
 // One upstream record per gateway: the same short id means different things to
 // different vendors, which is what used to leak capabilities across providers.
 const upstream = {
+  openai: { id: "openai", models: { "catalog-text": {
+    id: "catalog-text", modalities: { input: ["text"], output: ["text"] }, cost: { input: 1, output: 2 },
+  } } },
   zai: { models: { "glm-4.6v": { modalities: { input: ["text", "image"] } } } },
   // two local ids alias this one upstream provider
   zhipuai: { models: { "glm-5-canary": { modalities: { input: ["text", "image", "pdf"] } } } },

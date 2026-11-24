@@ -16,6 +16,7 @@ export async function handleEmbeddingsCore({
   credentials,
   log,
   onCredentialsRefreshed,
+  refreshStoredCredentials,
   onRequestSuccess,
 }) {
   const { provider, model } = modelInfo;
@@ -83,7 +84,7 @@ export async function handleEmbeddingsCore({
       providerResponse.status === HTTP_STATUS.FORBIDDEN)
   ) {
     const newCredentials = await refreshWithRetry(
-      () => executor.refreshCredentials(credentials, log),
+      () => refreshStoredCredentials ? refreshStoredCredentials(() => executor.refreshCredentials(credentials, log)) : executor.refreshCredentials(credentials, log),
       3,
       log
     );
@@ -91,7 +92,7 @@ export async function handleEmbeddingsCore({
     if (newCredentials?.accessToken || newCredentials?.apiKey) {
       log?.info?.("TOKEN", `${provider.toUpperCase()} | refreshed for embeddings`);
       Object.assign(credentials, newCredentials);
-      if (onCredentialsRefreshed) await onCredentialsRefreshed(newCredentials);
+      if (onCredentialsRefreshed && !refreshStoredCredentials) await onCredentialsRefreshed(newCredentials);
 
       try {
         const retryHeaders = adapter.buildHeaders(credentials, ctx);

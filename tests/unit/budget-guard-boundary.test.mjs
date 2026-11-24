@@ -62,8 +62,16 @@ test('middleware admits only the exact POST route for the installed provider pro
       assert.equal((await run(path)).status, 503);
     }
     assert.equal((await run('/v1/responses', 'GET')).status, 503);
-    budgetProfile = { provider: 'anthropic' };
-    assert.equal((await run('/v1/messages')).status, 204);
-    assert.equal((await run('/v1/responses')).status, 503);
+    for (const provider of ['anthropic', 'claude']) {
+      budgetProfile = { provider };
+      for (const path of ['/v1/messages', '/v1/chat/completions', '/v1/responses']) {
+        assert.equal((await run(path)).status, 204);
+      }
+      assert.equal((await run('/v1/responses/compact')).status, 503);
+      assert.equal((await run('/v1/v1/messages')).status, provider === 'claude' ? 204 : 503);
+    }
+    budgetProfile = { provider: 'openai' };
+    assert.equal((await run('/v1/chat/completions')).status, 204);
+    assert.equal((await run('/v1/messages')).status, 503);
   } finally { budgetProfile = null; }
 });

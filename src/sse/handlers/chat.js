@@ -54,9 +54,10 @@ export async function handleChat(request, clientRawRequest = null) {
 export async function handleAccountedChatCandidate(request, { identity, createContext, provider = "anthropic", connectionId }) {
   try {
     const pathname = new URL(request.url).pathname;
-    const acceptsEndpoint = provider === 'codex' ? isCodexBudgetEndpoint(pathname)
+    const acceptsEndpoint = ['openai', 'codex'].includes(provider) ? isCodexBudgetEndpoint(pathname)
+      : connectionId && isCodexBudgetEndpoint(pathname) ? true
       : pathname === '/v1/messages' || (provider === 'claude' && pathname === '/v1/v1/messages');
-    if (!['anthropic', 'claude', 'codex'].includes(provider) || request.method !== 'POST' ||
+    if (!['anthropic', 'claude', 'codex', 'openai'].includes(provider) || request.method !== 'POST' ||
         !acceptsEndpoint ||
         request.headers.has('anthropic-workspace-id') ||
         !identity.matchesSecret(selectedAccountingSecret(request))) return refuseCandidate();
@@ -157,7 +158,7 @@ async function routeChat(request, clientRawRequest, candidate) {
   // Check if model is a combo (has multiple models with fallback)
   const comboModels = await getComboModels(modelStr, candidate?.view.reads);
   if (comboModels) {
-    if (candidate?.provider === "codex") return refuseCandidate();
+    if (["codex", "openai"].includes(candidate?.provider)) return refuseCandidate();
     // Check for combo-specific strategy first, fallback to global
     const comboStrategies = settings.comboStrategies || {};
     const comboSpecificStrategy = comboStrategies[modelStr]?.fallbackStrategy;
@@ -373,7 +374,7 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
     }
 
     // Account selection shown in the unified "▶" line (acc:...)
-    // This candidate does not authorize a refresh or a second account.
+    // The accounted request remains bound to this selected account.
     if (candidate) {
       const matchesAuth = provider === "codex" || provider === "claude"
         ? credentials.authType === "oauth" && credentials.accessToken && !credentials.apiKey
@@ -399,6 +400,16 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
     if (candidate && !accounting) return refuseCandidate();
     const result = await handleChatCore({
       ...(candidate ? { accounting } : {}),
+      ...(candidate && ['claude', 'codex'].includes(provider) ? {
+        clientSignal: request.signal,
+        async refreshAccounting(successorProof) {
+          const { refreshAccountedOAuth } = await import('@/lib/accounting/oauth-refresh.js');
+          const next = await refreshAccountedOAuth(provider, credentials, request.signal);
+          const nextAccounting = await candidate.createContext({ routeProof: successorProof ?? routeProof,
+            provider, model, credentials: next, settings: chatSettings, body });
+          return { credentials: next, accounting: nextAccounting };
+        },
+      } : {}),
       body: { ...body, model: `${provider}/${model}` },
       modelInfo: { provider, model },
       credentials: refreshedCredentials,
@@ -429,8 +440,14 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
       // Per-provider user overrides (custom headers / connect timeout) from settings
       providerOverrides: (chatSettings.providerOverrides || {})[provider] || null,
       // Detect source format by endpoint + body
-      sourceFormatOverride: candidate?.provider === "codex" && clientRawRequest.endpoint === "/v1/chat/completions"
-        ? "openai" : request?.url ? detectFormatByEndpoint(new URL(request.url).pathname, body) : null,
+      sourceFormatOverride: candidate && clientRawRequest.endpoint === "/v1/chat/completions"
+        ? "openai" : candidate && clientRawRequest.endpoint === "/v1/responses" ? "openai-responses"
+        : request?.url ? detectFormatByEndpoint(new URL(request.url).pathname, body) : null,
+      refreshStoredCredentials: (provider === 'codex' || provider === 'claude') && refreshedCredentials.refreshToken
+        ? async grant => {
+            const { refreshStoredOAuth } = await import('../../lib/db/repos/connectionsRepo.js');
+            return refreshStoredOAuth(provider, refreshedCredentials, grant);
+          } : null,
       onCredentialsRefreshed: async (newCreds) => {
         await updateProviderCredentials(credentials.connectionId, {
           ...newCreds,

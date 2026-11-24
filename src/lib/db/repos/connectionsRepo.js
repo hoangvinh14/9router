@@ -260,13 +260,61 @@ export async function createProviderConnection(data) {
 }
 
 // Critical: OAuth refresh token race — atomic merge inside transaction
-export async function updateProviderConnection(id, data) {
+const lockKey = Symbol.for('9router.provider.oauth-rotation');
+const rotations = globalThis[lockKey] ??= new Map();
+
+export function usesRotatingOAuth(provider, credentials) {
+  return (provider === 'codex' || provider === 'claude') && Boolean(credentials?.connectionId || credentials?.id)
+    && Boolean(credentials?.refreshToken);
+}
+
+export async function serializeConnectionOAuth(id, action) {
+  const previous = rotations.get(id);
+  const next = Promise.resolve(previous).catch(() => {}).then(action);
+  rotations.set(id, next);
+  try { return await next; }
+  finally { if (rotations.get(id) === next) rotations.delete(id); }
+}
+
+function sameOAuthGeneration(current, expected) {
+  return current.provider === expected.provider && current.authType === 'oauth' && current.isActive &&
+    current.accessToken === expected.accessToken && current.refreshToken === expected.refreshToken &&
+    (current.lastRefreshAt ?? null) === (expected.lastRefreshAt ?? null);
+}
+
+export function refreshStoredOAuth(provider, credentials, grant, read = getProviderConnectionById, write = updateProviderConnection) {
+  const id = credentials.connectionId ?? credentials.id;
+  const expected = { ...credentials, provider };
+  return serializeConnectionOAuth(id, async () => {
+    const current = await read(id);
+    if (!current || current.provider !== provider || current.authType !== 'oauth' || !current.isActive) return null;
+    if (!sameOAuthGeneration(current, expected)) {
+      // Ordinary callers may use an already committed rotation for the same account.
+      return { accessToken: current.accessToken, refreshToken: current.refreshToken, idToken: current.idToken,
+        lastRefreshAt: current.lastRefreshAt, expiresAt: current.expiresAt ?? current.tokenExpiresAt };
+    }
+    const tokens = await grant();
+    if (!tokens?.accessToken) return tokens;
+    const patch = { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken || current.refreshToken,
+      lastRefreshAt: tokens.lastRefreshAt || new Date().toISOString() };
+    if (tokens.idToken) patch.idToken = tokens.idToken;
+    if (tokens.expiresIn) {
+      patch.expiresIn = tokens.expiresIn;
+      patch.expiresAt = new Date(Date.now() + tokens.expiresIn * 1000).toISOString();
+    } else if (tokens.expiresAt) patch.expiresAt = tokens.expiresAt;
+    if (tokens.providerSpecificData) patch.providerSpecificData = { ...current.providerSpecificData, ...tokens.providerSpecificData };
+    return await write(id, patch, expected) ? { ...tokens, ...patch } : null;
+  });
+}
+
+export async function updateProviderConnection(id, data, expectedOAuth) {
   const db = await getAdapter();
   let result;
   db.transaction(() => {
     const row = db.get(`SELECT * FROM providerConnections WHERE id = ?`, [id]);
     if (!row) { result = null; return; }
     const existing = rowToConn(row);
+    if (expectedOAuth && !sameOAuthGeneration(existing, expectedOAuth)) { result = null; return; }
     const normalized = resetHealthStateOnActivation(existing, data);
     const merged = { ...existing, ...normalized, updatedAt: new Date().toISOString() };
     upsert(db, merged);

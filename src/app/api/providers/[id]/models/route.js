@@ -1,3 +1,4 @@
+import { usesRotatingOAuth, refreshStoredOAuth } from "@/lib/db/repos/connectionsRepo.js";
 import { NextResponse } from "next/server";
 import { getProviderConnectionById } from "@/models";
 import { isOpenAICompatibleProvider, isAnthropicCompatibleProvider } from "@/shared/constants/providers";
@@ -107,9 +108,11 @@ const buildOAuthResolver = ({ refreshFn, fetchFn, parseFn, errorLabel }) => asyn
   try {
     let response = await fetchFn(accessToken, connection);
     if (!response.ok && (response.status === 401 || response.status === 403) && refreshToken) {
-      const refreshed = await refreshFn(connection);
+      const stored = usesRotatingOAuth(connection.provider, connection);
+      const grant = () => refreshFn(connection);
+      const refreshed = stored ? await refreshStoredOAuth(connection.provider, connection, grant) : await grant();
       if (refreshed?.accessToken) {
-        await updateProviderCredentials(connection.id, {
+        if (!stored) await updateProviderCredentials(connection.id, {
           accessToken: refreshed.accessToken,
           refreshToken: refreshed.refreshToken || refreshToken,
           expiresIn: refreshed.expiresIn,

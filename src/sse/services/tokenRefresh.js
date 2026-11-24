@@ -1,3 +1,4 @@
+import { usesRotatingOAuth, refreshStoredOAuth } from '../../lib/db/repos/connectionsRepo.js';
 // Re-export from open-sse with local logger
 import * as log from "../utils/logger.js";
 import { getProviderConnectionById, updateProviderConnection } from "../../lib/localDb.js";
@@ -266,7 +267,9 @@ export async function checkAndRefreshToken(provider, credentials, options = {}) 
       lastRefreshAt: creds.lastRefreshAt || null,
     });
 
-    const newCreds = await _refreshProviderCredentials(provider, creds, log);
+    const stored = usesRotatingOAuth(provider, creds);
+    const grant = () => _refreshProviderCredentials(provider, creds, log);
+    const newCreds = stored ? await refreshStoredOAuth(provider, creds, grant, getProviderConnectionById, updateProviderConnection) : await grant();
     if (newCreds?.accessToken || newCreds?.apiKey || newCreds?.copilotToken) {
       const mergedCreds = {
         ...newCreds,
@@ -274,7 +277,7 @@ export async function checkAndRefreshToken(provider, credentials, options = {}) 
       };
 
       // Persist to DB (non-blocking path continues below)
-      await updateProviderCredentials(creds.connectionId, mergedCreds);
+      if (!stored) await updateProviderCredentials(creds.connectionId, mergedCreds);
 
       creds = {
         ...creds,

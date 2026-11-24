@@ -65,7 +65,9 @@ export function parseCodexStandardReferences(html, syncedAt) {
     const label = rawLabel.replace(/ [*\u2020]$/, '');
     const name = label.split(' (')[0];
     if (!/^(?:GPT-|Daybreak )[A-Za-z0-9. -]+$/.test(name) || / and GPT-/.test(label)) continue;
-    const model = name.toLowerCase().replaceAll(' ', '-');
+    // The Codex model registry uses this wire ID for the published Blue row.
+    const model = name === 'Daybreak Blue' ? 'gpt-daybreak-blue-latest'
+      : name.toLowerCase().replaceAll(' ', '-');
     const revision = codexStandardReferenceKey(model);
     if (!revision || amounts.length !== 3 || Object.hasOwn(prices, revision) ||
         !amounts.every(value => /^\$\d+(?:\.\d+)?$/.test(value))) throw new Error('Invalid Codex USD tariff');

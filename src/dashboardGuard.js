@@ -233,7 +233,7 @@ export async function proxy(request) {
     const accounting = await inspectAccountingRequest(request);
     if (accounting.kind !== 'ordinary') {
       const providers = pathname === '/v1/messages' ? ['anthropic', 'claude']
-        : pathname === '/v1/v1/messages' ? ['claude'] : isCodexBudgetEndpoint(pathname) ? ['codex'] : [];
+        : pathname === '/v1/v1/messages' ? ['claude'] : isCodexBudgetEndpoint(pathname) ? ['codex', 'openai', 'anthropic', 'claude'] : [];
       if (accounting.kind === 'controlled' && request.method === 'POST' && providers.length) {
         const profile = await findInstalledBudgetProfileForKey(accounting.keyId);
         if (providers.includes(profile?.provider)) return NextResponse.next();

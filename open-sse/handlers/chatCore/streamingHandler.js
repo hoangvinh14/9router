@@ -73,12 +73,14 @@ async function createChatCompletionsRenderer(model, includeUsage) {
 export async function handleStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, userAgent, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, streamDetailId, pxpipe, reqTag, log, credentials, accountingAttempt, accountedJson = false }) {
   if (accountingAttempt) {
     const mediaType = providerResponse.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase();
-    const nativeClaude = ["anthropic", "claude"].includes(provider) && sourceFormat === FORMATS.CLAUDE && targetFormat === FORMATS.CLAUDE;
+    const nativeChat = provider === "openai" && sourceFormat === FORMATS.OPENAI && targetFormat === FORMATS.OPENAI;
+    const convertedClaude = accountingAttempt.convertedEndpoint && accountingAttempt.convertedEndpoint === clientRawRequest?.endpoint;
+    const nativeClaude = ["anthropic", "claude"].includes(provider) && (sourceFormat === FORMATS.CLAUDE || convertedClaude) && targetFormat === FORMATS.CLAUDE;
     const chatCompletions = provider === "codex" && sourceFormat === FORMATS.OPENAI &&
       clientRawRequest?.endpoint === "/v1/chat/completions";
-    const nativeResponses = provider === "codex" && (sourceFormat === FORMATS.OPENAI_RESPONSES || chatCompletions) &&
+    const nativeResponses = ["openai", "codex"].includes(provider) && (sourceFormat === FORMATS.OPENAI_RESPONSES || chatCompletions) &&
       targetFormat === FORMATS.OPENAI_RESPONSES && typeof accountingAttempt.settleResponses === "function";
-    if ((!nativeClaude && !nativeResponses) || mediaType !== "text/event-stream" || !providerResponse.body) {
+    if ((!nativeClaude && !nativeResponses && !nativeChat) || mediaType !== "text/event-stream" || !providerResponse.body) {
       await providerResponse.body?.cancel().catch(() => {});
       streamController.handleError(new Error("Invalid accounted SSE response"));
       return { success: false, response: Response.json({ error: { message: "Accounting response unavailable" } }, { status: 502 }) };
@@ -87,16 +89,33 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
     const renderChat = chatCompletions && !accountedJson
       ? await createChatCompletionsRenderer(model, body?.stream_options?.include_usage === true)
       : null;
-    const transform = nativeResponses
+    const renderer = convertedClaude ? (await import('../../utils/claude-budget-output.js')).createClaudeBudgetOutput({
+      endpoint: accountingAttempt.convertedEndpoint, model, includeUsage: body.stream_options?.include_usage === true,
+      rememberTools: accountingAttempt.rememberTools,
+    }) : null;
+    const transform = nativeChat
+      ? (await import("../../utils/accounted-openai-chat-stream.js")).createAccountedOpenAIChatStream(
+        accountingAttempt, onTerminal, body.stream_options?.include_usage === true)
+      : nativeResponses
       ? createAccountedResponsesStream(usage => accountingAttempt.settleResponses(usage), onTerminal,
-          accountingAttempt.priceCacheWrites, renderChat, accountingAttempt.inputEstimate)
-      : createAccountedAnthropicStream(accountingAttempt, onTerminal);
-    const onAbortTerminal = chatCompletions
+          accountingAttempt.priceCacheWrites, renderChat, accountingAttempt.inputEstimate, accountingAttempt.mapResponsesUsage)
+      : createAccountedAnthropicStream(accountingAttempt, onTerminal, renderer);
+    const onAbortTerminal = convertedClaude ? () => new TextEncoder().encode(renderer.render({ type: 'error' }))
+      : nativeChat ? () => buildStreamErrorBytes(502, "OpenAI stream ended before completion", FORMATS.OPENAI)
+      : chatCompletions
       ? (accountedJson ? null : () => buildStreamErrorBytes(502, "Codex stream ended before completion", FORMATS.OPENAI))
       : nativeResponses ? buildAbortedResponsesTerminalBytes
       : () => buildStreamErrorBytes(HTTP_STATUS.BAD_GATEWAY, "Anthropic stream ended before completion", FORMATS.CLAUDE);
     const responseBody = pipeWithDisconnect(providerResponse, transform, streamController, onAbortTerminal,
       PROVIDERS[provider]?.stallTimeoutMs || STREAM_STALL_TIMEOUT_MS);
+    if (convertedClaude && accountedJson) {
+      try {
+        await responseBody.pipeTo(new WritableStream({ write() {} }));
+        return { success: true, response: Response.json(renderer.result()) };
+      } catch {
+        return { success: false, response: Response.json({ error: { message: 'Incomplete Claude response' } }, { status: 502 }) };
+      }
+    }
     return { success: true, response: new Response(responseBody, {
       headers: { ...SSE_HEADERS, ...upstreamResponseHeaders(providerResponse.headers) },
     }) };

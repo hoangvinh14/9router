@@ -1,3 +1,4 @@
+import { usesRotatingOAuth, refreshStoredOAuth } from "@/lib/db/repos/connectionsRepo.js";
 // Ensure proxyFetch is loaded to patch globalThis.fetch
 import "open-sse/index.js";
 
@@ -52,7 +53,9 @@ export async function refreshAndUpdateCredentials(connection, force = false, pro
   }
 
   // Use executor's refreshCredentials method (with optional proxy)
-  const refreshResult = await executor.refreshCredentials(credentials, console, proxyOptions);
+  const stored = usesRotatingOAuth(connection.provider, credentials);
+  const grant = () => executor.refreshCredentials(credentials, console, proxyOptions);
+  const refreshResult = stored ? await refreshStoredOAuth(connection.provider, credentials, grant) : await grant();
 
   // Refresh token reused/invalidated — token family is revoked; do not continue with the dead token.
   if (refreshResult && isUnrecoverableRefreshError(refreshResult)) {
@@ -66,6 +69,8 @@ export async function refreshAndUpdateCredentials(connection, force = false, pro
     }
     throw new Error("Failed to refresh credentials. Please re-authorize the connection.");
   }
+
+  if (stored) return { connection: { ...connection, ...refreshResult }, refreshed: true };
 
   // Build update object
   const now = new Date().toISOString();

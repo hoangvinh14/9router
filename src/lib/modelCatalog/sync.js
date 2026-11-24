@@ -12,7 +12,7 @@ import { CLAUDE_STANDARD_PRICING_URL, parseClaudeStandardReferences } from "../p
 import { BUDGET_REFERENCE_SCOPE } from "../pricing/constants.js";
 import { CATALOG_FILE, CATALOG_RAW_FILE, CATALOG_VERSION, invalidateCatalog, installCatalogSource } from "open-sse/providers/catalogOverride.js";
 
-const CATALOG_URL = "https://models.dev/api.json";
+import { OPENAI_CATALOG_URL as CATALOG_URL, syncOpenAIStandardReferences } from "../pricing/openai-standard-reference.js";
 const FETCH_TIMEOUT_MS = 60000;
 const referencePricing = makeKv(BUDGET_REFERENCE_SCOPE);
 
@@ -209,8 +209,8 @@ export async function syncModelCatalog() {
     const headers = { accept: "application/json" };
     // A file written by an older schema has to be rebuilt even when upstream is
     // unchanged, so only ask upstream for a 304 when the file is current.
-    if (state.etag && state.fileVersion === CATALOG_VERSION) headers["if-none-match"] = state.etag;
-    const response = await fetch(CATALOG_URL, { headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    if (state.etag && state.fileVersion === CATALOG_VERSION && state.openaiPricingSynced) headers["if-none-match"] = state.etag;
+    const response = await fetch(CATALOG_URL, { headers, redirect: "error", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 
     let result;
     if (response.status === 304) {
@@ -221,6 +221,12 @@ export async function syncModelCatalog() {
       // ~23ms to parse, once a day, on a server that is otherwise idle at this
       // point — not worth a worker thread.
       const catalog = await response.json();
+      try {
+        await syncOpenAIStandardReferences(catalog, Date.now());
+        state.openaiPricingSynced = true;
+      } catch {
+        state.openaiPricingSynced = false;
+      }
       const etag = response.headers.get("etag") || null;
       const entries = await collectEntries();
       const { models, providers } = build(catalog, entries);
@@ -284,7 +290,7 @@ export function startModelCatalogSync() {
         syncBudgetReference(CODEX_USD_PRICING_URL, parseCodexStandardReferences, "text/html"),
         syncBudgetReference(CLAUDE_STANDARD_PRICING_URL, parseClaudeStandardReferences),
       ]);
-      schedule(catalog && codexPricing && claudePricing ? SYNC_INTERVAL_MS : RETRY_DELAY_MS);
+      schedule(catalog && state.openaiPricingSynced && codexPricing && claudePricing ? SYNC_INTERVAL_MS : RETRY_DELAY_MS);
     }, delay);
     timer.unref?.();
   };

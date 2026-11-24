@@ -36,16 +36,19 @@ export async function POST(request) {
   if (state.kind !== 'controlled' || !isCodexBudgetEndpoint(new URL(request.url).pathname)) return accountingUnavailableResponse();
   try {
     const profile = await findInstalledBudgetProfileForKey(state.keyId);
-    if (profile?.provider !== 'codex') return accountingUnavailableResponse();
+    if (!['anthropic', 'claude', 'codex', 'openai'].includes(profile?.provider)) return accountingUnavailableResponse();
     const { getInstalledAccountingServices, bindAccountingIdentity } = await import('@/lib/accounting/installed-service.js');
-    const { createCodexDispatchContext } = await import('@/lib/accounting/codex-dispatch-context.js');
     const identity = bindAccountingIdentity(await getInstalledAccountingServices(), selectedAccountingSecret(request));
     if (identity?.keyId !== state.keyId) return accountingUnavailableResponse();
     await ensureInitialized();
-    return await handleAccountedChatCandidate(request, {
-      identity, provider: 'codex', connectionId: profile.connectionId,
-      createContext: ({ routeProof, model, credentials }) =>
-        createCodexDispatchContext({ identity, routeProof, credentials, profile, model }),
+    const createContext = profile.provider === 'codex'
+      ? (await import('@/lib/accounting/codex-dispatch-context.js')).createCodexDispatchContext
+      : profile.provider === 'openai'
+        ? (await import('@/lib/accounting/openai-dispatch-context.js')).createOpenAIDispatchContext
+        : (await import('@/lib/accounting/anthropic-dispatch-context.js')).createAnthropicDispatchContext;
+    const endpoint = new URL(request.url).pathname;
+    return await handleAccountedChatCandidate(request, { identity, provider: profile.provider, connectionId: profile.connectionId,
+      createContext: args => createContext({ ...args, identity, profile, endpoint, stream: true }),
     });
   } catch {
     return accountingUnavailableResponse();

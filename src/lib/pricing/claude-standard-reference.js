@@ -12,11 +12,23 @@ export function claudeModelFromReference(revision) {
 }
 
 export function readClaudeStandardReference(scope, model) {
-  const revision = claudeStandardReferenceKey(model);
-  if (!revision) return null;
-  const row = scope.referencePrice([BUDGET_REFERENCE_SCOPE, revision]);
+  // Pricing names use the family first. Older wire IDs put the version first,
+  // and pinned releases keep their date on the wire.
+  if (typeof model !== 'string') return null;
+  const undated = model.replace(/-\d{8}$/, '');
+  const familyFirst = undated.replace(/^claude-(\d+(?:-\d+)*)-([a-z]+)$/, 'claude-$2-$1');
+  for (const name of new Set([model, familyFirst])) {
+    const revision = claudeStandardReferenceKey(name);
+    if (!revision) continue;
+    const row = scope.referencePrice([BUDGET_REFERENCE_SCOPE, revision]);
+    if (row) return validateReference(row, revision);
+  }
+  return null;
+}
+
+function validateReference(row, revision) {
   try {
-    const price = row && validatePriceSnapshot(JSON.parse(row.value));
+    const price = validatePriceSnapshot(JSON.parse(row.value));
     if (price?.revision === revision && price.source === CLAUDE_STANDARD_PRICING_URL &&
         Number.isSafeInteger(price.syncedAt) && price.syncedAt > 0 &&
         Object.keys(price.rates).sort().join(',') === 'cache_creation,cache_creation_1h,cached,input,output') return price;

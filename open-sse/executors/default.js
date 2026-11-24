@@ -277,12 +277,12 @@ export class DefaultExecutor extends BaseExecutor {
 
   // Generic OAuth refresh for the common {grant_type, refresh_token, client_id[, ...]} shape.
   // grant = REFRESH_GRANTS[provider]; client creds resolved from PROVIDERS or this.config.
-  refreshFromGrant(credentials, proxyOptions) {
+  refreshFromGrant(credentials, proxyOptions, send = proxyAwareFetch) {
     const grant = REFRESH_GRANTS[this.provider];
     const params = { grant_type: "refresh_token", refresh_token: credentials.refreshToken, ...grant.params(this) };
     return grant.encoding === "json"
-      ? this.refreshWithJSON(grant.url(), params, proxyOptions)
-      : this.refreshWithForm(grant.url(), params, proxyOptions);
+      ? this.refreshWithJSON(grant.url(), params, proxyOptions, send)
+      : this.refreshWithForm(grant.url(), params, proxyOptions, send);
   }
 
   async refreshCredentials(credentials, log, proxyOptions = null) {
@@ -314,8 +314,8 @@ export class DefaultExecutor extends BaseExecutor {
     }
   }
 
-  async refreshWithJSON(url, body, proxyOptions = null) {
-    const response = await proxyAwareFetch(url, {
+  async refreshWithJSON(url, body, proxyOptions = null, send = proxyAwareFetch) {
+    const response = await send(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify(body)
@@ -325,8 +325,8 @@ export class DefaultExecutor extends BaseExecutor {
     return { accessToken: tokens.access_token, refreshToken: tokens.refresh_token || body.refresh_token, expiresIn: tokens.expires_in };
   }
 
-  async refreshWithForm(url, params, proxyOptions = null) {
-    const response = await proxyAwareFetch(url, {
+  async refreshWithForm(url, params, proxyOptions = null, send = proxyAwareFetch) {
+    const response = await send(url, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
       body: new URLSearchParams(params)

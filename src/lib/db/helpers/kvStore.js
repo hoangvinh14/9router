@@ -19,9 +19,13 @@ export function makeKv(scope) {
       const db = await getAdapter();
       db.run(`INSERT INTO kv(scope, key, value) VALUES(?, ?, ?) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`, [scope, key, stringifyJson(value)]);
     },
-    async setMany(obj) {
+    async setMany(obj, { replacePrefix } = {}) {
       const db = await getAdapter();
       db.transaction(() => {
+        if (replacePrefix !== undefined) {
+          if (!replacePrefix || !Object.keys(obj).every(key => key.startsWith(replacePrefix))) throw new Error("Invalid replacement prefix");
+          db.run("DELETE FROM kv WHERE scope = ? AND substr(key, 1, length(?)) = ?", [scope, replacePrefix, replacePrefix]);
+        }
         for (const [k, v] of Object.entries(obj)) {
           db.run(`INSERT INTO kv(scope, key, value) VALUES(?, ?, ?) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`, [scope, k, stringifyJson(v)]);
         }

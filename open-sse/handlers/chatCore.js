@@ -62,6 +62,21 @@ export function stripContinuityFields(body) {
   return body;
 }
 
+async function recordAccountedError(provider, attempt, native, status) {
+  const failed = native?.type === 'response.failed' && native.response?.status === 'failed' ? native.response : null;
+  const invalidTokenCodes = ['token_expired', 'invalid_token', 'token_invalidated'];
+  const authError = provider === 'claude'
+    ? native?.type === 'error' && native.error?.type === 'authentication_error' && (status === 401 || invalidTokenCodes.includes(native.error.code))
+    : provider === 'codex' && invalidTokenCodes.includes(failed?.error?.code);
+  if ((authError || provider === 'codex' && failed) && attempt?.settleAuthError) {
+    const ack = await attempt.settleAuthError(provider === 'codex' ? failed.usage : native.usage);
+    return authError && ack?.complete && ack.recorded && !ack.replay;
+  }
+  if (provider === 'claude' && attempt?.settleAuthError) await attempt.settleAuthError(native?.usage);
+  else await attempt?.settleJson?.(native?.usage);
+  return false;
+}
+
 // Keep ordinary exception/retry semantics unchanged. Once trusted accounting
 // is selected, every result is terminal for implicit account/member replay,
 // including a post-ACK logging/translation/completion exception. No second
@@ -79,7 +94,7 @@ export async function handleChatCore(options) {
   }
 }
 
-async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, customPromptEnabled, customPrompt, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, providerOverrides, accounting = null }) {
+async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, customPromptEnabled, customPrompt, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, providerOverrides, accounting = null, refreshAccounting, clientSignal, refreshStoredCredentials }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
   // Stable per-session color so all lines of one CLI conversation share a tag
@@ -94,15 +109,21 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
 
   const sourceFormat = sourceFormatOverride || detectFormat(body);
   // Trusted app-side context fixes the native response mode before helpers run.
+  const nativeOpenAIAccounting = provider === 'openai' && accounting?.provider === 'openai' &&
+    ((sourceFormat === FORMATS.OPENAI && clientRawRequest?.endpoint === '/v1/chat/completions') ||
+      (sourceFormat === FORMATS.OPENAI_RESPONSES && clientRawRequest?.endpoint === '/v1/responses'));
   const codexChatAccounting = accounting?.provider === 'codex' && sourceFormat === FORMATS.OPENAI &&
     clientRawRequest?.endpoint === '/v1/chat/completions';
   const nativeCodexAccounting = provider === 'codex' && accounting?.provider === 'codex' &&
     accounting.stream === true && (codexChatAccounting ||
       (sourceFormat === FORMATS.OPENAI_RESPONSES && clientRawRequest?.endpoint === '/v1/responses'));
   const nativeClaudeOAuthAccounting = provider === 'claude' && accounting?.provider === 'claude';
-  const nativeAnthropicAccounting = (provider === 'anthropic' || nativeClaudeOAuthAccounting) && sourceFormat === FORMATS.CLAUDE;
-  if (accounting !== null && ((!nativeAnthropicAccounting && !nativeCodexAccounting) ||
-      (!codexChatAccounting && (accounting.nativeDefaults ? body.stream ?? false : body.stream) !== (accounting.stream === true)) || typeof accounting.prepare !== 'function' ||
+  const claudeConversion = accounting?.convertedEndpoint && accounting.convertedEndpoint === clientRawRequest?.endpoint &&
+    ((sourceFormat === FORMATS.OPENAI && clientRawRequest.endpoint === '/v1/chat/completions') ||
+     (sourceFormat === FORMATS.OPENAI_RESPONSES && clientRawRequest.endpoint === '/v1/responses'));
+  const nativeAnthropicAccounting = (provider === 'anthropic' || nativeClaudeOAuthAccounting) && (sourceFormat === FORMATS.CLAUDE || claudeConversion);
+  if (accounting !== null && ((!nativeAnthropicAccounting && !nativeCodexAccounting && !nativeOpenAIAccounting) ||
+      (!claudeConversion && !codexChatAccounting && (accounting.nativeDefaults ? body.stream ?? false : body.stream) !== (accounting.stream === true)) || typeof accounting.prepare !== 'function' ||
       headroomEnabled || pxpipeEnabled || (rtkEnabled && !nativeClaudeOAuthAccounting) || cavemanEnabled || ponytailEnabled ||
       customPromptEnabled || providerThinking?.mode && providerThinking.mode !== 'auto')) {
     return { ...createErrorResult(503, 'Accounting profile unavailable'), accountingRefused: true };
@@ -130,7 +151,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   // /chat/completions), so without this guard a claude-format request would wrongly
   // route kimi to /messages.
   const modelSupportedFormats = getModelSupportedFormats(alias, model);
-  const runtimeTransport = resolveTransport(provider, sourceFormat);
+  const runtimeTransport = (nativeOpenAIAccounting && accounting.runtimeTransport) || resolveTransport(provider, sourceFormat);
   // Per-model guard: when a model declares supportedFormats, only use the
   // sourceFormat-matched transport if that format is declared (opencode-go models
   // differ — kimi/glm only do /chat/completions). Undeclared models keep the
@@ -151,7 +172,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   // OpenAI clients should stay on /chat/completions; other clients can fall
   // back to its declared Claude target).
   const targetFormat = useTransport?.format || modelTargetFormat || getTargetFormat(provider, credentials);
-  if (nativeCodexAccounting && targetFormat !== FORMATS.OPENAI_RESPONSES) {
+  if ((claudeConversion && targetFormat !== FORMATS.CLAUDE) || (nativeOpenAIAccounting && targetFormat !== sourceFormat) || (nativeCodexAccounting && targetFormat !== FORMATS.OPENAI_RESPONSES)) {
     return { ...createErrorResult(503, 'Accounting profile unavailable'), accountingRefused: true };
   }
   if (useTransport && credentials) credentials.runtimeTransport = useTransport;
@@ -201,20 +222,20 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   // Non-interactive mode (-p flag) sends without stream and can't parse SSE.
   // Only force non-streaming when client didn't explicitly request it.
   const detectedTool = detectClientTool(clientRawRequest?.headers || {}, body);
-  if (!nativeCodexAccounting && detectedTool === "deepseek-tui" && body.stream !== true) stream = false;
+  if (!claudeConversion && !nativeCodexAccounting && detectedTool === "deepseek-tui" && body.stream !== true) stream = false;
 
   // Check client Accept header preference for non-streaming requests
   // This fixes AI SDK compatibility where clients send Accept: application/json
   const acceptHeader = clientRawRequest?.headers?.accept || "";
   const clientPrefersJson = acceptHeader.includes("application/json");
   const clientPrefersSSE = acceptHeader.includes("text/event-stream");
-  if (clientPrefersJson && !clientPrefersSSE && body.stream !== true && !providerRequiresStreaming && !nativeCodexAccounting) {
+  if (!claudeConversion && clientPrefersJson && !clientPrefersSSE && body.stream !== true && !providerRequiresStreaming && !nativeCodexAccounting) {
     stream = false;
   }
 
   const reqLogger = await createRequestLogger(sourceFormat, targetFormat, model);
-  if (clientRawRequest) reqLogger.logClientRawRequest(clientRawRequest.endpoint, clientRawRequest.body, clientRawRequest.headers);
-  reqLogger.logRawRequest(body);
+  if (!claudeConversion && clientRawRequest) reqLogger.logClientRawRequest(clientRawRequest.endpoint, clientRawRequest.body, clientRawRequest.headers);
+  if (!claudeConversion) reqLogger.logRawRequest(body);
   log?.debug?.("FORMAT", `${sourceFormat} → ${targetFormat} | stream=${stream}`);
 
   // Native passthrough: CLI tool and provider are the same ecosystem
@@ -222,7 +243,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   const clientTool = detectClientTool(clientRawRequest?.headers || {}, body);
   // Preserve signed history from the validated native Messages request.
   const nativeAccountedStream = accounting?.stream === true;
-  const nativeAccountedWire = nativeAccountedStream || nativeClaudeOAuthAccounting;
+  const nativeAccountedWire = nativeAccountedStream || nativeClaudeOAuthAccounting || nativeOpenAIAccounting;
   const passthrough = nativeAccountedWire || isNativePassthrough(clientTool, provider);
 
   // Expose raw client headers to translators/executors for session-id resolution
@@ -246,7 +267,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   let customToolNames;
   if (passthrough) {
     log?.debug?.("PASSTHROUGH", `${clientTool} → ${provider} | native lossless`);
-    translatedBody = { ...(codexChatAccounting ? accountedInput : body), model: stripThinkingSuffix(upstreamModel) };
+    translatedBody = { ...((claudeConversion || codexChatAccounting || nativeOpenAIAccounting) ? accountedInput : body), model: stripThinkingSuffix(upstreamModel) };
     if (provider === "codex" && !nativeCodexAccounting) {
       const suffixThinking = {};
       applyThinking(sourceFormat, upstreamModel, suffixThinking, provider);
@@ -436,24 +457,50 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   }
 
   // Execute request
-  let providerResponse, providerUrl, providerHeaders, finalBody, accountingAttempt;
+  let providerResponse, providerUrl, providerHeaders, finalBody, accountingAttempt, parsedAuthError;
   // Most executors return their registry format. Cursor AgentService is an
   // exception: it is decoded by the executor into OpenAI-compatible output.
   let providerResponseFormat = targetFormat;
   try {
-    const result = await executor.execute({
+    const execute = () => executor.execute({
       model,
       body: translatedBody,
       stream,
       credentials,
       providerSessionId: sessionSeed,
       clientTool,
-      signal: streamController.signal,
+      signal: clientSignal ? AbortSignal.any([clientSignal, streamController.signal]) : streamController.signal,
       log,
       proxyOptions,
       providerOverrides,
       accounting,
     });
+    let refreshed = false;
+    const rotate = async proof => {
+      clientSignal?.throwIfAborted();
+      const next = await refreshAccounting(proof);
+      next.accounting.validateInput(body, codexChatAccounting);
+      credentials = next.credentials;
+      accounting = next.accounting;
+      refreshed = true;
+      clientSignal?.throwIfAborted();
+    };
+    if (refreshAccounting && credentials.expiresAt != null) {
+      const expiry = typeof credentials.expiresAt === 'number'
+        ? credentials.expiresAt * (credentials.expiresAt < 1e12 ? 1000 : 1) : Date.parse(credentials.expiresAt);
+      if (Number.isFinite(expiry) && expiry <= Date.now()) await rotate();
+    }
+    let result = await execute();
+    if (refreshAccounting && !refreshed && credentials.refreshToken && [401, 403].includes(result.response.status)) {
+      parsedAuthError = await parseUpstreamError(result.response, executor, async native => {
+        if (!await recordAccountedError(provider, result.accounting, native, result.response.status)) return;
+        await rotate(result.accounting.successorRoute());
+      });
+      if (refreshed) {
+        parsedAuthError = null;
+        result = await execute();
+      }
+    }
     accountingAttempt = result.accounting;
     if (accounting !== null && !accountingAttempt) {
       return { ...createErrorResult(503, 'Accounting executor unavailable'), accountingRefused: true };
@@ -467,7 +514,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
     if (renamedToolNames?.size) {
       toolNameMap = new Map([...(toolNameMap || []), ...renamedToolNames]);
     }
-    reqLogger.logTargetRequest(providerUrl, providerHeaders, finalBody);
+    if (!claudeConversion) reqLogger.logTargetRequest(providerUrl, providerHeaders, finalBody);
   } catch (error) {
     if (accounting !== null) {
       // Do not feed accounting denial/storage failure into account cooldown or
@@ -506,7 +553,8 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
       // refreshWithRetry's 2nd/3rd attempt reuses the already-consumed RT →
       // invalid_grant → auth_failed retryable=false.
       const newCredentials = await refreshWithRetry(async () => {
-        const result = await executor.refreshCredentials(credentials, log);
+        const grant = () => executor.refreshCredentials(credentials, log);
+        const result = refreshStoredCredentials ? await refreshStoredCredentials(grant) : await grant();
         if (result?.refreshToken && result.refreshToken !== credentials.refreshToken) {
           if (result.accessToken) credentials.accessToken = result.accessToken;
           credentials.refreshToken = result.refreshToken;
@@ -516,7 +564,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
       if (newCredentials?.accessToken || newCredentials?.copilotToken) {
         if (log?.line) log.line(reqTag, "🔑", `TOKEN REFRESHED · ${provider}/${model}`);
         Object.assign(credentials, newCredentials);
-        if (onCredentialsRefreshed) {
+        if (onCredentialsRefreshed && !refreshStoredCredentials) {
           try { await onCredentialsRefreshed(newCredentials); } catch (e) { log?.warn?.("TOKEN", `onCredentialsRefreshed failed: ${e.message}`); }
         }
         try {
@@ -554,12 +602,13 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
       // Codex meters authenticated Responses SSE terminals. A bare HTTP error
       // has no admitted usage evidence, but must still be read without replay.
       const readNativeError = accountingAttempt
-        ? parsed => accountingAttempt.settleJson?.(parsed?.usage) : null;
-      parsedError = await parseUpstreamError(providerResponse, executor, readNativeError);
+        ? parsed => recordAccountedError(provider, accountingAttempt, parsed, providerResponse.status) : null;
+      parsedError = parsedAuthError ?? await parseUpstreamError(providerResponse, executor, readNativeError);
     } catch {
       return { ...createErrorResult(503, 'Accounting recording unavailable'), accountingRefused: true };
     }
     const { statusCode, message, resetsAtMs } = parsedError;
+    if (claudeConversion) return { ...createErrorResult(statusCode, 'Claude request failed'), accountingRefused: true };
     appendRequestLog({ model, provider, connectionId, status: `FAILED ${statusCode}` }).catch(() => { });
     saveRequestDetail(buildRequestDetail({
       provider, model, connectionId,
@@ -590,6 +639,10 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   // streams upstream (openaiToOpenAIResponsesRequest pins stream:true), so a
   // non-stream OpenAI/native client behind a Responses upstream must also take
   // this path — handleForcedSSEToJson returns null when the body is not SSE.
+  if (claudeConversion) {
+    return handleStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat,
+      streamController, accountedJson: !clientRequestedStreaming });
+  }
   if (codexChatAccounting && !clientRequestedStreaming) {
     const metered = await handleStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat,
       targetFormat: providerResponseFormat, streamController, accountedJson: true });
@@ -597,7 +650,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
     return await handleForcedSSEToJson({ ...sharedCtx, providerResponse: metered.response, sourceFormat,
       targetFormat: providerResponseFormat, trackDone, appendLog, requireResponsesTerminal: true });
   }
-  if (!clientRequestedStreaming && (providerRequiresStreaming || providerResponseFormat === FORMATS.OPENAI_RESPONSES)) {
+  if (!nativeOpenAIAccounting && !clientRequestedStreaming && (providerRequiresStreaming || providerResponseFormat === FORMATS.OPENAI_RESPONSES)) {
     const result = await handleForcedSSEToJson({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, customToolNames, toolNameMap, trackDone, appendLog });
     if (result) { streamController.handleComplete(); return result; }
   }

@@ -12,9 +12,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 const originalFetch = global.fetch;
 
 describe("Codex Refresh Token", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
+    // Initialize the production fetch wrapper before installing the grant fixture.
+    await import('../../open-sse/utils/proxyFetch.js');
     global.fetch = originalFetch;
   });
 

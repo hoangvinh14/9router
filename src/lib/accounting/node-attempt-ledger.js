@@ -339,7 +339,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         return proof;
       } });
     },
-    async bindAnthropicAccount(routeProof, connectionId, apiKey, inferenceGeo) {
+    async bindAnthropicAccount(routeProof, connectionId, apiKey, inferenceGeo, requireSynced) {
       const route = ownRoutes.get(routeProof);
       if (!requireAccount || route?.provider !== 'anthropic') throw unavailable();
       identifier(connectionId);
@@ -348,7 +348,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
       ]);
       const digest = owner.credentialDigest(apiKey);
       const accountMatches = scope => owner.readAnthropicAccount(scope, connectionId, route.model) === digest;
-      const readPrice = scope => readAnthropicReferencePrice(scope, route.model, inferenceGeo);
+      const readPrice = scope => readAnthropicReferencePrice(scope, route.model, inferenceGeo, requireSynced);
       const { value: price } = checkRouteTransaction(scope =>
         route.matches(scope, route.keyId, route.stamp) && accountMatches(scope) ? readPrice(scope) : null);
       if (!price) throw unavailable();
@@ -357,6 +357,25 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
       ownAccounts.set(proof, { routeProof, encodedPrice,
         matches: scope => accountMatches(scope) && canonical(readPrice(scope)) === encodedPrice });
       return Object.freeze({ proof, price: Object.freeze({ ...price, rates: Object.freeze(price.rates) }) });
+    },
+    async bindOpenAIAccount(routeProof, connectionId, apiKey) {
+      const route = ownRoutes.get(routeProof);
+      if (!requireAccount || route?.provider !== 'openai') throw unavailable();
+      identifier(connectionId);
+      const [{ credentialDigest, readApiKeyAccount }, { readOpenAIStandardReference }] = await Promise.all([
+        import('./node-anthropic-account.js'), import('../pricing/openai-standard-reference.js'),
+      ]);
+      const digest = credentialDigest(apiKey);
+      const matches = scope => readApiKeyAccount(scope, connectionId, route.model, 'openai') === digest;
+      const readPrice = scope => readOpenAIStandardReference(scope, route.model);
+      const { value: price } = checkRouteTransaction(scope =>
+        route.matches(scope, route.keyId, route.stamp) && matches(scope) ? readPrice(scope) : null);
+      if (!price) throw unavailable();
+      const encodedPrice = canonical(price);
+      const proof = Object.freeze(Object.create(null));
+      ownAccounts.set(proof, { routeProof, encodedPrice,
+        matches: scope => matches(scope) && canonical(readPrice(scope)) === encodedPrice });
+      return Object.freeze({ proof, price });
     },
     async bindCodexAccount(routeProof, connectionId, accessToken, accountId, priceBasis) {
       const route = ownRoutes.get(routeProof);
@@ -440,7 +459,14 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
       const ack = Object.freeze(Object.create(null));
       const state = { used: false, terminal: false, original, encoded, route, account };
       ownAcks.set(ack, state);
-      return Object.freeze({ replay: false, ack, settle(evidence) {
+      let successorIssued = false;
+      return Object.freeze({ replay: false, ack, successorRoute() {
+        if (!route || !state.terminal || successorIssued) throw unavailable();
+        successorIssued = true;
+        const proof = Object.freeze(Object.create(null));
+        ownRoutes.set(proof, route);
+        return proof;
+      }, settle(evidence) {
         const encodedTerminal = boundedCanonical(terminalCost(evidence, original.price));
         if (terminalPayload !== undefined) {
           if (terminalPayload !== encodedTerminal) throw conflict();

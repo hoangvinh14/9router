@@ -207,7 +207,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       accessToken: connection.accessToken,
       refreshToken: connection.refreshToken,
       idToken: connection.idToken,
-      expiresAt: connection.expiresAt,
+      expiresAt: connection.expiresAt ?? connection.tokenExpiresAt,
       expiresIn: connection.expiresIn,
       lastRefreshAt: connection.lastRefreshAt,
       projectId: connection.projectId,

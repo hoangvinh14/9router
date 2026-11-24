@@ -9,7 +9,10 @@ if (process.platform !== 'linux' || process.version !== 'v24.21.0' || (!tls && p
     process.env.NODE_OPTIONS || process.env.NODE_PATH) throw new Error('Clean pinned Linux Node required');
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const files = [
+  'tests/fixtures/budget/claude-conversion-restart.mjs', 'tests/fixtures/budget/claude-conversion-cases.mjs', 'src/lib/accounting/claude-converted-request.js', 'src/lib/accounting/claude-tool-continuity.js', 'open-sse/utils/claude-budget-output.js',
   'src/app/api/v1/messages/route.js', 'src/app/api/v1/responses/route.js', 'src/app/api/v1/chat/completions/route.js',
+  'src/lib/db/helpers/kvStore.js', 'src/lib/pricing/openai-standard-reference.js', 'src/lib/accounting/openai-dispatch-context.js',
+  'open-sse/providers/registry/openai.js', 'open-sse/utils/accounted-openai-chat-stream.js',
   'open-sse/utils/usageTracking.js', 'open-sse/translator/request/openai-responses.js', 'open-sse/translator/response/openai-responses.js',
   'open-sse/translator/concerns/chunk.js', 'open-sse/translator/concerns/usage.js',
   'open-sse/translator/concerns/reasoning.js', 'open-sse/translator/concerns/claudeMessage.js',
@@ -21,7 +24,7 @@ const files = [
   'src/lib/db/helpers/jsonCol.js', 'src/lib/db/repos/settingsRepo.js', 'src/lib/db/schema.js',
   'src/lib/db/repos/connectionsRepo.js', 'src/lib/db/repos/proxyPoolsRepo.js', 'src/lib/network/connectionProxy.js',
   'src/lib/db/adapters/nodeSqliteAdapter.js', 'src/lib/db/adapters/nodeClosure.js',
-  'src/lib/accounting/internal-binding.js', 'src/lib/accounting/installed-service.js', 'src/lib/accounting/request-boundary.js', 'src/lib/accounting/mutation-barrier.js',
+  'src/lib/accounting/oauth-refresh.js', 'src/lib/accounting/internal-binding.js', 'src/lib/accounting/installed-service.js', 'src/lib/accounting/request-boundary.js', 'src/lib/accounting/mutation-barrier.js',
   'src/lib/accounting/node-routing-snapshot.js', 'src/lib/accounting/node-outer-transaction.js', 'src/lib/accounting/sql-operation-scope.js',
   'src/lib/accounting/node-attempt-ledger.js', 'src/lib/accounting/node-key-policy.js', 'src/lib/accounting/node-anthropic-account.js',
   'src/lib/accounting/anthropic-reference-price.js', 'src/lib/accounting/responses-usage.js', 'src/lib/accounting/anthropic-dispatch-context.js', 'src/lib/accounting/anthropic-usage.js',
@@ -38,7 +41,7 @@ const files = [
   'open-sse/translator/schema/index.js', 'open-sse/translator/schema/roles.js',
   'open-sse/translator/schema/blocks.js', 'open-sse/translator/schema/finishReasons.js',
   'open-sse/translator/schema/streamEvents.js', 'open-sse/translator/schema/defaults.js', 'open-sse/providers/registry/codex.js', 'open-sse/providers/models/helpers.js',
-  'open-sse/executors/base.js', 'open-sse/executors/default.js', 'open-sse/providers/registry/anthropic.js', 'open-sse/providers/shared.js',
+  'open-sse/executors/base.js', 'open-sse/executors/default.js', 'open-sse/providers/registry/claude.js', 'open-sse/providers/registry/anthropic.js', 'open-sse/providers/shared.js',
   'open-sse/config/runtimeConfig.js', 'open-sse/config/errorConfig.js', 'open-sse/translator/formats.js', 'open-sse/translator/concerns/paramSupport.js',
   'open-sse/utils/error.js', 'open-sse/utils/upstreamHeaders.js', 'open-sse/utils/accountingResponse.js',
   'open-sse/utils/clientDetector.js', 'open-sse/utils/modelMarkers.js', 'open-sse/utils/claudeCliVersion.js',
@@ -51,7 +54,7 @@ const files = [
 ];
 const args = ['--unshare-all', '--die-with-parent', '--new-session', '--ro-bind', '/usr', '/usr', '--ro-bind', '/lib', '/lib'];
 if (tls) {
-  files.push('open-sse/utils/proxyFetch.js', 'tests/fixtures/budget/composed-tls-bootstrap.mjs');
+  files.push('tests/fixtures/budget/composed-undici.mjs', 'open-sse/utils/proxyFetch.js', 'tests/fixtures/budget/composed-tls-bootstrap.mjs');
   const undici = path.resolve(repo, 'node_modules/undici');
   if (fs.realpathSync(undici) !== undici || !fs.statSync(undici).isDirectory()) throw new Error('Unsafe undici fixture input');
   args.push('--unshare-user', '--unshare-net', '--uid', '0', '--gid', '0', '--cap-drop', 'ALL',
@@ -75,7 +78,7 @@ const result = spawnSync('/usr/bin/bwrap', args, {
   env: { PATH: '/usr/bin:/bin', HOME: '/tmp', DATA_DIR: '/tmp/fixture-data', TMPDIR: '/tmp', TZ: 'UTC',
     NODE_ENV: 'test', BUDGET_PURE_SANDBOX: '1', BUDGET_OUTER_NET: fs.readlinkSync('/proc/self/ns/net'),
     ...(tls ? { BUDGET_COMPOSED_TLS: '1', BUDGET_OUTER_USER: fs.readlinkSync('/proc/self/ns/user') } : {}) },
-  stdio: 'inherit', timeout: tls ? 110000 : 35000,
+  stdio: 'inherit', timeout: tls ? 180000 : 120000,
 });
 if (result.error || result.signal || result.status !== 0) {
   console.error('Composed sandbox failed; no host fallback', result.error?.code, result.signal, result.status);

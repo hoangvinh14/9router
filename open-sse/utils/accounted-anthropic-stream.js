@@ -2,10 +2,11 @@
 const MAX_FRAME_CHARS = 1024 * 1024;
 const encoder = new TextEncoder();
 
-export function createAccountedAnthropicStream(attempt, onTerminal) {
+export function createAccountedAnthropicStream(attempt, onTerminal, renderer = null) {
   const decoder = new TextDecoder("utf-8", { fatal: true });
   let buffer = "";
   let frame = "";
+  let renderFailed = false;
 
   return new TransformStream({
     async transform(chunk, controller) {
@@ -28,7 +29,7 @@ export function createAccountedAnthropicStream(attempt, onTerminal) {
         const output = frame + raw + "\n";
         frame = "";
         if (data.length === 0 && names.length === 0) {
-          controller.enqueue(encoder.encode(output));
+          if (!renderer) controller.enqueue(encoder.encode(output));
           continue;
         }
         let event;
@@ -42,7 +43,14 @@ export function createAccountedAnthropicStream(attempt, onTerminal) {
         if (event.type === "message_stop") await attempt.settleStream();
         const terminal = event.type === "message_stop" || event.type === "error";
         if (terminal) onTerminal();
-        controller.enqueue(encoder.encode(output));
+        // A conversion error cannot erase native usage still arriving on this
+        // reader. Reject the converted terminal after the meter finishes.
+        let rendered = renderer ? "" : output;
+        if (renderer && !renderFailed) {
+          try { rendered = renderer.render(event); } catch { renderFailed = true; }
+        }
+        if (terminal && renderFailed) throw new Error("Invalid Claude response conversion");
+        if (rendered) controller.enqueue(encoder.encode(rendered));
         if (terminal) {
           controller.terminate();
           return;

@@ -1,4 +1,5 @@
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, expect, it, vi } from "vitest";
+import { DatabaseSync } from "node:sqlite";
 import { EventEmitter } from "node:events";
 import { Readable } from "node:stream";
 const mocks = vi.hoisted(() => ({ update: vi.fn(), latest: vi.fn(), fetch: vi.fn(), refresh: vi.fn(), httpsRequest: vi.fn() }));
@@ -15,6 +16,11 @@ vi.mock("@/sse/services/model.js", () => ({ getModelInfo: async () => ({ provide
 vi.mock("@/sse/services/keyAccess.js", () => ({ getKeyAccessContext: async () => ({}), enforceKeyAccessResolved: async () => null }));
 vi.mock("@/lib/network/connectionProxy.js", () => ({ resolveConnectionProxyConfig: async () => ({}) }));
 vi.mock("open-sse/services/oauthCredentialManager.js", () => ({ shouldRefreshCredentials: () => true, refreshProviderCredentials: mocks.refresh }));
+const budgetDb = new DatabaseSync(":memory:");
+afterAll(() => budgetDb.close());
+vi.mock("@/lib/db/driver.js", () => ({ getAdapter: () => ({
+  all: (sql, params) => budgetDb.prepare(sql).all(...params),
+}) }));
 const { POST } = await import("../../src/app/api/v1/audio/transcriptions/route.js");
 function request() {
   const pcm = Buffer.alloc(44 + 4800);
@@ -26,7 +32,10 @@ function request() {
   return new Request("http://localhost/v1/audio/transcriptions", { method: "POST", body: form });
 }
 beforeEach(() => {
-  vi.clearAllMocks(); mocks.latest.mockResolvedValue(null); mocks.update.mockResolvedValue({ id: credentials.connectionId });
+  vi.clearAllMocks();
+  let stored = { ...credentials, id: credentials.connectionId, provider: "codex", isActive: true };
+  mocks.latest.mockImplementation(async () => ({ ...stored }));
+  mocks.update.mockImplementation(async (_, patch) => (stored = { ...stored, ...patch }));
   mocks.refresh.mockResolvedValue({ accessToken: "offline-refreshed-token", refreshToken: "offline-rotated-refresh", expiresIn: 3600, providerSpecificData: { chatgptAccountId: "account" }, lastRefreshAt: new Date().toISOString() });
   mocks.fetch.mockImplementation(async () => Response.json({ text: "persisted" }));
   mocks.httpsRequest.mockImplementation((_url, options, callback) => {
@@ -41,8 +50,8 @@ beforeEach(() => {
 });
 it("uses the real persisted refresh service before sending expired-account OAuth audio", async () => {
   const response = await POST(request());
-  expect(response.status).toBe(200);
-  expect(mocks.update).toHaveBeenCalledWith("offline-connection", expect.objectContaining({ accessToken: "offline-refreshed-token", refreshToken: "offline-rotated-refresh", providerSpecificData: { workspaceId: "workspace", customMetadata: "preserve-me", chatgptAccountId: "account" } }));
+  expect(response.status, await response.clone().text()).toBe(200);
+  expect(mocks.update).toHaveBeenCalledWith("offline-connection", expect.objectContaining({ accessToken: "offline-refreshed-token", refreshToken: "offline-rotated-refresh", providerSpecificData: { workspaceId: "workspace", customMetadata: "preserve-me", chatgptAccountId: "account" } }), expect.objectContaining({ refreshToken: "offline-refresh" }));
   expect(mocks.httpsRequest.mock.calls[0][1].headers.Authorization).toBe("Bearer offline-refreshed-token");
   expect(mocks.httpsRequest.mock.calls[0][1].headers["ChatGPT-Account-Id"]).toBe("workspace");
   expect(mocks.update.mock.invocationCallOrder[0]).toBeLessThan(mocks.httpsRequest.mock.invocationCallOrder[0]);
@@ -50,6 +59,6 @@ it("uses the real persisted refresh service before sending expired-account OAuth
 it("rejects invalid refreshed tokens before contacting transcription upstream", async () => {
   mocks.refresh.mockResolvedValue({ accessToken: "invalid\r\ncredential", expiresIn: 3600 });
   const response = await POST(request());
-  expect(response.status).toBe(401);
+  expect(response.status, await response.clone().text()).toBe(401);
   expect(await response.text()).not.toContain("credential");
 });

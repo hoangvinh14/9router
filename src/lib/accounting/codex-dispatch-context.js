@@ -1,8 +1,10 @@
+import { settleOAuthErrorUsage } from './terminal-cost.js';
 import { randomUUID } from 'node:crypto';
 import { prepareAccountedDirectPost } from '../../../open-sse/utils/proxyFetch.js';
 import { unavailable } from './attempt-payload.js';
 import { openaiToOpenAIResponsesRequest } from '../../../open-sse/translator/request/openai-responses.js';
 import { codexStandardReferenceKey } from '../pricing/constants.js';
+import { responsesTokenUsage } from './responses-usage.js';
 import { budgetInstant } from './budget-windows.js';
 import { estimateInputTokens } from '../../../open-sse/utils/usageTracking.js';
 import { codexAccountId, directAccountData } from './node-anthropic-account.js';
@@ -101,6 +103,8 @@ export function createCodexDispatchContext({ identity, routeProof, credentials, 
         priceCacheWrites: 'included-in-input',
         inputEstimate: estimateInputTokens(body),
         settleResponses: attempt.settle,
+        successorRoute: attempt.successorRoute,
+        settleAuthError: usage => settleOAuthErrorUsage(attempt, price, responsesTokenUsage(usage, 'included-in-input')),
       });
     },
   });

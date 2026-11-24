@@ -69,7 +69,9 @@ test('Codex Standard reference uses the published USD rates and includes cache w
   const row = '<tr><td>GPT-6.2 Sol</td><td>$2</td><td>$0.10</td><td>$10</td></tr>';
   const other = '<tr><td>GPT-6.1 Terra</td><td>$1</td><td>$0.05</td><td>$5</td></tr>';
   const card = rows => '<h1>ChatGPT Work and Codex models</h1><table><tr><th>Model</th><th>Input</th><th>Cached input</th><th>Output</th></tr>' + rows + '</table>';
-  const prices = parseCodexStandardReferences(card(row + other), 42);
+  const daybreak = '<tr><td>Daybreak Blue (GPT-5.6 Sol)</td><td>$2</td><td>$0.1</td><td>$10</td></tr>';
+  const prices = parseCodexStandardReferences(card(row + other + daybreak), 42);
+  assert.equal(prices['openai:codex/gpt-daybreak-blue-latest:standard:v1'].rates.input, '2');
   const snapshot = prices['openai:codex/gpt-6.2-sol:standard:v1'];
   assert.deepEqual({ ...snapshot.rates }, { input: '2', cached: '0.10', output: '10' });
   assert.equal(snapshot.syncedAt, 42);
@@ -81,4 +83,17 @@ test('Codex Standard reference uses the published USD rates and includes cache w
     input_tokens_details: { cached_tokens: 40, cache_write_tokens: 60 },
   }, 'included-in-input');
   assert.equal(terminalCost(usage, snapshot).amountNanoUsd, '374000');
+});
+
+test('OpenAI Standard keeps known output when write details are missing or contradict the requested TTL', async () => {
+  const { openAIStandardUsage } = await import('../../src/lib/accounting/responses-usage.js');
+  const price = { rates: { input: '2', cached: '0.1', cache_creation: '2.5', output: '10' } };
+  const usage = { prompt_tokens: 100, completion_tokens: 25, prompt_tokens_details: { cached_tokens: 20 } };
+  const expected = [['cached', 20], ['output', 25]];
+  const counts = u => openAIStandardUsage(u, price, false).components.map(c => [c.category, c.count]);
+  assert.deepEqual(counts(usage), expected);
+  assert.deepEqual(counts({ ...usage, prompt_tokens_details: { cached_tokens: 20, cache_write_tokens: 40,
+    cache_write_tokens_details: { ttl_30m_tokens: 20, ttl_12h_tokens: 20 } } }), expected);
+  assert.deepEqual(counts({ completion_tokens: 7 }), [['output', 7]]);
+  assert.deepEqual(counts({ ...usage, total_tokens: 124 }), []);
 });

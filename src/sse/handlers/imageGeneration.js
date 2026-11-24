@@ -154,6 +154,11 @@ async function handleSingleModelImage(body, modelStr, { wantsStream, binaryOutpu
       credentials: refreshedCredentials,
       streamToClient: wantsStream,
       binaryOutput,
+      refreshStoredCredentials: (provider === 'codex' || provider === 'claude') && refreshedCredentials.refreshToken
+        ? async grant => {
+            const { refreshStoredOAuth } = await import('../../lib/db/repos/connectionsRepo.js');
+            return refreshStoredOAuth(provider, refreshedCredentials, grant);
+          } : null,
       onCredentialsRefreshed: async (newCreds) => {
         await updateProviderCredentials(credentials.connectionId, {
           accessToken: newCreds.accessToken,

@@ -1,3 +1,4 @@
+import { usesRotatingOAuth, refreshStoredOAuth } from "@/lib/db/repos/connectionsRepo.js";
 import { getProviderConnections, updateProviderConnection } from "@/lib/localDb.js";
 import { getExecutor } from "open-sse/index.js";
 
@@ -66,10 +67,12 @@ export async function POST(request) {
 
     // Auto-refresh token on 401/403 and retry (same as chatCore.js)
     if (response.status === 401 || response.status === 403) {
-      const newCredentials = await executor.refreshCredentials(credentials, console);
+      const stored = usesRotatingOAuth(provider, credentials);
+      const grant = () => executor.refreshCredentials(credentials, console);
+      const newCredentials = stored ? await refreshStoredOAuth(provider, credentials, grant) : await grant();
       if (newCredentials?.accessToken || newCredentials?.copilotToken) {
         Object.assign(credentials, newCredentials);
-        await persistRefreshedCredentials(connection, newCredentials);
+        if (!stored) await persistRefreshedCredentials(connection, newCredentials);
         ({ response } = await executor.execute({ model, body, stream, credentials }));
       }
     }

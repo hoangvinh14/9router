@@ -130,6 +130,11 @@ export async function handleEmbeddings(request) {
       modelInfo: { provider, model },
       credentials: refreshedCredentials,
       log,
+      refreshStoredCredentials: (provider === 'codex' || provider === 'claude') && refreshedCredentials.refreshToken
+        ? async grant => {
+            const { refreshStoredOAuth } = await import('../../lib/db/repos/connectionsRepo.js');
+            return refreshStoredOAuth(provider, refreshedCredentials, grant);
+          } : null,
       onCredentialsRefreshed: async (newCreds) => {
         await updateProviderCredentials(credentials.connectionId, {
           ...newCreds,

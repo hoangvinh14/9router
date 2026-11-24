@@ -9,7 +9,7 @@ COPY scripts/provision-internal-accounting.mjs ./scripts/
 COPY src/lib/dataDir.js ./src/lib/
 COPY src/lib/db/ ./src/lib/db/
 COPY src/lib/accounting/ ./src/lib/accounting/
-COPY src/lib/pricing/constants.js src/lib/pricing/decimalMoney.js src/lib/pricing/claude-standard-reference.js ./src/lib/pricing/
+COPY src/lib/pricing/ ./src/lib/pricing/
 COPY src/shared/utils/keyAccess.js ./src/shared/utils/
 COPY src/shared/constants/keyAccess.js ./src/shared/constants/
 COPY open-sse/services/accountFallback.js ./open-sse/services/

@@ -1,3 +1,6 @@
+import { settleOAuthErrorUsage } from './terminal-cost.js';
+import { convertClaudeBudgetRequest } from './claude-converted-request.js';
+import { claudeToolStore } from './claude-tool-continuity.js';
 import { randomUUID } from 'node:crypto';
 import { prepareAccountedDirectPost } from '../../../open-sse/utils/proxyFetch.js';
 import { ANTHROPIC_API_VERSION } from '../../../open-sse/providers/shared.js';
@@ -66,7 +69,7 @@ function oauthMessageBlock(block, role) {
   return nativeMessageBlock(plain, role);
 }
 
-export function createAnthropicDispatchContext({ identity, routeProof, credentials, profile, model = profile?.model, clock, stream = false }) {
+export function createAnthropicDispatchContext({ identity, routeProof, credentials, profile, model = profile?.model, clock, stream = false, endpoint, toolStore = claudeToolStore }) {
   const config = snapshotPayload(profile);
   const oauth = config?.provider === 'claude';
   const nativeDefaults = oauth || config?.model === undefined;
@@ -94,13 +97,18 @@ export function createAnthropicDispatchContext({ identity, routeProof, credentia
   const binding = config.workspaceBinding;
   if (!oauth && (!isSingleWorkspaceBinding(binding) || binding.connectionId !== connectionId ||
       binding.keyDigest !== credentialDigest(apiKey))) throw unavailable();
+  const converted = ['/v1/chat/completions', '/v1/responses'].includes(endpoint);
+  const scope = [identity.keyId, config.provider, model, connectionId];
+  if (converted && (!stream || !nonempty(identity.keyId))) throw unavailable();
   let acceptedBody = null;
   let preparationStarted = false;
   const validateShape = body => {
     const request = snapshotPayload(body);
-    if (!fields(request, oauth ? CLAUDE_FIELDS : stream ? SSE_FIELDS : JSON_FIELDS) ||
+    if (!fields(request, oauth ? CLAUDE_FIELDS : converted ? [...SSE_FIELDS, 'output_config'] : stream ? SSE_FIELDS : JSON_FIELDS) ||
         ![model, `${config.provider}/${model}`].includes(request.model) || ((nativeDefaults ? request.stream ?? false : request.stream) !== stream) ||
         !Array.isArray(request.messages) || !request.messages.length) throw unavailable();
+    if (converted && request.output_config !== undefined && !(fields(request.output_config, ['effort']) &&
+        ['low','medium','high'].includes(request.output_config.effort))) throw unavailable();
     if (oauth) {
       if ((request.speed !== undefined && request.speed !== 'standard') ||
           (request.inference_geo !== undefined && request.inference_geo !== 'global') ||
@@ -135,14 +143,26 @@ export function createAnthropicDispatchContext({ identity, routeProof, credentia
     stream,
     ...(oauth ? { provider: 'claude' } : {}),
     nativeDefaults,
+    ...(converted ? { convertedEndpoint: endpoint } : {}),
     validateInput(body) {
       if (acceptedBody !== null || preparationStarted) throw unavailable();
+      if (converted) {
+        const request = convertClaudeBudgetRequest(body, endpoint, scope, toolStore);
+        acceptedBody = validateShape(request);
+        return request;
+      }
       acceptedBody = validateShape(body); // detached pre-helper immutable JSON
     },
-    ...(oauth ? {} : { buildHeaders({ provider, url, model: wireModel, stream: wireStream, credentials: effective }) {
+    ...(oauth && !converted ? {} : { buildHeaders({ provider, url, model: wireModel, stream: wireStream, credentials: effective }) {
       // The ordinary executor merges a client beta header. This contract does
       // not support that request; refuse instead of silently dropping it.
       const rawHeaders = new Headers(effective?.rawHeaders);
+      if (converted && oauth) {
+        if (provider !== 'claude' || url !== wireUrl || wireModel !== model || wireStream !== stream ||
+            effective.connectionId !== connectionId || effective.accessToken !== accessToken ||
+            rawHeaders.has('anthropic-beta') || rawHeaders.has('anthropic-workspace-id')) throw unavailable();
+        return { 'anthropic-version': ANTHROPIC_API_VERSION, 'content-type': 'application/json', authorization: 'Bearer ' + accessToken };
+      }
       if (provider !== config.provider || url !== ACCOUNTED_ANTHROPIC_URL || wireModel !== model || wireStream !== stream ||
           effective?.connectionId !== connectionId || effective.apiKey !== apiKey || effective.authType !== 'apikey' ||
           effective.accessToken || effective.refreshToken || rawHeaders.has('anthropic-beta') ||
@@ -156,7 +176,7 @@ export function createAnthropicDispatchContext({ identity, routeProof, credentia
       const encodedBody = options.body;
       const body = JSON.parse(encodedBody);
       const finalShape = validateShape(body);
-      if ((!oauth && finalShape !== acceptedBody) || body.model !== model) throw unavailable();
+      if (((!oauth || converted) && finalShape !== acceptedBody) || body.model !== model) throw unavailable();
       const headers = new Headers(options.headers);
       if (headers.get('anthropic-version') !== ANTHROPIC_API_VERSION || headers.get('content-type') !== 'application/json' ||
           (oauth ? headers.get('authorization') !== `Bearer ${accessToken}` ||
@@ -169,7 +189,7 @@ export function createAnthropicDispatchContext({ identity, routeProof, credentia
       const initiate = await prepareAccountedDirectPost(url, { ...options, body: encodedBody, headers }, proxyOptions);
       const { proof: accountProof, price } = await (oauth
         ? identity.bindClaudeAccount(routeProof, connectionId, accessToken)
-        : identity.bindAnthropicAccount(routeProof, connectionId, apiKey, body.inference_geo ?? config.inferenceGeo));
+        : identity.bindAnthropicAccount(routeProof, connectionId, apiKey, body.inference_geo ?? config.inferenceGeo, nativeDefaults));
       const attempt = identity.prepare({ attemptId: randomUUID(), provider, model,
         startedAt: budgetInstant(clock), price }, routeProof, accountProof);
       const usage = createAnthropicUsageAccumulator();
@@ -178,7 +198,10 @@ export function createAnthropicDispatchContext({ identity, routeProof, credentia
           // The ledger checks current route, account, key policy and spend together.
           return identity.dispatch(attempt.ack, budgetInstant(clock), initiate);
         },
+        ...(converted ? { convertedEndpoint: endpoint, rememberTools: blocks => toolStore.save(scope, blocks) } : {}),
         observe(event) { usage.observe(event); }, // existing native SSE owner only
+        ...(oauth ? { successorRoute: attempt.successorRoute,
+          settleAuthError: usage => settleOAuthErrorUsage(attempt, price, anthropicJsonUsage(usage)) } : {}),
         settleJson(rawUsage) { return attempt.settle(anthropicJsonUsage(rawUsage)); },
         settleStream() {
           const result = usage.result();

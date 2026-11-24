@@ -44,7 +44,7 @@ RUN mkdir -p /opt/9router-startup && \
     if [ "$ACCOUNTING_EDITION" = internal ]; then \
       for source in package.json scripts/provision-internal-accounting.mjs \
         src/lib/dataDir.js src/lib/db src/lib/accounting \
-        src/lib/pricing/constants.js src/lib/pricing/decimalMoney.js \
+        src/lib/pricing \
         src/shared/utils/keyAccess.js src/shared/constants/keyAccess.js \
         open-sse/services/accountFallback.js open-sse/config/errorConfig.js; do \
         target="/opt/9router-startup/$(dirname "$source")"; \

@@ -66,6 +66,25 @@ export function resolveInternalBudgetBinding(adapter, input) {
 
 export async function resolveInternalOperatorBinding(adapter, input) {
   const value = snapshotPayload(input);
+  if (value?.openaiBinding) {
+    const binding = value.openaiBinding;
+    if (Object.keys(value).sort().join(',') !== 'clientKeyId,openaiBinding' ||
+        Object.keys(binding).sort().join(',') !== 'connectionId,serviceTier' ||
+        !validId(value.clientKeyId) || !validId(binding.connectionId) || binding.serviceTier !== 'standard') throw unavailable();
+    const { readOpenAIStandardReference } = await import('../pricing/openai-standard-reference.js');
+    const { readApiKeyAccount } = await import('./node-anthropic-account.js');
+    const { value: referencePrices } = createNodeOuterTransaction(adapter, { ...definitions, referencePrice: priceRead,
+      referenceKeys: { method: 'all', sql: "SELECT key FROM kv WHERE scope = ? AND key GLOB 'openai:api/*:standard:v1' ORDER BY key" },
+    })(scope => {
+      if (scope.activeClient([value.clientKeyId])?.present !== 1 ||
+          !readApiKeyAccount(scope, binding.connectionId, undefined, 'openai')) return [];
+      return scope.referenceKeys([BUDGET_REFERENCE_SCOPE]).map(({ key }) =>
+        readOpenAIStandardReference(scope, key.slice('openai:api/'.length, -':standard:v1'.length))).filter(Boolean);
+    });
+    if (!referencePrices.length) throw unavailable();
+    return Object.freeze({ enabled: true, producerAdmitted: true, provider: 'openai', auth: 'api-key',
+      connectionId: binding.connectionId, serviceTier: 'standard', referencePrices });
+  }
   if (value?.claudeBinding) {
     const binding = value.claudeBinding;
     if (Object.keys(value).sort().join(',') !== 'claudeBinding,clientKeyId' ||

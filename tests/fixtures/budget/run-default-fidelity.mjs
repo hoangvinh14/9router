@@ -6,6 +6,7 @@ import {spawnSync} from 'node:child_process';
 if(process.platform!=='linux'||process.version!=='v24.21.0'||process.argv.length!==2||process.env.NODE_OPTIONS||process.env.NODE_PATH)throw new Error('Clean pinned Linux Node required');
 const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
 const files=[
+ 'src/lib/accounting/claude-converted-request.js','src/lib/accounting/claude-tool-continuity.js',
  'src/lib/accounting/attempt-payload.js','src/lib/accounting/budget-windows.js','src/lib/accounting/exact-money.js',
  'src/lib/accounting/anthropic-usage.js','src/lib/accounting/terminal-cost.js','src/lib/accounting/anthropic-dispatch-context.js',
  'src/lib/accounting/node-anthropic-account.js','src/lib/accounting/anthropic-reference-price.js','open-sse/services/accountFallback.js',

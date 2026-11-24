@@ -11,7 +11,7 @@ export const normalizeClaudePassthrough=noop, anchorClaudeCache=noop;
 export const createStreamController=()=>({signal:new AbortController().signal,handleComplete:()=>{globalThis.__budgetCore.completions=(globalThis.__budgetCore.completions||0)+1;failAt('completion');},handleError:noop});
 export const refreshWithRetry=()=>{globalThis.__budgetCore.refresh++;assert.fail('accounted refresh');};
 export const createRequestLogger=async()=>({logClientRawRequest:noop,logRawRequest:noop,logTargetRequest:noop,logError:noop,logProviderResponse:()=>failAt('logger'),logConvertedResponse:noop});
-export const getModelTargetFormat=provider=>provider === 'codex' ? 'openai-responses' : 'claude', getModelSupportedFormats=()=>null, getModelStrip=()=>[], getModelUpstreamId=(_a,m)=>m, getModelType=()=>null;
+export const getModelTargetFormat=provider=>provider === 'codex' ? 'openai-responses' : provider === 'openai' ? 'openai' : 'claude', getModelSupportedFormats=()=>null, getModelStrip=()=>[], getModelUpstreamId=(_a,m)=>m, getModelType=()=>null;
 export const PROVIDER_ID_TO_ALIAS={}, PROVIDERS={};
 export const trackPendingRequest=noop, appendRequestLog=async()=>{}, saveRequestDetail=async()=>{};
 export const getExecutor=()=>{globalThis.__budgetCore.executors++;return globalThis.__budgetCore.executor;};

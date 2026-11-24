@@ -345,8 +345,8 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
 
   // Native accounted Anthropic Messages expose the same usage that was settled.
   // Do not apply the ordinary client-compatibility padding or field projection.
-  const preserveNativeUsage = accountingAttempt !== null && ["anthropic", "claude"].includes(provider) &&
-    targetFormat === FORMATS.CLAUDE && isClaudeMessageResponse;
+  const preserveNativeUsage = accountingAttempt !== null && (provider === "openai" || (["anthropic", "claude"].includes(provider) &&
+    targetFormat === FORMATS.CLAUDE && isClaudeMessageResponse));
   if (!preserveNativeUsage && translatedResponse?.usage) {
     translatedResponse.usage = filterUsageForFormat(addBufferToUsage(translatedResponse.usage), sourceFormat);
   }

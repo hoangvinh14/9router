@@ -7,6 +7,16 @@ import { RATE_UNITS } from '../pricing/constants.js';
 // Producer adapters must prove that mapping before invoking this accounting path.
 export const EXCLUSIVE_USAGE = 'exclusive-category-counts-v1';
 
+// A complete HTTP authentication rejection may carry partial native usage.
+// Record all known components, but only a fully priced terminal permits retry.
+export function settleOAuthErrorUsage(attempt, price, evidence) {
+  if (!evidence.components.length) return null;
+  const ack = attempt.settle(evidence);
+  const categories = price.usageSemantics?.requiredCategories ?? Object.keys(price.rates);
+  return { ...ack, complete: categories.every(category =>
+    evidence.components.some(item => item.category === category)) };
+}
+
 export function terminalCost(evidence, originalPrice) {
   const price = validatePriceSnapshot(originalPrice);
   const categories = price.usageSemantics?.requiredCategories ?? Object.keys(price.rates);
