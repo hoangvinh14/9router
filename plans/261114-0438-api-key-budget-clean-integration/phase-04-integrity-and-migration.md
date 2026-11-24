@@ -33,7 +33,7 @@ The startup regression suite covers refusal before migrations on unqualified acc
 
 Dừng container cũ rồi khởi động image nội bộ với cùng volume và `DATA_DIR`. Trước khi mở HTTP, entrypoint chạy kiểm tra SQLite. Nếu chưa có bảng budget, nó sao lưu đầy đủ vào `before-budget-*/data.sqlite` trước khi gọi migration hiện có của 9Router và tạo bảng budget trong transaction. Lần chạy sau kiểm tra schema đã có, giữ nguyên dữ liệu và không tạo thêm bản sao lưu cho bước này. Nếu sao lưu, kiểm tra hoặc cập nhật thất bại, container dừng trước khi phục vụ request. Chính sách budget vẫn được bật riêng cho từng key qua dashboard.
 
-Bộ startup đạt 33/33 với ca nâng cấp SQLite cũ, dùng cùng key và lịch sử, rồi mở lại khi đã chạm hạn mức. Smoke test trên container Linux Node 24 với filesystem dùng một lần kiểm tra cả volume mới, volume có dữ liệu, chạy hai lần và từ chối WAL mồ côi. Nghiệm thu image app đóng gói mới vẫn mở.
+Bộ startup đạt 33/33 với ca nâng cấp SQLite cũ, dùng cùng key và lịch sử, rồi mở lại khi đã chạm hạn mức. Smoke test trên container Linux Node 24 với filesystem dùng một lần kiểm tra cả volume mới, volume có dữ liệu, chạy hai lần và từ chối WAL mồ côi. Anh tự build và nghiệm thu image app đóng gói mới. [Bàn giao nghiệm thu](./phase-05-acceptance-and-handoff.md#completion--handoff).
 
 ## Phục hồi cho Docker nội bộ
 

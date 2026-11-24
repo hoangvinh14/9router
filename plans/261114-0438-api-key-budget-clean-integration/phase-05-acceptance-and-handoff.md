@@ -64,6 +64,8 @@ Nghiệm thu này để mở các hàng bắt buộc về refresh/retry có kế
 
 ## Completion / handoff
 
+Theo quyết định ngày 2026-11-24, anh tự build và kiểm tra image Docker mới nhất, gồm luồng mở lại volume SQLite hiện có. Bước này được bàn giao và bỏ khỏi tiêu chí đóng plan của phiên triển khai. Kết quả nghiệm thu đã ghi áp dụng cho từng image hoặc revision tương ứng.
+
 - [ ] Freeze reviewed source/test/config/dep hashes and exact selectors, expected cases/skips, adapter/environment/isolation proof; run affected/security matrix, preserve outputs without private payloads.
 - [ ] Required cells/evidence/policies fulfilled or exact owner amendments recorded across plan/phase/UI docs. Blocked encrypted/history/failed usage/retry/models or applicable timing/platform gates mean **partial/BLOCKED**, not feature success. No blanket M1 proof campaign just to accumulate counts.
 - [ ] Record candidate integration SHA, donor provenance per admitted slice, final diff against pinned master, migration/rollback limits, WIP preservation refs and no-touch evidence. Develop and preserved WIP remain recoverable; no wholesale merge/cherry-pick.

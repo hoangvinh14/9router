@@ -40,6 +40,7 @@ Dùng SQLite hiện có của 9Router. Mỗi API key bắt đầu ghi chi phí t
 
 Bốn luồng Docker Linux amd64 đã kiểm chứng ghi chi phí theo API key và chặn lượt kế ở đúng hạn mức, kể cả sau restart. [Kết quả nghiệm thu](./phase-03-native-retry-and-compatibility.md#nghiệm-thu-claude-oauth-standard-trên-docker-nội-bộ).
 
+- Anh tự build và nghiệm thu image Docker mới nhất. Bỏ bước này khỏi tiêu chí đóng plan của phiên triển khai theo quyết định ngày 2026-11-24. [Bàn giao nghiệm thu](./phase-05-acceptance-and-handoff.md#completion--handoff).
 - Phase 03 vẫn yêu cầu refresh/retry trong cùng request, luồng chuyển đổi và các profile ngoài những cấu hình đã nghiệm thu. Hiện tại lỗi 401 của Codex được trả về với một POST, còn credential hết hạn đã biết bị từ chối trước POST. Retry dương cần bằng chứng về attempt trước và biên nhận lưu credential. [Kiểm chứng OAuth](./phase-03-native-retry-and-compatibility.md#kiểm-chứng-token-oauth-hết-hạn-và-lỗi-401).
 - Codex Standard bổ sung Chat Completions SSE và JSON dùng chung budget với Responses. Khi phản hồi hoàn tất mà thiếu usage, tính phần ước tính có thể xác định theo cách OmniRoute và chặn theo tổng đã ghi. [Phạm vi và cách tính](./phase-03-native-retry-and-compatibility.md#chat-completions-và-usage-ước-tính).
 - Ma trận runtime ngoài Docker Linux amd64 vẫn mở. Rollout trên hai instance đang chạy là quyết định riêng. [Ma trận nghiệm thu](./phase-05-acceptance-and-handoff.md#acceptance-matrix-beyond-helper-tests).
