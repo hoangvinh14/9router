@@ -5,8 +5,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-if (process.platform !== 'linux' || process.version !== 'v24.21.0' || process.argv.length !== 2) {
-  throw new Error('Budget fixture lane requires Linux, Node v24.21.0 and no arguments');
+const walSync = process.argv.length === 3 && process.argv[2] === '--wal-sync';
+const supportedNode = process.version === 'v24.21.0' || (walSync && process.version === 'v22.23.2');
+if (process.platform !== 'linux' || !supportedNode || (!walSync && process.argv.length !== 2)) {
+  throw new Error('Budget fixture lane requires Linux Node v24.21.0 (or v22.23.2 for --wal-sync)');
 }
 if (process.env.NODE_OPTIONS || process.env.NODE_PATH) throw new Error('Start launcher with a clean environment');
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -28,6 +30,7 @@ const files = [
   'src/lib/accounting/responses-usage.js', 'tests/unit/budget-responses-usage.test.mjs',
   'src/lib/accounting/anthropic-usage.js', 'tests/unit/budget-anthropic-usage.test.mjs',
 ];
+if (walSync) files.push('tests/unit/budget-wal-sync.test.mjs', 'tests/fixtures/budget/wal-sync-worker.mjs');
 const args = ['--unshare-all', '--die-with-parent', '--new-session',
   '--ro-bind', '/usr', '/usr', '--symlink', 'usr/bin', '/bin',
   '--ro-bind', '/lib', '/lib'];
@@ -44,13 +47,14 @@ args.push('--ro-bind', fs.realpathSync(process.execPath), '/runtime/node',
   '--proc', '/proc', '--dev', '/dev', '--tmpfs', '/tmp', '--tmpfs', '/sandbox');
 for (const name of ['home', 'data', 'config', 'cache', 'tmp']) args.push('--dir', `/sandbox/${name}`);
 args.push('--chdir', '/app', '--remount-ro', '/', '--',
-  '/runtime/node', '--unhandled-rejections=strict', '--test', '--test-isolation=none',
+  '/runtime/node', '--unhandled-rejections=strict', '--test', ...(walSync ? [] : ['--test-isolation=none']),
+  ...(walSync ? ['/app/tests/unit/budget-wal-sync.test.mjs'] : [
   '/app/tests/unit/budget-pure.test.mjs', '/app/tests/unit/budget-storage.test.mjs',
   '/app/tests/unit/budget-process-state.test.mjs', '/app/tests/unit/budget-operation-scope.test.mjs',
   '/app/tests/unit/budget-outer-transaction.test.mjs', '/app/tests/unit/budget-node-lifecycle.test.mjs',
   '/app/tests/unit/budget-node-disposition.test.mjs', '/app/tests/unit/budget-ledger.test.mjs',
   '/app/tests/unit/budget-responses-usage.test.mjs',
-  '/app/tests/unit/budget-anthropic-usage.test.mjs', '/app/tests/unit/budget-anthropic-stream.test.mjs', '/app/tests/unit/budget-responses-stream.test.mjs');
+  '/app/tests/unit/budget-anthropic-usage.test.mjs', '/app/tests/unit/budget-anthropic-stream.test.mjs', '/app/tests/unit/budget-responses-stream.test.mjs']));
 const env = {
   PATH: '/runtime:/usr/bin:/bin', HOME: '/sandbox/home', DATA_DIR: '/sandbox/data',
   XDG_CONFIG_HOME: '/sandbox/config', XDG_DATA_HOME: '/sandbox/data', XDG_CACHE_HOME: '/sandbox/cache',
