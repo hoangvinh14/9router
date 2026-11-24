@@ -94,22 +94,25 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
 
   const sourceFormat = sourceFormatOverride || detectFormat(body);
   // Trusted app-side context fixes the native response mode before helpers run.
+  const codexChatAccounting = accounting?.provider === 'codex' && sourceFormat === FORMATS.OPENAI &&
+    clientRawRequest?.endpoint === '/v1/chat/completions';
   const nativeCodexAccounting = provider === 'codex' && accounting?.provider === 'codex' &&
-    accounting.stream === true && sourceFormat === FORMATS.OPENAI_RESPONSES &&
-    clientRawRequest?.endpoint === '/v1/responses';
+    accounting.stream === true && (codexChatAccounting ||
+      (sourceFormat === FORMATS.OPENAI_RESPONSES && clientRawRequest?.endpoint === '/v1/responses'));
   const nativeClaudeOAuthAccounting = provider === 'claude' && accounting?.provider === 'claude';
   const nativeAnthropicAccounting = (provider === 'anthropic' || nativeClaudeOAuthAccounting) && sourceFormat === FORMATS.CLAUDE;
   if (accounting !== null && ((!nativeAnthropicAccounting && !nativeCodexAccounting) ||
-      body.stream !== (accounting.stream === true) || typeof accounting.prepare !== 'function' ||
+      (!codexChatAccounting && body.stream !== (accounting.stream === true)) || typeof accounting.prepare !== 'function' ||
       headroomEnabled || pxpipeEnabled || (rtkEnabled && !nativeClaudeOAuthAccounting) || cavemanEnabled || ponytailEnabled ||
       customPromptEnabled || providerThinking?.mode && providerThinking.mode !== 'auto')) {
     return { ...createErrorResult(503, 'Accounting profile unavailable'), accountingRefused: true };
   }
 
+  let accountedInput;
   if (accounting !== null) {
     try {
       if (typeof accounting.validateInput !== 'function') throw new Error('missing profile validation');
-      accounting.validateInput(body);
+      accountedInput = accounting.validateInput(body, codexChatAccounting);
     } catch {
       return { ...createErrorResult(503, 'Accounting profile unavailable'), accountingRefused: true };
     }
@@ -185,7 +188,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
 
   const clientRequestedStreaming = body.stream === true || sourceFormat === FORMATS.ANTIGRAVITY || sourceFormat === FORMATS.GEMINI || sourceFormat === FORMATS.GEMINI_CLI;
   const providerRequiresStreaming = PROVIDERS[provider]?.forceStream === true;
-  let stream = providerRequiresStreaming ? true : (body.stream !== false);
+  let stream = nativeCodexAccounting || providerRequiresStreaming || body.stream !== false;
 
   // Image generation models require non-streaming (Google v1internal:generateContent)
   const modelType = getModelType(alias, model);
@@ -198,14 +201,14 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   // Non-interactive mode (-p flag) sends without stream and can't parse SSE.
   // Only force non-streaming when client didn't explicitly request it.
   const detectedTool = detectClientTool(clientRawRequest?.headers || {}, body);
-  if (detectedTool === "deepseek-tui" && body.stream !== true) stream = false;
+  if (!nativeCodexAccounting && detectedTool === "deepseek-tui" && body.stream !== true) stream = false;
 
   // Check client Accept header preference for non-streaming requests
   // This fixes AI SDK compatibility where clients send Accept: application/json
   const acceptHeader = clientRawRequest?.headers?.accept || "";
   const clientPrefersJson = acceptHeader.includes("application/json");
   const clientPrefersSSE = acceptHeader.includes("text/event-stream");
-  if (clientPrefersJson && !clientPrefersSSE && body.stream !== true && !providerRequiresStreaming) {
+  if (clientPrefersJson && !clientPrefersSSE && body.stream !== true && !providerRequiresStreaming && !nativeCodexAccounting) {
     stream = false;
   }
 
@@ -243,7 +246,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   let customToolNames;
   if (passthrough) {
     log?.debug?.("PASSTHROUGH", `${clientTool} → ${provider} | native lossless`);
-    translatedBody = { ...body, model: stripThinkingSuffix(upstreamModel) };
+    translatedBody = { ...(codexChatAccounting ? accountedInput : body), model: stripThinkingSuffix(upstreamModel) };
     if (provider === "codex" && !nativeCodexAccounting) {
       const suffixThinking = {};
       applyThinking(sourceFormat, upstreamModel, suffixThinking, provider);
@@ -587,6 +590,13 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   // streams upstream (openaiToOpenAIResponsesRequest pins stream:true), so a
   // non-stream OpenAI/native client behind a Responses upstream must also take
   // this path — handleForcedSSEToJson returns null when the body is not SSE.
+  if (codexChatAccounting && !clientRequestedStreaming) {
+    const metered = await handleStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat,
+      targetFormat: providerResponseFormat, streamController, accountedJson: true });
+    if (!metered.success) return metered;
+    return await handleForcedSSEToJson({ ...sharedCtx, providerResponse: metered.response, sourceFormat,
+      targetFormat: providerResponseFormat, trackDone, appendLog, requireResponsesTerminal: true });
+  }
   if (!clientRequestedStreaming && (providerRequiresStreaming || providerResponseFormat === FORMATS.OPENAI_RESPONSES)) {
     const result = await handleForcedSSEToJson({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, customToolNames, toolNameMap, trackDone, appendLog });
     if (result) { streamController.handleComplete(); return result; }

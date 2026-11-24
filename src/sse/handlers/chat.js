@@ -29,7 +29,7 @@ import { getProjectIdForConnection } from "open-sse/services/projectId.js";
 import { stripModelContextMarker } from "open-sse/utils/modelMarkers.js";
 import { getKeyAccessContext, enforceKeyAccess, filterAdapterModels, isRequestedTargetAllowed } from "../services/keyAccess.js";
 import { resolveSmartChoice } from "../services/systemoneRouter.js";
-import { refuseUnadmittedAccountingRequest, accountingUnavailableResponse, selectedAccountingSecret } from "@/lib/accounting/request-boundary.js";
+import { refuseUnadmittedAccountingRequest, accountingUnavailableResponse, isCodexBudgetEndpoint, selectedAccountingSecret } from "@/lib/accounting/request-boundary.js";
 import { markAccountingResponse } from "open-sse/utils/accountingResponse.js";
 
 const refuseCandidate = () => markAccountingResponse(accountingUnavailableResponse());
@@ -53,10 +53,11 @@ export async function handleChat(request, clientRawRequest = null) {
 // or supply an identity, routing readers, or context factory through a request.
 export async function handleAccountedChatCandidate(request, { identity, createContext, provider = "anthropic", connectionId }) {
   try {
-    const endpoint = provider === 'codex' ? '/v1/responses' : '/v1/messages';
     const pathname = new URL(request.url).pathname;
+    const acceptsEndpoint = provider === 'codex' ? isCodexBudgetEndpoint(pathname)
+      : pathname === '/v1/messages' || (provider === 'claude' && pathname === '/v1/v1/messages');
     if (!['anthropic', 'claude', 'codex'].includes(provider) || request.method !== 'POST' ||
-        (pathname !== endpoint && !(provider === 'claude' && pathname === '/v1/v1/messages')) ||
+        !acceptsEndpoint ||
         request.headers.has('anthropic-workspace-id') ||
         !identity.matchesSecret(selectedAccountingSecret(request))) return refuseCandidate();
     const view = await identity.captureRoute();
@@ -428,7 +429,8 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
       // Per-provider user overrides (custom headers / connect timeout) from settings
       providerOverrides: (chatSettings.providerOverrides || {})[provider] || null,
       // Detect source format by endpoint + body
-      sourceFormatOverride: request?.url ? detectFormatByEndpoint(new URL(request.url).pathname, body) : null,
+      sourceFormatOverride: candidate?.provider === "codex" && clientRawRequest.endpoint === "/v1/chat/completions"
+        ? "openai" : request?.url ? detectFormatByEndpoint(new URL(request.url).pathname, body) : null,
       onCredentialsRefreshed: async (newCreds) => {
         await updateProviderCredentials(credentials.connectionId, {
           ...newCreds,

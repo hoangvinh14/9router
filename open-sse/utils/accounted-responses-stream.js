@@ -1,4 +1,5 @@
-import { responsesTokenUsage } from "../../src/lib/accounting/responses-usage.js";
+import { estimateOutputTokens } from "./usageTracking.js";
+import { estimateMissingCodexUsage, responsesTokenUsage } from "../../src/lib/accounting/responses-usage.js";
 
 const MAX_FRAME_CHARS = 1024 * 1024;
 const encoder = new TextEncoder();
@@ -11,11 +12,12 @@ const terminalStatuses = new Map([
 // The Codex client reads usage on these terminal incomplete responses.
 const meteredIncompleteReasons = new Set(["max_output_tokens", "interrupted"]);
 
-export function createAccountedResponsesStream(settle, onTerminal, priceCacheWrites = false) {
+export function createAccountedResponsesStream(settle, onTerminal, priceCacheWrites = false, render = null, inputEstimate = 0) {
   const decoder = new TextDecoder("utf-8", { fatal: true });
   let buffer = "";
   let frame = "";
   let responseId;
+  let outputCharacters = 0;
 
   return new TransformStream({
     async transform(chunk, controller) {
@@ -44,7 +46,7 @@ export function createAccountedResponsesStream(settle, onTerminal, priceCacheWri
           continue;
         }
         if (!data && !names.length) {
-          controller.enqueue(encoder.encode(output));
+          if (!render) controller.enqueue(encoder.encode(output));
           continue;
         }
         const event = JSON.parse(data);
@@ -67,13 +69,21 @@ export function createAccountedResponsesStream(settle, onTerminal, priceCacheWri
           }
           const metered = status === "completed" || status === "failed" ||
             (status === "incomplete" && meteredIncompleteReasons.has(event.response.incomplete_details?.reason));
-          const usage = responsesTokenUsage(metered ? event.response.usage : null, priceCacheWrites);
+          const rawUsage = metered ? event.response.usage : null;
+          const reported = responsesTokenUsage(rawUsage, priceCacheWrites);
+          const usage = status === "completed" && inputEstimate > 0
+            ? estimateMissingCodexUsage(reported, rawUsage, inputEstimate, estimateOutputTokens(outputCharacters))
+            : reported;
           const evidence = priceCacheWrites === "included-in-input" || status === "completed" || usage.components.length
             ? usage : undefined;
-          terminal = { output, evidence };
+          terminal = { output, evidence, event };
         } else {
           if (event.type === "response.done") throw new Error("Unsupported Responses SSE terminal");
-          controller.enqueue(encoder.encode(output));
+          if (["response.output_text.delta", "response.reasoning_summary_text.delta",
+            "response.function_call_arguments.delta", "response.custom_tool_call_input.delta"].includes(event.type) &&
+            typeof event.delta === "string") outputCharacters += event.delta.length;
+          const bytes = render ? render(event, false) : output;
+          if (bytes) controller.enqueue(encoder.encode(bytes));
         }
       }
 
@@ -88,7 +98,8 @@ export function createAccountedResponsesStream(settle, onTerminal, priceCacheWri
         }
         if (terminal.evidence) await settle(terminal.evidence);
         onTerminal();
-        controller.enqueue(encoder.encode(terminal.output + (terminal.done || "")));
+        const bytes = render ? render(terminal.event, true) : terminal.output + (terminal.done || "");
+        if (bytes) controller.enqueue(encoder.encode(bytes));
         controller.terminate();
       }
     },

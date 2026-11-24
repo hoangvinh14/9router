@@ -9,7 +9,12 @@ if (process.platform !== 'linux' || process.version !== 'v24.21.0' || (!tls && p
     process.env.NODE_OPTIONS || process.env.NODE_PATH) throw new Error('Clean pinned Linux Node required');
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const files = [
-  'src/app/api/v1/responses/route.js', 'src/lib/accounting/codex-dispatch-context.js',
+  'src/app/api/v1/responses/route.js', 'src/app/api/v1/chat/completions/route.js',
+  'open-sse/utils/usageTracking.js', 'open-sse/translator/request/openai-responses.js', 'open-sse/translator/response/openai-responses.js',
+  'open-sse/translator/concerns/chunk.js', 'open-sse/translator/concerns/usage.js',
+  'open-sse/translator/concerns/reasoning.js', 'open-sse/translator/concerns/claudeMessage.js',
+  'open-sse/translator/concerns/finishReason.js', 'open-sse/handlers/chatCore/sseToJsonHandler.js',
+  'open-sse/transformer/streamToJsonConverter.js', 'src/lib/accounting/codex-dispatch-context.js',
   'src/sse/handlers/chat.js', 'src/sse/services/model.js', 'src/sse/services/keyAccess.js', 'src/sse/services/auth.js',
   'src/sse/services/accounted-route.js', 'src/sse/utils/logger.js',
   'src/shared/constants/keyAccess.js', 'src/shared/constants/providers.js', 'src/shared/constants/providersDisplay.js', 'src/shared/utils/keyAccess.js',

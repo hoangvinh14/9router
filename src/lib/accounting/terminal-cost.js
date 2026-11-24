@@ -36,6 +36,9 @@ export function terminalCost(evidence, originalPrice) {
     rateUnits: Object.fromEntries(categories.map(category => [category, RATE_UNITS[category]])),
     usageSemantics: { requiredCategories: known.map(item => item.category) },
   }) : '0';
+  const estimated = known.map(item => item.category).filter(category =>
+    Array.isArray(observed?.estimated) && observed.estimated.includes(category));
   return snapshotPayload({ amountNanoUsd, known, unknown,
-    provenance: unknown.length ? 'unknown/defaulted' : 'provider-reported' });
+    ...(estimated.length ? { estimated } : {}),
+    provenance: estimated.length ? 'estimated' : unknown.length ? 'unknown/defaulted' : 'provider-reported' });
 }

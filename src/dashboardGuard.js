@@ -3,7 +3,7 @@ import { getSettings, validateApiKey } from "@/lib/localDb";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { verifyDashboardAuthToken } from "@/lib/auth/dashboardSession";
 import { hasTrustedPeerHeaders } from "@/lib/auth/trustedPeer";
-import { inspectAccountingRequest, accountingUnavailableResponse } from "@/lib/accounting/request-boundary.js";
+import { inspectAccountingRequest, accountingUnavailableResponse, isCodexBudgetEndpoint } from "@/lib/accounting/request-boundary.js";
 import { findInstalledBudgetProfileForKey } from "@/lib/accounting/profile-registry.js";
 
 const CLI_TOKEN_HEADER = "x-9r-cli-token";
@@ -233,7 +233,7 @@ export async function proxy(request) {
     const accounting = await inspectAccountingRequest(request);
     if (accounting.kind !== 'ordinary') {
       const providers = pathname === '/v1/messages' ? ['anthropic', 'claude']
-        : pathname === '/v1/v1/messages' ? ['claude'] : pathname === '/v1/responses' ? ['codex'] : [];
+        : pathname === '/v1/v1/messages' ? ['claude'] : isCodexBudgetEndpoint(pathname) ? ['codex'] : [];
       if (accounting.kind === 'controlled' && request.method === 'POST' && providers.length) {
         const profile = await findInstalledBudgetProfileForKey(accounting.keyId);
         if (providers.includes(profile?.provider)) return NextResponse.next();

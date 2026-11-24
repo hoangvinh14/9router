@@ -12,9 +12,9 @@ function processSSEMessage(msg, state) {
 
   const eventMatch = msg.match(/^event:\s*(.+)$/m);
   const dataMatch = msg.match(/^data:\s*(.+)$/m);
-  if (!eventMatch || !dataMatch) return;
+  if (!dataMatch || (!eventMatch && !state.requireTerminal)) return;
 
-  const eventType = eventMatch[1].trim();
+
   const dataStr = dataMatch[1].trim();
   if (dataStr === "[DONE]") return;
 
@@ -22,7 +22,17 @@ function processSSEMessage(msg, state) {
   try { parsed = JSON.parse(dataStr); }
   catch { return; }
 
-  if (eventType === "response.created") {
+  const eventType = eventMatch?.[1].trim() || parsed.type;
+  if (state.requireTerminal && ["response.completed", "response.incomplete", "response.failed", "error"].includes(eventType)) {
+    const response = parsed.response;
+    state.status = response?.status || "failed";
+    state.error = response?.error || parsed.error;
+    state.responseId = response?.id || state.responseId;
+    state.model = response?.model;
+    state.created = response?.created_at || state.created;
+    state.usage = response?.usage ?? null;
+    if (Array.isArray(response?.output)) state.items = new Map(response.output.map((item, index) => [index, item]));
+  } else if (eventType === "response.created") {
     state.responseId = parsed.response?.id || state.responseId;
     state.created = parsed.response?.created_at || state.created;
   } else if (eventType === "response.output_item.done") {
@@ -46,7 +56,7 @@ const EMPTY_RESPONSE = { input_tokens: 0, output_tokens: 0, total_tokens: 0 };
  * @param {ReadableStream} stream - SSE stream from provider
  * @returns {Promise<Object>} Final JSON response in Responses API format
  */
-export async function convertResponsesStreamToJson(stream) {
+export async function convertResponsesStreamToJson(stream, { requireTerminal = false } = {}) {
   if (!stream || typeof stream.getReader !== "function") {
     return { id: `resp_${Date.now()}`, object: "response", created_at: Math.floor(Date.now() / 1000), status: "failed", output: [], usage: { ...EMPTY_RESPONSE } };
   }
@@ -59,6 +69,7 @@ export async function convertResponsesStreamToJson(stream) {
     responseId: "",
     created: Math.floor(Date.now() / 1000),
     status: "in_progress",
+    requireTerminal,
     usage: { ...EMPTY_RESPONSE },
     items: new Map()
   };
@@ -69,7 +80,7 @@ export async function convertResponsesStreamToJson(stream) {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const messages = buffer.split("\n\n");
+      const messages = requireTerminal ? buffer.split(/\r?\n\r?\n/) : buffer.split("\n\n");
       buffer = messages.pop() || "";
 
       for (const msg of messages) {
@@ -98,6 +109,7 @@ export async function convertResponsesStreamToJson(stream) {
     created_at: state.created,
     status: state.status || "completed",
     output,
-    usage: state.usage
+    usage: state.usage,
+    ...(requireTerminal ? { model: state.model, error: state.error } : {})
   };
 }

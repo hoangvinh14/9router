@@ -49,6 +49,18 @@ export function resolve(specifier, context, nextResolve) {
   }
   if (['installed-service.js', 'request-boundary.js', 'profile-registry.js'].some(name => parent === `${root}src/lib/accounting/${name}`) &&
       specifier === '../db/driver.js') return nextResolve(stub, context);
+  if (parent === root + 'open-sse/handlers/chatCore/sseToJsonHandler.js' &&
+      ['./requestDetail.js', '@/lib/usageDb.js'].includes(specifier)) return nextResolve(coreStubs, context);
+  if (parent === root + 'open-sse/handlers/chatCore/sseToJsonHandler.js' && specifier === '../../utils/opencodeFingerprint.js') {
+    return nextResolve('data:text/javascript,export const restoreToolNames = value => value;', context);
+  }
+  if (parent === root + 'open-sse/handlers/chatCore/sseToJsonHandler.js' && specifier === '../../config/providers.js') {
+    return nextResolve(providerConfig, context);
+  }
+  if (specifier === '../index.js' && ['request', 'response'].some(kind =>
+    parent === root + `open-sse/translator/${kind}/openai-responses.js`)) {
+    return nextResolve('data:text/javascript,export const register = () => {};', context);
+  }
   if (parent === chat && realAppImports.has(specifier)) {
     return nextResolve(root + realAppImports.get(specifier), context);
   }
@@ -61,7 +73,7 @@ export function resolve(specifier, context, nextResolve) {
     return nextResolve('data:text/javascript,export function v4(){throw new Error("Unexpected account creation in fixture");}', context);
   }
   if (parent === core && specifier === '../utils/clientDetector.js') return nextResolve(specifier, context);
-  if (parent === core && ['./chatCore/streamingHandler.js', '../utils/streamHandler.js'].includes(specifier)) {
+  if (parent === core && ['./chatCore/streamingHandler.js', './chatCore/sseToJsonHandler.js', '../utils/streamHandler.js'].includes(specifier)) {
     return nextResolve(specifier, context);
   }
   if (parent === streaming && ordinaryStreaming.has(specifier)) return nextResolve(coreStubs, context);

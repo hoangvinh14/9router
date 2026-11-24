@@ -1015,7 +1015,7 @@ if (stage === undefined) {
     });
   }
 
-  test('Codex terminal without usage blocks another POST below the spend limit', () => {
+  test('Codex failure with unknown usage allows another POST below the spend limit', () => {
     const terminal = 'data: {"type":"response.failed","response":{"id":"fixture","status":"failed","usage":null}}\n\n';
     return codexFixture(async ({ request, rows, state, reopen, resolveUsage }) => {
       const response = await postResponses(request());
@@ -1026,9 +1026,11 @@ if (stage === undefined) {
       assert.equal(rows().terminals[0].provenance, 'unknown/defaulted');
       assert.deepEqual(rows().terminals[0].unknown, ['cached', 'input', 'output']);
       await reopen();
-      assert.equal((await postResponses(request())).status, 503);
-      assert.equal(state.wire.length, 1);
-      assert.equal(rows().terminals.length, 1);
+      const allowed = await postResponses(request());
+      assert.equal(allowed.status, 200);
+      assert.equal(await allowed.text(), terminal);
+      assert.equal(state.wire.length, 2);
+      assert.equal(rows().terminals.length, 2);
       const { attemptId } = rows().attempts[0];
       const command = { operationId: 'fixture-recovery', expectedVersion: 1, reason: 'Missing terminal usage',
         evidence: 'Fixture upstream error' };
@@ -1040,7 +1042,7 @@ if (stage === undefined) {
       const resumed = await postResponses(request());
       assert.equal(resumed.status, 200);
       assert.equal(await resumed.text(), terminal);
-      assert.equal(state.wire.length, 2);
+      assert.equal(state.wire.length, 3);
     }, { reply: () => new Response(terminal, { headers: { 'content-type': 'text/event-stream' } }) });
   });
 

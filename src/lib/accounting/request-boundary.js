@@ -11,6 +11,10 @@ function readAccountingQuery(read) {
   catch { faultAccounting(); throw unavailable(); }
 }
 
+export function isCodexBudgetEndpoint(pathname) {
+  return pathname === '/v1/responses' || pathname === '/v1/chat/completions';
+}
+
 // Keep the public guard/key-access precedence, including an empty Bearer value.
 // No client key ID, local/CLI shortcut or request accounting flag is authority.
 export function selectedAccountingSecret(request) {

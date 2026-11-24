@@ -39,7 +39,7 @@ function budgetView(body, keyId) {
   if (readiness?.ready !== true || readiness.reason !== null || policy?.keyId !== keyId ||
       !positive(policy.version) || !generation(policy.bindingGeneration) ||
       !["active", "disabled", "retired"].includes(policy.lifecycle) || usage?.timezone !== "Asia/Ho_Chi_Minh" ||
-      ![usage.unknownDefaulted, usage.unrecorded].every(n => Number.isSafeInteger(n) && n >= 0)) throw unavailable();
+      ![usage.unknownDefaulted, usage.unrecorded, usage.estimated ?? 0].every(n => Number.isSafeInteger(n) && n >= 0)) throw unavailable();
   const periods = ["weekly", "monthly"].map(name => {
     const limit = policy.limits[name];
     const { spent, remaining, resetAt } = usage[name];
@@ -75,6 +75,7 @@ function budgetView(body, keyId) {
     ...(referencePrice ? { referencePrice } : {}),
     ...(referencePrices.length ? { referencePrices } : {}),
     ...(usage.blockedByUnresolvedUsage === true ? { blockedByUnresolvedUsage: true } : {}),
+    ...(usage.estimated ? { estimated: usage.estimated } : {}),
     unknownDefaulted: usage.unknownDefaulted, unrecorded: usage.unrecorded, timezone: usage.timezone };
 }
 

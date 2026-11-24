@@ -36,3 +36,26 @@ export function responsesTokenUsage(rawUsage, priceCacheWrites = false) {
   }
   return { semantics: EXCLUSIVE_USAGE, components };
 }
+
+export function estimateMissingCodexUsage(usage, rawUsage, inputEstimate, outputEstimate) {
+  const components = [...usage.components];
+  const estimated = [];
+  if (!components.some(item => item.category === 'input')) {
+    const input = rawUsage?.input_tokens;
+    const cached = rawUsage?.input_tokens_details?.cached_tokens;
+    const usableCache = validCount(cached) && (!validCount(input) || cached <= input);
+    const total = validCount(input) ? input : Math.max(inputEstimate, usableCache ? cached : 0);
+    if (usableCache && !components.some(item => item.category === 'cached')) {
+      components.push(component('cached', cached));
+    }
+    if (validCount(total) && (total > 0 || validCount(input))) {
+      components.push(component('input', total - (usableCache ? cached : 0)));
+      estimated.push('input');
+    }
+  }
+  if (validCount(outputEstimate) && outputEstimate > 0 && !components.some(item => item.category === 'output')) {
+    components.push(component('output', outputEstimate));
+    estimated.push('output');
+  }
+  return { ...usage, components, estimated };
+}

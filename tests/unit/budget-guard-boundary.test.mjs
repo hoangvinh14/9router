@@ -57,7 +57,8 @@ test('middleware admits only the exact POST route for the installed provider pro
   try {
     budgetProfile = { provider: 'codex' };
     assert.equal((await run('/v1/responses')).status, 204);
-    for (const path of ['/v1/messages', '/api/v1/responses', '/v1/responses/compact', '/v1/chat/completions']) {
+    assert.equal((await run('/v1/chat/completions')).status, 204);
+    for (const path of ['/v1/messages', '/api/v1/responses', '/v1/responses/compact']) {
       assert.equal((await run(path)).status, 503);
     }
     assert.equal((await run('/v1/responses', 'GET')).status, 503);

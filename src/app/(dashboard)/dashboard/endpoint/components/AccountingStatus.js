@@ -195,6 +195,7 @@ function BudgetSnapshot({ keyId }) {
             </section>)}
           </div>
           {budget.blockedByUnresolvedUsage && <p>Requests are blocked because a previous Codex response has unresolved usage.</p>}
+          {budget.estimated > 0 && <p>Recorded spend includes estimated usage on {budget.estimated} attempt(s).</p>}
           {budget.unknownDefaulted > 0 && <p>Unknown/defaulted usage on {budget.unknownDefaulted} attempt(s). Recorded spend may be understated.</p>}
           {budget.unrecorded > 0 && <p>{budget.unrecorded} attempt(s) have no recorded terminal cost. Their cost is excluded from recorded spend.</p>}
         </>}

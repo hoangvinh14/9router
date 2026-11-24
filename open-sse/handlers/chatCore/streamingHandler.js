@@ -47,14 +47,36 @@ function buildTransformStream({ provider, sourceFormat, targetFormat, userAgent,
   return createPassthroughStreamWithLogger(provider, reqLogger, model, connectionId, body, onStreamComplete, apiKey, toolNameMap);
 }
 
+async function createChatCompletionsRenderer(model, includeUsage) {
+  const { openaiResponsesToOpenAIResponse } = await import("../../translator/response/openai-responses.js");
+  const state = { model };
+  const frame = value => `data: ${JSON.stringify(value)}\n\n`;
+  return (event, terminal) => {
+    if (event.type === "response.failed" || event.type === "error") {
+      return frame({ error: event.response?.error || event.error ||
+        { message: "Codex response failed", type: "upstream_error" } }) + "data: [DONE]\n\n";
+    }
+    const chunk = openaiResponsesToOpenAIResponse(event.type === "response.incomplete"
+      ? { ...event, type: "response.completed" } : event, state);
+    if (!chunk) return terminal ? "data: [DONE]\n\n" : "";
+    const { usage, ...completion } = chunk;
+    if (event.type === "response.incomplete") completion.choices[0].finish_reason = "length";
+    if (includeUsage) completion.usage = null;
+    const trailer = includeUsage && usage ? frame({ ...completion, choices: [], usage }) : "";
+    return frame(completion) + trailer + (terminal ? "data: [DONE]\n\n" : "");
+  };
+}
+
 /**
  * Handle streaming response — pipe provider SSE through transform stream to client.
  */
-export async function handleStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, userAgent, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, streamDetailId, pxpipe, reqTag, log, credentials, accountingAttempt }) {
+export async function handleStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, userAgent, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, streamDetailId, pxpipe, reqTag, log, credentials, accountingAttempt, accountedJson = false }) {
   if (accountingAttempt) {
     const mediaType = providerResponse.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase();
     const nativeClaude = ["anthropic", "claude"].includes(provider) && sourceFormat === FORMATS.CLAUDE && targetFormat === FORMATS.CLAUDE;
-    const nativeResponses = provider === "codex" && sourceFormat === FORMATS.OPENAI_RESPONSES &&
+    const chatCompletions = provider === "codex" && sourceFormat === FORMATS.OPENAI &&
+      clientRawRequest?.endpoint === "/v1/chat/completions";
+    const nativeResponses = provider === "codex" && (sourceFormat === FORMATS.OPENAI_RESPONSES || chatCompletions) &&
       targetFormat === FORMATS.OPENAI_RESPONSES && typeof accountingAttempt.settleResponses === "function";
     if ((!nativeClaude && !nativeResponses) || mediaType !== "text/event-stream" || !providerResponse.body) {
       await providerResponse.body?.cancel().catch(() => {});
@@ -62,14 +84,20 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
       return { success: false, response: Response.json({ error: { message: "Accounting response unavailable" } }, { status: 502 }) };
     }
     const onTerminal = () => trackPendingRequest(model, provider, connectionId, false);
+    const renderChat = chatCompletions && !accountedJson
+      ? await createChatCompletionsRenderer(model, body?.stream_options?.include_usage === true)
+      : null;
     const transform = nativeResponses
-      ? createAccountedResponsesStream(usage => accountingAttempt.settleResponses(usage), onTerminal, accountingAttempt.priceCacheWrites)
+      ? createAccountedResponsesStream(usage => accountingAttempt.settleResponses(usage), onTerminal,
+          accountingAttempt.priceCacheWrites, renderChat, accountingAttempt.inputEstimate)
       : createAccountedAnthropicStream(accountingAttempt, onTerminal);
-    const onAbortTerminal = nativeResponses ? buildAbortedResponsesTerminalBytes
+    const onAbortTerminal = chatCompletions
+      ? (accountedJson ? null : () => buildStreamErrorBytes(502, "Codex stream ended before completion", FORMATS.OPENAI))
+      : nativeResponses ? buildAbortedResponsesTerminalBytes
       : () => buildStreamErrorBytes(HTTP_STATUS.BAD_GATEWAY, "Anthropic stream ended before completion", FORMATS.CLAUDE);
-    const body = pipeWithDisconnect(providerResponse, transform, streamController, onAbortTerminal,
+    const responseBody = pipeWithDisconnect(providerResponse, transform, streamController, onAbortTerminal,
       PROVIDERS[provider]?.stallTimeoutMs || STREAM_STALL_TIMEOUT_MS);
-    return { success: true, response: new Response(body, {
+    return { success: true, response: new Response(responseBody, {
       headers: { ...SSE_HEADERS, ...upstreamResponseHeaders(providerResponse.headers) },
     }) };
   }

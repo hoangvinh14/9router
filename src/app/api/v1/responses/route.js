@@ -1,7 +1,7 @@
 import { handleChat, handleAccountedChatCandidate } from "@/sse/handlers/chat.js";
 import { initTranslators } from "open-sse/translator/index.js";
 
-import { accountingUnavailableResponse, inspectAccountingRequest, selectedAccountingSecret } from '@/lib/accounting/request-boundary.js';
+import { accountingUnavailableResponse, inspectAccountingRequest, isCodexBudgetEndpoint, selectedAccountingSecret } from '@/lib/accounting/request-boundary.js';
 import { findInstalledBudgetProfileForKey } from '@/lib/accounting/profile-registry.js';
 
 let initialized = false;
@@ -33,7 +33,7 @@ export async function POST(request) {
     await ensureInitialized();
     return handleChat(request);
   }
-  if (state.kind !== 'controlled' || new URL(request.url).pathname !== '/v1/responses') return accountingUnavailableResponse();
+  if (state.kind !== 'controlled' || !isCodexBudgetEndpoint(new URL(request.url).pathname)) return accountingUnavailableResponse();
   try {
     const profile = await findInstalledBudgetProfileForKey(state.keyId);
     if (profile?.provider !== 'codex') return accountingUnavailableResponse();

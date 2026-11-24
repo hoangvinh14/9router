@@ -161,10 +161,11 @@ export function createLedgerReadValidator(corrupt) {
       nanoUsd(row.amount);
       const value = JSON.parse(row.evidence);
       if (value.amountNanoUsd !== row.amount ||
-          boundedCanonical(terminalCost({ semantics: EXCLUSIVE_USAGE, components: value.known }, original.price)) !== row.evidence) throw unavailable();
+          boundedCanonical(terminalCost({ semantics: EXCLUSIVE_USAGE, components: value.known,
+            ...(value.estimated !== undefined ? { estimated: value.estimated } : {}) }, original.price)) !== row.evidence) throw unavailable();
       return {
         ...value,
-        blocksDispatch: original.provider === 'codex' && original.price.revision === CODEX_STANDARD_REFERENCE &&
+        supportsRecovery: original.provider === 'codex' && original.price.revision === CODEX_STANDARD_REFERENCE &&
           value.provenance === 'unknown/defaulted',
       };
     } catch { corrupt(); }
@@ -224,7 +225,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
     } catch { corrupt(); }
   }
   const totals = (scope, keyId, windows, observation) => {
-    let after = ''; let weekly = 0n; let monthly = 0n; let unknown = 0; let blocksDispatch = false;
+    let after = ''; let weekly = 0n; let monthly = 0n; let unknown = 0; let estimated = 0;
     // Bounded pages keep fixed-scope snapshots below payload limits. No REAL SUM
     // or signed64 aggregate overflow, no unrelated keys loaded into this process.
     for (let pages = 0; pages < 33334; pages++) {
@@ -237,21 +238,17 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
           if (observation && (row.week_start === windows.weekly.startAt || row.month_start === windows.monthly.startAt)) observation.unrecorded++;
           continue;
         }
-        const recovery = value.blocksDispatch ? readRecovery(scope, keyId, row.id) : null;
-        if (value.blocksDispatch && !recovery) {
-          blocksDispatch = true;
-          if (observation?.unresolved.length < 20) {
-            observation.unresolved.push({ attemptId: row.id, startedAt: row.started_at, knownCost: row.amount });
-          }
-        }
+        const recovery = value.supportsRecovery ? readRecovery(scope, keyId, row.id) : null;
         if (row.amount === null) continue;
         const amount = BigInt(row.amount) + BigInt(recovery?.adjustmentNanoUsd ?? '0');
         if (row.week_start === windows.weekly.startAt) weekly += amount;
         if (row.month_start === windows.monthly.startAt) monthly += amount;
-        if ((row.week_start === windows.weekly.startAt || row.month_start === windows.monthly.startAt) &&
-            value.provenance === 'unknown/defaulted') unknown++;
+        if (row.week_start === windows.weekly.startAt || row.month_start === windows.monthly.startAt) {
+          if (value.unknown?.length) unknown++;
+          if (value.estimated?.length) estimated++;
+        }
       }
-      if (rows.length < 3) return { weekly: weekly.toString(), monthly: monthly.toString(), unknown, blocksDispatch };
+      if (rows.length < 3) return { weekly: weekly.toString(), monthly: monthly.toString(), unknown, estimated };
     }
     throw unavailable(); // Explicit capacity refusal, never silently truncate spend.
   };
@@ -294,7 +291,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         const value = validateStoredRow(scope, { ...terminal, id: attemptId, key_id: keyId,
           started_at: original.startedAt, week_start: original.windows.weekly.startAt, month_start: original.windows.monthly.startAt },
         validateAttemptGeneration);
-        if (!value?.blocksDispatch) return null;
+        if (!value?.supportsRecovery) return null;
         const resolvedAt = budgetInstant(clock);
         const adjustmentNanoUsd = additionalNanoUsd;
         if (action !== 'waive' && BigInt(terminal.amount) + BigInt(adjustmentNanoUsd) > MAX_NANO_USD) return null;
@@ -472,7 +469,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
           checkedSchema(scope); verifyOriginal(scope, state.original, state.encoded);
           if (scope.terminal([state.original.attemptId])) throw unavailable();
           const spend = totals(scope, state.original.keyId, windows);
-          return !spend.blocksDispatch && ['weekly', 'monthly'].every(period => binding[period] === null || BigInt(spend[period]) < BigInt(binding[period]));
+          return ['weekly', 'monthly'].every(period => binding[period] === null || BigInt(spend[period]) < BigInt(binding[period]));
         });
         // COMMIT orders concurrent changes; only successful cleanup and the
         // final process health check can lead to actual invocation.
@@ -495,7 +492,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
           if (scope.page([keyId, '']).length) corrupt();
           return { policy: null, usage: null };
         }
-        const observation = { unrecorded: 0, unresolved: [] };
+        const observation = { unrecorded: 0 };
         const spend = totals(scope, keyId, windows, observation);
         const period = name => {
           const limit = policy.limits[name];
@@ -506,7 +503,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         const reference = priceBasis === CODEX_STANDARD_REFERENCE ? readCodexPrice(scope) : null;
         return { ...(reference ? { referencePrice: reference } : {}), policy, usage: { weekly: period('weekly'), monthly: period('monthly'), timezone: windows.timezone,
           unknownDefaulted: spend.unknown, unrecorded: observation.unrecorded,
-          ...(spend.blocksDispatch ? { blockedByUnresolvedUsage: true, unresolvedAttempts: observation.unresolved } : {}) } };
+          ...(spend.estimated ? { estimated: spend.estimated } : {}) } };
       }).value;
     },
     totals(keyId, instant) {
