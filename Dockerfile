@@ -38,6 +38,19 @@ RUN case "$ACCOUNTING_EDITION" in \
         cp docker/internal-profile-registry.js src/lib/accounting/profile-registry.js ;; \
       *) exit 1 ;; \
     esac
+# Bundle the same local SQLite runner used by the offline companion. The
+# internal entrypoint invokes it before starting the HTTP server.
+RUN mkdir -p /opt/9router-startup && \
+    if [ "$ACCOUNTING_EDITION" = internal ]; then \
+      for source in package.json scripts/provision-internal-accounting.mjs \
+        src/lib/dataDir.js src/lib/db src/lib/accounting \
+        src/lib/pricing/constants.js src/lib/pricing/decimalMoney.js \
+        src/shared/utils/keyAccess.js src/shared/constants/keyAccess.js \
+        open-sse/services/accountFallback.js open-sse/config/errorConfig.js; do \
+        target="/opt/9router-startup/$(dirname "$source")"; \
+        mkdir -p "$target" && cp -R "$source" "$target/" || exit 1; \
+      done; \
+    fi
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
@@ -81,6 +94,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/custom-server.js ./custom-server.js
+COPY --from=builder /opt/9router-startup /opt/9router-startup
 COPY --from=builder /app/open-sse ./open-sse
 # Next file tracing can omit sibling files; MITM runs server.js as a separate process.
 COPY --from=builder /app/src/mitm ./src/mitm
@@ -104,7 +118,7 @@ RUN mkdir -p /app/data && chown -R node:node /app && \
 # Avoid a full distribution upgrade in the runtime image. It makes builds less
 # reproducible and is unrelated to installing the runtime entrypoint helper.
 RUN apk add --no-cache su-exec ffmpeg && \
-  printf '#!/bin/sh\nchown -R node:node /app/data /app/data-home 2>/dev/null\nexec su-exec node "$@"\n' > /entrypoint.sh && \
+  printf '#!/bin/sh\nchown -R node:node /app/data /app/data-home 2>/dev/null\nif [ "$1" = node ] && [ "$2" = custom-server.js ] && [ -f /opt/9router-startup/scripts/provision-internal-accounting.mjs ]; then\n  su-exec node node /opt/9router-startup/scripts/provision-internal-accounting.mjs --prepare-startup "$DATA_DIR" || exit 1\nfi\nexec su-exec node "$@"\n' > /entrypoint.sh && \
   chmod +x /entrypoint.sh
 
 EXPOSE 20128
