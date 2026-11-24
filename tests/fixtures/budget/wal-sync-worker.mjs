@@ -3,13 +3,15 @@ import fs from 'node:fs';
 import { createNodeSqliteAdapter } from '../../../src/lib/db/adapters/nodeSqliteAdapter.js';
 import { createNodeKeyPolicy, initializeNodeKeyPolicy } from '../../../src/lib/accounting/node-key-policy.js';
 import { createNodeAttemptLedger, initializeNodeAttemptLedger } from '../../../src/lib/accounting/node-attempt-ledger.js';
+import { admitNodeAccountingConnection } from '../../../src/lib/accounting/node-connection-admission.js';
 import { EXCLUSIVE_USAGE } from '../../../src/lib/accounting/terminal-cost.js';
 import { assertAccountingHealthy } from '../../../src/lib/accounting/process-state.js';
 
 assert.equal(process.env.BUDGET_PURE_SANDBOX, '1');
 assert.notEqual(fs.readlinkSync('/proc/self/ns/net'), process.env.BUDGET_OUTER_NET);
 const [mode, phase] = process.argv.slice(2);
-const db = await createNodeSqliteAdapter('ledger.sqlite');
+const checkpoint = phase?.startsWith('checkpoint-');
+const db = checkpoint ? (await admitNodeAccountingConnection('ledger.sqlite')).adapter : await createNodeSqliteAdapter('ledger.sqlite');
 const now = '2026-11-16T10:00:00.000Z';
 try {
   if (mode === 'seed') {
@@ -32,11 +34,40 @@ try {
     known.settle(usage);
     db.exec("VACUUM INTO 'baseline.sqlite'");
   } else if (mode === 'verify') {
-    assert.equal(ledger.totals('test', now).monthly, '3000000');
+    assert.equal(ledger.totals('test', now).monthly, checkpoint ? '6000000' : '3000000');
     assert.equal(db.get("SELECT amount FROM accounting_terminals_v1 WHERE attempt_id='known'").amount, '3000000');
-    assert.equal(db.get('SELECT count(*) AS n FROM accounting_terminals_v1').n, 1);
-    assert.equal(db.get("SELECT count(*) AS n FROM accounting_attempts_v1 WHERE id='pending'").n, phase === 'terminal' ? 1 : 0);
+    if (checkpoint) assert.equal(db.get("SELECT amount FROM accounting_terminals_v1 WHERE attempt_id='pending'").amount, '3000000');
+    assert.equal(db.get('SELECT count(*) AS n FROM accounting_terminals_v1').n, checkpoint ? 2 : 1);
+    assert.equal(db.get("SELECT count(*) AS n FROM accounting_attempts_v1 WHERE id='pending'").n, phase === 'terminal' || checkpoint ? 1 : 0);
     assert.equal(db.get('PRAGMA integrity_check').integrity_check, 'ok');
+    if (checkpoint) {
+      assert.equal(createNodeKeyPolicy(db).inspect('test').limits.monthly, '9000000');
+      const resumed = prepare('after-restart');
+      dispatch(resumed);
+      resumed.settle(usage);
+      assert.equal(ledger.totals('test', now).monthly, '9000000');
+      assert.throws(() => dispatch(prepare('blocked-at-limit')));
+      assert.equal(posts, 1);
+    }
+  } else if (checkpoint) {
+    const next = prepare('next');
+    const pending = prepare('pending');
+    dispatch(pending);
+    pending.settle(usage);
+    fs.mkdirSync('sync-start');
+    db.checkpoint();
+    fs.mkdirSync('sync-end');
+    if (mode === 'fault') {
+      assert.throws(assertAccountingHealthy);
+      assert.throws(() => dispatch(next));
+      assert.equal(posts, 1);
+      // Leave recovery to the next process, without a clean-close checkpoint.
+      process.exit(0);
+    } else {
+      assertAccountingHealthy();
+      dispatch(next);
+      assert.equal(posts, 2);
+    }
   } else {
     assert.equal(db.get('PRAGMA synchronous').synchronous, 1);
     const next = prepare('next');

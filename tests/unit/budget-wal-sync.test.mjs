@@ -11,8 +11,8 @@ function run(cwd, args) {
   assert.ifError(p.error);
   assert.equal(p.status, 0, p.stderr);
 }
-for (const phase of ['intent', 'terminal']) {
-  test('native WAL sync EIO while committing ' + phase + ' blocks dispatch and preserves prior spend', () => {
+for (const phase of ['intent', 'terminal', 'checkpoint-write', 'checkpoint-sync']) {
+  test('SQLite EIO at ' + phase + ' blocks dispatch and preserves acknowledged spend', () => {
     const root = fs.mkdtempSync('/tmp/budget-sync-');
     try {
       run(root, [process.execPath, worker, 'seed']);
@@ -21,7 +21,7 @@ for (const phase of ['intent', 'terminal']) {
         const cwd = root + '/' + mode;
         fs.mkdirSync(cwd);
         fs.copyFileSync(root + '/baseline.sqlite', cwd + '/ledger.sqlite');
-        const args = ['/usr/bin/strace', '-qq', '-y', '-o', 'trace', '-e', 'trace=fsync,fdatasync,mkdir,rename,renameat,renameat2'];
+        const args = ['/usr/bin/strace', '-qq', '-y', '-o', 'trace', '-e', 'trace=pwrite64,fsync,fdatasync,mkdir,rename,renameat,renameat2'];
         if (mode === 'fault') args.push('-e', injection);
         run(cwd, [...args, process.execPath, worker, mode, phase]);
         const trace = fs.readFileSync(cwd + '/trace', 'utf8').split('\n');
@@ -30,10 +30,13 @@ for (const phase of ['intent', 'terminal']) {
         assert.ok(start >= 0 && end > start);
         const measured = trace.slice(start + 1, end);
         assert.equal(measured.some(line => /^rename(?:at2?)?\(/.test(line)), false);
-        const sync = measured.find(line => /^(fsync|fdatasync)\(.*\/ledger\.sqlite-wal>/.test(line));
+        const target = phase === 'checkpoint-write' ? /^pwrite64\(.*\/ledger\.sqlite>/
+          : phase === 'checkpoint-sync' ? /^(fsync|fdatasync)\(.*\/ledger\.sqlite>/
+          : /^(fsync|fdatasync)\(.*\/ledger\.sqlite-wal>/;
+        const sync = measured.find(line => target.test(line));
         assert.ok(sync, 'expected a native WAL synchronization inside the measured operation');
         if (mode === 'control') {
-          assert.match(sync, /= 0$/);
+          assert.match(sync, phase === 'checkpoint-write' ? /= [1-9]\d*$/ : /= 0$/);
           const name = sync.split('(')[0];
           const ordinal = trace.slice(0, trace.indexOf(sync, start) + 1).filter(line => line.startsWith(name + '(')).length;
           injection = 'inject=' + name + ':error=EIO:when=' + ordinal;

@@ -43,6 +43,14 @@ export function quarantineNodeAccountingConnection(adapter) {
   registry.quarantine(adapter.raw);
 }
 
+export function monitorAccountingCheckpoints(adapter, observeCheckpointFailure) {
+  observeCheckpointFailure(() => {
+    faultAccounting();
+    quarantineNodeAccountingConnection(adapter);
+  });
+  assertAccountingHealthy();
+}
+
 export function createNodeOuterTransaction(adapter, definitions) {
   if (adapter?.driver !== 'node:sqlite' || !adapter.raw || typeof adapter.raw !== 'object' ||
       ['run', 'get', 'all', 'exec'].some(name => typeof adapter[name] !== 'function')) throw unavailable();

@@ -74,3 +74,37 @@ test('actual failed-after-open is remembered and accounting refuses later adapte
  global._dbAdapter.instance=replacement;global._dbAdapter.accountingNodeRaw=replacement.raw;
  try{await assert.rejects(getAccountingAdapter());assert.throws(healthy);}finally{replacement.close();}
 `));
+
+for (const timing of ['before-enrollment', 'scheduled', 'busy']) {
+  test('installed accounting handles ' + timing + ' checkpoint outcome', () => child(`
+    const timers = global.setInterval;
+    let tick;
+    global.setInterval = (callback, delay, ...args) => {
+      if (delay === 60000) tick = callback;
+      return timers(callback, delay, ...args);
+    };
+    let db;
+    try { db = await getAdapter(); } finally { global.setInterval = timers; }
+    try {
+      if ('${timing}' !== 'before-enrollment') await getAccountingAdapter();
+      const execute = db.raw.exec.bind(db.raw);
+      db.raw.exec = sql => {
+        if (sql === 'PRAGMA wal_checkpoint(TRUNCATE)') {
+          throw Object.assign(new Error('checkpoint fixture'), { errcode: ${timing === 'busy' ? 5 : 1034} });
+        }
+        return execute(sql);
+      };
+      try { tick(); } finally { db.raw.exec = execute; }
+      if ('${timing}' === 'busy') {
+        healthy();
+        assert.equal(await getAccountingAdapter(), db);
+      } else {
+        if ('${timing}' === 'before-enrollment') healthy();
+        await assert.rejects(getAccountingAdapter(), { code: 'api_key_accounting_unavailable' });
+        assert.throws(healthy);
+      }
+      db.run("INSERT INTO kv VALUES(?,?,?)", ['test','ordinary','ok']);
+      assert.equal(db.get("SELECT value FROM kv WHERE scope='test' AND key='ordinary'").value, 'ok');
+    } finally { db.close(); }
+  `));
+}

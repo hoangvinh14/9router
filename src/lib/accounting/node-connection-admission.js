@@ -1,7 +1,7 @@
 import { openNodeSqliteAttempt } from '../db/adapters/nodeSqliteAdapter.js';
 import { assertAccountingHealthy, faultAccounting } from './process-state.js';
 import { unavailable } from './attempt-payload.js';
-import { quarantineNodeAccountingConnection } from './node-outer-transaction.js';
+import { monitorAccountingCheckpoints, quarantineNodeAccountingConnection } from './node-outer-transaction.js';
 
 // Candidate selected-Node boundary only. Ordinary driver/fallback is NOT wired to
 // this path. No alternative engine, automatic retry/replacement, migration, own
@@ -46,6 +46,7 @@ export async function admitNodeAccountingConnection(filePath) {
   try {
     // A peer may fault while this attempt awaits import/initialization.
     assertAccountingHealthy();
+    monitorAccountingCheckpoints(attempt.adapter, attempt.observeCheckpointFailure);
     const handle = Object.freeze({ adapter: attempt.adapter });
     registry.put(handle, { closeStrict: attempt.closeStrict });
     return handle;

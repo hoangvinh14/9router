@@ -36,6 +36,23 @@ async function openAttempt(filePath, installed, requireMarked = false) {
   let checkpointTimer;
   let closed = false;
   let checkpoint = "not_attempted";
+  let onCheckpointFailure;
+  function runCheckpoint() {
+    try {
+      db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+      if (checkpoint !== "failed") checkpoint = "confirmed";
+    } catch (error) {
+      // Contention can defer a checkpoint while the WAL remains available.
+      const code = error?.errcode & 255;
+      if (code === 5 || code === 6) return;
+      checkpoint = "failed";
+      onCheckpointFailure?.();
+    }
+  }
+  function observeCheckpointFailure(notify) {
+    onCheckpointFailure = notify;
+    if (checkpoint === "failed") notify();
+  }
   let onShutdown;
   let onSigint;
   let onSigterm;
@@ -54,8 +71,7 @@ async function openAttempt(filePath, installed, requireMarked = false) {
       removeResources();
       return Object.freeze({ closure: isClosed() ? "confirmed" : "unknown", checkpoint });
     }
-    try { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); if (checkpoint !== "failed") checkpoint = "confirmed"; }
-    catch { checkpoint = "failed"; }
+    try { runCheckpoint(); } catch { checkpoint = "failed"; }
     stmtCache.clear();
     try { db.close(); }
     catch { return Object.freeze({ closure: "unknown", checkpoint }); }
@@ -102,9 +118,7 @@ async function openAttempt(filePath, installed, requireMarked = false) {
       }
     }
     db.exec(PRAGMA_SQL);
-    checkpointTimer = setInterval(() => {
-      try { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); } catch {}
-    }, CHECKPOINT_INTERVAL_MS);
+    checkpointTimer = setInterval(runCheckpoint, CHECKPOINT_INTERVAL_MS);
     if (typeof checkpointTimer.unref === "function") checkpointTimer.unref();
     // once removes itself even if close fails. Legacy signal exit behavior is
     // unchanged; not accounting-safe multi-connection shutdown.
@@ -135,12 +149,12 @@ async function openAttempt(filePath, installed, requireMarked = false) {
           throw e;
         }
       },
-      checkpoint() { try { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); } catch {} },
+      checkpoint: runCheckpoint,
       // Still best-effort; strict disposition is internal, not a new public ACK.
       close() { closeStrict(); },
       raw: db,
     };
-    return Object.freeze({ ok: true, adapter, closeStrict });
+    return Object.freeze({ ok: true, adapter, closeStrict, observeCheckpointFailure });
   } catch (error) {
     // Covers ALL post-open setup, including partial timer/listener installation.
     removeResources();

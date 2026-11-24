@@ -1,7 +1,7 @@
 import { ensureDirs, DATA_FILE } from "./paths.js";
 import { stripNullBytes } from "./helpers/nullBytes.js";
 import { faultAccounting } from "../accounting/process-state.js";
-import { quarantineNodeAccountingConnection } from "../accounting/node-outer-transaction.js";
+import { monitorAccountingCheckpoints, quarantineNodeAccountingConnection } from "../accounting/node-outer-transaction.js";
 
 // Use global to survive Next.js dev hot-reload (module state resets on reload)
 if (!global._dbAdapter) global._dbAdapter = { instance: null, initPromise: null, logged: false };
@@ -67,6 +67,7 @@ async function tryNodeSqlite(requireMarked = false) {
     }
     state.accountingNodeRaw = attempt.adapter.raw;
     state.accountingCloseStrict = attempt.closeStrict;
+    state.observeCheckpointFailure = attempt.observeCheckpointFailure;
     return attempt.adapter;
   } catch (e) {
     console.warn(`[DB] node:sqlite unavailable: ${e?.message || 'initialization failed'}`);
@@ -184,10 +185,12 @@ export async function getAccountingAdapter() {
   assertAccountingHealthy();
   if (state.accountingOpenFault) { faultAccounting(); throw unavailable(); }
   if (adapter.driver !== 'node:sqlite' || state.accountingNodeRaw !== adapter.raw ||
-      typeof state.accountingCloseStrict !== 'function' || state.accountingRetired || adapter.raw?.isOpen !== true) throw unavailable();
+      typeof state.accountingCloseStrict !== 'function' || typeof state.observeCheckpointFailure !== 'function' ||
+      state.accountingRetired || adapter.raw?.isOpen !== true) throw unavailable();
   const { quarantineNodeAccountingConnection } = await import('../accounting/node-outer-transaction.js');
   assertAccountingHealthy();
   if (!state.accountingCloseWrapped) {
+    monitorAccountingCheckpoints(adapter, state.observeCheckpointFailure);
     const closeStrict = state.accountingCloseStrict;
     adapter.close = () => {
       // Opt-in retirement precedes native close, even when close throws before
