@@ -6,21 +6,20 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { parseCodexStandardReference } from "../accounting/exact-money.js";
+import { CODEX_USD_PRICING_URL, parseCodexStandardReferences } from "../accounting/exact-money.js";
 import { makeKv } from "../db/helpers/kvStore.js";
 import { CLAUDE_STANDARD_PRICING_URL, parseClaudeStandardReferences } from "../pricing/claude-standard-reference.js";
-import { BUDGET_REFERENCE_SCOPE, CODEX_STANDARD_REFERENCE } from "../pricing/constants.js";
+import { BUDGET_REFERENCE_SCOPE } from "../pricing/constants.js";
 import { CATALOG_FILE, CATALOG_RAW_FILE, CATALOG_VERSION, invalidateCatalog, installCatalogSource } from "open-sse/providers/catalogOverride.js";
 
 const CATALOG_URL = "https://models.dev/api.json";
 const FETCH_TIMEOUT_MS = 60000;
-const CODEX_PRICING_URL = "https://learn.chatgpt.com/docs/pricing.md";
 const referencePricing = makeKv(BUDGET_REFERENCE_SCOPE);
 
-async function syncBudgetReference(url, parse) {
+async function syncBudgetReference(url, parse, accept = "text/markdown") {
   try {
     const response = await fetch(url, {
-      headers: { accept: "text/markdown" }, redirect: "error", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      headers: { accept }, redirect: "error", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     if (!response.ok) return false;
     const prices = parse(await response.text(), Date.now());
@@ -282,9 +281,7 @@ export function startModelCatalogSync() {
     timer = setTimeout(async () => {
       const [catalog, codexPricing, claudePricing] = await Promise.all([
         syncModelCatalog(),
-        syncBudgetReference(CODEX_PRICING_URL, (markdown, syncedAt) => ({
-          [CODEX_STANDARD_REFERENCE]: parseCodexStandardReference(markdown, syncedAt),
-        })),
+        syncBudgetReference(CODEX_USD_PRICING_URL, parseCodexStandardReferences, "text/html"),
         syncBudgetReference(CLAUDE_STANDARD_PRICING_URL, parseClaudeStandardReferences),
       ]);
       schedule(catalog && codexPricing && claudePricing ? SYNC_INTERVAL_MS : RETRY_DELAY_MS);

@@ -3,13 +3,13 @@ import { validatePriceSnapshot } from '../accounting/exact-money.js';
 
 export const CLAUDE_STANDARD_PRICING_URL = 'https://platform.claude.com/docs/en/about-claude/pricing.md';
 
-const standardModels = {
-  'claude-opus-5-5': 'Claude Opus 5.5',
-  'claude-sonnet-5': 'Claude Sonnet 5',
-};
-export const CLAUDE_STANDARD_MODELS = Object.freeze(Object.keys(standardModels));
-export const claudeStandardReferenceKey = model => CLAUDE_STANDARD_MODELS.includes(model)
+export const claudeStandardReferenceKey = model => /^claude-[a-z]+-\d+(?:-\d+)*$/.test(model)
   ? `anthropic:claude/${model}:standard:v1` : null;
+
+export function claudeModelFromReference(revision) {
+  const model = /^anthropic:claude\/(claude-[a-z]+-\d+(?:-\d+)*):standard:v1$/.exec(revision)?.[1];
+  return model ?? null;
+}
 
 export function readClaudeStandardReference(scope, model) {
   const revision = claudeStandardReferenceKey(model);
@@ -44,25 +44,25 @@ export function parseClaudeStandardReferences(markdown, syncedAt) {
       divider.length !== columns.length || !divider.every(cell => /^:?-{3,}:?$/.test(cell))) {
     throw new Error('Missing Claude Standard price table');
   }
-  const rows = [];
+  const prices = {};
   for (const line of lines.slice(header + 2)) {
     const cells = readColumns(line);
     if (!cells.length) break;
-    rows.push(cells);
-  }
-
-  return Object.fromEntries(Object.entries(standardModels).map(([model, name]) => {
-    const matches = rows.filter(([label]) => label === name);
-    if (matches.length !== 1 || matches[0].length !== columns.length) {
-      throw new Error('Missing or ambiguous Claude Standard model price');
+    const match = /^Claude ([A-Za-z]+) (\d+(?:\.\d+)*)(?: \(\[.*\))?$/.exec(cells[0]);
+    if (!match) continue;
+    const model = `claude-${match[1].toLowerCase()}-${match[2].replaceAll('.', '-')}`;
+    const revision = claudeStandardReferenceKey(model);
+    if (cells.length !== columns.length || Object.hasOwn(prices, revision)) {
+      throw new Error('Invalid or ambiguous Claude Standard tariff');
     }
-    const rates = Object.fromEntries(matches[0].slice(1).map((cell, index) => {
+    const rates = Object.fromEntries(cells.slice(1).map((cell, index) => {
       const rate = /^\$(\d+(?:\.\d+)?)\s*\/\s*MTok\s*(?:<sup>\d+<\/sup>)?$/.exec(cell)?.[1];
       if (!rate) throw new Error('Invalid Claude Standard rate');
       return [rateFields[index], rate];
     }));
-    const revision = claudeStandardReferenceKey(model);
-    return [revision, validatePriceSnapshot({ currency: 'USD', unit: 'USD/1M tokens', revision, syncedAt,
-      source: CLAUDE_STANDARD_PRICING_URL, rates })];
-  }));
+    prices[revision] = validatePriceSnapshot({ currency: 'USD', unit: 'USD/1M tokens', revision, syncedAt,
+      source: CLAUDE_STANDARD_PRICING_URL, rates });
+  }
+  if (!Object.keys(prices).length) throw new Error('Missing Claude Standard tariffs');
+  return prices;
 }

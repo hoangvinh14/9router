@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readlinkSync } from 'node:fs';
 import { test } from 'node:test';
-import { parseCodexStandardReference } from '../../src/lib/accounting/exact-money.js';
+import { parseCodexStandardReferences } from '../../src/lib/accounting/exact-money.js';
 import { responsesTokenUsage } from '../../src/lib/accounting/responses-usage.js';
 import { terminalCost } from '../../src/lib/accounting/terminal-cost.js';
 
@@ -66,16 +66,16 @@ test('Codex aggregate writes have their own price and are subtracted from ordina
 });
 
 test('Codex Standard reference uses the published USD rates and includes cache writes in ordinary input', () => {
-  const billing = 'Codex credit billing has no separate cache-write charge.';
-  const rateRow = `For USD usage-based billing, GPT-6.2 Astra at Standard speed costs $8
-per million input tokens, $0.40 per million cached input tokens, and
-$40 per million output tokens. GPT-6.2 Sol costs $2, $0.10, and $10
-per million input, cached input, and output tokens, respectively.`;
-  const snapshot = parseCodexStandardReference(billing + '\n' + rateRow, 42);
+  const row = '<tr><td>GPT-6.2 Sol</td><td>$2</td><td>$0.10</td><td>$10</td></tr>';
+  const other = '<tr><td>GPT-6.1 Terra</td><td>$1</td><td>$0.05</td><td>$5</td></tr>';
+  const card = rows => '<h1>ChatGPT Work and Codex models</h1><table><tr><th>Model</th><th>Input</th><th>Cached input</th><th>Output</th></tr>' + rows + '</table>';
+  const prices = parseCodexStandardReferences(card(row + other), 42);
+  const snapshot = prices['openai:codex/gpt-6.2-sol:standard:v1'];
   assert.deepEqual({ ...snapshot.rates }, { input: '2', cached: '0.10', output: '10' });
   assert.equal(snapshot.syncedAt, 42);
-  assert.throws(() => parseCodexStandardReference(rateRow, 42), /Missing Codex Standard tariff/);
-  assert.throws(() => parseCodexStandardReference(billing + rateRow + rateRow, 42), /Missing Codex Standard tariff/);
+  assert.equal(prices['openai:codex/gpt-6.1-terra:standard:v1'].rates.output, '5');
+  assert.throws(() => parseCodexStandardReferences(row, 42), /Missing Codex USD tariff/);
+  assert.throws(() => parseCodexStandardReferences(card(row + row), 42), /Invalid Codex USD tariff/);
   const usage = responsesTokenUsage({
     input_tokens: 100, output_tokens: 25, total_tokens: 125,
     input_tokens_details: { cached_tokens: 40, cache_write_tokens: 60 },

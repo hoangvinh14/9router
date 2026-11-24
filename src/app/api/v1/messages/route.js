@@ -48,8 +48,8 @@ export async function POST(request) {
     if (identity?.keyId !== state.keyId) return accountingUnavailableResponse();
     await ensureInitialized();
     return await handleAccountedChatCandidate(request, { identity, provider: profile.provider, connectionId: profile.connectionId,
-      createContext: ({ routeProof, credentials, model }) => createAnthropicDispatchContext({ identity, routeProof, credentials, profile,
-        ...(profile.provider === 'claude' ? { model, stream: model === 'claude-opus-5-5' } : {}),
+      createContext: ({ routeProof, credentials, model, body }) => createAnthropicDispatchContext({ identity, routeProof, credentials, profile,
+        ...(profile.provider === 'claude' ? { model, stream: body.stream === true } : {}),
       }),
     });
   } catch {

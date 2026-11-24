@@ -16,7 +16,6 @@ const JSON_FIELDS = ['model', 'messages', 'system', 'max_tokens', 'temperature',
 const SSE_FIELDS = [...JSON_FIELDS, 'tools', 'thinking'];
 const CLAUDE_FIELDS = [...SSE_FIELDS, 'speed', 'metadata', 'output_config', 'context_management', 'tool_choice',
   'cache_control'];
-const CLAUDE_MODELS = { 'claude-opus-5-5': true, 'claude-sonnet-5': false };
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const fields = (value, allowed) => record(value) && Object.keys(value).every(key => allowed.includes(key));
 const nonempty = value => typeof value === 'string' && value.length > 0;
@@ -73,8 +72,7 @@ export function createAnthropicDispatchContext({ identity, routeProof, credentia
   const wireUrl = oauth ? ACCOUNTED_CLAUDE_URL : ACCOUNTED_ANTHROPIC_URL;
   if (config?.enabled !== true || config?.producerAdmitted !== true ||
       !(oauth
-        ? config.auth === 'oauth' && config.serviceTier === 'standard' &&
-          Object.hasOwn(CLAUDE_MODELS, model) && CLAUDE_MODELS[model] === stream
+        ? config.auth === 'oauth' && config.serviceTier === 'standard' && nonempty(model)
         : config.provider === 'anthropic' && config.auth === 'api-key' &&
           config.model === ANTHROPIC_REFERENCE_MODEL && model === config.model && isAnthropicReferenceGeo(config.inferenceGeo) &&
           config.serviceTier === 'standard_only' &&
@@ -97,7 +95,7 @@ export function createAnthropicDispatchContext({ identity, routeProof, credentia
   const validateShape = body => {
     const request = snapshotPayload(body);
     if (!fields(request, oauth ? CLAUDE_FIELDS : stream ? SSE_FIELDS : JSON_FIELDS) ||
-        ![model, `${config.provider}/${model}`].includes(request.model) || request.stream !== stream ||
+        ![model, `${config.provider}/${model}`].includes(request.model) || (oauth ? (request.stream ?? false) !== stream : request.stream !== stream) ||
         !Array.isArray(request.messages) || !request.messages.length) throw unavailable();
     if (oauth) {
       if ((request.speed !== undefined && request.speed !== 'standard') ||

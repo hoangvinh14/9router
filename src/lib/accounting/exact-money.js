@@ -1,5 +1,5 @@
 import { decimalToNanoUsd } from "../pricing/decimalMoney.js";
-import { ALL_RATE_FIELDS, CODEX_STANDARD_REFERENCE, EXTENDED_RATE_FIELDS, MAX_NANO_USD, RATE_UNITS } from "../pricing/constants.js";
+import { ALL_RATE_FIELDS, codexStandardReferenceKey, EXTENDED_RATE_FIELDS, MAX_NANO_USD, RATE_UNITS } from "../pricing/constants.js";
 import { snapshotPayload } from "./attempt-payload.js";
 
 const TOKEN_UNIT = 1_000_000n;
@@ -24,9 +24,16 @@ export function validatePriceSnapshot(snapshot) {
   return copy;
 }
 
+export const CODEX_USD_PRICING_URL = 'https://help.openai.com/en/articles/20001415-chatgpt-rate-card-enterprise-token-based-pricing';
+
+export function codexModelFromReference(revision) {
+  const model = /^openai:codex\/([^:]+):standard:v1$/.exec(revision)?.[1];
+  return model && codexStandardReferenceKey(model) === revision ? model : null;
+}
+
 export function validateCodexStandardReference(snapshot) {
   const price = validatePriceSnapshot(snapshot);
-  if (price.revision !== CODEX_STANDARD_REFERENCE ||
+  if (!codexModelFromReference(price.revision) ||
       !Number.isSafeInteger(price.syncedAt) || price.syncedAt <= 0 ||
       Object.keys(price.rates).sort().join(',') !== 'cached,input,output') {
     throw new Error('Invalid Codex Standard reference price');
@@ -34,16 +41,33 @@ export function validateCodexStandardReference(snapshot) {
   return price;
 }
 
-export function parseCodexStandardReference(markdown, syncedAt) {
-  const rows = [...markdown.matchAll(/For USD usage-based billing, GPT-6\.2 Astra at Standard speed costs[^<]*?GPT-6\.2 Sol costs \$([\d.]+), \$([\d.]+), and \$([\d.]+)\s+per million input, cached input, and output tokens, respectively\./g)];
-  if (rows.length !== 1 || !markdown.includes('Codex credit billing has no separate cache-write charge.')) {
-    throw new Error('Missing Codex Standard tariff');
+export function parseCodexStandardReferences(html, syncedAt) {
+  const tables = [...html.matchAll(/<h1[^>]*>ChatGPT Work and Codex models<\/h1>(?:(?!<h1\b)[\s\S])*?<table\b[^>]*>([\s\S]*?)<\/table>/gi)];
+  if (tables.length !== 1) throw new Error('Missing Codex USD tariff table');
+  const headers = [...tables[0][1].matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/gi)]
+    .map(([, cell]) => cell.replace(/<[^>]+>/g, '').trim().toLowerCase());
+  if (headers.join(',') !== 'model,input,cached input,output') throw new Error('Invalid Codex USD tariff columns');
+  const prices = {};
+  for (const [, row] of tables[0][1].matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const cells = [...row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)]
+      .map(([, cell]) => cell.replace(/<[^>]+>/g, '').trim());
+    if (!cells.length) continue;
+    const [rawLabel, ...amounts] = cells;
+    const label = rawLabel.replace(/ [*\u2020]$/, '');
+    const name = label.split(' (')[0];
+    if (!/^(?:GPT-|Daybreak )[A-Za-z0-9. -]+$/.test(name) || / and GPT-/.test(label)) continue;
+    const model = name.toLowerCase().replaceAll(' ', '-');
+    const revision = codexStandardReferenceKey(model);
+    if (!revision || amounts.length !== 3 || Object.hasOwn(prices, revision) ||
+        !amounts.every(value => /^\$\d+(?:\.\d+)?$/.test(value))) throw new Error('Invalid Codex USD tariff');
+    const [input, cached, output] = amounts.map(value => value.slice(1));
+    prices[revision] = validateCodexStandardReference({
+      currency: 'USD', unit: 'USD/1M tokens', revision, syncedAt, source: CODEX_USD_PRICING_URL,
+      rates: { input, cached, output },
+    });
   }
-  const [, input, cached, output] = rows[0];
-  return validateCodexStandardReference({
-    currency: 'USD', unit: 'USD/1M tokens', revision: CODEX_STANDARD_REFERENCE, syncedAt,
-    rates: { input, cached, output },
-  });
+  if (!Object.keys(prices).length) throw new Error('Missing Codex USD tariffs');
+  return prices;
 }
 
 // Provider adapters own observed category/provenance mapping. This core never estimates.

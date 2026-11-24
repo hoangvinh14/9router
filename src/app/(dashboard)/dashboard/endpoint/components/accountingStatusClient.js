@@ -56,13 +56,14 @@ function budgetView(body, keyId) {
     ? { input: rates.input, cached: rates.cached, output: rates.output, syncedAt: new Date(price.syncedAt).toISOString() }
     : null;
   const referencePrices = Array.isArray(body.referencePrices)
-    ? body.referencePrices.slice(0, 2).flatMap(price => {
-      const model = /^anthropic:claude\/(claude-opus-5-5|claude-sonnet-5):standard:v1$/.exec(price?.revision)?.[1];
+    ? body.referencePrices.slice(0, 128).flatMap(price => {
+      const match = /^(anthropic:claude|openai:codex)\/([a-z0-9][a-z0-9.-]+):standard:v1$/.exec(price?.revision);
+      const codex = match?.[1] === "openai:codex";
       const rates = price?.rates;
-      if (!model || !Number.isSafeInteger(price.syncedAt) || price.syncedAt <= 0 || price.syncedAt > 8640000000000000 ||
-          ![rates?.input, rates?.output, rates?.cached, rates?.cache_creation, rates?.cache_creation_1h]
-            .every(rate => typeof rate === "string" && /^\d+(?:\.\d+)?$/.test(rate))) return [];
-      return [{ model, rates, syncedAt: new Date(price.syncedAt).toISOString() }];
+      const required = ["input", "output", "cached", ...(codex ? [] : ["cache_creation", "cache_creation_1h"])];
+      if (!match || !Number.isSafeInteger(price.syncedAt) || price.syncedAt <= 0 || price.syncedAt > 8640000000000000 ||
+          !required.every(field => typeof rates?.[field] === "string" && /^\d+(?:\.\d+)?$/.test(rates[field]))) return [];
+      return [{ model: match[2], rates, codex, syncedAt: new Date(price.syncedAt).toISOString() }];
     })
     : [];
   const unresolvedAttempts = usage.blockedByUnresolvedUsage === true && Array.isArray(usage.unresolvedAttempts)

@@ -1,7 +1,7 @@
-import { BUDGET_REFERENCE_SCOPE, CODEX_STANDARD_REFERENCE, CODEX_BUDGET_PRICE, MAX_NANO_USD } from '../pricing/constants.js';
+import { BUDGET_REFERENCE_SCOPE, codexStandardReferenceKey, MAX_NANO_USD } from '../pricing/constants.js';
 import { canonical, conflict, snapshotPayload, text, timestamp, unavailable } from './attempt-payload.js';
 import { budgetInstant, budgetWindows } from './budget-windows.js';
-import { nanoUsd, validateCodexStandardReference, validatePriceSnapshot } from './exact-money.js';
+import { codexModelFromReference, nanoUsd, validateCodexStandardReference, validatePriceSnapshot } from './exact-money.js';
 import { terminalCost, EXCLUSIVE_USAGE } from './terminal-cost.js';
 import { assertAccountingHealthy, faultAccounting, finalAccountingDispatch } from './process-state.js';
 import { createNodeOuterTransaction, quarantineNodeAccountingConnection } from './node-outer-transaction.js';
@@ -34,10 +34,14 @@ const CODEX_PRICE_READS = Object.freeze({
   referencePrice: Object.freeze({ method: 'get', sql: 'SELECT value FROM kv WHERE scope = ? AND key = ?' }),
 });
 
-function readCodexPrice(scope) {
-  const row = scope.referencePrice([BUDGET_REFERENCE_SCOPE, CODEX_STANDARD_REFERENCE]);
+function readCodexPrice(scope, revision) {
+  if (!revision) return null;
+  const row = scope.referencePrice([BUDGET_REFERENCE_SCOPE, revision]);
   if (!row) return null;
-  try { return validateCodexStandardReference(JSON.parse(row.value)); }
+  try {
+    const price = validateCodexStandardReference(JSON.parse(row.value));
+    return price.revision === revision ? price : null;
+  }
   catch { return null; }
 }
 
@@ -165,7 +169,7 @@ export function createLedgerReadValidator(corrupt) {
             ...(value.estimated !== undefined ? { estimated: value.estimated } : {}) }, original.price)) !== row.evidence) throw unavailable();
       return {
         ...value,
-        supportsRecovery: original.provider === 'codex' && original.price.revision === CODEX_STANDARD_REFERENCE &&
+        supportsRecovery: original.provider === 'codex' && codexModelFromReference(original.price.revision) === original.model &&
           value.provenance === 'unknown/defaulted',
       };
     } catch { corrupt(); }
@@ -356,8 +360,8 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
     },
     async bindCodexAccount(routeProof, connectionId, accessToken, accountId, priceBasis) {
       const route = ownRoutes.get(routeProof);
-      if (!requireAccount || route?.provider !== 'codex' || route.model !== CODEX_BUDGET_PRICE.model ||
-          priceBasis !== CODEX_STANDARD_REFERENCE) throw unavailable();
+      if (!requireAccount || route?.provider !== 'codex' || !priceBasis ||
+          priceBasis !== codexStandardReferenceKey(route.model)) throw unavailable();
       identifier(connectionId);
       if (typeof accountId !== 'string' || !accountId) throw unavailable();
       const { credentialDigest, readCodexAccount } = await import('./node-anthropic-account.js');
@@ -367,12 +371,12 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         return current?.digest === digest && current.accountId === accountId;
       };
       const { value: price } = checkRouteTransaction(scope =>
-        route.matches(scope, route.keyId, route.stamp) && matches(scope) ? readCodexPrice(scope) : null);
+        route.matches(scope, route.keyId, route.stamp) && matches(scope) ? readCodexPrice(scope, priceBasis) : null);
       if (!price) throw unavailable();
       const encodedPrice = canonical(price);
       const proof = Object.freeze(Object.create(null));
       ownAccounts.set(proof, { routeProof, encodedPrice,
-        matches: scope => matches(scope) && canonical(readCodexPrice(scope)) === encodedPrice });
+        matches: scope => matches(scope) && canonical(readCodexPrice(scope, priceBasis)) === encodedPrice });
       return Object.freeze({ proof, price: Object.freeze({ ...price, rates: Object.freeze(price.rates) }) });
     },
     async bindClaudeAccount(routeProof, connectionId, accessToken) {
@@ -500,7 +504,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
           return { spent: spend[name], remaining: difference === null ? null : String(difference > 0n ? difference : 0n),
             resetAt: windows[name].resetAt };
         };
-        const reference = priceBasis === CODEX_STANDARD_REFERENCE ? readCodexPrice(scope) : null;
+        const reference = readCodexPrice(scope, priceBasis);
         return { ...(reference ? { referencePrice: reference } : {}), policy, usage: { weekly: period('weekly'), monthly: period('monthly'), timezone: windows.timezone,
           unknownDefaulted: spend.unknown, unrecorded: observation.unrecorded,
           ...(spend.estimated ? { estimated: spend.estimated } : {}) } };

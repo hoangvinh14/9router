@@ -49,8 +49,10 @@ test('operator and Docker bindings verify the selected account and required pric
       currency: 'USD', unit: 'USD/1M tokens', revision, syncedAt: 1, rates: { input: '2', cached: '0.1', output: '10' },
     })]);
     assert.deepEqual(await findInstalledBudgetProfileForKey(codex.clientKeyId), {
-      enabled: true, producerAdmitted: true, provider: 'codex', auth: 'oauth', model: 'gpt-6.2-sol',
-      connectionId: 'codex-connection', accountId: 'fixture-account', priceBasis: revision,
+      enabled: true, producerAdmitted: true, provider: 'codex', auth: 'oauth',
+      connectionId: 'codex-connection', accountId: 'fixture-account', referencePrices: [{
+        currency: 'USD', unit: 'USD/1M tokens', revision, syncedAt: 1, rates: { input: '2', cached: '0.1', output: '10' },
+      }],
     });
     assert.equal(await findInstalledBudgetProfileForKey('other-client'), null);
     for (const invalid of [{ accountId: 'other-account' }, { connectionId: 'other-connection' }, { serviceTier: 'priority' }]) {

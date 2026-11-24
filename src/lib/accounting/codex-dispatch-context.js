@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { prepareAccountedDirectPost } from '../../../open-sse/utils/proxyFetch.js';
 import { unavailable } from './attempt-payload.js';
 import { openaiToOpenAIResponsesRequest } from '../../../open-sse/translator/request/openai-responses.js';
+import { codexStandardReferenceKey } from '../pricing/constants.js';
 import { budgetInstant } from './budget-windows.js';
 import { estimateInputTokens } from '../../../open-sse/utils/usageTracking.js';
 import { codexAccountId, directAccountData } from './node-anthropic-account.js';
@@ -49,13 +50,13 @@ function chatInput(model, body) {
   return openaiToOpenAIResponsesRequest(model, body, true);
 }
 
-export function createCodexDispatchContext({ identity, routeProof, credentials, profile, clock }) {
+export function createCodexDispatchContext({ identity, routeProof, credentials, profile, model = profile.model, clock }) {
   const { connectionId, accessToken, providerSpecificData } = credentials;
   const accountId = codexAccountId(providerSpecificData);
-  const { model } = profile;
+  const priceBasis = codexStandardReferenceKey(model);
   if (profile.provider !== 'codex' || profile.auth !== 'oauth' || profile.producerAdmitted !== true ||
       profile.connectionId !== connectionId || profile.accountId !== accountId || credentials.authType !== 'oauth' || credentials.apiKey ||
-      !accessToken || !accountId || !routeProof || !directAccountData(providerSpecificData)) throw unavailable();
+      !priceBasis || !accessToken || !accountId || !routeProof || !directAccountData(providerSpecificData)) throw unavailable();
   let validated = false;
   let prepared = false;
 
@@ -92,7 +93,7 @@ export function createCodexDispatchContext({ identity, routeProof, credentials, 
           headers.get('chatgpt-account-id') !== accountId || headers.get('content-type') !== 'application/json' ||
           headers.has('x-openai-internal-codex-responses-lite')) throw unavailable();
 
-      const { proof, price } = await identity.bindCodexAccount(routeProof, connectionId, accessToken, accountId, profile.priceBasis);
+      const { proof, price } = await identity.bindCodexAccount(routeProof, connectionId, accessToken, accountId, priceBasis);
       const initiate = await prepareAccountedDirectPost(url, options, proxyOptions);
       const attempt = identity.prepare({ attemptId: randomUUID(), provider, model, startedAt: budgetInstant(clock), price }, routeProof, proof);
       return Object.freeze({

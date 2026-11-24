@@ -23,10 +23,10 @@ export async function GET(request, { params }) {
   try {
     const { getInstalledAccountingServices } = await import('../../../../../lib/accounting/installed-service.js');
     const { ledger } = await getInstalledAccountingServices();
-    const snapshot = ledger.inspectBudget(id, undefined, profile.provider === 'codex' ? profile.priceBasis : undefined);
+    const snapshot = ledger.inspectBudget(id);
     if (!snapshot.policy) return json({ keyId: id, error: { code: 'budget_not_configured' } }, 503);
     return json({ readiness: { ready: true, reason: null }, ...snapshot,
-      ...(profile.provider === 'claude' ? { referencePrices: profile.referencePrices } : {}),
+      ...(profile.referencePrices ? { referencePrices: profile.referencePrices } : {}),
     });
   } catch { return unavailable(); }
 }

@@ -43,9 +43,9 @@ export async function POST(request) {
     if (identity?.keyId !== state.keyId) return accountingUnavailableResponse();
     await ensureInitialized();
     return await handleAccountedChatCandidate(request, {
-      identity, provider: 'codex',
+      identity, provider: 'codex', connectionId: profile.connectionId,
       createContext: ({ routeProof, model, credentials }) =>
-        model === profile.model ? createCodexDispatchContext({ identity, routeProof, credentials, profile }) : null,
+        createCodexDispatchContext({ identity, routeProof, credentials, profile, model }),
     });
   } catch {
     return accountingUnavailableResponse();

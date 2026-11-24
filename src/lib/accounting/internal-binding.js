@@ -2,8 +2,8 @@ import { unavailable, snapshotPayload } from './attempt-payload.js';
 import { createNodeOuterTransaction } from './node-outer-transaction.js';
 import { PROVIDER_ACCOUNT_READS, isSingleWorkspaceBinding, readAnthropicAccount, readClaudeAccount, readCodexAccount } from './node-anthropic-account.js';
 import { ANTHROPIC_REFERENCE_MODEL } from './anthropic-reference-price.js';
-import { BUDGET_REFERENCE_SCOPE, CODEX_BUDGET_PRICE, CODEX_STANDARD_REFERENCE } from '../pricing/constants.js';
-import { validateCodexStandardReference } from './exact-money.js';
+import { BUDGET_REFERENCE_SCOPE } from '../pricing/constants.js';
+import { codexModelFromReference, validateCodexStandardReference } from './exact-money.js';
 import { ROUTING_READS } from './node-routing-snapshot.js';
 
 const priceRead = Object.freeze({ method: 'get', sql: 'SELECT value FROM kv WHERE scope = ? AND key = ?' });
@@ -26,7 +26,7 @@ export function verifyInternalAnthropicBinding(adapter, input) {
   const { clientKeyId, workspaceBinding } = value;
   const { value: matches } = createNodeOuterTransaction(adapter, definitions)(scope =>
     scope.activeClient([clientKeyId])?.present === 1 &&
-    readAnthropicAccount(scope, workspaceBinding.connectionId, ANTHROPIC_REFERENCE_MODEL) === workspaceBinding.keyDigest);
+    readAnthropicAccount(scope, workspaceBinding.connectionId) === workspaceBinding.keyDigest);
   if (!matches) throw unavailable();
   return true;
 }
@@ -46,20 +46,23 @@ export function resolveInternalBudgetBinding(adapter, input) {
       !validId(value.clientKeyId) || !validId(binding.connectionId) || !validId(binding.accountId) ||
       binding.serviceTier !== 'standard') throw unavailable();
 
-  const model = CODEX_BUDGET_PRICE.model;
-  const { value: matches } = createNodeOuterTransaction(adapter, {
+  const { value: referencePrices } = createNodeOuterTransaction(adapter, {
     ...definitions,
-    price: priceRead,
+    referenceRows: { method: 'all', sql: "SELECT key, value FROM kv WHERE scope = ? AND key GLOB 'openai:codex/*:standard:v1' ORDER BY key" },
   })(scope => {
     if (scope.activeClient([value.clientKeyId])?.present !== 1 ||
-        readCodexAccount(scope, binding.connectionId, model)?.accountId !== binding.accountId) return false;
-    const row = scope.price([BUDGET_REFERENCE_SCOPE, CODEX_STANDARD_REFERENCE]);
-    try { return Boolean(row && validateCodexStandardReference(JSON.parse(row.value))); }
-    catch { return false; }
+        readCodexAccount(scope, binding.connectionId)?.accountId !== binding.accountId) return [];
+    return scope.referenceRows([BUDGET_REFERENCE_SCOPE]).flatMap(row => {
+      if (!codexModelFromReference(row.key)) return [];
+      try {
+        const price = validateCodexStandardReference(JSON.parse(row.value));
+        return price.revision === row.key ? [price] : [];
+      } catch { return []; }
+    });
   });
-  if (!matches) throw unavailable();
-  return Object.freeze({ enabled: true, producerAdmitted: true, provider: 'codex', auth: 'oauth', model,
-    connectionId: binding.connectionId, accountId: binding.accountId, priceBasis: CODEX_STANDARD_REFERENCE });
+  if (!referencePrices.length) throw unavailable();
+  return Object.freeze({ enabled: true, producerAdmitted: true, provider: 'codex', auth: 'oauth',
+    connectionId: binding.connectionId, accountId: binding.accountId, referencePrices });
 }
 
 export async function resolveInternalOperatorBinding(adapter, input) {
@@ -69,13 +72,19 @@ export async function resolveInternalOperatorBinding(adapter, input) {
     if (Object.keys(value).sort().join(',') !== 'claudeBinding,clientKeyId' ||
         Object.keys(binding).sort().join(',') !== 'connectionId,serviceTier' ||
         !validId(value.clientKeyId) || !validId(binding.connectionId) || binding.serviceTier !== 'standard') throw unavailable();
-    const { CLAUDE_STANDARD_MODELS, readClaudeStandardReference } = await import('../pricing/claude-standard-reference.js');
-    const { value: referencePrices } = createNodeOuterTransaction(adapter, { ...definitions, referencePrice: priceRead })(scope => {
+    const { claudeModelFromReference, readClaudeStandardReference } = await import('../pricing/claude-standard-reference.js');
+    const { value: referencePrices } = createNodeOuterTransaction(adapter, { ...definitions, referencePrice: priceRead,
+      referenceKeys: { method: 'all', sql: "SELECT key FROM kv WHERE scope = ? AND key GLOB 'anthropic:claude/*:standard:v1' ORDER BY key LIMIT 128" },
+    })(scope => {
       if (scope.activeClient([value.clientKeyId])?.present !== 1) return null;
-      return CLAUDE_STANDARD_MODELS.map(model => readClaudeAccount(scope, binding.connectionId, model)
-        ? readClaudeStandardReference(scope, model) : null);
+      return scope.referenceKeys([BUDGET_REFERENCE_SCOPE]).flatMap(({ key }) => {
+        const model = claudeModelFromReference(key);
+        if (!model || !readClaudeAccount(scope, binding.connectionId, model)) return [];
+        const price = readClaudeStandardReference(scope, model);
+        return price ? [price] : [];
+      });
     });
-    if (!referencePrices?.every(Boolean)) throw unavailable();
+    if (!referencePrices?.length) throw unavailable();
     return Object.freeze({ enabled: true, producerAdmitted: true, provider: 'claude', auth: 'oauth',
       connectionId: binding.connectionId, serviceTier: binding.serviceTier, referencePrices });
   }

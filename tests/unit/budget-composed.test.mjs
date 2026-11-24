@@ -695,7 +695,7 @@ const codexFixtureLimit = '374000';
 const priceBasis = 'openai:codex/gpt-6.2-sol:standard:v1';
 const referenceScope = 'budgetReferencePricing';
 
-function codexFixture(run, options) {
+function codexFixture(run, { additionalPrices = {}, ...options } = {}) {
   const model = 'gpt-6.2-sol';
   const profile = { provider: 'codex', auth: 'oauth', producerAdmitted: true, connectionId: 'fixture-codex',
     accountId: 'fixture-account', model, priceBasis };
@@ -713,7 +713,14 @@ function codexFixture(run, options) {
     db.run("INSERT INTO kv VALUES ('pricing','openai',?)", [JSON.stringify({
       [model]: { input: 9, cached: 9, cache_creation: 9, output: 9 },
     })]);
-    db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [JSON.stringify([`codex/${model}`]), 'fixture-key']);
+    for (const [additionalModel, rates] of Object.entries(additionalPrices)) {
+      const revision = `openai:codex/${additionalModel}:standard:v1`;
+      db.run('INSERT INTO kv VALUES (?,?,?)', [referenceScope, revision, JSON.stringify({
+        currency: 'USD', unit: 'USD/1M tokens', revision, syncedAt: 2, rates,
+      })]);
+    }
+    const allowedModels = [model, ...Object.keys(additionalPrices)].map(id => `codex/${id}`);
+    db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [JSON.stringify(allowedModels), 'fixture-key']);
     db.run(`INSERT INTO providerConnections (id, provider, authType, priority, isActive, data, createdAt, updatedAt)
       VALUES ('fixture-codex','codex','oauth',1,1,?,?,?)`, [
       JSON.stringify({ accessToken: 'fixture-token', providerSpecificData: { chatgptAccountId: 'fixture-account' } }), now, now,
@@ -727,6 +734,20 @@ function codexFixture(run, options) {
     monthly: codexFixtureLimit, profile, reply, prepareDb, ...options,
   }).finally(() => fs.rmSync(bindingPath, { force: true }));
 }
+
+if (!stage) test('two Codex models share one budget and use their own synchronized prices', () =>
+  codexFixture(async ({ request, rows, state, totals }) => {
+    for (const target of ['gpt-6.2-sol', 'gpt-6.1-terra']) {
+      const response = await postResponses(request({ model: `codex/${target}` }));
+      assert.equal(response.status, 200);
+      assert.match(await response.text(), /response.completed/);
+    }
+    assert.deepEqual(state.wire.map(({ body }) => body.model), ['gpt-6.2-sol', 'gpt-6.1-terra']);
+    assert.deepEqual(rows().terminals.map(({ amount }) => amount), ['374000', '187000']);
+    assert.equal(totals().monthly, '561000');
+    assert.equal((await postResponses(request())).status, 503);
+    assert.equal(state.wire.length, 2);
+  }, { monthly: '561000', additionalPrices: { 'gpt-6.1-terra': { input: '1', cached: '0.05', output: '5' } } }));
 
 if (checkpoint === 'codex') {
   const writing = stage === '--restart-write';

@@ -27,4 +27,5 @@ export const RATE_UNITS = Object.freeze(Object.fromEntries([
 
 export const CODEX_BUDGET_PRICE = Object.freeze({ provider: 'openai', model: 'gpt-6.2-sol' });
 export const BUDGET_REFERENCE_SCOPE = 'budgetReferencePricing';
-export const CODEX_STANDARD_REFERENCE = 'openai:codex/gpt-6.2-sol:standard:v1';
+export const codexStandardReferenceKey = model => typeof model === 'string' && /^[a-z0-9][a-z0-9.-]{0,100}$/.test(model)
+  ? `openai:codex/${model}:standard:v1` : null;

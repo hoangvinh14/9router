@@ -395,7 +395,7 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
     // Use shared chatCore
     const chatSettings = candidate ? candidate.settings : await getSettings();
     const providerThinking = (chatSettings.providerThinking || {})[provider] || null;
-    const accounting = candidate ? await candidate.createContext({ routeProof, provider, model, credentials, settings: chatSettings }) : null;
+    const accounting = candidate ? await candidate.createContext({ routeProof, provider, model, credentials, settings: chatSettings, body }) : null;
     if (candidate && !accounting) return refuseCandidate();
     const result = await handleChatCore({
       ...(candidate ? { accounting } : {}),
