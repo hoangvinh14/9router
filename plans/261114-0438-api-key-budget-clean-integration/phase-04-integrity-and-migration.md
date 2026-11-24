@@ -29,6 +29,12 @@ The startup regression suite covers refusal before migrations on unqualified acc
 - [ ] Platform matrix Node/SQL.js, node:sqlite, better-sqlite3, Bun; optional dep absence falls back safely. Windows atomic paths/build/locking get appropriate CI/evidence; unavailable runner recorded **OPEN**, not waived. User-authorized narrower deployment would require exact disposition, not assumption.
 - [ ] Operational rollback design: code branch switch **không rollback DB**; no old binary on migrated DB without compatibility proof. Synthetic copied schema validation first; future real rollout needs authorized backup/restore+quiescence/migration plan. Never access/copy host DB in this plan/execution by inference.
 
+## Nâng cấp trên volume SQLite hiện có
+
+Dừng container cũ rồi khởi động image nội bộ với cùng volume và `DATA_DIR`. Trước khi mở HTTP, entrypoint chạy kiểm tra SQLite. Nếu chưa có bảng budget, nó sao lưu đầy đủ vào `before-budget-*/data.sqlite` trước khi gọi migration hiện có của 9Router và tạo bảng budget trong transaction. Lần chạy sau kiểm tra schema đã có, giữ nguyên dữ liệu và không tạo thêm bản sao lưu cho bước này. Nếu sao lưu, kiểm tra hoặc cập nhật thất bại, container dừng trước khi phục vụ request. Chính sách budget vẫn được bật riêng cho từng key qua dashboard.
+
+Bộ startup đạt 33/33 với ca nâng cấp SQLite cũ, dùng cùng key và lịch sử, rồi mở lại khi đã chạm hạn mức. Smoke test trên container Linux Node 24 với filesystem dùng một lần kiểm tra cả volume mới, volume có dữ liệu, chạy hai lần và từ chối WAL mồ côi. Nghiệm thu image app đóng gói mới vẫn mở.
+
 ## Phục hồi cho Docker nội bộ
 
 Dừng app trước khi đổi image hoặc thay database. Giữ riêng snapshot SQLite hiện hành trước mọi thao tác phục hồi. Nếu cần quay lại thời điểm trước khi bật budget, khôi phục bản sao từ thư mục `before-budget-*` vào một thư mục dữ liệu riêng và ghép với image đã chạy trước khi bật. Nếu cần giữ budget, dùng snapshot có schema budget với image nội bộ tương thích. Kiểm tra binding và đọc lại policy/số đã dùng trong bản cô lập trước khi mở ingress.
