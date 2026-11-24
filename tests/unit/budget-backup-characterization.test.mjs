@@ -149,8 +149,22 @@ test('older snapshots restore the credential generation and retirement state at 
       assert.equal(restored.get('SELECT COUNT(*) AS n FROM accounting_admin_events_v1').n, 0);
       assert.deepEqual(createNodeAttemptLedger(restored).validateExistingAttempts(),
         { validatedAttempts: 1, validatedTerminals: 1 });
+      // Replay the independently known retirement against the restored generation.
+      snapshotPolicy.retireAudited('key-A', snapshotPolicy.inspect('key-A').version);
     } finally {
       restored.close();
+    }
+    const reopened = await createNodeSqliteAdapter(restoredPath);
+    try {
+      const reconciled = createNodeKeyPolicy(reopened);
+      assert.equal(reconciled.inspect('key-A').lifecycle, 'retired');
+      assert.throws(() => reconciled.resolve(present));
+      assert.throws(() => reconciled.resolve(absent));
+      assert.deepEqual(createNodeAttemptLedger(reopened).validateExistingAttempts(),
+        { validatedAttempts: 1, validatedTerminals: 1 });
+      assert.equal(reopened.get('SELECT COUNT(*) AS n FROM accounting_admin_events_v1').n, 1);
+    } finally {
+      reopened.close();
     }
   }
   assert.equal(policy.inspect('key-A').lifecycle, 'retired');

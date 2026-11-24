@@ -126,6 +126,53 @@ test('terminal SQL fault quarantines connection and denies other retained attemp
   assert.equal(db.get("SELECT amount FROM accounting_terminals_v1 WHERE attempt_id = 'known'").amount,'3000000');
 `));
 
+for (const [condition, sqliteCode] of [['full', 13], ['readonly', 8], ['busy', 5]]) {
+  test('SQLite ' + condition + ' during settlement preserves known spend and blocks further dispatch', () => child(`
+    initialize(db);
+    policy.save('key-A',1,{weekly:null,monthly:'9000000'});
+    const store=ledger(db);
+    const known=store.prepare(cmd('known'));
+    let posts=0;
+    store.dispatch(known.ack,context(),()=>posts++);
+    known.settle(usage());
+    const pending=store.prepare(cmd('pending'));
+    store.dispatch(pending.ack,context(),()=>posts++);
+    const finite=store.prepare(cmd('finite'));
+    const unlimited=store.prepare(cmd('unlimited','key-B'));
+    db.exec("VACUUM INTO '"+file+".backup'");
+    const peer=await createNodeSqliteAdapter(file);
+    try {
+      if ('${condition}' === 'full') {
+        db.exec('CREATE TABLE space_probe (data BLOB)');
+        db.exec("CREATE TRIGGER grow_terminal AFTER INSERT ON accounting_terminals_v1 BEGIN INSERT INTO space_probe VALUES(zeroblob(1048576)); END");
+        db.exec('PRAGMA max_page_count='+db.get('PRAGMA page_count').page_count);
+      } else if ('${condition}' === 'busy') {
+        db.exec('PRAGMA busy_timeout=0');
+        peer.exec('BEGIN IMMEDIATE');
+      } else {
+        db.exec('PRAGMA query_only=ON');
+      }
+      // Check the actual engine result independently of the sanitized ledger error.
+      const probe='${condition}' === 'full' ? 'INSERT INTO space_probe VALUES(zeroblob(1048576))' : 'BEGIN IMMEDIATE';
+      if ('${condition}' === 'readonly') {
+        assert.throws(()=>db.exec("UPDATE apiKeys SET isActive=1"),e=>e.errcode===${sqliteCode});
+      } else {
+        assert.throws(()=>db.exec(probe),e=>e.errcode===${sqliteCode});
+      }
+      assert.throws(()=>pending.settle(usage()),e=>e.code==='api_key_accounting_unavailable');
+      if (peer.raw.isTransaction) peer.exec('ROLLBACK');
+      assert.throws(healthy);
+      for (const [attempt,key] of [[finite,'key-A'],[unlimited,'key-B']]) {
+        assert.throws(()=>store.dispatch(attempt.ack,context(key),()=>posts++));
+      }
+      assert.equal(posts,2);
+      assert.equal(peer.get('SELECT count(*) AS n FROM accounting_terminals_v1').n,1);
+      assert.equal(peer.get("SELECT amount FROM accounting_terminals_v1 WHERE attempt_id='known'").amount,'3000000');
+      assert.equal(peer.get('PRAGMA integrity_check').integrity_check,'ok');
+    } finally { if (peer.raw.isTransaction) peer.exec('ROLLBACK'); peer.close(); }
+  `));
+}
+
 test('intent COMMIT execute-then-throw grants no ACK and no replacement rights despite visible durable row', () => child(`
   initialize(db);const exec=db.exec.bind(db);
   const wrapped={...db,exec(sql){if(sql==='COMMIT'){exec(sql);throw new Error('lost return');}return exec(sql);}};

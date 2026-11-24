@@ -361,6 +361,48 @@ if (!stage) test('client workspace header and non-Standard inputs cannot reach T
 }, { reply: success }));
 
 const limit = '105900';
+if (!stage) test('two admitted POSTs spanning the HCM reset settle in their original periods', async () => {
+  const before = '2026-11-30T16:59:59.999Z';
+  const after = '2026-11-30T17:00:00.000Z';
+  let instant = before;
+  const arrived = Promise.withResolvers();
+  const release = Promise.withResolvers();
+  let requests = 0;
+  const reply = () => {
+    if (++requests !== 1) return success();
+    const response = success();
+    return new Response(new ReadableStream({
+      async start(controller) {
+        arrived.resolve();
+        await release.promise;
+        controller.enqueue(new Uint8Array(await response.arrayBuffer()));
+        controller.close();
+      },
+    }), { headers: response.headers });
+  };
+  await fixture(async ({ chat, rows, state, totals }) => {
+    const first = chat();
+    try {
+      await Promise.race([arrived.promise, first.then(() => assert.fail('first POST never reached upstream'))]);
+      instant = after;
+      assert.equal((await chat()).status, 200);
+      assert.equal(rows().terminals.length, 1);
+      assert.equal((await chat()).status, 503);
+      assert.equal(state.wire.length, 2);
+    } finally { release.resolve(); }
+    assert.equal((await first).status, 200);
+    assert.equal(rows().terminals.length, 2);
+    const settledStarts = state.db.all(`SELECT a.started_at FROM accounting_attempts_v1 a
+      JOIN accounting_terminals_v1 t ON t.attempt_id = a.id ORDER BY a.started_at`);
+    assert.deepEqual(settledStarts.map(row => row.started_at), [before, after]);
+    for (const at of [before, after]) {
+      assert.deepEqual(totals(at), { weekly: '211800', monthly: limit, unknown: 0 });
+    }
+    assert.equal((await chat()).status, 503);
+    assert.equal(state.wire.length, 2);
+  }, { weekly: limit, monthly: limit, clock: () => instant, reply });
+});
+
 if (!stage) test('late response uses the original HCM window and each limit resets independently', () => {
   const dispatchAt = '2026-11-30T16:59:59.999Z';
   const monthReset = '2026-11-30T17:00:00.000Z';
