@@ -36,6 +36,12 @@ Dùng SQLite hiện có của 9Router. Mỗi API key bắt đầu ghi chi phí t
 
 [Tiêu chí Phase 03](./phase-03-native-retry-and-compatibility.md#luồng-đã-xác-nhận-trên-hai-instance).
 
+## Phạm vi model — quyết định 2026-11-24
+
+Budget cần hỗ trợ toàn bộ model 9Router định tuyến qua Anthropic và OpenAI, gồm các kết nối API và Claude/Codex OAuth đang dùng. Các model nêu trong phần nghiệm thu là mẫu đại diện. Việc thêm model không cần sửa danh sách model trong code budget.
+
+Tái sử dụng catalog, định tuyến và bộ đọc usage của từng giao thức. Đồng bộ giá từ nguồn bên ngoài và chọn giá theo model thực tế, loại kết nối và trường hợp tính phí. Khi thiếu giá áp dụng, báo rõ để tránh gửi request có budget mà không thể tính chi phí. Nghiệm thu phải có ít nhất một model mới được nhận qua đồng bộ giá và hai model khác nhau cùng ghi vào một budget. Các model và luồng chưa triển khai vẫn thuộc phạm vi còn mở.
+
 ## Tiêu chí còn mở sau nghiệm thu nội bộ
 
 Bốn luồng Docker Linux amd64 đã kiểm chứng ghi chi phí theo API key và chặn lượt kế ở đúng hạn mức, kể cả sau restart. [Kết quả nghiệm thu](./phase-03-native-retry-and-compatibility.md#nghiệm-thu-claude-oauth-standard-trên-docker-nội-bộ).

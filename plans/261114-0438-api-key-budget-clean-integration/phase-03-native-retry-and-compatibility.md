@@ -4,6 +4,12 @@ Status: in-progress. Priority: P1. Depends on: phase02 + exact applicable produc
 
 The internal C0 JSON path has passed packaged browser, durable debit and restart checks. For the next candidate, collect the exact model and authentication contract, retained request and output shapes, source-backed usage category rules, applicable tariff and terminal evidence on success and failure. The [support manifest](./references/phase01-support-manifest.json) records the outstanding evidence for C1-C3. The internal registry supports C0 and an explicit Codex Standard binding with synchronized prices. C4 has no eligible predecessor in this phase yet.
 
+### Phạm vi model theo provider
+
+Các tên model trong bằng chứng dưới đây mô tả ca đã chạy. Phase 03 cần mở budget theo giao thức và giá đồng bộ cho các model Anthropic và OpenAI. Cần kiểm tra model trực tiếp, alias về model hiệu lực, usage theo giao thức và giá của kết nối tương ứng. Mẫu nghiệm thu phải chứng minh một model có thêm qua nguồn giá mà không sửa code và hai model cùng ghi vào một budget.
+
+Claude OAuth Standard đọc các dòng giá một mức theo model trong bảng Anthropic và dùng chung bộ xử lý Messages cho SSE/JSON. Phần tiếp theo gồm giá nhiều mức theo độ dài ngữ cảnh, OpenAI API key và Anthropic API key ngoài luồng ban đầu, các model Codex ngoài cấu hình cũ và model ID có alias/phiên bản. Bảng Codex công bố cả mức bằng credits và mức USD. Hai loại đơn vị cần được xử lý đúng theo biểu giá, kể cả khi các model dùng cùng định dạng usage. [Bảng giá Claude](https://platform.claude.com/docs/en/about-claude/pricing.md) · [Bảng giá Codex](https://learn.chatgpt.com/docs/pricing.md).
+
 ### Nguồn đơn giá budget — quyết định 2026-11-23
 
 9Router tự đồng bộ đơn giá tham chiếu từ nguồn bên ngoài. Giá nhập hoặc reset qua `/api/pricing` không tham gia tính budget. Dashboard hiển thị đơn giá đang dùng, nguồn và thời điểm đồng bộ. SQLite giữ snapshot đã xác thực gần nhất. Mỗi attempt lưu giá áp dụng khi gửi, nên cập nhật giá chỉ tác động đến attempt mới. Tiếp tục dùng snapshot hợp lệ gần nhất nếu đồng bộ lỗi. Khi chưa có snapshot áp dụng cho luồng đã chọn, từ chối trước POST.
@@ -123,6 +129,10 @@ Pinned Linux Node v24.21.0 passed `run-composed.mjs` and `run-composed.mjs --tls
 The native candidate now accepts only `POST /v1/messages` at its entry point. A Chat Completions request can otherwise reach body-based format detection, which recognizes some native-looking bodies as Claude. The composed regression exercises both native-looking bodies and actual Chat/Responses shapes on their own endpoints. Each returns 503 before account selection, transport preparation or ledger writes. Both compose suites passed **23/23** on pinned Linux Node v24.21.0.
 
 The current Claude-to-Chat SSE translator emits the thinking summary through `reasoning_content` and omits the signature and redacted block. The Responses translator carries OpenAI's `encrypted_content` for future Responses calls. A positive conversion needs a round trip across the client-visible response and next request that preserves the original Anthropic block order, signature, redacted payload, tool ID and error status. The accepted mapping must retain producer identity for opaque values. The existing translators provide no such round trip, so both conversions remain open. [Claude-to-Chat translator](../../open-sse/translator/response/claude-to-openai.js) · [Responses translator](../../open-sse/translator/request/openai-responses.js) · [OpenAI reasoning continuity](https://developers.openai.com/api/docs/guides/reasoning#preserve-reasoning-without-stored-responses) · [Anthropic thinking continuity](https://platform.claude.com/docs/en/build-with-claude/thinking#preserving-thinking-blocks).
+
+## Kiểm chứng giá theo model đã định tuyến
+
+Codex OAuth Standard đồng bộ bảng USD cho Work và Codex từ OpenAI. Ca HTTPS loopback ghi riêng 374.000 và 187.000 nanoUSD cho Sol và Terra, cộng vào cùng một API key rồi chặn lượt thứ ba ở 561.000 nanoUSD. Claude OAuth Standard đọc giá theo model đã định tuyến và hỗ trợ bảng giá một mức, gồm các dòng Haiku, Sonnet, Opus, Fable và Mythos. Các biểu giá theo ngữ cảnh, tên định tuyến chưa có giá khớp, Anthropic API-key ngoài luồng đã giao và OpenAI API-key còn mở. [Bảng giá USD cho Codex](https://help.openai.com/en/articles/20001415-chatgpt-rate-card-enterprise-token-based-pricing) · [Bảng giá Anthropic](https://platform.claude.com/docs/en/about-claude/pricing#model-pricing).
 
 ## Files / ownership
 
