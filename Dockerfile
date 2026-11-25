@@ -105,6 +105,10 @@ COPY --from=builder /app/node_modules/next ./node_modules/next
 # sql.js loads dist/sql-wasm.wasm by path at runtime; tracing only follows JS imports,
 # so the last-resort DB driver would abort with ENOENT on the missing binary.
 COPY --from=builder /app/node_modules/sql.js ./node_modules/sql.js
+# The internal preflight runs outside /app and needs the same JS and WASM.
+RUN if [ -f /opt/9router-startup/scripts/provision-internal-accounting.mjs ]; then \
+      ln -s /app/node_modules /opt/9router-startup/node_modules; \
+    fi
 # node-machine-id is createRequire-loaded at runtime; tracing omits it.
 COPY --from=builder /app/node_modules/node-machine-id ./node_modules/node-machine-id
 # wreq-js + playwright-core (and deps) are lazy-loaded at runtime and omitted by
