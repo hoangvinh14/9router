@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { prepareAccountedDirectPost } from '../../../open-sse/utils/proxyFetch.js';
 import { unavailable } from './attempt-payload.js';
 import { budgetInstant } from './budget-windows.js';
-import { directAccountData } from './node-anthropic-account.js';
+import { selectedAccountProxy } from './node-anthropic-account.js';
 import { openAIStandardUsage } from './responses-usage.js';
 
 const allowed = new Set(['model', 'messages', 'tools', 'tool_choice', 'parallel_tool_calls', 'stream',
@@ -46,10 +46,11 @@ function validate(body) {
 
 export function createOpenAIDispatchContext({ identity, routeProof, credentials, profile, model, body, endpoint, clock }) {
   const { apiKey, connectionId } = credentials;
+  const selectedProxy = selectedAccountProxy(credentials.providerSpecificData);
   if (profile.provider !== 'openai' || profile.auth !== 'api-key' || !profile.producerAdmitted ||
       profile.serviceTier !== 'standard' || connectionId !== profile.connectionId ||
       credentials.authType !== 'apikey' || !apiKey || credentials.accessToken || credentials.refreshToken ||
-      !directAccountData(credentials.providerSpecificData) || !routeProof) throw unavailable();
+      !routeProof) throw unavailable();
   const responses = endpoint === '/v1/responses';
   if (!responses && endpoint !== '/v1/chat/completions') throw unavailable();
   const urlExpected = 'https://api.openai.com' + endpoint;
@@ -75,8 +76,8 @@ export function createOpenAIDispatchContext({ identity, routeProof, credentials,
           wireStream !== stream || JSON.stringify(expectedWire) !== options.body ||
           new Headers(options.headers).get('authorization') !== `Bearer ${apiKey}`) throw unavailable();
       expectedWire = null;
-      const { proof, price } = await identity.bindOpenAIAccount(routeProof, connectionId, apiKey);
-      const initiate = await prepareAccountedDirectPost(url, options, proxyOptions);
+      const { proof, price } = await identity.bindOpenAIAccount(routeProof, connectionId, apiKey, selectedProxy);
+      const initiate = await prepareAccountedDirectPost(url, options, proxyOptions, selectedProxy);
       const attempt = identity.prepare({ attemptId: randomUUID(), provider, model, startedAt: budgetInstant(clock), price }, routeProof, proof);
       return Object.freeze({ dispatch: () => identity.dispatch(attempt.ack, budgetInstant(clock), initiate),
         settleJson: raw => attempt.settle(openAIStandardUsage(raw, price, responses)),

@@ -7,7 +7,7 @@ import { codexStandardReferenceKey } from '../pricing/constants.js';
 import { responsesTokenUsage } from './responses-usage.js';
 import { budgetInstant } from './budget-windows.js';
 import { estimateInputTokens } from '../../../open-sse/utils/usageTracking.js';
-import { codexAccountId, directAccountData } from './node-anthropic-account.js';
+import { codexAccountId, selectedAccountProxy } from './node-anthropic-account.js';
 
 const endpoint = 'https://chatgpt.com/backend-api/codex/responses';
 const fields = new Set(['model', 'input', 'instructions', 'tools', 'tool_choice', 'stream', 'store',
@@ -56,9 +56,10 @@ export function createCodexDispatchContext({ identity, routeProof, credentials, 
   const { connectionId, accessToken, providerSpecificData } = credentials;
   const accountId = codexAccountId(providerSpecificData);
   const priceBasis = codexStandardReferenceKey(model);
+  const selectedProxy = selectedAccountProxy(providerSpecificData);
   if (profile.provider !== 'codex' || profile.auth !== 'oauth' || profile.producerAdmitted !== true ||
       profile.connectionId !== connectionId || profile.accountId !== accountId || credentials.authType !== 'oauth' || credentials.apiKey ||
-      !priceBasis || !accessToken || !accountId || !routeProof || !directAccountData(providerSpecificData)) throw unavailable();
+      !priceBasis || !accessToken || !accountId || !routeProof) throw unavailable();
   let validated = false;
   let prepared = false;
 
@@ -95,14 +96,20 @@ export function createCodexDispatchContext({ identity, routeProof, credentials, 
           headers.get('chatgpt-account-id') !== accountId || headers.get('content-type') !== 'application/json' ||
           headers.has('x-openai-internal-codex-responses-lite')) throw unavailable();
 
-      const { proof, price } = await identity.bindCodexAccount(routeProof, connectionId, accessToken, accountId, priceBasis);
-      const initiate = await prepareAccountedDirectPost(url, options, proxyOptions);
+      const { proof, price } = await identity.bindCodexAccount(routeProof, connectionId, accessToken, accountId, priceBasis, selectedProxy);
+      const initiate = await prepareAccountedDirectPost(url, options, proxyOptions, selectedProxy);
       const attempt = identity.prepare({ attemptId: randomUUID(), provider, model, startedAt: budgetInstant(clock), price }, routeProof, proof);
       return Object.freeze({
         dispatch: () => identity.dispatch(attempt.ack, budgetInstant(clock), initiate),
         priceCacheWrites: 'included-in-input',
         inputEstimate: estimateInputTokens(body),
         settleResponses: attempt.settle,
+        overloadSuccessor(evidence, receipt) {
+          if (!receipt?.recorded || receipt.replay || !evidence) return null;
+          const categories = price.usageSemantics?.requiredCategories ?? Object.keys(price.rates);
+          return categories.every(category => evidence.components.some(item => item.category === category))
+            ? attempt.successorRoute() : null;
+        },
         successorRoute: attempt.successorRoute,
         settleAuthError: usage => settleOAuthErrorUsage(attempt, price, responsesTokenUsage(usage, 'included-in-input')),
       });

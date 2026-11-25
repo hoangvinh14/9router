@@ -94,7 +94,7 @@ export async function handleChatCore(options) {
   }
 }
 
-async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, customPromptEnabled, customPrompt, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, providerOverrides, accounting = null, refreshAccounting, clientSignal, refreshStoredCredentials }) {
+async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, headroomEnabled, headroomUrl, headroomCompressUserMessages, headroomTimeoutMs, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, customPromptEnabled, customPrompt, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, sourceFormatOverride, providerThinking, providerOverrides, accounting = null, allowAccountFallback = false, isAccountSuccessor = false, refreshAccounting, clientSignal, refreshStoredCredentials }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
   // Stable per-session color so all lines of one CLI conversation share a tag
@@ -491,9 +491,11 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
       if (Number.isFinite(expiry) && expiry <= Date.now()) await rotate();
     }
     let result = await execute();
-    if (refreshAccounting && !refreshed && credentials.refreshToken && [401, 403].includes(result.response.status)) {
+    if (refreshed) allowAccountFallback = false;
+    if (refreshAccounting && !isAccountSuccessor && !refreshed && credentials.refreshToken && [401, 403].includes(result.response.status)) {
       parsedAuthError = await parseUpstreamError(result.response, executor, async native => {
         if (!await recordAccountedError(provider, result.accounting, native, result.response.status)) return;
+        allowAccountFallback = false;
         await rotate(result.accounting.successorRoute());
       });
       if (refreshed) {
@@ -597,17 +599,26 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   // Provider returned error
   if (!providerResponse.ok) {
     trackPendingRequest(model, provider, connectionId, false, true);
-    let parsedError;
+    let parsedError, accountFallbackProof;
     try {
       // Codex meters authenticated Responses SSE terminals. A bare HTTP error
       // has no admitted usage evidence, but must still be read without replay.
-      const readNativeError = accountingAttempt
-        ? parsed => recordAccountedError(provider, accountingAttempt, parsed, providerResponse.status) : null;
+      const readNativeError = accountingAttempt ? async parsed => {
+        const capacityFailure = providerResponse.status === 503 && (provider === 'codex'
+          ? parsed?.type === 'response.failed' && parsed.response?.status === 'failed' &&
+            parsed.response.error?.code === 'server_is_overloaded'
+          : provider === 'claude' && parsed?.type === 'error' && parsed.error?.type === 'overloaded_error');
+        if (allowAccountFallback && capacityFailure && accountingAttempt.settleAuthError) {
+          const ack = await accountingAttempt.settleAuthError(provider === 'codex' ? parsed.response.usage : parsed.usage);
+          if (ack?.complete && ack.recorded && !ack.replay) accountFallbackProof = accountingAttempt.successorRoute();
+        } else await recordAccountedError(provider, accountingAttempt, parsed, providerResponse.status);
+      } : null;
       parsedError = parsedAuthError ?? await parseUpstreamError(providerResponse, executor, readNativeError);
     } catch {
       return { ...createErrorResult(503, 'Accounting recording unavailable'), accountingRefused: true };
     }
     const { statusCode, message, resetsAtMs } = parsedError;
+    if (accountFallbackProof) return { ...createErrorResult(statusCode, 'Upstream overloaded'), accountFallbackProof };
     if (claudeConversion) return { ...createErrorResult(statusCode, 'Claude request failed'), accountingRefused: true };
     appendRequestLog({ model, provider, connectionId, status: `FAILED ${statusCode}` }).catch(() => { });
     saveRequestDetail(buildRequestDetail({
@@ -631,7 +642,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
     return accounting !== null ? { ...failure, accountingRefused: true } : failure;
   }
 
-  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, pxpipe: pxpipeSummary, reqTag, log, accountingAttempt };
+  const sharedCtx = { allowAccountFallback, provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, pxpipe: pxpipeSummary, reqTag, log, accountingAttempt };
   const appendLog = (extra) => appendRequestLog({ model, provider, connectionId, ...extra }).catch(() => { });
   const trackDone = () => trackPendingRequest(model, provider, connectionId, false);
 

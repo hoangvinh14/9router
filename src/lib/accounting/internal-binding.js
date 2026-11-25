@@ -66,6 +66,14 @@ export function resolveInternalBudgetBinding(adapter, input) {
 
 export async function resolveInternalOperatorBinding(adapter, input) {
   const value = snapshotPayload(input);
+  if (value?.fallbackBinding) {
+    const { fallbackBinding, ...primary } = value;
+    const kind = primary.codexBinding ? 'codexBinding' : primary.claudeBinding ? 'claudeBinding' : null;
+    if (!kind || fallbackBinding.connectionId === primary[kind].connectionId) throw unavailable();
+    const main = await resolveInternalOperatorBinding(adapter, primary);
+    const backup = await resolveInternalOperatorBinding(adapter, { clientKeyId: primary.clientKeyId, [kind]: fallbackBinding });
+    return Object.freeze({ ...main, fallbackProfile: backup });
+  }
   if (value?.openaiBinding) {
     const binding = value.openaiBinding;
     if (Object.keys(value).sort().join(',') !== 'clientKeyId,openaiBinding' ||

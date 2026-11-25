@@ -5,6 +5,7 @@ import { isModelLockActive } from '../../../open-sse/services/accountFallback.js
 export const ACCOUNTED_ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 export const ACCOUNTED_CLAUDE_URL = ACCOUNTED_ANTHROPIC_URL + '?beta=true';
 export const PROVIDER_ACCOUNT_READS = Object.freeze({
+  savedProxy: Object.freeze({ method:'get', sql:'SELECT isActive, data FROM proxyPools WHERE id = ?' }),
   providerAccount: Object.freeze({ method:'get', sql:'SELECT provider, authType, isActive, data FROM providerConnections WHERE id = ?' }),
 });
 
@@ -21,13 +22,44 @@ export function directAccountData(data) {
     'connectionProxyPoolId','vercelRelayUrl','strictProxy','baseUrl','baseURL'].some(key => data[key]);
 }
 
-// Hash only security-relevant account state, not mutable bookkeeping such as
-// lastUsedAt. Never put the upstream key, digest or settings into the ledger row.
-export function readAnthropicAccount(scope, connectionId, model) {
-  return readApiKeyAccount(scope, connectionId, model, 'anthropic');
+function strictPool(id, url) {
+  if (typeof id !== 'string' || !id || typeof url !== 'string') throw unavailable();
+  const parsed = URL.parse(url);
+  if (!parsed || parsed.protocol !== 'http:' || parsed.pathname !== '/' || parsed.hash || parsed.search ||
+      parsed.username || parsed.password) throw unavailable();
+  return Object.freeze({ id, url });
 }
 
-export function readApiKeyAccount(scope, connectionId, model, provider) {
+export function selectedAccountProxy(data) {
+  if (directAccountData(data)) return null;
+  if (!data || data.strictProxy !== true || data.connectionProxyEnabled !== true ||
+      data.proxyPoolId !== data.connectionProxyPoolId || data.connectionNoProxy || data.vercelRelayUrl ||
+      data.baseUrl || data.baseURL) throw unavailable();
+  return strictPool(data.proxyPoolId, data.connectionProxyUrl);
+}
+
+// Re-read both the connection and its pool in the same transaction as the budget gate.
+// Binding discovery accepts an eligible route; dispatch always supplies the selected route.
+export function accountTransportMatches(scope, data, expected) {
+  if (directAccountData(data)) return expected == null;
+  if (!data?.proxyPoolId) return false;
+  const { proxyPoolId, ...rest } = data;
+  if (!directAccountData(rest)) return false;
+  const row = scope.savedProxy([proxyPoolId]);
+  if (row?.isActive !== 1) return false;
+  const pool = objectJson(row.data);
+  if (pool.type !== 'http' || pool.strictProxy !== true || pool.noProxy) return false;
+  const current = strictPool(proxyPoolId, pool.proxyUrl);
+  return expected === undefined || current.id === expected?.id && current.url === expected?.url;
+}
+
+// Hash only security-relevant account state, not mutable bookkeeping such as
+// lastUsedAt. Never put the upstream key, digest or settings into the ledger row.
+export function readAnthropicAccount(scope, connectionId, model, expectedProxy) {
+  return readApiKeyAccount(scope, connectionId, model, 'anthropic', expectedProxy);
+}
+
+export function readApiKeyAccount(scope, connectionId, model, provider, expectedProxy) {
   const row = scope.providerAccount([connectionId]);
   if (row?.provider !== provider || row.authType !== 'apikey' || row.isActive !== 1) return null;
   const account = objectJson(row.data);
@@ -35,7 +67,7 @@ export function readApiKeyAccount(scope, connectionId, model, provider) {
   const rowSettings = scope.routingSettings();
   const settings = rowSettings === null ? {} : objectJson(rowSettings.data);
   if (typeof apiKey !== 'string' || !apiKey || accessToken || refreshToken || isModelLockActive(account, model) ||
-      !directAccountData(providerSpecificData) || settings.outboundProxyEnabled || settings.outboundProxyUrl ||
+      !accountTransportMatches(scope, providerSpecificData, expectedProxy) || settings.outboundProxyEnabled || settings.outboundProxyUrl ||
       settings.outboundNoProxy || settings.providerOverrides?.[provider]) return null;
   return credentialDigest(apiKey);
 }
@@ -70,7 +102,7 @@ export function oauthTokenExpired(account, now) {
   return Number.isFinite(time) && time <= now;
 }
 
-export function readCodexAccount(scope, connectionId, model, now) {
+export function readCodexAccount(scope, connectionId, model, now, expectedProxy) {
   const row = scope.providerAccount([connectionId]);
   if (row?.provider !== 'codex' || row.authType !== 'oauth' || row.isActive !== 1) return null;
   const account = objectJson(row.data);
@@ -79,12 +111,12 @@ export function readCodexAccount(scope, connectionId, model, now) {
   const settings = rowSettings === null ? {} : objectJson(rowSettings.data);
   const accountId = codexAccountId(providerSpecificData);
   if (apiKey || !accessToken || oauthTokenExpired(account, now) || !accountId || isModelLockActive(account, model) ||
-      !directAccountData(providerSpecificData) || settings.outboundProxyEnabled || settings.outboundProxyUrl ||
+      !accountTransportMatches(scope, providerSpecificData, expectedProxy) || settings.outboundProxyEnabled || settings.outboundProxyUrl ||
       settings.outboundNoProxy || settings.providerOverrides?.codex) return null;
   return { digest: credentialDigest(accessToken), accountId };
 }
 
-export function readClaudeAccount(scope, connectionId, model, now) {
+export function readClaudeAccount(scope, connectionId, model, now, expectedProxy) {
   const row = scope.providerAccount([connectionId]);
   if (row?.provider !== 'claude' || row.authType !== 'oauth' || row.isActive !== 1) return null;
   const account = objectJson(row.data);
@@ -92,7 +124,7 @@ export function readClaudeAccount(scope, connectionId, model, now) {
   const rowSettings = scope.routingSettings();
   const settings = rowSettings === null ? {} : objectJson(rowSettings.data);
   if (apiKey || !accessToken || oauthTokenExpired(account, now) || isModelLockActive(account, model) ||
-      !directAccountData(providerSpecificData) || settings.outboundProxyEnabled || settings.outboundProxyUrl ||
+      !accountTransportMatches(scope, providerSpecificData, expectedProxy) || settings.outboundProxyEnabled || settings.outboundProxyUrl ||
       settings.outboundNoProxy || settings.providerOverrides?.claude) return null;
   return credentialDigest(accessToken);
 }

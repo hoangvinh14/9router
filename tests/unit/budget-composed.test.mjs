@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import https from 'node:https';
+import http from 'node:http';
+import net from 'node:net';
 import { once } from 'node:events';
 import { test } from 'node:test';
 import { spawnSync } from 'node:child_process';
@@ -78,6 +80,7 @@ async function startLoopback(state, reply, interrupted, partialResponse, {
     if (req.url !== '/oauth/token') state.wire.push(wire);
     (async () => {
       assert.equal(req.socket.encrypted, true);
+      if (state.forwardedPorts) assert.ok(state.forwardedPorts.has(req.socket.remotePort), 'expected a tunneled request');
       assert.equal(req.socket.remoteAddress, '127.0.0.1');
       assert.equal(req.method, 'POST');
       if (req.url === '/oauth/token') {
@@ -96,6 +99,12 @@ async function startLoopback(state, reply, interrupted, partialResponse, {
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
       wire.body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      if (state.streamPrefix) {
+        res.writeHead(200, { 'content-type': 'text/event-stream' });
+        res.write(state.streamPrefix);
+        state.cutStream = () => res.destroy();
+        return;
+      }
       if (partialResponse) {
         res.writeHead(200, { 'content-type': 'application/json' });
         res.write(partialJson);
@@ -326,21 +335,87 @@ if (!stage) test('credential committed by a peer before final BEGIN prevents POS
   assert.equal(result.changes, 1);
 } }));
 
-if (!stage) test('selected strict proxy pool cannot silently fall through to a direct POST or successor', () => fixture(async ({ chat, state, rows }) => {
-  const response = await chat();
-  assert.equal(response.status, 503);
-  assert.equal(isAccountingResponse(response), true);
-  assert.deepEqual(state.selected, ['fixture-account']);
-  assert.deepEqual([state.accounts, state.poolReads, state.preparations, state.wire.length], [1, 1, 0, 0]);
-  assert.deepEqual(rows(), { attempts: [], terminals: [] });
-}, { reply: success, prepareDb(db) {
-  db.run('INSERT INTO proxyPools (id, isActive, data, createdAt, updatedAt) VALUES (?, 0, ?, ?, ?)', [
-    'fixture-pool', JSON.stringify({ strictProxy: true }), now, now,
-  ]);
-  db.run('UPDATE providerConnections SET data = ? WHERE id = ?', [
-    JSON.stringify({ apiKey: 'fixture-upstream', providerSpecificData: { proxyPoolId: 'fixture-pool' } }), 'fixture-account',
-  ]);
-} }));
+for (const active of [false, true]) {
+  if (stage) break;
+  test(`selected ${active ? 'active' : 'inactive'} strict proxy pool refuses before transport or successor`, () => fixture(async ({ chat, state, rows }) => {
+    const response = await chat();
+    assert.equal(response.status, 503);
+    assert.equal(isAccountingResponse(response), true);
+    assert.deepEqual(state.selected, ['fixture-account']);
+    assert.deepEqual([state.accounts, state.poolReads, state.preparations, state.wire.length], [1, 1, 0, 0]);
+    assert.deepEqual(rows(), { attempts: [], terminals: [] });
+  }, { reply: success, prepareDb(db) {
+    db.run('INSERT INTO proxyPools (id, isActive, data, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)', [
+      'fixture-pool', Number(active), JSON.stringify({ strictProxy: true, proxyUrl: 'http://127.0.0.1:3128' }), now, now,
+    ]);
+    db.run('UPDATE providerConnections SET data = ? WHERE id = ?', [
+      JSON.stringify({ apiKey: 'fixture-upstream', providerSpecificData: { proxyPoolId: 'fixture-pool' } }), 'fixture-account',
+    ]);
+  } }));
+}
+
+async function withStrictTunnel(endpoint, run) {
+  let connects = 0;
+  const forwardedPorts = new Set();
+  const sockets = new Set();
+  const proxy = http.createServer();
+  proxy.on('connect', (req, downstream, head) => {
+    connects++;
+    if (req.url !== new URL(endpoint()).host) { downstream.destroy(); return; }
+    const upstream = net.connect(Number(new URL(endpoint()).port), '127.0.0.1', () => {
+      forwardedPorts.add(upstream.localPort);
+      downstream.write('HTTP/1.1 200 Connection Established\r\n\r\n');
+      if (head.length) upstream.write(head);
+      downstream.pipe(upstream).pipe(downstream);
+    });
+    for (const socket of [upstream, downstream]) {
+      sockets.add(socket);
+      socket.on('error', () => socket.destroy());
+      socket.on('close', () => sockets.delete(socket));
+    }
+  });
+  proxy.listen(0, '127.0.0.1');
+  await once(proxy, 'listening');
+  try {
+    return await run({ url: `http://127.0.0.1:${proxy.address().port}`, forwardedPorts, connects: () => connects });
+  } finally {
+    for (const socket of sockets) socket.destroy();
+    await new Promise(resolve => proxy.close(resolve));
+  }
+}
+
+if (!stage && tls) test('saved strict HTTP pool tunnels one budgeted POST and rechecks the pool before dispatch', async () => {
+  let target;
+  let deactivate = false;
+  await withStrictTunnel(() => target, async tunnel => {
+    await fixture(async ({ chat, state, rows, totals }) => {
+      target = state.endpoint;
+      state.forwardedPorts = tunnel.forwardedPorts;
+      const first = await chat();
+      assert.equal(first.status, 200);
+      await first.text();
+      assert.equal(tunnel.connects(), 1);
+      assert.equal(state.wire.length, 1);
+      assert.equal(rows().terminals.length, 1);
+      const amount = totals().monthly;
+      assert.ok(BigInt(amount) > 0n);
+      deactivate = true;
+      assert.equal((await chat()).status, 503);
+      assert.equal(tunnel.connects(), 1);
+      assert.equal(state.wire.length, 1);
+      assert.equal(rows().attempts.length, 2);
+      assert.equal(rows().terminals.length, 1);
+      assert.equal(totals().monthly, amount);
+    }, { reply:success, beforeFinalBegin(peer) {
+      if (deactivate) peer.prepare("UPDATE proxyPools SET isActive=0 WHERE id='fixture-pool'").run();
+    }, prepareDb(db) {
+      db.run('INSERT INTO proxyPools (id,isActive,data,createdAt,updatedAt) VALUES (?,1,?,?,?)',
+        ['fixture-pool', JSON.stringify({type:'http', strictProxy:true, proxyUrl:tunnel.url}), now, now]);
+      db.run('UPDATE providerConnections SET data=? WHERE id=?',
+        [JSON.stringify({apiKey:'fixture-upstream', providerSpecificData:{proxyPoolId:'fixture-pool'}}), 'fixture-account']);
+    } });
+  });
+});
 
 function success() {
   return Response.json({ type: 'message', model, content: [{ type: 'text', text: 'fixture answer' }], usage });
@@ -1017,9 +1092,33 @@ if (stage === undefined) {
   });
 
 
+  test('a delayed Codex overload terminal settles after the first-frame deadline without transferring', async t => {
+    const { EMPTY_PEEK_DEADLINE_MS } = await import('../../open-sse/config/runtimeConfig.js');
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    let source, settlements = 0, successors = 0;
+    const providerResponse = new Response(new ReadableStream({start(controller) { source = controller; }}),
+      {headers:{'content-type':'text/event-stream'}});
+    const waiting = handleStreamingResponse({
+      provider:'codex', model:'fixture', sourceFormat:FORMATS.OPENAI_RESPONSES, targetFormat:FORMATS.OPENAI_RESPONSES,
+      providerResponse, streamController:createStreamController({log:{}}), allowAccountFallback:true,
+      accountingAttempt:{
+        settleResponses() { settlements++; return {recorded:true,replay:false}; },
+        overloadSuccessor() { successors++; return {}; },
+      },
+    });
+    t.mock.timers.tick(EMPTY_PEEK_DEADLINE_MS);
+    const result = await waiting;
+    assert.ok(result.success);
+    const terminal = sseFrame({type:'response.failed',response:{id:'fixture',status:'failed',
+      error:{code:'server_is_overloaded'},usage:{output_tokens:12}}});
+    source.enqueue(new TextEncoder().encode(terminal));
+    source.close();
+    assert.equal(await result.response.text(), terminal);
+    assert.deepEqual([settlements, successors], [1,0]);
+  });
+
   test('accounted Codex executor hands the original SSE response to its owner and dispatches once', async () => {
     const executor = new CodexExecutor();
-    executor._isCompact = true;
     executor.prefetchImages = () => assert.fail('Unexpected prefetch');
     executor._peekSseTransientError = () => assert.fail('Unexpected SSE peek');
     const response = new Response('event: error\ndata: {"type":"error","code":"server_is_overloaded"}\n\n',
@@ -1138,6 +1237,87 @@ if (stage === undefined) {
         assert.equal(state.wire.length, 1);
         assert.equal(rows().terminals.length, 1);
       }, { reply: () => new Response(bytes, { headers: { 'content-type': 'text/event-stream' } }) });
+    });
+  }
+
+  test('Codex Chat preserves multiline terminals and distinguishes cutoffs in JSON and SSE', async () => {
+    let reason;
+    const reply = () => {
+      const status = reason ? 'incomplete' : 'completed';
+      const response = { id: 'fixture-multiline', status, incomplete_details: reason ? { reason } : null,
+        output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: 'fixture answer' }] }],
+        usage: { input_tokens: 100, input_tokens_details: { cached_tokens: 40 }, output_tokens: 25, total_tokens: 125 } };
+      const data = JSON.stringify({ type: 'response.' + status, response }, null, 2);
+      const frame = data.split('\n').map(line => 'data: ' + line).join('\r\n') + '\r\n\r\n';
+      return new Response(frame, { headers: { 'content-type': 'text/event-stream' } });
+    };
+    await codexFixture(async ({ state, rows }) => {
+      for (const [cutoff, expected] of [[null, 'stop'], ['max_output_tokens', 'length'], ['content_filter', 'content_filter'], ['interrupted', null]]) {
+        reason = cutoff;
+        for (const stream of [false, true]) {
+          const before = rows().terminals.length;
+          const res = await postResponses(new Request('https://fixture.invalid/v1/chat/completions', {
+            method: 'POST', headers: { authorization: 'Bearer fixture-client' },
+            body: JSON.stringify({ model: 'codex/gpt-6.2-sol', messages: [{role:'user', content:'hello'}], stream }),
+          }));
+          assert.equal(res.status, stream || expected ? 200 : 502);
+          if (stream) {
+            const frames = (await res.text()).split('\n\n').filter(Boolean);
+            assert.equal(frames.pop(), 'data: [DONE]');
+            const last = JSON.parse(frames.pop().slice(6));
+            if (expected) assert.equal(last.choices[0].finish_reason, expected);
+            else assert.match(last.error.message, /incomplete/);
+          } else {
+            const body = await res.json();
+            if (expected) {
+              assert.equal(body.choices[0].finish_reason, expected);
+              assert.equal(body.choices[0].message.content, 'fixture answer');
+            } else assert.match(body.error.message, /incomplete/);
+          }
+          assert.equal(rows().terminals.length, before + 1);
+          if (reason !== 'content_filter') assert.equal(rows().terminals.at(-1).amount, codexFixtureLimit);
+        }
+      }
+      assert.equal(state.wire.length, 8);
+      assert.equal(rows().attempts.length, 8);
+    }, {reply, monthly:'5000000'});
+  });
+
+  for (const provider of tls ? ['codex', 'anthropic'] : []) {
+    test(`a disconnected ${provider} stream with no usage preserves its original intent after reopen`, async () => {
+      const codex = provider === 'codex';
+      const run = async ({ state, chat, request, rows, reopen }) => {
+        state.streamPrefix = sseFrame(codex
+          ? { type:'response.created', response:{ id:'fixture-cut', status:'in_progress' } }
+          : { type:'message_start', message:{ id:'fixture-cut', role:'assistant', content:[] } });
+        const res = codex ? await postResponses(request()) : await chat('Root', { stream:true });
+        assert.equal(res.status, 200);
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        try {
+          const prefix = await reader.read();
+          assert.equal(decoder.decode(prefix.value), state.streamPrefix);
+          state.cutStream();
+          let suffix = '';
+          for (;;) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            suffix += decoder.decode(value);
+          }
+          const events = Array.from(suffix.matchAll(/^event: (.+)$/gm), match => match[1]);
+          assert.deepEqual(events, [codex ? 'response.failed' : 'error']);
+        } finally { reader.releaseLock(); }
+        assert.equal(state.wire.length, 1);
+        const recorded = rows();
+        assert.equal(recorded.attempts.length, 1);
+        assert.equal(recorded.attempts[0].keyId, 'fixture-key');
+        assert.deepEqual(recorded.terminals, []);
+        await reopen();
+        assert.deepEqual(rows(), recorded);
+        assert.equal(state.wire.length, 1);
+      };
+      if (codex) await codexFixture(run);
+      else await fixture(run, { stream:true, reply:success });
     });
   }
 
@@ -1279,7 +1459,7 @@ const failedCodex = { type: 'response.failed', response: { status: 'failed', err
   usage: { input_tokens: 10, input_tokens_details: { cached_tokens: 0 }, output_tokens: 0 } } };
 const failedClaude = { type: 'error', error: { type: 'authentication_error', message: 'fixture token expired' }, usage };
 for (const provider of stage ? [] : ['codex', 'claude']) {
-  for (const scenario of ['reactive', 'success', 'proactive', 'auth-failure', 'usage-absent', '403', 'expired-403', 'limit', 'acl', 'rotation', 'write-refused', 'cancelled']) {
+  for (const scenario of ['reactive', 'success', ...(tls ? ['strict-pool', 'pool-changed'] : []), 'proactive', 'auth-failure', 'usage-absent', '403', 'expired-403', 'limit', 'acl', 'rotation', 'write-refused', 'cancelled']) {
     test(`OAuth accounting ${provider} ${scenario}`, async () => {
       let sends = 0, auth = 0;
       const id = 'fixture-' + provider;
@@ -1300,19 +1480,27 @@ for (const provider of stage ? [] : ['codex', 'claude']) {
           assert.equal(JSON.parse(account.data).accessToken, 'fixture-new');
           assert.equal(persisted.prepare('SELECT COUNT(*) AS n FROM accounting_terminals_v1').get().n, expired ? 0 : 1);
         } finally { persisted.close(); }
-        if (scenario === 'success') {
+        if (['success','strict-pool'].includes(scenario)) {
           if (provider === 'claude') return success();
           return new Response('data: ' + JSON.stringify({ type: 'response.completed', response: { id: 'fixture-response',
             status: 'completed', usage: failedCodex.response.usage } }) + '\n\n', { headers: { 'content-type': 'text/event-stream' } });
         }
         return Response.json({ error: { message: 'successor unavailable' } }, { status: 429 });
       };
-      const run = async ({ state, request, rows, reopen, totals, path }) => {
+      const exercise = async ({ state, request, rows, reopen, totals, path }, tunnel) => {
         databasePath = path;
         const controller = new AbortController();
         const initial = { accessToken: 'fixture-token', refreshToken: 'fixture-old',
           ...(expired ? { expiresAt: '2000-01-01T00:00:00Z' } : {}),
           ...(provider === 'codex' ? { providerSpecificData: { chatgptAccountId: 'fixture-account' } } : {}) };
+        if (tunnel) {
+          state.forwardedPorts = tunnel.forwardedPorts;
+          if (scenario === 'pool-changed') state.afterGrantPrepared = () =>
+            state.db.run('UPDATE proxyPools SET isActive = 0 WHERE id = ?', ['fixture-pool']);
+          initial.providerSpecificData = { ...initial.providerSpecificData, proxyPoolId:'fixture-pool' };
+          state.db.run('INSERT INTO proxyPools (id,isActive,data,createdAt,updatedAt) VALUES (?,1,?,?,?)',
+            ['fixture-pool', JSON.stringify({type:'http',strictProxy:true,proxyUrl:tunnel.url}), now, now]);
+        }
         state.db.run('UPDATE providerConnections SET data = ? WHERE id = ?', [JSON.stringify(initial), id]);
         state.grant = body => {
           auth++;
@@ -1329,15 +1517,15 @@ for (const provider of stage ? [] : ['codex', 'claude']) {
           method: 'POST', signal: controller.signal, headers: { authorization: 'Bearer fixture-client' }, body: JSON.stringify({ model: 'claude/' + target,
             stream: false, max_tokens: 20, messages: [{ role: 'user', content: 'fixture' }] }) }));
         assert.ifError(state.serverError);
-        const status = { success: 200, reactive: 429, 'expired-403': 429, proactive: 429, 'auth-failure': 503, 'usage-absent': 401, '403': 403, limit: 503, acl: 503, rotation: 503, 'write-refused': 503, cancelled: 503 }[scenario];
+        const status = { success: 200, 'strict-pool':200, 'pool-changed':503, reactive: 429, 'expired-403': 429, proactive: 429, 'auth-failure': 503, 'usage-absent': 401, '403': 403, limit: 503, acl: 503, rotation: 503, 'write-refused': 503, cancelled: 503 }[scenario];
         assert.equal(response.status, status, await response.text());
-        assert.equal(auth, ['usage-absent','403'].includes(scenario) ? 0 : 1);
-        assert.equal(sends, ['success','reactive','expired-403'].includes(scenario) ? 2 : scenario === 'auth-failure' ? 0 : 1);
-        if (scenario === 'success') {
+        assert.equal(auth, ['usage-absent','403','pool-changed'].includes(scenario) ? 0 : 1);
+        assert.equal(sends, ['success','strict-pool','reactive','expired-403'].includes(scenario) ? 2 : scenario === 'auth-failure' ? 0 : 1);
+        if (['success','strict-pool'].includes(scenario)) {
           assert.equal(rows().terminals.length, 2);
           assert.equal(totals().monthly, provider === 'codex' ? '40000' : '211800');
         }
-        if (['reactive','success','expired-403','proactive'].includes(scenario)) {
+        if (['reactive','success','strict-pool','expired-403','proactive'].includes(scenario)) {
           assert.equal(state.wire.at(-1).headers.authorization, 'Bearer fixture-new');
           assert.equal(rows().attempts.length, sends);
           assert.equal(new Set(rows().attempts.map(x => x.attemptId)).size, sends);
@@ -1351,6 +1539,9 @@ for (const provider of stage ? [] : ['codex', 'claude']) {
           assert.equal(totals().monthly, provider === 'codex' ? '20000' : '105900');
         }
       };
+      const run = ctx => ['strict-pool','pool-changed'].includes(scenario)
+        ? withStrictTunnel(() => ctx.state.endpoint, tunnel => exercise(ctx, tunnel))
+        : exercise(ctx);
       const monthly = scenario === 'limit' ? '1' : '9999999';
       if (provider === 'codex') return codexFixture(run, { monthly, reply });
       const bindingPath = '/run/9router/accounting-binding.json';
@@ -1365,6 +1556,87 @@ for (const provider of stage ? [] : ['codex', 'claude']) {
           db.run("INSERT INTO providerConnections(id, provider, authType, isActive, data, createdAt, updatedAt) VALUES (?, 'claude', 'oauth', 1, '{}', ?, ?)", [id, now, now]);
         } });
       } finally { fs.rmSync(bindingPath, { force: true }); }
+    });
+  }
+}
+
+for (const provider of stage ? [] : ['codex', 'claude']) {
+  const sseModes = provider === 'codex' ? ['sse-success','sse-limit','sse-missing','sse-after-output','sse-json'] : [];
+  for (const mode of ['success', 'limit', 'missing-usage', 'backup-auth-error', ...sseModes]) {
+    test(`budgeted ${provider} transfers to the configured backup only after complete usage: ${mode}`, async () => {
+      const codex = provider === 'codex';
+      const model = codex ? 'gpt-6.2-sol' : 'claude-sonnet-5';
+      const primary = 'fixture-' + provider;
+      const backup = primary + '-backup';
+      const binding = { serviceTier:'standard', connectionId:primary, ...(codex && { accountId:'fixture-account' }) };
+      const bindingFile = '/run/9router/accounting-binding.json';
+      let calls = 0;
+      const reply = () => {
+        calls++;
+        if (calls === 1) {
+          const failure = codex ? structuredClone(failedCodex) : structuredClone(failedClaude);
+          if (codex) failure.response.error.code = 'server_is_overloaded';
+          else failure.error.type = 'overloaded_error';
+          if (mode === 'missing-usage') delete (codex ? failure.response : failure).usage;
+          if (mode.startsWith('sse-')) {
+            failure.response.id = 'fixture-first';
+            if (mode === 'sse-missing') delete failure.response.usage;
+            const prefix = mode === 'sse-after-output' ? sseFrame({type:'response.output_text.delta',delta:'visible'}) : '';
+            return new Response(prefix + sseFrame(failure), {headers:{'content-type':'text/event-stream'}});
+          }
+          return Response.json(failure, { status:503 });
+        }
+        if (mode === 'backup-auth-error') return Response.json(codex ? failedCodex : failedClaude, {status:401});
+        return codex ? new Response('data: ' + JSON.stringify({ type:'response.completed', response:{
+          id:'fixture-second', status:'completed', usage:failedCodex.response.usage } }) + '\n\n',
+          {headers:{'content-type':'text/event-stream'}}) : success();
+      };
+      const run = async ({ state, rows, totals, request, reopen }) => {
+        const credentials = token => JSON.stringify({accessToken:token, refreshToken:"fixture-grant", ...(codex && {providerSpecificData:{
+          chatgptAccountId:token === 'fixture-secondary' ? 'fixture-second-account' : 'fixture-account' }})});
+        state.db.run('UPDATE providerConnections SET data=? WHERE id=?',[credentials('fixture-primary'),primary]);
+        state.db.run('INSERT INTO providerConnections(id,provider,authType,isActive,priority,data,createdAt,updatedAt) VALUES(?,?,?,1,2,?,?,?)',
+          [backup,provider,'oauth',credentials('fixture-secondary'),now,now]);
+        fs.writeFileSync(bindingFile,JSON.stringify({clientKeyId:'fixture-key', [provider+'Binding']:binding,
+          fallbackBinding:{...binding,connectionId:backup,...(codex && {accountId:'fixture-second-account'})} }));
+        const jsonChat = () => new Request('https://fixture.invalid/v1/chat/completions', {
+          method:'POST', headers:{authorization:'Bearer fixture-client'},
+          body:JSON.stringify({model:'codex/'+model,stream:false,messages:[{role:'user',content:'hello'}]}),
+        });
+        const response = codex ? await postResponses(mode === 'sse-json' ? jsonChat() : request()) : await postMessages(new Request('https://fixture.invalid/v1/messages',{
+          method:'POST',headers:{authorization:'Bearer fixture-client'},body:JSON.stringify({
+            model:'claude/'+model,stream:false,max_tokens:20,messages:[{role:'user',content:'hello'}]})}));
+        assert.equal(response.status,['success','sse-success','sse-json','sse-missing','sse-after-output'].includes(mode) ? 200 : mode === 'backup-auth-error' ? 401 : 503);
+        const body = await response.text();
+        if (mode === 'sse-success' || mode === 'sse-json') {
+          assert.match(body, /fixture-second/);
+          assert.doesNotMatch(body, /fixture-first/);
+        }
+        if (mode === 'sse-after-output' || mode === 'sse-missing') assert.match(body, /fixture-first/);
+        const expected = ['success','backup-auth-error','sse-success','sse-json'].includes(mode) ? ['Bearer fixture-primary','Bearer fixture-secondary'] : ['Bearer fixture-primary'];
+        assert.deepEqual(state.wire.map(w => w.headers.authorization),expected);
+        const charges = rows().terminals;
+        if (expected.length === 2) {
+          assert.equal(new Set(rows().attempts.map(a => a.attemptId)).size,2);
+          assert.equal(charges.length,2);
+          assert.equal(totals().monthly,codex ? '40000' : '211800');
+        }
+        if (['limit','sse-limit'].includes(mode)) assert.equal(charges.length,1);
+        await reopen();
+        assert.deepEqual(rows().terminals,charges);
+      };
+      const monthly = ['limit','sse-limit'].includes(mode) ? '1' : '9999999';
+      if (codex) return codexFixture(run,{monthly,reply});
+      try {
+        await fixture(run,{monthly,reply,profile:{provider},prepareDb(db) {
+          const revision='anthropic:claude/'+model+':standard:v1';
+          db.run('INSERT INTO kv VALUES(?,?,?)',[referenceScope,revision,JSON.stringify({currency:'USD',unit:'USD/1M tokens',
+            revision,syncedAt:2,source:'https://platform.claude.com/docs/en/about-claude/pricing.md',
+            rates:{input:'3',cached:'0.30',cache_creation:'3.75',cache_creation_1h:'6',output:'15'}})]);
+          db.run('UPDATE apiKeys SET accessAllow=?',[JSON.stringify(['claude/'+model])]);
+          db.run("INSERT INTO providerConnections(id,provider,authType,isActive,data,createdAt,updatedAt) VALUES(?,'claude','oauth',1,'{}',?,?)",[primary,now,now]);
+        }});
+      } finally { fs.rmSync(bindingFile,{force:true}); }
     });
   }
 }

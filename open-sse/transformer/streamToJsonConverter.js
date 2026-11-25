@@ -11,11 +11,12 @@ function processSSEMessage(msg, state) {
   if (!msg.trim()) return;
 
   const eventMatch = msg.match(/^event:\s*(.+)$/m);
-  const dataMatch = msg.match(/^data:\s*(.+)$/m);
-  if (!dataMatch || (!eventMatch && !state.requireTerminal)) return;
-
-
-  const dataStr = dataMatch[1].trim();
+  if (!eventMatch && !state.requireTerminal) return;
+  const dataStr = msg.split(/\r?\n/)
+    .filter(line => line.startsWith("data:"))
+    .map(line => line.slice(5).replace(/^ /, ""))
+    .join("\n").trim();
+  if (!dataStr) return;
   if (dataStr === "[DONE]") return;
 
   let parsed;
@@ -27,6 +28,7 @@ function processSSEMessage(msg, state) {
     const response = parsed.response;
     state.status = response?.status || "failed";
     state.error = response?.error || parsed.error;
+    state.incompleteDetails = response?.incomplete_details;
     state.responseId = response?.id || state.responseId;
     state.model = response?.model;
     state.created = response?.created_at || state.created;
@@ -110,6 +112,6 @@ export async function convertResponsesStreamToJson(stream, { requireTerminal = f
     status: state.status || "completed",
     output,
     usage: state.usage,
-    ...(requireTerminal ? { model: state.model, error: state.error } : {})
+    ...(requireTerminal ? { model: state.model, error: state.error, ...(state.incompleteDetails && { incomplete_details: state.incompleteDetails }) } : {})
   };
 }

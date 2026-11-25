@@ -19,11 +19,10 @@ export function bindAccountingIdentity({ policy, ledger }, presentedSecret) {
   return Object.freeze({ keyId: original.keyId, bindingGeneration: original.bindingGeneration,
     matchesSecret: secret => secret === presentedSecret,
     captureRoute: () => ledger.captureRoute(original.keyId),
-    bindAnthropicAccount: (routeProof, connectionId, apiKey, inferenceGeo, requireSynced) => ledger.bindAnthropicAccount(routeProof, connectionId, apiKey, inferenceGeo, requireSynced),
-    bindOpenAIAccount: (routeProof, connectionId, apiKey) => ledger.bindOpenAIAccount(routeProof, connectionId, apiKey),
-    bindCodexAccount: (routeProof, connectionId, accessToken, accountId, priceBasis) =>
-      ledger.bindCodexAccount(routeProof, connectionId, accessToken, accountId, priceBasis),
-    bindClaudeAccount: (routeProof, connectionId, accessToken) => ledger.bindClaudeAccount(routeProof, connectionId, accessToken),
+    bindAnthropicAccount: ledger.bindAnthropicAccount,
+    bindOpenAIAccount: ledger.bindOpenAIAccount,
+    bindClaudeAccount: ledger.bindClaudeAccount,
+    bindCodexAccount: ledger.bindCodexAccount,
     prepare(command, routeProof, accountProof) {
       return ledger.prepare({ ...command, keyId: original.keyId, bindingGeneration: original.bindingGeneration }, routeProof, accountProof);
     },

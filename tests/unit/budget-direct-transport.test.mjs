@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import https from 'node:https';
+import http from 'node:http';
+import net from 'node:net';
 import { test, after } from 'node:test';
 import { spawn } from 'node:child_process';
 import { prepareAccountedDirectPost, proxyAwareFetch, getDirectDispatcher, getAccountedDirectDispatcher } from '../../open-sse/utils/proxyFetch.js';
@@ -162,6 +164,66 @@ test('actual accounted package dispatcher rejects untrusted CA and mismatched IP
   await assert.rejects(initiate(),e=>e.cause?.code==='ERR_TLS_CERT_ALTNAME_INVALID');
  }finally{await new Promise(resolve=>wrong.close(resolve));}
  assert.equal(posts.length,before);
+});
+
+test('strict CONNECT reaches only the selected tunnel and budget direct admission refuses it', async () => {
+  const authority = new URL(url('/')).host;
+  const requests = [];
+  const sockets = new Set();
+  let refuseTunnel = false;
+  const proxy = http.createServer();
+  proxy.on('connect', (req, client, head) => {
+    requests.push(req.url);
+    if (refuseTunnel || req.url !== authority) {
+      client.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
+      return;
+    }
+    const upstream = net.connect(server.address().port, '127.0.0.1', () => {
+      client.write('HTTP/1.1 200 Connection Established\r\n\r\n');
+      if (head.length) upstream.write(head);
+      client.pipe(upstream).pipe(client);
+    });
+    for (const socket of [client, upstream]) {
+      sockets.add(socket);
+      socket.on('close', () => sockets.delete(socket));
+      socket.on('error', () => socket.destroy());
+    }
+  });
+  await new Promise(resolve => proxy.listen(0, '127.0.0.1', resolve));
+  const pool = {connectionProxyEnabled:true, strictProxy:true, proxyPoolId:'strict-fixture',
+    connectionProxyUrl:`http://127.0.0.1:${proxy.address().port}`};
+  try {
+    const before = posts.length;
+    const target = url('/via-strict-pool');
+    await assert.rejects(prepareAccountedDirectPost(target, options, pool), /configuration unsupported/);
+    assert.equal(posts.length, before);
+    assert.deepEqual(requests, []);
+    const response = await proxyAwareFetch(target, options, pool);
+    await response.text();
+    assert.equal(response.status, 200);
+    assert.deepEqual(requests, [authority]);
+    assert.equal(posts.length, before + 1);
+    assert.equal(posts.at(-1).path, '/via-strict-pool');
+    const selected = {id: pool.proxyPoolId, url: pool.connectionProxyUrl};
+    const guarded = await prepareAccountedDirectPost(url('/misdirected'), options, pool, selected);
+    const misdirected = await guarded();
+    assert.equal(misdirected.status, 421);
+    await misdirected.text();
+    assert.throws(guarded);
+    assert.equal(posts.length, before + 2);
+    refuseTunnel = true;
+    for (const socket of sockets) socket.destroy();
+    await assert.rejects(proxyAwareFetch(target, options, pool), /strictProxy=true/);
+    assert.ok(requests.length >= 2);
+    assert.ok(requests.every(value => value === authority));
+    const denied = await prepareAccountedDirectPost(target, options, pool, selected);
+    await assert.rejects(denied());
+    assert.throws(denied);
+    assert.equal(posts.length, before + 2);
+  } finally {
+    for (const socket of sockets) socket.destroy();
+    await new Promise(resolve => proxy.close(resolve));
+  }
 });
 
 test('ordinary proxyAwareFetch behavior still performs its normal native direct request',async()=>{

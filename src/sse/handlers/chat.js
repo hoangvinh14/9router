@@ -51,7 +51,7 @@ export async function handleChat(request, clientRawRequest = null) {
 
 // Internal candidate composition only. Public callers cannot select this entry
 // or supply an identity, routing readers, or context factory through a request.
-export async function handleAccountedChatCandidate(request, { identity, createContext, provider = "anthropic", connectionId }) {
+export async function handleAccountedChatCandidate(request, { identity, createContext, provider = "anthropic", connectionId, fallbackConnectionId }) {
   try {
     const pathname = new URL(request.url).pathname;
     const acceptsEndpoint = ['openai', 'codex'].includes(provider) ? isCodexBudgetEndpoint(pathname)
@@ -63,7 +63,7 @@ export async function handleAccountedChatCandidate(request, { identity, createCo
         !identity.matchesSecret(selectedAccountingSecret(request))) return refuseCandidate();
     const view = await identity.captureRoute();
     const settings = mergeWithDefaults(view.reads.getSettingsData());
-    return await routeChat(request, null, { view, settings, createContext, provider, connectionId });
+    return await routeChat(request, null, { view, settings, createContext, provider, connectionId, fallbackConnectionId });
   } catch {
     return refuseCandidate();
   }
@@ -256,6 +256,15 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
   return dispatchSingleModel(body, modelStr, clientRawRequest, request, apiKey, requestedModel, null, null);
 }
 
+// Opaque history and tool continuations belong to the account that produced them.
+function textOnlyForAccountFallback(body) {
+  if (body.tools || body.previous_response_id || body.thinking) return false;
+  const input = body.input ?? body.messages;
+  return typeof input === 'string' || Array.isArray(input) && input.every(message =>
+    ['user', 'developer', 'system', 'assistant'].includes(message?.role) && typeof message.content === 'string' &&
+    Object.keys(message).every(key => ['role', 'content'].includes(key)));
+}
+
 async function dispatchSingleModel(body, modelStr, clientRawRequest, request, apiKey, requestedModel, candidate, branch) {
   if (candidate && (branch.length > 16 || new Set(branch).size !== branch.length)) return refuseCandidate();
   const modelInfo = await getModelInfo(modelStr, candidate?.view.reads);
@@ -335,7 +344,7 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
 
   const { provider, model } = modelInfo;
   if (candidate && provider !== candidate.provider) return refuseCandidate();
-  const routeProof = candidate ? await candidate.view.select(branch, { provider, model }) : null;
+  let routeProof = candidate ? await candidate.view.select(branch, { provider, model }) : null;
 
   // Routing shown in the unified "▶" line (client model → provider/model)
 
@@ -343,6 +352,7 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
   const userAgent = request?.headers?.get("user-agent") || "";
 
   // Try with available accounts (fallback on errors)
+  let pinnedConnection = candidate?.connectionId;
   const excludeConnectionIds = new Set();
   let lastError = null;
   let lastStatus = null;
@@ -352,7 +362,7 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
     const credentialOptions = { requestedModel: requestedModel || model };
     if (candidate) {
       credentialOptions.accountedSettings = candidate.settings;
-      credentialOptions.preferredConnectionId = candidate.connectionId;
+      credentialOptions.preferredConnectionId = pinnedConnection;
     }
     const credentials = await getProviderCredentials(provider, excludeConnectionIds, model, credentialOptions);
 
@@ -379,7 +389,7 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
       const matchesAuth = provider === "codex" || provider === "claude"
         ? credentials.authType === "oauth" && credentials.accessToken && !credentials.apiKey
         : credentials.authType === "apikey" && credentials.apiKey && !credentials.accessToken && !credentials.refreshToken;
-      if (!matchesAuth) return refuseCandidate();
+      if (!matchesAuth || (pinnedConnection && credentials.connectionId !== pinnedConnection)) return refuseCandidate();
     }
     const refreshedCredentials = candidate ? credentials : await checkAndRefreshToken(provider, credentials);
 
@@ -399,7 +409,8 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
     const accounting = candidate ? await candidate.createContext({ routeProof, provider, model, credentials, settings: chatSettings, body }) : null;
     if (candidate && !accounting) return refuseCandidate();
     const result = await handleChatCore({
-      ...(candidate ? { accounting } : {}),
+      ...(candidate ? { accounting, isAccountSuccessor: pinnedConnection !== candidate.connectionId, allowAccountFallback: Boolean(candidate.fallbackConnectionId &&
+        pinnedConnection === candidate.connectionId && textOnlyForAccountFallback(body)) } : {}),
       ...(candidate && ['claude', 'codex'].includes(provider) ? {
         clientSignal: request.signal,
         async refreshAccounting(successorProof) {
@@ -410,7 +421,7 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
           return { credentials: next, accounting: nextAccounting };
         },
       } : {}),
-      body: { ...body, model: `${provider}/${model}` },
+      body: { ...(candidate?.fallbackConnectionId ? structuredClone(body) : body), model: `${provider}/${model}` },
       modelInfo: { provider, model },
       credentials: refreshedCredentials,
       log,
@@ -464,7 +475,16 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
 
     // Accounting failures/refusals never become provider cooldown or implicit
     // next-account retries. A fresh owned successor requires explicit evidence.
-    if (candidate) return markAccountingResponse(result.response);
+    if (candidate) {
+      if (result.accountFallbackProof && pinnedConnection === candidate.connectionId && candidate.fallbackConnectionId) {
+        request.signal.throwIfAborted();
+        excludeConnectionIds.add(pinnedConnection);
+        pinnedConnection = candidate.fallbackConnectionId;
+        routeProof = result.accountFallbackProof;
+        continue;
+      }
+      return markAccountingResponse(result.response);
+    }
     if (result.accountingRefused) return result.response;
     if (result.success) return result.response;
 

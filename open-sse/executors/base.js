@@ -97,7 +97,7 @@ export class BaseExecutor {
     return { status: response.status, message: bodyText || `HTTP ${response.status}` };
   }
 
-  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null, providerOverrides = null, directFetch = null, accounting = null }) {
+  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null, providerOverrides = null, directFetch = null, accounting = null }, invocation) {
     // Opt-in trusted app-side context, never derived from provider request JSON.
     // It must bind own intent/terminal to the final effective wire. Ordinary path
     // is unchanged. Unsupported executor overrides must not silently ignore it.
@@ -136,13 +136,13 @@ export class BaseExecutor {
     };
 
     for (let urlIndex = 0; urlIndex < fallbackCount; urlIndex++) {
-      const url = this.buildUrl(model, stream, urlIndex, credentials);
-      const transformedBody = this.transformRequest(model, body, stream, credentials);
+      const url = this.buildUrl(model, stream, urlIndex, credentials, invocation);
+      const transformedBody = this.transformRequest(model, body, stream, credentials, invocation);
       // Use a separately selected, trusted wire contract, not a mutation of
       // registry/CLI headers or a client opt-in. prepare still checks the wire.
       const headers = buildAccountedHeaders
         ? buildAccountedHeaders({ provider: this.provider, url, model, stream, credentials })
-        : this.buildHeaders(credentials, stream, url, model, transformedBody);
+        : this.buildHeaders(credentials, stream, url, model, transformedBody, invocation);
       // User per-provider override wins over registry headers (blocked names filtered at the API)
       if (providerOverrides?.headers) Object.assign(headers, providerOverrides.headers);
 

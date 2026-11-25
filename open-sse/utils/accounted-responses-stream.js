@@ -12,7 +12,7 @@ const terminalStatuses = new Map([
 // The Codex client reads usage on these terminal incomplete responses.
 const meteredIncompleteReasons = new Set(["max_output_tokens", "interrupted"]);
 
-export function createAccountedResponsesStream(settle, onTerminal, priceCacheWrites = false, render = null, inputEstimate = 0, mapUsage = null) {
+export function createAccountedResponsesStream(settle, onTerminal, priceCacheWrites = false, render = null, inputEstimate = 0, mapUsage = null, firstFrame = null) {
   const decoder = new TextDecoder("utf-8", { fatal: true });
   let buffer = "";
   let frame = "";
@@ -46,6 +46,8 @@ export function createAccountedResponsesStream(settle, onTerminal, priceCacheWri
           continue;
         }
         if (!data && !names.length) {
+          firstFrame?.();
+          firstFrame = null;
           if (!render) controller.enqueue(encoder.encode(output));
           continue;
         }
@@ -78,6 +80,8 @@ export function createAccountedResponsesStream(settle, onTerminal, priceCacheWri
             ? usage : undefined;
           terminal = { output, evidence, event };
         } else {
+          firstFrame?.();
+          firstFrame = null;
           if (event.type === "response.done") throw new Error("Unsupported Responses SSE terminal");
           if (["response.output_text.delta", "response.reasoning_summary_text.delta",
             "response.function_call_arguments.delta", "response.custom_tool_call_input.delta"].includes(event.type) &&
@@ -96,7 +100,9 @@ export function createAccountedResponsesStream(settle, onTerminal, priceCacheWri
         if (trailing && (terminal.done || !"data: [DONE]\n\n".startsWith(trailing))) {
           throw new Error("Partial frame after Responses terminal");
         }
-        if (terminal.evidence) await settle(terminal.evidence);
+        const receipt = terminal.evidence ? await settle(terminal.evidence) : null;
+        firstFrame?.(terminal.event, terminal.evidence, receipt);
+        firstFrame = null;
         onTerminal();
         const bytes = render ? render(terminal.event, true) : terminal.output + (terminal.done || "");
         if (bytes) controller.enqueue(encoder.encode(bytes));

@@ -8,7 +8,7 @@ import { snapshotPayload, canonical, unavailable } from './attempt-payload.js';
 import { budgetInstant } from './budget-windows.js';
 import { isAnthropicReferenceGeo } from './anthropic-reference-price.js';
 import { anthropicJsonUsage, createAnthropicUsageAccumulator } from './anthropic-usage.js';
-import { ACCOUNTED_ANTHROPIC_URL, ACCOUNTED_CLAUDE_URL, credentialDigest, directAccountData, isSingleWorkspaceBinding } from './node-anthropic-account.js';
+import { ACCOUNTED_ANTHROPIC_URL, ACCOUNTED_CLAUDE_URL, credentialDigest, selectedAccountProxy, isSingleWorkspaceBinding } from './node-anthropic-account.js';
 
 // Internal candidate, disabled by default. Does NOT bypass existing routing or
 // own a second response reader. Profile readiness must come from executable
@@ -87,7 +87,8 @@ export function createAnthropicDispatchContext({ identity, routeProof, credentia
       typeof stream !== 'boolean' ||
       !routeProof || typeof identity?.prepare !== 'function' || typeof identity?.dispatch !== 'function') throw unavailable();
   const { connectionId, apiKey, authType, providerSpecificData, accessToken, refreshToken } = credentials ?? {};
-  if (!connectionId || !directAccountData(providerSpecificData) || !(oauth
+  const selectedProxy = selectedAccountProxy(providerSpecificData);
+  if (!connectionId || !(oauth
     ? authType === 'oauth' && typeof accessToken === 'string' && accessToken && !apiKey &&
       connectionId === config.connectionId && typeof identity.bindClaudeAccount === 'function'
     : authType === 'apikey' && typeof apiKey === 'string' && apiKey && !accessToken && !refreshToken &&
@@ -186,10 +187,10 @@ export function createAnthropicDispatchContext({ identity, routeProof, credentia
       // wire here; no silently stripped tools/media/premium or geography.
       // Transport snapshots method, headers, body and proxy prohibitions
       // before its first await. The selected account is rechecked at COMMIT.
-      const initiate = await prepareAccountedDirectPost(url, { ...options, body: encodedBody, headers }, proxyOptions);
       const { proof: accountProof, price } = await (oauth
-        ? identity.bindClaudeAccount(routeProof, connectionId, accessToken)
-        : identity.bindAnthropicAccount(routeProof, connectionId, apiKey, body.inference_geo ?? config.inferenceGeo, nativeDefaults));
+        ? identity.bindClaudeAccount(routeProof, connectionId, accessToken, selectedProxy)
+        : identity.bindAnthropicAccount(routeProof, connectionId, apiKey, body.inference_geo ?? config.inferenceGeo, nativeDefaults, selectedProxy));
+      const initiate = await prepareAccountedDirectPost(url, { ...options, body: encodedBody, headers }, proxyOptions, selectedProxy);
       const attempt = identity.prepare({ attemptId: randomUUID(), provider, model,
         startedAt: budgetInstant(clock), price }, routeProof, accountProof);
       const usage = createAnthropicUsageAccumulator();

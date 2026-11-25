@@ -349,13 +349,13 @@ export function getFreshRetryDispatcher(insecure = false) {
  * Always returns a dispatcher — the direct path needs the custom Agent too,
  * otherwise the default global agent's ClientHello gets RST-ed by DPI.
  */
-async function getDispatcher(proxyUrl, insecure = false, forceFreshSocket = false) {
+async function getDispatcher(proxyUrl, insecure = false, forceFreshSocket = false, accounted = false) {
   const normalized = normalizeProxyUrl(proxyUrl);
   if (!normalized) {
     return forceFreshSocket ? getFreshRetryDispatcher(insecure) : getDirectDispatcher(insecure);
   }
 
-  const key = `${normalized}::${insecure ? "insecure" : "secure"}`;
+  const key = `${accounted ? "accounted::" : ""}${normalized}::${insecure ? "insecure" : "secure"}`;
   if (!proxyDispatchers.has(key)) {
     // Evict oldest entry if max size reached
     if (proxyDispatchers.size >= MEMORY_CONFIG.proxyDispatchersMaxSize) {
@@ -365,7 +365,7 @@ async function getDispatcher(proxyUrl, insecure = false, forceFreshSocket = fals
     const dispatcher = new ProxyAgent({
       uri: normalized,
       connect: EYEBALLS_CONNECT,
-      requestTls: { ecdhCurve: TLS_ECDH_CURVE, ...(insecure ? { rejectUnauthorized: false } : {}) },
+      requestTls: { ecdhCurve: TLS_ECDH_CURVE, ...(accounted ? { rejectUnauthorized: true } : insecure ? { rejectUnauthorized: false } : {}) },
     });
     proxyDispatchers.set(key, dispatcher);
   }
@@ -488,15 +488,26 @@ function assertAccountedTransportEnvironment() {
 // Internal accounted path preparation. Resolve every asynchronous transport
 // dependency BEFORE granting a final gate; its returned invocation calls the
 // package's own undici immediately, with no redirects/replay/insecure fallback.
-// Only direct HTTPS is qualified by this candidate. Callers must reject saved
-// proxy/relay requirements rather than silently ignore them. No global patch or
-// ordinary proxyAwareFetch behavior is changed by this opt-in entry.
-export async function prepareAccountedDirectPost(url, options, proxyOptions = null) {
+// A strict HTTP CONNECT route must match the pool bound to the attempt.
+export async function prepareAccountedDirectPost(url, options, proxyOptions = null, selectedProxy = null) {
   const target = new URL(url).href;
   const parsed = new URL(target);
   assertAccountedTransportEnvironment();
+  let proxyUrl;
+  let otherOptions = proxyOptions;
+  if (selectedProxy !== null) {
+    const { connectionProxyEnabled, connectionProxyUrl, proxyPoolId, strictProxy, ...rest } = proxyOptions || {};
+    const pool = typeof connectionProxyUrl === 'string' ? URL.parse(connectionProxyUrl) : null;
+    if (!pool || pool.protocol !== 'http:' || pool.pathname !== '/' || pool.username || pool.password ||
+        pool.search || pool.hash || strictProxy !== true || connectionProxyEnabled !== true ||
+        !proxyPoolId || proxyPoolId !== selectedProxy.id || connectionProxyUrl !== selectedProxy.url) {
+      throw new Error('Accounting proxy configuration unsupported');
+    }
+    otherOptions = rest;
+    proxyUrl = pool.href;
+  }
   if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.hash ||
-      proxyOptions && Object.entries(proxyOptions).some(([, value]) => value !== null && value !== undefined && value !== false && value !== '')) {
+      otherOptions && Object.values(otherOptions).some(value => value != null && value !== false && value !== '')) {
     throw new Error('Accounting direct transport configuration unsupported');
   }
   const { method, body, signal, directFetch, dispatcher: customDispatcher, redirect } = options || {};
@@ -513,7 +524,7 @@ export async function prepareAccountedDirectPost(url, options, proxyOptions = nu
     parsed.pathname === '/v1/messages' && parsed.search === '?beta=true' &&
     headers.get('authorization')?.startsWith('Bearer ') && !headers.has('x-api-key');
   if (hasClaudeCliHeader(headers) && !nativeClaudeOAuth) throw new Error('Accounting CLI header profile unsupported');
-  const dispatcher = await getAccountedDirectDispatcher();
+  const dispatcher = proxyUrl ? await getDispatcher(proxyUrl, false, false, true) : await getAccountedDirectDispatcher();
   undiciFetch ??= (await import('undici')).fetch;
   const invoke = undiciFetch;
   // A string body lets undici's Fetch layer repeat the POST on HTTP 421

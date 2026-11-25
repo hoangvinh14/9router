@@ -23,7 +23,12 @@ const {initializeNodeAttemptLedger,createNodeAttemptLedger}=await import('/app/s
 const {initializeNodeKeyPolicy,createNodeKeyPolicy}=await import('/app/src/lib/accounting/node-key-policy.js');
 let posts=0;
 const server=https.createServer({key:fs.readFileSync('/tmp/test-key.pem'),cert:fs.readFileSync('/tmp/test-cert.pem')},async(req,res)=>{
- for await(const _chunk of req){} posts++;res.writeHead(503,{'content-type':'application/json'});res.end('{}');
+ for await(const _chunk of req){} posts++;
+ if (req.url === '/lost-response') {
+   req.socket.destroy();
+   return;
+ }
+ res.writeHead(503,{'content-type':'application/json'});res.end('{}');
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const endpoint=`https://127.0.0.1:${server.address().port}/messages`;
@@ -59,6 +64,42 @@ test('executor preparation or dispatch fault has no automatic retry/fallback or 
  assert.equal(preparations,1);assert.equal(posts,before);
  await assert.rejects(ex.execute({model:'fixture',body:{},stream:false,credentials:{apiKey:'fake'},accounting:{prepare(){preparations++;return {dispatch(){throw new Error('storage');}};}}}),/storage/);
  assert.equal(preparations,2);assert.equal(posts,before);
+});
+
+test('an accounted POST received before socket loss consumes one intent and never falls back', async () => {
+ const db = await createNodeSqliteAdapter('/tmp/executor-lost-response.sqlite');
+ try {
+  initializeNodeAttemptLedger(db);
+  db.exec('CREATE TABLE apiKeys (id TEXT PRIMARY KEY, key TEXT UNIQUE NOT NULL, isActive INTEGER NOT NULL)');
+  db.run('INSERT INTO apiKeys VALUES (?,?,1)', ['key-A', 'fixture-key-A']);
+  initializeNodeKeyPolicy(db);
+  createNodeKeyPolicy(db).save('key-A', 0, {weekly:null, monthly:null});
+  const store = createNodeAttemptLedger(db);
+  const now = '2026-11-16T10:00:00.000Z';
+  const before = posts;
+  const ex = new BaseExecutor('fixture', {
+   baseUrls: [new URL('/lost-response', endpoint).href, endpoint],
+   retry: {502: {attempts: 1, delayMs: 0}},
+  });
+  let preparations = 0;
+  const accounting = {
+   async prepare({url, options, proxyOptions}) {
+    const initiate = await prepareAccountedDirectPost(url, options, proxyOptions);
+    const attempt = store.prepare({
+     attemptId: 'lost-response-' + (++preparations), keyId: 'key-A', bindingGeneration: '1',
+     provider: 'fixture', model: 'fixture', startedAt: now,
+     price: {currency:'USD', unit:'USD/1M tokens', revision:'fixture', rates:{input:'1', output:'2'}},
+    });
+    return {dispatch: () => store.dispatch(attempt.ack, {presentedSecret:'fixture-key-A', now}, initiate)};
+   },
+  };
+  await assert.rejects(ex.execute({model:'fixture', body:{}, stream:false, credentials:{}, accounting}),
+   error => error.cause?.code === 'UND_ERR_SOCKET');
+  assert.equal(posts - before, 1);
+  assert.equal(preparations, 1);
+  assert.equal(db.get('SELECT COUNT(*) AS n FROM accounting_attempts_v1').n, 1);
+  assert.equal(db.get('SELECT COUNT(*) AS n FROM accounting_terminals_v1').n, 0);
+ } finally { db.close(); }
 });
 
 test('ordinary executor retains configured HTTP retry behavior',async()=>{

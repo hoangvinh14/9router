@@ -82,6 +82,30 @@ test('Responses holds completion while an asynchronous settlement acknowledgemen
   assert.equal(splitDone, completed);
 });
 
+test('downstream cancellation during terminal settlement preserves the received usage', async () => {
+  const entered = Promise.withResolvers();
+  const release = Promise.withResolvers();
+  const finalized = Promise.withResolvers();
+  const recorded = [];
+  const reader = pipe([completed], async evidence => {
+    entered.resolve();
+    await release.promise;
+    recorded.push(evidence.components.map(({category, count}) => [category, count]));
+  }, () => finalized.resolve()).getReader();
+  try {
+    const publication = reader.read();
+    await entered.promise;
+    const cancelled = reader.cancel();
+    release.resolve();
+    await Promise.all([cancelled, finalized.promise]);
+    assert.equal((await publication).done, true);
+    assert.deepEqual(recorded, [[['cached', 127744], ['input', 2722], ['output', 25]]]);
+  } finally {
+    release.resolve();
+    reader.releaseLock();
+  }
+});
+
 test('Responses preserves a native failure and refuses invalid or interrupted terminal evidence', async () => {
   const unexpected = () => assert.fail('unexpected settlement');
   assert.equal(await new Response(pipe([created, failed], unexpected)).text(), created + failed);

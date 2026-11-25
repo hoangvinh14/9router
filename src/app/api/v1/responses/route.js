@@ -47,8 +47,8 @@ export async function POST(request) {
         ? (await import('@/lib/accounting/openai-dispatch-context.js')).createOpenAIDispatchContext
         : (await import('@/lib/accounting/anthropic-dispatch-context.js')).createAnthropicDispatchContext;
     const endpoint = new URL(request.url).pathname;
-    return await handleAccountedChatCandidate(request, { identity, provider: profile.provider, connectionId: profile.connectionId,
-      createContext: args => createContext({ ...args, identity, profile, endpoint, stream: true }),
+    return await handleAccountedChatCandidate(request, { identity, provider: profile.provider, connectionId: profile.connectionId, fallbackConnectionId: profile.fallbackProfile?.connectionId,
+      createContext: args => createContext({ ...args, identity, profile: args.credentials.connectionId === profile.fallbackProfile?.connectionId ? profile.fallbackProfile : profile, endpoint, stream: true }),
     });
   } catch {
     return accountingUnavailableResponse();

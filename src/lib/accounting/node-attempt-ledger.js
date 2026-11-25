@@ -339,7 +339,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         return proof;
       } });
     },
-    async bindAnthropicAccount(routeProof, connectionId, apiKey, inferenceGeo, requireSynced) {
+    async bindAnthropicAccount(routeProof, connectionId, apiKey, inferenceGeo, requireSynced, expectedProxy = null) {
       const route = ownRoutes.get(routeProof);
       if (!requireAccount || route?.provider !== 'anthropic') throw unavailable();
       identifier(connectionId);
@@ -347,7 +347,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         import('./node-anthropic-account.js'), import('./anthropic-reference-price.js'),
       ]);
       const digest = owner.credentialDigest(apiKey);
-      const accountMatches = scope => owner.readAnthropicAccount(scope, connectionId, route.model) === digest;
+      const accountMatches = scope => owner.readAnthropicAccount(scope, connectionId, route.model, expectedProxy) === digest;
       const readPrice = scope => readAnthropicReferencePrice(scope, route.model, inferenceGeo, requireSynced);
       const { value: price } = checkRouteTransaction(scope =>
         route.matches(scope, route.keyId, route.stamp) && accountMatches(scope) ? readPrice(scope) : null);
@@ -358,7 +358,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         matches: scope => accountMatches(scope) && canonical(readPrice(scope)) === encodedPrice });
       return Object.freeze({ proof, price: Object.freeze({ ...price, rates: Object.freeze(price.rates) }) });
     },
-    async bindOpenAIAccount(routeProof, connectionId, apiKey) {
+    async bindOpenAIAccount(routeProof, connectionId, apiKey, expectedProxy = null) {
       const route = ownRoutes.get(routeProof);
       if (!requireAccount || route?.provider !== 'openai') throw unavailable();
       identifier(connectionId);
@@ -366,7 +366,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         import('./node-anthropic-account.js'), import('../pricing/openai-standard-reference.js'),
       ]);
       const digest = credentialDigest(apiKey);
-      const matches = scope => readApiKeyAccount(scope, connectionId, route.model, 'openai') === digest;
+      const matches = scope => readApiKeyAccount(scope, connectionId, route.model, 'openai', expectedProxy) === digest;
       const readPrice = scope => readOpenAIStandardReference(scope, route.model);
       const { value: price } = checkRouteTransaction(scope =>
         route.matches(scope, route.keyId, route.stamp) && matches(scope) ? readPrice(scope) : null);
@@ -377,7 +377,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         matches: scope => matches(scope) && canonical(readPrice(scope)) === encodedPrice });
       return Object.freeze({ proof, price });
     },
-    async bindCodexAccount(routeProof, connectionId, accessToken, accountId, priceBasis) {
+    async bindCodexAccount(routeProof, connectionId, accessToken, accountId, priceBasis, expectedProxy = null) {
       const route = ownRoutes.get(routeProof);
       if (!requireAccount || route?.provider !== 'codex' || !priceBasis ||
           priceBasis !== codexStandardReferenceKey(route.model)) throw unavailable();
@@ -386,7 +386,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
       const { credentialDigest, readCodexAccount } = await import('./node-anthropic-account.js');
       const digest = credentialDigest(accessToken);
       const matches = scope => {
-        const current = readCodexAccount(scope, connectionId, route.model, Date.now());
+        const current = readCodexAccount(scope, connectionId, route.model, Date.now(), expectedProxy);
         return current?.digest === digest && current.accountId === accountId;
       };
       const { value: price } = checkRouteTransaction(scope =>
@@ -398,7 +398,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         matches: scope => matches(scope) && canonical(readCodexPrice(scope, priceBasis)) === encodedPrice });
       return Object.freeze({ proof, price: Object.freeze({ ...price, rates: Object.freeze(price.rates) }) });
     },
-    async bindClaudeAccount(routeProof, connectionId, accessToken) {
+    async bindClaudeAccount(routeProof, connectionId, accessToken, expectedProxy = null) {
       const route = ownRoutes.get(routeProof);
       if (!requireAccount || route?.provider !== 'claude') throw unavailable();
       identifier(connectionId);
@@ -406,7 +406,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         import('./node-anthropic-account.js'), import('../pricing/claude-standard-reference.js'),
       ]);
       const digest = credentialDigest(accessToken);
-      const matches = scope => readClaudeAccount(scope, connectionId, route.model, Date.now()) === digest;
+      const matches = scope => readClaudeAccount(scope, connectionId, route.model, Date.now(), expectedProxy) === digest;
       const readPrice = scope => readClaudeStandardReference(scope, route.model);
       const { value: price } = checkRouteTransaction(scope =>
         route.matches(scope, route.keyId, route.stamp) && matches(scope) ? readPrice(scope) : null);

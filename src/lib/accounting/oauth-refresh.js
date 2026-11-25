@@ -1,12 +1,13 @@
 import { getAccountingAdapter } from '../db/driver.js';
 import { unavailable } from './attempt-payload.js';
 import { createNodeOuterTransaction } from './node-outer-transaction.js';
-import { oauthTokenExpired } from './node-anthropic-account.js';
+import { accountTransportMatches, selectedAccountProxy, PROVIDER_ACCOUNT_READS, oauthTokenExpired } from './node-anthropic-account.js';
 
 import { serializeConnectionOAuth } from '../db/repos/connectionsRepo.js';
 
 const tokenEndpoints = { claude: 'https://api.anthropic.com/v1/oauth/token', codex: 'https://auth.openai.com/oauth/token' };
 const operations = {
+  savedProxy: PROVIDER_ACCOUNT_READS.savedProxy,
   current: { method: 'get', sql: "SELECT data FROM providerConnections WHERE id = ? AND provider = ? AND authType = 'oauth' AND isActive = 1" },
   rotate: { method: 'run', sql: "UPDATE providerConnections SET data = ?, updatedAt = ? WHERE id = ? AND provider = ? AND authType = 'oauth' AND isActive = 1 AND data = ?" },
 };
@@ -16,6 +17,7 @@ export async function refreshAccountedOAuth(provider, credentials, signal) {
   if (!['claude', 'codex'].includes(provider) || !connectionId || !refreshToken || !accessToken) throw unavailable();
   return serializeConnectionOAuth(connectionId, async () => {
     signal?.throwIfAborted();
+    const proxy = selectedAccountProxy(credentials.providerSpecificData);
     const transact = createNodeOuterTransaction(await getAccountingAdapter(), operations);
     const read = scope => {
       const raw = scope.current([connectionId, provider])?.data;
@@ -25,7 +27,10 @@ export async function refreshAccountedOAuth(provider, credentials, signal) {
           (row.lastRefreshAt ?? null) !== (credentials.lastRefreshAt ?? null)) throw unavailable();
       return { raw, row };
     };
-    transact(scope => { read(scope); });
+    const checkTransport = () => transact(scope => {
+      if (!accountTransportMatches(scope, read(scope).row.providerSpecificData, proxy)) throw unavailable();
+    });
+    checkTransport();
     const [{ DefaultExecutor }, { prepareAccountedDirectPost }] = await Promise.all([
       import('../../../open-sse/executors/default.js'), import('../../../open-sse/utils/proxyFetch.js'),
     ]);
@@ -33,8 +38,10 @@ export async function refreshAccountedOAuth(provider, credentials, signal) {
       if (url !== tokenEndpoints[provider]) throw unavailable();
       // A dispatched grant may rotate a single-use token even after the client
       // disconnects. Persist its reply, then check cancellation before inference.
+      const proxyOptions = proxy ? { connectionProxyEnabled:true, strictProxy:true, proxyPoolId:proxy.id, connectionProxyUrl:proxy.url } : undefined;
       const dispatch = await prepareAccountedDirectPost(url, { ...options,
-        body: options.body.toString(), signal: AbortSignal.timeout(30_000) });
+        body: options.body.toString(), signal: AbortSignal.timeout(30_000) }, proxyOptions, proxy);
+      checkTransport();
       signal?.throwIfAborted();
       return dispatch();
     });

@@ -10,6 +10,15 @@ const OPENAI_RESPONSES_TERMINAL_EVENTS = new Set([
   "error"
 ]);
 
+// Chat Completions has dedicated finish reasons for these two Responses cutoffs.
+export function incompleteChatFinishReason(response) {
+  switch (response?.incomplete_details?.reason) {
+    case "max_output_tokens": return "length";
+    case "content_filter": return "content_filter";
+    default: return null;
+  }
+}
+
 export function getOpenAIResponsesEventName(eventName, chunk) {
   if (eventName) return eventName;
   if (chunk && typeof chunk.type === "string") return chunk.type;

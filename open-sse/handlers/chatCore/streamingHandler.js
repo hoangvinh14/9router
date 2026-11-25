@@ -5,8 +5,8 @@ import { createAccountedAnthropicStream } from "../../utils/accounted-anthropic-
 import { createAccountedResponsesStream } from "../../utils/accounted-responses-stream.js";
 import { pipeWithDisconnect } from "../../utils/streamHandler.js";
 import { PROVIDERS } from "../../config/providers.js";
-import { HTTP_STATUS, STREAM_STALL_TIMEOUT_MS } from "../../config/runtimeConfig.js";
-import { buildAbortedResponsesTerminalBytes } from "../../utils/responsesStreamHelpers.js";
+import { EMPTY_PEEK_DEADLINE_MS, HTTP_STATUS, STREAM_STALL_TIMEOUT_MS } from "../../config/runtimeConfig.js";
+import { buildAbortedResponsesTerminalBytes, incompleteChatFinishReason } from "../../utils/responsesStreamHelpers.js";
 import { buildStreamErrorBytes } from "../../utils/streamHelpers.js";
 import { buildRequestDetail, extractRequestConfig, saveUsageStats, formatDoneLine } from "./requestDetail.js";
 import { saveRequestDetail, trackPendingRequest } from "@/lib/usageDb.js";
@@ -52,15 +52,17 @@ async function createChatCompletionsRenderer(model, includeUsage) {
   const state = { model };
   const frame = value => `data: ${JSON.stringify(value)}\n\n`;
   return (event, terminal) => {
-    if (event.type === "response.failed" || event.type === "error") {
+    const incomplete = event.type === "response.incomplete";
+    const finishReason = incomplete && incompleteChatFinishReason(event.response);
+    if (event.type === "response.failed" || event.type === "error" || (incomplete && !finishReason)) {
       return frame({ error: event.response?.error || event.error ||
-        { message: "Codex response failed", type: "upstream_error" } }) + "data: [DONE]\n\n";
+        { message: incomplete ? "Codex response incomplete" : "Codex response failed", type: "upstream_error" } }) + "data: [DONE]\n\n";
     }
-    const chunk = openaiResponsesToOpenAIResponse(event.type === "response.incomplete"
+    const chunk = openaiResponsesToOpenAIResponse(incomplete
       ? { ...event, type: "response.completed" } : event, state);
     if (!chunk) return terminal ? "data: [DONE]\n\n" : "";
     const { usage, ...completion } = chunk;
-    if (event.type === "response.incomplete") completion.choices[0].finish_reason = "length";
+    if (incomplete) completion.choices[0].finish_reason = finishReason;
     if (includeUsage) completion.usage = null;
     const trailer = includeUsage && usage ? frame({ ...completion, choices: [], usage }) : "";
     return frame(completion) + trailer + (terminal ? "data: [DONE]\n\n" : "");
@@ -70,7 +72,7 @@ async function createChatCompletionsRenderer(model, includeUsage) {
 /**
  * Handle streaming response — pipe provider SSE through transform stream to client.
  */
-export async function handleStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, userAgent, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, streamDetailId, pxpipe, reqTag, log, credentials, accountingAttempt, accountedJson = false }) {
+export async function handleStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, userAgent, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, streamDetailId, pxpipe, reqTag, log, credentials, accountingAttempt, accountedJson = false, allowAccountFallback = false }) {
   if (accountingAttempt) {
     const mediaType = providerResponse.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase();
     const nativeChat = provider === "openai" && sourceFormat === FORMATS.OPENAI && targetFormat === FORMATS.OPENAI;
@@ -93,12 +95,18 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
       endpoint: accountingAttempt.convertedEndpoint, model, includeUsage: body.stream_options?.include_usage === true,
       rememberTools: accountingAttempt.rememberTools,
     }) : null;
+    let decision = nativeResponses && allowAccountFallback && accountingAttempt.overloadSuccessor
+      ? Promise.withResolvers() : null;
+    const firstFrame = decision && ((event, evidence, receipt) => {
+      const overload = event?.type === 'response.failed' && event.response.error?.code === 'server_is_overloaded';
+      decision?.resolve(overload ? accountingAttempt.overloadSuccessor(evidence, receipt) : null);
+    });
     const transform = nativeChat
       ? (await import("../../utils/accounted-openai-chat-stream.js")).createAccountedOpenAIChatStream(
         accountingAttempt, onTerminal, body.stream_options?.include_usage === true)
       : nativeResponses
       ? createAccountedResponsesStream(usage => accountingAttempt.settleResponses(usage), onTerminal,
-          accountingAttempt.priceCacheWrites, renderChat, accountingAttempt.inputEstimate, accountingAttempt.mapResponsesUsage)
+          accountingAttempt.priceCacheWrites, renderChat, accountingAttempt.inputEstimate, accountingAttempt.mapResponsesUsage, firstFrame)
       : createAccountedAnthropicStream(accountingAttempt, onTerminal, renderer);
     const onAbortTerminal = convertedClaude ? () => new TextEncoder().encode(renderer.render({ type: 'error' }))
       : nativeChat ? () => buildStreamErrorBytes(502, "OpenAI stream ended before completion", FORMATS.OPENAI)
@@ -106,8 +114,25 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
       ? (accountedJson ? null : () => buildStreamErrorBytes(502, "Codex stream ended before completion", FORMATS.OPENAI))
       : nativeResponses ? buildAbortedResponsesTerminalBytes
       : () => buildStreamErrorBytes(HTTP_STATUS.BAD_GATEWAY, "Anthropic stream ended before completion", FORMATS.CLAUDE);
-    const responseBody = pipeWithDisconnect(providerResponse, transform, streamController, onAbortTerminal,
+    const abortTerminal = decision ? () => {
+      decision?.resolve(null);
+      return onAbortTerminal?.();
+    } : onAbortTerminal;
+    const responseBody = pipeWithDisconnect(providerResponse, transform, streamController, abortTerminal,
       PROVIDERS[provider]?.stallTimeoutMs || STREAM_STALL_TIMEOUT_MS);
+    if (decision) {
+      // A slow first frame must not indefinitely delay HTTP headers. Once the
+      // original response is released, no later event may mint a successor.
+      const deadline = setTimeout(() => decision.resolve(null), EMPTY_PEEK_DEADLINE_MS);
+      let accountFallbackProof;
+      try { accountFallbackProof = await decision.promise; }
+      finally { clearTimeout(deadline); decision = null; }
+      if (accountFallbackProof) {
+        // The native reader has already validated the terminal and committed the debit.
+        await responseBody.pipeTo(new WritableStream());
+        return { success: false, accountFallbackProof, response: Response.json({ error: 'Upstream overloaded' }, { status: 503 }) };
+      }
+    }
     if (convertedClaude && accountedJson) {
       try {
         await responseBody.pipeTo(new WritableStream({ write() {} }));

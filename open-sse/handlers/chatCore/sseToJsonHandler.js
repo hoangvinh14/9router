@@ -1,4 +1,5 @@
 import { convertResponsesStreamToJson } from "../../transformer/streamToJsonConverter.js";
+import { incompleteChatFinishReason } from "../../utils/responsesStreamHelpers.js";
 import { restoreToolNames } from "../../utils/opencodeFingerprint.js";
 import { createErrorResult } from "../../utils/error.js";
 import { HTTP_STATUS } from "../../config/runtimeConfig.js";
@@ -210,6 +211,11 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
       if (requireResponsesTerminal && !["completed", "incomplete"].includes(jsonResponse.status)) {
         return createErrorResult(HTTP_STATUS.BAD_GATEWAY, jsonResponse.error?.message || "Codex response failed");
       }
+      const incomplete = requireResponsesTerminal && jsonResponse.status === "incomplete";
+      const cutoffReason = incomplete && incompleteChatFinishReason(jsonResponse);
+      if (incomplete && !cutoffReason) {
+        return createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Codex response incomplete");
+      }
       if (onRequestSuccess) await onRequestSuccess();
 
       const usage = jsonResponse.usage || {};
@@ -280,7 +286,7 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
         const message = { role: "assistant", content: textContent || (hasToolCalls ? null : "") };
         if (hasToolCalls) message.tool_calls = toolCalls;
         const responseDone = jsonResponse.status === "completed" || jsonResponse.status === "done";
-        const finishReason = hasToolCalls ? "tool_calls" : (responseDone ? "stop" : (jsonResponse.status === "incomplete" ? "length" : jsonResponse.status || "stop"));
+        const finishReason = cutoffReason || (hasToolCalls ? "tool_calls" : (responseDone ? "stop" : (jsonResponse.status === "incomplete" ? "length" : jsonResponse.status || "stop")));
         finalResp = {
           id: jsonResponse.id || `chatcmpl-${Date.now()}`,
           object: "chat.completion",
