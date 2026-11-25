@@ -11,8 +11,16 @@ function run(cwd, args) {
   assert.ifError(p.error);
   assert.equal(p.status, 0, p.stderr);
 }
-for (const phase of ['intent', 'terminal', 'checkpoint-write', 'checkpoint-sync']) {
-  test('SQLite EIO at ' + phase + ' blocks dispatch and preserves acknowledged spend', () => {
+const cases = [
+  ['intent', 'EIO'],
+  ['terminal', 'EIO'],
+  ['checkpoint-write', 'EIO'],
+  ['checkpoint-sync', 'EIO'],
+  ['checkpoint-write', 'ENOSPC'],
+  ['checkpoint-sync', 'ENOSPC'],
+];
+for (const [phase, errno] of cases) {
+  test(`SQLite ${errno} at ${phase} blocks dispatch and preserves acknowledged spend`, () => {
     const root = fs.mkdtempSync('/tmp/budget-sync-');
     try {
       run(root, [process.execPath, worker, 'seed']);
@@ -39,9 +47,9 @@ for (const phase of ['intent', 'terminal', 'checkpoint-write', 'checkpoint-sync'
           assert.match(sync, phase === 'checkpoint-write' ? /= [1-9]\d*$/ : /= 0$/);
           const name = sync.split('(')[0];
           const ordinal = trace.slice(0, trace.indexOf(sync, start) + 1).filter(line => line.startsWith(name + '(')).length;
-          injection = 'inject=' + name + ':error=EIO:when=' + ordinal;
+          injection = 'inject=' + name + ':error=' + errno + ':when=' + ordinal;
         } else {
-          assert.match(sync, /EIO .*INJECTED/);
+          assert.match(sync, new RegExp(errno + ' .*INJECTED'));
           run(cwd, [process.execPath, worker, 'verify', phase]);
         }
       }
