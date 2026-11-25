@@ -2,6 +2,15 @@
 
 Status: in-progress. Priority: P1. Depends on: phase02 + exact applicable producer evidence. Target C1–C4 không được đóng bằng chỉ C0.
 
+### Quyết định nghiệm thu Claude OAuth khi SSE báo lỗi, 2026-11-25
+
+- [x] Owner chấp nhận trả lỗi gốc cho client, giữ attempt và không tự gửi sang connection dự phòng khi Claude OAuth báo lỗi giữa stream trước khi có usage cuối cùng. Budget có thể ghi thiếu trong trường hợp này. Quyết định chỉ áp dụng cho ca lỗi này.
+- Ca `claude-partial-error` trong [bộ kiểm thử qua route](../../tests/unit/budget-composed.test.mjs) cấu hình hai connection và nhận `overloaded_error` sau `message_delta`. Ca này xác nhận một POST ở primary, một attempt, không có terminal chi phí cả sau khi mở lại SQLite. Bộ HTTPS loopback đạt 101/101 tại cây mã của commit `34d046ba`. [Đối chiếu OmniRoute và Anthropic](../reports/research-261122-1350-anthropic-sse-finality.md).
+
+### Giới hạn output của Messages khi chuyển sang Codex
+
+C1 còn yêu cầu nhận Messages cho Codex. Anthropic Messages yêu cầu `max_tokens`. Bộ dịch của 9Router ánh xạ giới hạn sang `max_output_tokens`, còn executor Codex xóa cả hai trường vì endpoint Codex từ chối chúng. OmniRoute cũng xóa cả hai. Route Messages hiện từ chối binding Codex có budget trước dispatch. Muốn nhận request này trong khi vẫn giữ giới hạn output của client cần một cơ chế đã kiểm chứng khác; bỏ giới hạn cần quyết định riêng. [Kiểu request Messages](https://github.com/anthropics/anthropic-sdk-python/blob/main/src/anthropic/types/message_create_params.py) · [Executor Codex](../../open-sse/executors/codex.js) · [Executor OmniRoute](https://github.com/hoangvinh14/OmniRoute/blob/488f57e9d3fccc8d1741fdf21d35d5730b118a18/open-sse/executors/codex.ts#L1403).
+
 ### Codex retry sau HTTP 200 SSE, 2026-11-25
 
 Đối với request text có backup, bộ đọc native có thể chuyển connection khi frame đầu tiên là `response.failed` hoàn chỉnh, có ID, mã `server_is_overloaded` và usage đủ mọi hạng mục theo giá đã gắn cho attempt. Đợi ACK chốt riêng trước khi kiểm tra lại budget cho lượt kế. Ca Responses SSE và Chat JSON trả dữ liệu của backup và chốt mỗi POST đúng một lần. Thiếu usage, đã có output, hết thời gian chờ frame đầu hoặc đã chạm hạn mức thì không chuyển. Claude SSE chưa có nguồn xác nhận cutoff cho lỗi sau HTTP 200. [Điều kiện finality của Claude](../reports/research-261122-1350-anthropic-sse-finality.md).
