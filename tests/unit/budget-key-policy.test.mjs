@@ -100,6 +100,22 @@ test('authorized internal rotation preserves stable policy and every revoked fin
   assert.deepEqual(store.validateExistingBindings(),{validatedBindings:2});healthy();
 `));
 
+test('two SQLite connections cannot both rotate the same key version',()=>child(`
+  store.save('key-A',0,{weekly:'123',monthly:'456'});
+  const peerDb=await createNodeSqliteAdapter(db.get('PRAGMA database_list').file);
+  try {
+    const peer=policy(peerDb);
+    const pending=peer.inspect('key-A');
+    const winner=store.rotate('key-A',pending.version,'fake-secret-A','replacement-A');
+    assert.throws(()=>peer.rotate('key-A',pending.version,'fake-secret-A','replacement-B'),{status:409});
+    assert.deepEqual(peer.resolve('replacement-A'),winner);
+    assert.throws(()=>peer.resolve('replacement-B'));
+    assert.throws(()=>peer.resolve('fake-secret-A'));
+    assert.equal(peerDb.get('SELECT COUNT(*) AS n FROM accounting_key_generations_v1 WHERE key_id=?',['key-A']).n,2);
+    healthy();
+  } finally { peerDb.close(); }
+`));
+
 test('generation validation covers multiple pages and disabled current key without mutating history',()=>child(`
   store.save('key-A',0,{weekly:'123',monthly:null});let secret='fake-secret-A';
   for(let generation=1;generation<8;generation++){
