@@ -38,6 +38,16 @@ async function runTransform(input) {
 }
 
 describe("OpenAI Responses streaming termination", () => {
+  it.each(["", "data: [DONE]\n\n"])("preserves response.incomplete as the only terminal before EOF or DONE", async trailer => {
+    const response = { id: "resp_test", status: "incomplete", incomplete_details: { reason: "max_output_tokens" } };
+    const frame = `event: response.incomplete\ndata: ${JSON.stringify({ type: "response.incomplete", response })}\n\n`;
+    const output = await runTransform(frame + trailer);
+
+    expect(output).toContain(frame);
+    expect(output).not.toContain("response.failed");
+    expect(output.match(/data: \[DONE\]/g)).toHaveLength(1);
+  });
+
   it("emits a response.failed event when a Responses stream closes before a terminal event", async () => {
     const output = await runTransform([
       `event: response.created`,
