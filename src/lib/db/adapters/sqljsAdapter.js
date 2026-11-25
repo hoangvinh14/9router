@@ -1,4 +1,6 @@
 import fs from "node:fs";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
 import initSqlJs from "sql.js";
 import { PRAGMA_SQL } from "../schema.js";
 
@@ -32,8 +34,28 @@ export async function createSqlJsAdapter(filePath) {
   const SAVE_DEBOUNCE_MS = 100;
 
   function persist() {
-    const data = db.export();
-    fs.writeFileSync(filePath, Buffer.from(data));
+    refuseNativeSidecars(filePath);
+    const staged = filePath + "." + randomUUID() + ".tmp";
+    const data = Buffer.from(db.export());
+    const fd = fs.openSync(staged, "wx", 0o600);
+    let renamed = false;
+    try {
+      try {
+        fs.writeFileSync(fd, data);
+        fs.fsyncSync(fd);
+      } finally { fs.closeSync(fd); }
+      refuseNativeSidecars(filePath);
+      fs.renameSync(staged, filePath);
+      renamed = true;
+      if (process.platform !== "win32") {
+        const dir = fs.openSync(path.dirname(filePath), "r");
+        try { fs.fsyncSync(dir); } finally { fs.closeSync(dir); }
+      }
+    } finally {
+      if (!renamed) {
+        try { fs.unlinkSync(staged); } catch {}
+      }
+    }
     dirty = false;
   }
 

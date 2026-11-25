@@ -53,3 +53,33 @@ it('refuses a native WAL database whose current schema is only in the WAL', asyn
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+for (const fault of ['fsyncSync', 'renameSync']) {
+  it(`retains the previous SQL.js image when ${fault} fails`, async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'budget-sqljs-publish-'));
+    const file = path.join(dir, 'data.sqlite');
+    const { createSqlJsAdapter } = await import('../../src/lib/db/adapters/sqljsAdapter.js');
+    try {
+      const seed = await createSqlJsAdapter(file);
+      seed.exec('CREATE TABLE fixture (id INTEGER); INSERT INTO fixture VALUES (1)');
+      seed.close();
+      const before = fs.readFileSync(file);
+      const db = await createSqlJsAdapter(file);
+      db.run('INSERT INTO fixture VALUES (2)');
+      const inject = vi.spyOn(fs, fault).mockImplementation(() => {
+        throw Object.assign(new Error('fixture storage failure'), { code: 'ENOSPC' });
+      });
+      try {
+        expect(() => db.close()).toThrow('fixture storage failure');
+        expect(fs.readFileSync(file)).toEqual(before);
+        expect(fs.readdirSync(dir)).toEqual(['data.sqlite']);
+      } finally {
+        inject.mockRestore();
+        db.close();
+      }
+      const reopened = await createSqlJsAdapter(file);
+      try { expect(reopened.all('SELECT id FROM fixture ORDER BY id')).toEqual([{ id: 1 }, { id: 2 }]); }
+      finally { reopened.close(); }
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+}

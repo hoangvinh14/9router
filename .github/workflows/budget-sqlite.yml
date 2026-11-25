@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/budget-sqlite.yml"
       - "tests/fixtures/budget/run-platform-persistence.mjs"
+      - "tests/unit/budget-sqljs-fallback.test.js"
       - "src/lib/accounting/**"
       - "src/lib/db/**"
       - "src/lib/dataDir.js"
@@ -48,6 +49,10 @@ jobs:
           node-version: "24.21.0"
       - run: node tests/fixtures/budget/run-platform-persistence.mjs
       - run: npm install --no-audit --no-fund
+      - name: Verify SQL.js fallback and image publication
+        run: |
+          npm --prefix tests install --no-audit --no-fund
+          npm --prefix tests test -- unit/budget-sqljs-fallback.test.js
       - name: Build the standalone app
         shell: pwsh
         env:
