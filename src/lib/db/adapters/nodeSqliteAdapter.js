@@ -1,7 +1,7 @@
 // Built-in node:sqlite adapter — available in Node >= 22.5.0.
 // No native build, no npm install. Ordinary API mirrors betterSqliteAdapter.
 import { PRAGMA_SQL } from "../schema.js";
-import { nodeClosureConfirmed } from "./nodeClosure.js";
+import { nodeClosureConfirmed, registerNativeSqliteState } from "./nodeClosure.js";
 import { CURRENT_ACCOUNTING_MARKERS, readAccountingMarkers } from "../../accounting/mutation-barrier.js";
 
 const CHECKPOINT_INTERVAL_MS = 60 * 1000;
@@ -31,6 +31,15 @@ export function openInstalledNodeSqliteAttempt(filePath, { requireMarked = false
 }
 
 async function openAttempt(filePath, installed, requireMarked = false) {
+  let sqlite;
+  try { sqlite = await import("node:sqlite"); }
+  catch (error) { return Object.freeze({ ok: false, phase: "unavailable_before_open", error }); }
+  return openNativeSqliteAttempt(() => new sqlite.DatabaseSync(filePath), {
+    driver: "node:sqlite", installed, requireMarked,
+  });
+}
+
+export function openNativeSqliteAttempt(connect, { driver, installed = true, requireMarked = false, state }) {
   let phase = "unavailable_before_open";
   let db;
   let checkpointTimer;
@@ -44,7 +53,7 @@ async function openAttempt(filePath, installed, requireMarked = false) {
     } catch (error) {
       // Contention can defer a checkpoint while the WAL remains available.
       const code = error?.errcode & 255;
-      if (code === 5 || code === 6) return;
+      if (code === 5 || code === 6 || /^SQLITE_(BUSY|LOCKED)(_|$)/.test(error?.code ?? "")) return;
       checkpoint = "failed";
       onCheckpointFailure?.();
     }
@@ -72,8 +81,7 @@ async function openAttempt(filePath, installed, requireMarked = false) {
       return Object.freeze({ closure: isClosed() ? "confirmed" : "unknown", checkpoint });
     }
     try { runCheckpoint(); } catch { checkpoint = "failed"; }
-    stmtCache.clear();
-    try { db.close(); }
+    try { closeNative(); }
     catch { return Object.freeze({ closure: "unknown", checkpoint }); }
     // Ordinary cleanup follows a normal native close return on older runtimes
     // too; strict confirmation additionally requires readable isOpen === false.
@@ -86,17 +94,27 @@ async function openAttempt(filePath, installed, requireMarked = false) {
     if (!stmt) { stmt = db.prepare(sql); stmtCache.set(sql, stmt); }
     return stmt;
   }
+  function closeNative() {
+    if (driver === "bun:sqlite") {
+      for (const stmt of stmtCache.values()) stmt.finalize();
+      stmtCache.clear();
+      state.close(db);
+      return;
+    }
+    stmtCache.clear();
+    db.close();
+  }
   try {
-    const sqlite = await import("node:sqlite");
     phase = "open_failed_unknown";
-    db = new sqlite.DatabaseSync(filePath);
+    db = connect();
+    if (state) registerNativeSqliteState(db, state);
     phase = "initialization_failed";
     if (installed) {
       // Inventory only. Complete marked state still needs the publication gate.
       phase = "startup_refused";
       let reason = 'marker_inventory';
       try {
-        const markers = readAccountingMarkers({ all: (sql, params) => db.prepare(sql).all(...params) });
+        const markers = readAccountingMarkers({ all: (sql, params) => prepare(sql).all(...params) });
         if (!markers.length && requireMarked) {
           reason = 'missing_accounting_schema';
           throw new Error();
@@ -107,8 +125,8 @@ async function openAttempt(filePath, installed, requireMarked = false) {
           if (markers.length !== CURRENT_ACCOUNTING_MARKERS.length ||
               markers.some(row => row.type !== 'table' || !CURRENT_ACCOUNTING_MARKERS.includes(row.name))) throw new Error();
           reason = 'unsupported_app_state';
-          if (!db.prepare("SELECT 1 FROM main.sqlite_schema WHERE type = 'table' AND name = '_meta'").get() ||
-              db.prepare('PRAGMA journal_mode').get()?.journal_mode !== 'wal') throw new Error();
+          if (!prepare("SELECT 1 FROM main.sqlite_schema WHERE type = 'table' AND name = '_meta'").get() ||
+              prepare('PRAGMA journal_mode').get()?.journal_mode !== 'wal') throw new Error();
           markedInstalledConnections.add(db);
         }
       } catch {
@@ -129,7 +147,7 @@ async function openAttempt(filePath, installed, requireMarked = false) {
     process.once("SIGINT", onSigint);
     process.once("SIGTERM", onSigterm);
     const adapter = {
-      driver: "node:sqlite",
+      driver,
       run(sql, params = []) {
         const r = prepare(sql).run(...params);
         return { changes: Number(r.changes ?? 0), lastInsertRowid: Number(r.lastInsertRowid ?? 0) };
@@ -138,6 +156,7 @@ async function openAttempt(filePath, installed, requireMarked = false) {
       all(sql, params = []) { return prepare(sql).all(...params); },
       exec(sql) { return db.exec(sql); },
       transaction(fn) {
+        if (driver !== "node:sqlite") return db.transaction(fn)();
         const sp = `sp_${Math.random().toString(36).slice(2)}`;
         db.exec(`SAVEPOINT ${sp}`);
         try {
@@ -161,7 +180,7 @@ async function openAttempt(filePath, installed, requireMarked = false) {
     let closure = "unknown";
     let cleanupError;
     if (db) {
-      try { db.close(); if (isClosed()) closure = "confirmed"; }
+      try { closeNative(); if (isClosed()) closure = "confirmed"; }
       catch (failure) { cleanupError = failure; }
     }
     // Internal evidence only: accounting boundary never exposes either cause.

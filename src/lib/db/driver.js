@@ -1,3 +1,4 @@
+import { sqliteIsOpen } from "./adapters/nodeClosure.js";
 import { ensureDirs, DATA_FILE } from "./paths.js";
 import { stripNullBytes } from "./helpers/nullBytes.js";
 import { faultAccounting } from "../accounting/process-state.js";
@@ -7,45 +8,13 @@ import { monitorAccountingCheckpoints, quarantineNodeAccountingConnection } from
 if (!global._dbAdapter) global._dbAdapter = { instance: null, initPromise: null, logged: false };
 const state = global._dbAdapter;
 
-async function tryBunSqlite() {
-  // Bun runtime only — built-in, no install needed
-  if (!process.versions.bun) return null;
-  try {
-    const { createBunSqliteAdapter } = await import("./adapters/bunSqliteAdapter.js");
-    return await createBunSqliteAdapter(DATA_FILE);
-  } catch (e) {
-    console.warn(`[DB] bun:sqlite unavailable: ${e.message}`);
-    return null;
-  }
-}
-
-async function tryBetterSqlite() {
-  // Skip on Bun — better-sqlite3 native bindings unsupported
-  if (process.versions.bun) return null;
-  // Skip on Node >= 24: the native addon SIGSEGVs on load there, which is a
-  // process-level crash the try/catch below cannot recover from. node:sqlite covers it.
-  const [nodeMajor] = process.versions.node.split(".").map(Number);
-  if (nodeMajor >= 24) return null;
-  try {
-    const { createBetterSqliteAdapter } = await import("./adapters/betterSqliteAdapter.js");
-    return createBetterSqliteAdapter(DATA_FILE);
-  } catch (e) {
-    console.warn(`[DB] better-sqlite3 unavailable: ${e.message}`);
-    return null;
-  }
-}
-
-async function tryNodeSqlite(requireMarked = false) {
-  // Built-in since Node 22.5.0 — no install needed. Skip under Bun (no node:sqlite).
-  if (process.versions.bun) return null;
-  const [maj, min] = process.versions.node.split(".").map(Number);
-  if (maj < 22 || (maj === 22 && min < 5)) return null;
+async function tryNativeSqlite(driver, load, requireMarked) {
   let attempt;
   try {
-    const { openInstalledNodeSqliteAttempt } = await import("./adapters/nodeSqliteAdapter.js");
-    attempt = await openInstalledNodeSqliteAttempt(DATA_FILE, { requireMarked });
-  } catch (e) {
-    console.warn(`[DB] node:sqlite unavailable: ${e?.message || 'initialization failed'}`);
+    const open = await load();
+    attempt = await open(DATA_FILE, { requireMarked });
+  } catch (error) {
+    console.warn(`[DB] ${driver} unavailable: ${error?.message || 'initialization failed'}`);
     return null;
   }
   // Internal opener disposition, never a client error property. Refusal must
@@ -70,7 +39,7 @@ async function tryNodeSqlite(requireMarked = false) {
     state.observeCheckpointFailure = attempt.observeCheckpointFailure;
     return attempt.adapter;
   } catch (e) {
-    console.warn(`[DB] node:sqlite unavailable: ${e?.message || 'initialization failed'}`);
+    console.warn(`[DB] ${driver} unavailable: ${e?.message || 'initialization failed'}`);
     return null;
   }
 }
@@ -114,12 +83,22 @@ async function initAdapter(requireMarked = false) {
   // Order per runtime:
   //   Bun:  bun:sqlite → sql.js
   //   Node: better-sqlite3 → node:sqlite (≥22.5) → sql.js
+  const [major, minor] = process.versions.node.split(".").map(Number);
   let adapter;
-  if (!requireMarked) {
-    adapter = await tryBunSqlite();
-    if (!adapter) adapter = await tryBetterSqlite();
+  if (process.versions.bun) {
+    adapter = await tryNativeSqlite("bun:sqlite", async () =>
+      (await import("./adapters/bunSqliteAdapter.js")).openInstalledBunSqliteAttempt, requireMarked);
+  } else {
+    // Do not load the native addon on Node >= 24, where it can crash on load.
+    if (major < 24) {
+      adapter = await tryNativeSqlite("better-sqlite3", async () =>
+        (await import("./adapters/betterSqliteAdapter.js")).openInstalledBetterSqliteAttempt, requireMarked);
+    }
+    if (!adapter && (major > 22 || (major === 22 && minor >= 5))) {
+      adapter = await tryNativeSqlite("node:sqlite", async () =>
+        (await import("./adapters/nodeSqliteAdapter.js")).openInstalledNodeSqliteAttempt, requireMarked);
+    }
   }
-  if (!adapter) adapter = await tryNodeSqlite(requireMarked);
   if (!adapter && !requireMarked) adapter = await trySqlJs();
   if (!adapter) throw new Error("[DB] No SQLite driver available (bun/better/node/sql.js all failed)");
 
@@ -184,9 +163,9 @@ export async function getAccountingAdapter() {
   catch { faultAccounting(); throw unavailable(); }
   assertAccountingHealthy();
   if (state.accountingOpenFault) { faultAccounting(); throw unavailable(); }
-  if (adapter.driver !== 'node:sqlite' || state.accountingNodeRaw !== adapter.raw ||
+  if (state.accountingNodeRaw !== adapter.raw ||
       typeof state.accountingCloseStrict !== 'function' || typeof state.observeCheckpointFailure !== 'function' ||
-      state.accountingRetired || adapter.raw?.isOpen !== true) throw unavailable();
+      state.accountingRetired || sqliteIsOpen(adapter.raw) !== true) throw unavailable();
   const { quarantineNodeAccountingConnection } = await import('../accounting/node-outer-transaction.js');
   assertAccountingHealthy();
   if (!state.accountingCloseWrapped) {
@@ -213,7 +192,7 @@ export async function getAccountingAdapter() {
     state.accountingCloseWrapped = true;
   }
   // Close can occur while the accounting guard module loads.
-  if (state.accountingRetired || state.accountingNodeRaw !== adapter.raw || adapter.raw.isOpen !== true) throw unavailable();
+  if (state.accountingRetired || state.accountingNodeRaw !== adapter.raw || sqliteIsOpen(adapter.raw) !== true) throw unavailable();
   assertAccountingHealthy();
   return adapter;
 }

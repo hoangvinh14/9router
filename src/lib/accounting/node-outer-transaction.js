@@ -1,5 +1,6 @@
 import { unavailable } from './attempt-payload.js';
 import { assertAccountingHealthy, faultAccounting } from './process-state.js';
+import { hasNativeSqliteState, sqliteInTransaction, sqliteIsOpen } from '../db/adapters/nodeClosure.js';
 import { createSqlOperationScope } from './sql-operation-scope.js';
 
 // Candidate, not installed on the adapter/driver. Same raw connection identity,
@@ -52,7 +53,7 @@ export function monitorAccountingCheckpoints(adapter, observeCheckpointFailure) 
 }
 
 export function createNodeOuterTransaction(adapter, definitions) {
-  if (adapter?.driver !== 'node:sqlite' || !adapter.raw || typeof adapter.raw !== 'object' ||
+  if (!adapter?.raw || typeof adapter.raw !== 'object' || !hasNativeSqliteState(adapter) ||
       ['run', 'get', 'all', 'exec'].some(name => typeof adapter[name] !== 'function')) throw unavailable();
   const raw = adapter.raw;
   const exec = adapter.exec.bind(adapter);
@@ -96,7 +97,7 @@ export function createNodeOuterTransaction(adapter, definitions) {
       catch { failStorage(token); throw unavailable(); }
     };
     const active = () => storage(() => {
-      const result = raw.isTransaction;
+      const result = sqliteInTransaction(raw);
       if (typeof result !== 'boolean') throw unavailable();
       return result;
     });
@@ -180,7 +181,7 @@ export function createNodeOuterTransaction(adapter, definitions) {
     assertAccountingHealthy();
     if (typeof callback !== 'function' || !registry.canRetain(raw)) throw unavailable();
     try {
-      if (raw.isOpen !== true || raw.isTransaction !== false) throw unavailable();
+      if (sqliteIsOpen(raw) !== true || sqliteInTransaction(raw) !== false) throw unavailable();
     } catch {
       registry.quarantine(raw); faultAccounting(); throw unavailable();
     }

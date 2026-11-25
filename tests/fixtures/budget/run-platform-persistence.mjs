@@ -30,18 +30,36 @@ async function exercise(step) {
   const { provisionEmptyNodeAccountingSchema } = await import('../../../src/lib/accounting/node-existing-audit.js');
   const { createNodeKeyPolicy } = await import('../../../src/lib/accounting/node-key-policy.js');
   const { createNodeAttemptLedger } = await import('../../../src/lib/accounting/node-attempt-ledger.js');
+  const { assertAccountingHealthy } = await import('../../../src/lib/accounting/process-state.js');
   const { EXCLUSIVE_USAGE } = await import('../../../src/lib/accounting/terminal-cost.js');
   const { backupDbLite } = await import('../../../src/lib/db/backup.js');
-  const { DatabaseSync } = await import('node:sqlite');
   assert.equal(DATA_DIR, process.env.DATA_DIR);
   const db = await getAccountingAdapter();
   try {
-    assert.equal(db.driver, 'node:sqlite');
+    assert.equal(db.driver, process.env.BUDGET_EXPECTED_DRIVER);
     if (step === 'write') provisionEmptyNodeAccountingSchema(db);
     const policy = createNodeKeyPolicy(db);
     const ledger = createNodeAttemptLedger(db);
     const context = { presentedSecret, now };
     let sent = 0;
+    if (step === 'checkpoint-error') {
+      policy.save(keyId, 1, { weekly: null, monthly: null });
+      const prepared = ledger.prepare(attempt('checkpoint-error'));
+      const execute = db.raw.exec;
+      db.raw.exec = function (sql) {
+        if (sql === 'PRAGMA wal_checkpoint(TRUNCATE)') {
+          throw Object.assign(new Error('fixture checkpoint failure'), { code: 'SQLITE_IOERR', errcode: 10 });
+        }
+        return execute.call(this, sql);
+      };
+      try { db.checkpoint(); }
+      finally { db.raw.exec = execute; }
+      assert.throws(assertAccountingHealthy);
+      assert.throws(() => ledger.dispatch(prepared.ack, context, () => sent++));
+      assert.equal(sent, 0);
+      assert.equal(db.get('SELECT amount FROM accounting_terminals_v1').amount, limit);
+      return;
+    }
     if (step === 'observe-in-flight') {
       assert.deepEqual(ledger.validateExistingAttempts(), { validatedAttempts: 1, validatedTerminals: 0 });
       assert.deepEqual(ledger.prepare(attempt('before-backup')), { replay: true });
@@ -71,11 +89,13 @@ async function exercise(step) {
       assert.throws(() => ledger.dispatch(prepared.ack, context, () => sent++));
       assert.equal(sent, 0);
       if (step === 'source') {
-        const peer = new DatabaseSync(DATA_FILE);
+        policy.save(keyId, 1, { weekly: null, monthly: null });
+        const peer = new db.raw.constructor(DATA_FILE);
         try {
           peer.exec('BEGIN IMMEDIATE');
           db.exec('PRAGMA busy_timeout = 10');
           assert.throws(() => ledger.prepare(attempt('contender')));
+          assert.throws(assertAccountingHealthy);
           assert.throws(() => ledger.dispatch(prepared.ack, context, () => sent++));
           assert.equal(sent, 0);
           assert.equal(peer.prepare("SELECT count(*) AS n FROM accounting_attempts_v1 WHERE id = 'contender'").get().n, 0);
@@ -83,18 +103,21 @@ async function exercise(step) {
       }
     }
     assert.equal(db.get('PRAGMA integrity_check').integrity_check, 'ok');
-  } finally { db.close(); }
+  } finally {
+    db.close();
+    assert.equal(globalThis._dbAdapter.accountingCloseDisposition.closure, 'confirmed');
+  }
 }
 
 const step = process.argv[2];
-if (step) {
-  assert.ok(['write', 'source', 'restored', 'observe-in-flight'].includes(step));
-  assert.equal(process.env.BUDGET_PLATFORM_FIXTURE, '1');
+if (process.env.BUDGET_PLATFORM_FIXTURE === '1') {
+  assert.ok(['write', 'source', 'restored', 'observe-in-flight', 'checkpoint-error'].includes(step));
   await exercise(step);
 } else {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), '9router-budget-platform-'));
   try {
-    const env = {};
+    const expectedDriver = process.argv[2] ?? (process.versions.bun ? 'bun:sqlite' : 'node:sqlite');
+    const env = { BUDGET_EXPECTED_DRIVER: expectedDriver };
     for (const name of ['SystemRoot', 'WINDIR', 'PATH']) {
       if (process.env[name]) env[name] = process.env[name];
     }
@@ -110,6 +133,7 @@ if (step) {
     fs.mkdirSync(path.join(restored, 'db'), { recursive: true });
     fs.renameSync(path.join(source, 'backup', 'data.sqlite'), path.join(restored, 'db', 'data.sqlite'));
     run('restored', restored, env, root);
-    console.log(`SQLite persistence passed on ${process.platform} ${process.arch} ${process.version}`);
+    run('checkpoint-error', restored, env, root);
+    console.log(`SQLite persistence passed on ${expectedDriver} on ${process.platform} ${process.arch} ${process.versions.bun ?? process.version}`);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 }

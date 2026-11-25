@@ -356,7 +356,7 @@ export async function runMigrationOnce(adapter) {
   // backup or import work. The native opener's inventory is not admission.
   let reason = 'unqualified_accounting_state';
   try {
-    if (adapter.driver === 'node:sqlite') {
+    if (adapter.driver !== 'sql.js') {
       const { isMarkedInstalledNodeConnection } = await import('./adapters/nodeSqliteAdapter.js');
       if (isMarkedInstalledNodeConnection(adapter.raw)) {
         const { auditMarkedNodeStartup } = await import('../accounting/node-existing-audit.js');
