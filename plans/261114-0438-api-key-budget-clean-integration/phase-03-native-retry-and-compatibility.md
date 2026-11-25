@@ -2,6 +2,40 @@
 
 Status: in-progress. Priority: P1. Depends on: phase02 + exact applicable producer evidence. Target C1–C4 không được đóng bằng chỉ C0.
 
+### Codex retry sau HTTP 200 SSE, 2026-11-25
+
+Đối với request text có backup, bộ đọc native có thể chuyển connection khi frame đầu tiên là `response.failed` hoàn chỉnh, có ID, mã `server_is_overloaded` và usage đủ mọi hạng mục theo giá đã gắn cho attempt. Đợi ACK chốt riêng trước khi kiểm tra lại budget cho lượt kế. Ca Responses SSE và Chat JSON trả dữ liệu của backup và chốt mỗi POST đúng một lần. Thiếu usage, đã có output, hết thời gian chờ frame đầu hoặc đã chạm hạn mức thì không chuyển. Claude SSE chưa có nguồn xác nhận cutoff cho lỗi sau HTTP 200. [Điều kiện finality của Claude](../reports/research-261122-1350-anthropic-sse-finality.md).
+
+### Hai connection OAuth, 2026-11-25
+
+Luồng text của Claude/Codex nhận connection dự phòng cùng provider từ `fallbackBinding` trong tệp mount. Khi primary trả HTTP 503 cùng lỗi overload gốc và usage đầy đủ, SQLite xác nhận chi phí rồi lượt kế dùng credential riêng của backup. HTTPS loopback và SQLite tạm kiểm tra hai credential khác nhau, hai attempt, hai khoản tính vào cùng key và đọc lại sau khi mở DB. Ca chạm hạn mức, thiếu usage và lỗi 401 tại backup kiểm tra giới hạn số POST. Chưa có bằng chứng cho positive retry từ SSE lỗi giữa stream; ca 503 này kết thúc ở response HTTP trước khi có dữ liệu gửi xuống client.
+
+### Mất stream khi chưa nhận usage, 2026-11-25
+
+B1/E2 đã có quyết định ở [quy tắc kết toán sau dispatch](./references/scope-and-decisions.md#failureaccounting-outcome-distinctions-d01d04-approved-session-1-detailed-protocol-pending). Ca HTTPS cắt socket sau khi client đọc frame mở đầu của Codex Responses hoặc Anthropic Messages, trước khi upstream gửi usage. Kết quả yêu cầu là một POST, một intent thuộc key gốc, client nhận sự kiện lỗi, và SQLite mở lại không có terminal chi phí. Có thể ghi thiếu chi phí trong tình huống này. Ca có usage hợp lệ đến muộn và điều kiện chuyển sang connection khác là các nghĩa vụ riêng.
+
+### Strict HTTP CONNECT, 2026-11-25
+
+Pool HTTP đã lưu trên connection, bật strict và active, không có bypass hoặc thông tin đăng nhập trong URL, đã qua HTTPS loopback. Anthropic API-key gửi qua đúng tunnel và ghi một khoản. Tắt pool sau khi lưu intent chặn POST kế tiếp ngay tại dispatch. Với Claude và Codex OAuth, các request inference và grant sau 401 đều đến từ cổng của tunnel; upstream thấy hai inference POST và một lần đổi token, SQLite giữ hai attempt. Tắt pool ngay sau khi chuẩn bị grant phát sinh 0 auth POST và 0 inference POST tiếp theo ở cả hai provider. Ca transport nhận HTTP 421 qua proxy chỉ gửi một POST. Linux Node v24.21.0 đạt 83/83 HTTPS, 78/78 counted, 123/123 ledger, 33/33 startup, 10/10 transport, 12/12 core và 4/4 executor. [Kiểm thử qua route](../../tests/unit/budget-composed.test.mjs).
+
+### Đối chiếu nguồn giá OmniRoute, 2026-11-25
+
+Ở commit `c2944cc03feeb87572227315ae52c015ada722b3`, OmniRoute ghép bốn lớp theo thứ tự ưu tiên giảm dần: giá người dùng, models.dev, LiteLLM và bảng mặc định theo provider. LiteLLM đọc `model_prices_and_context_window.json`, đồng bộ vào `pricing_synced`. models.dev có namespace riêng `models_dev_pricing`. Bảng mặc định Codex ghi cả giá quy đổi từ credits cho một số model cụ thể. [Đồng bộ LiteLLM](https://github.com/cheaper-inference/OmniRoute/blob/c2944cc03feeb87572227315ae52c015ada722b3/src/lib/pricingSync.ts#L90) · [Ghép giá](https://github.com/cheaper-inference/OmniRoute/blob/c2944cc03feeb87572227315ae52c015ada722b3/src/lib/db/settings/pricing.ts#L106) · [Mặc định Codex](https://github.com/cheaper-inference/OmniRoute/blob/c2944cc03feeb87572227315ae52c015ada722b3/src/shared/constants/pricing/oauth-subscriptions.ts#L113).
+
+OmniRoute tra model chính xác, ID đã chuẩn hóa rồi biến thể bỏ hậu tố reasoning nếu áp dụng. Nếu mọi phép tra đều trượt, kết quả chi tiết là `priced: false`. Đã kiểm tra bảng mặc định Codex, hai danh mục trực tuyến và bảng USD Codex: không tìm thấy dòng áp dụng cho `gpt-reserve`. Parser USD hiện tại của 9Router đọc được 19 dòng Codex từ nguồn OpenAI trong lần đối chiếu này. 9Router giữ quyết định dùng snapshot đồng bộ theo provider/auth/tier cho budget. [Tra model và tính chi phí](https://github.com/cheaper-inference/OmniRoute/blob/c2944cc03feeb87572227315ae52c015ada722b3/src/lib/usage/costCalculator.ts#L148) · [models.dev](https://models.dev/api.json) · [LiteLLM](https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json) · [OpenAI USD](https://help.openai.com/en/articles/20001415-chatgpt-rate-card-enterprise-token-based-pricing).
+
+### Terminal Codex chuyển sang Chat Completions, 2026-11-25
+
+Tái hiện trường hợp terminal Responses chia JSON trên nhiều dòng `data:`. Bộ đo đọc đủ terminal nhưng bộ chuyển sang JSON chỉ đọc dòng đầu và trả trạng thái `in_progress`. Bộ chuyển hiện ghép các dòng của cùng sự kiện trước khi đọc JSON. Chat SSE và JSON dùng cùng quy tắc cho `max_output_tokens`, `content_filter` và `interrupted`. Với terminal xác nhận bị ngắt, client nhận lỗi; usage hợp lệ vẫn được chốt trên attempt ban đầu. Ca loopback kiểm tra 8 POST, 8 attempt và một terminal cho mỗi request. Mất kết nối trước terminal gốc vẫn là điều kiện mở.
+
+### Codex compact trên luồng ordinary, 2026-11-25
+
+Trên `04978f00`, khi hai request dùng chung executor, HTTP loopback nhận lượt compact ở `/responses` và lượt standard ở `/responses/compact`. Executor chọn URL trước khi đọc cờ của request hiện tại. Bản sửa giữ chế độ compact và session ID theo từng lần gọi, đồng thời giữ cờ trên body gốc để chatCore có thể dùng lại sau refresh. Với request có budget, compact vẫn bị từ chối trước transport.
+
+Ca hồi quy giữ POST compact đầu tiên, cho lượt standard hoàn tất trước, rồi trả 503 để kích hoạt retry. POST thứ ba và lần gọi lại với cùng body đều đến `/responses/compact`. Cả bốn POST có đúng session và không gửi trường nội bộ `_compact`. Node v24.21.0 đạt 51/51 trên năm suite Codex, 3/3 executor, 12/12 native fidelity và 76/76 HTTPS composition. [Ca hồi quy ordinary](../../tests/unit/codex-fast-capacity.test.js) · [Ca từ chối budget compact](../../tests/unit/budget-composed.test.mjs).
+
+**Kiểm chứng bổ sung.** Cùng kịch bản compact/standard đã qua cả nhánh HTTP 503 lẫn HTTP 200 mang SSE overload. Ở executor có budget, HTTPS loopback đọc hết POST rồi đóng socket trước khi trả headers. Dù đã cấu hình retry 502 và URL dự phòng, upstream chỉ nhận một POST, SQLite có một intent và không có terminal. Qua strict CONNECT, request ordinary tới upstream đúng một lần; proxy từ chối tunnel tiếp theo thì số POST không tăng. Route có budget đọc pool strict đang bật hoặc đã tắt từ SQLite và dừng trước transport với 0 attempt. Chưa mở budget qua CONNECT. Sáu suite Codex/proxy đạt 62/62, executor 4/4, transport 10/10, composition counted và HTTPS đều 77/77.
+
 ### Nghiệm thu tích hợp ngày 2026-11-24
 
 - [x] Claude/Codex OAuth qua HTTPS loopback và SQLite dùng một lần. Với lỗi xác thực 401 hoặc 403 đủ điều kiện và usage gốc đầy đủ, fixture đếm hai inference POST có hai attempt ID và một auth POST. SQLite độc lập đọc được credential đã lưu trước POST thứ hai. Mỗi attempt chốt usage riêng. Access token đã biết hết hạn trước inference được làm mới qua một auth POST. Các ca chạm hạn mức, đổi ACL, lỗi ghi, mất ACK, hủy và lỗi quyền/quota đều có 0 inference POST tiếp theo.
