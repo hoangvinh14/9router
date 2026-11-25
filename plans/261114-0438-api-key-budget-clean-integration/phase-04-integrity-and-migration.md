@@ -57,6 +57,12 @@ Trên Linux, `node tests/fixtures/budget/run-pure.mjs --wal-sync` đạt 2/2 tr�
 
 Ca Vitest `unit/budget-sqljs-fallback.test.js` đạt 1/1 trên Node v24.21.0. Khi mô phỏng thiếu driver native, driver ứng dụng chọn engine SQL.js thật, chạy migration thường, giữ bản ghi sau khi đóng và mở lại, đồng thời từ chối cấp adapter accounting. SQL.js ghi ảnh DB trực tiếp bằng writeFileSync sau debounce. Không có bước rename trong đường lưu này. Budget trên SQL.js, better-sqlite3, Bun và Windows vẫn mở. [Kiểm thử fallback](../../tests/unit/budget-sqljs-fallback.test.js).
 
+### Kiểm chứng adapter trên Linux x64
+
+Bun 1.4.5 với `bun:sqlite` và Node v22.23.2 với `better-sqlite3` 12.11.1 đều giữ dữ liệu thường sau khi đóng và mở lại bằng tiến trình mới. Trên DB thường, cả hai từ chối cấp adapter budget. Sau khi sao lưu DB thử nghiệm và dùng Node v24.21.0 để tạo schema accounting, tiến trình mới trên mỗi engine trả mã `api_key_accounting_startup_unavailable` khi mở DB và `api_key_accounting_unavailable` khi xin adapter budget.
+
+Phép thử gọi driver ứng dụng thật với filesystem dùng một lần và mạng cô lập. Package cục bộ ban đầu thiếu binding native cho Node 22 nên driver chuyển sang `node:sqlite`. Ca `better-sqlite3` dùng package cùng phiên bản cài riêng cho Node 22. Nghiệm thu chạy budget bằng các engine này, Windows và mất điện thực vẫn mở.
+
 ### Lỗi checkpoint trên tệp DB chính
 
 Trước khi sửa, hai ca EIO tại checkpoint cho thấy tiến trình vẫn cho phép accounting sau khi SQLite báo lỗi. Adapter hiện ghi nhớ lỗi checkpoint, ngừng cấp quyền gửi request có budget trong tiến trình và cách ly connection đang dùng cho accounting. Lỗi xảy ra trước khi bật accounting được kiểm tra khi xin cấp adapter. Đã kiểm tra cả callback theo lịch và trường hợp tranh khóa tạm thời.
