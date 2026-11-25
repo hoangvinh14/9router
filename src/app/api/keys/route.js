@@ -1,3 +1,4 @@
+import { keyManagementView } from '@/lib/accounting/key-management-view.js';
 import { NextResponse } from "next/server";
 import { getApiKeys, createApiKey } from "@/lib/localDb";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const keys = await getApiKeys();
-    return NextResponse.json({ keys });
+    return NextResponse.json({ keys: keys.map(keyManagementView) }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     console.log("Error fetching keys:", error);
     return NextResponse.json({ error: "Failed to fetch keys" }, { status: 500 });

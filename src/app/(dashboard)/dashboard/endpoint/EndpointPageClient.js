@@ -1029,9 +1029,9 @@ export default function APIPageClient({ machineId }) {
                   <p className="text-sm font-medium">{key.name}</p>
                   <div className="flex items-center gap-2 mt-1 min-w-0 flex-wrap">
                     <code className="text-xs text-text-muted font-mono break-all min-w-0">
-                      {visibleKeys.has(key.id) ? key.key : maskKey(key.key)}
+                      {key.key === null ? "Rotated API key" : visibleKeys.has(key.id) ? key.key : maskKey(key.key)}
                     </code>
-                    <div className="flex items-center gap-1 shrink-0">
+                    {key.key && <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => toggleKeyVisibility(key.id)}
                         className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-all"
@@ -1049,7 +1049,7 @@ export default function APIPageClient({ machineId }) {
                           {copied === key.id ? "check" : "content_copy"}
                         </span>
                       </button>
-                    </div>
+                    </div>}
                   </div>
                   <p className="text-xs text-text-muted mt-1">
                     Created {new Date(key.createdAt).toLocaleDateString()}
@@ -1057,7 +1057,9 @@ export default function APIPageClient({ machineId }) {
                   {key.isActive === false && (
                     <p className="text-xs text-orange-500 mt-1">Paused</p>
                   )}
-                  <AccountingStatus keyId={key.id} />
+                  <AccountingStatus keyId={key.id} onRotated={id => {
+                    setKeys(current => current.map(item => item.id === id ? { ...item, key: null } : item));
+                  }} />
                   <KeyAccessControls
                     apiKey={key}
                     onChange={(access) => handleUpdateKeyAccess(key.id, access)}

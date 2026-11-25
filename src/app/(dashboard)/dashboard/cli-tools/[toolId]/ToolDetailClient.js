@@ -54,7 +54,7 @@ export default function ToolDetailClient({ toolId, machineId }) {
         }
         if (keysRes.ok) {
           const data = await keysRes.json();
-          setApiKeys(data.keys || []);
+          setApiKeys((data.keys || []).filter(key => key.key));
         }
       } catch (error) {
         console.log("Error loading tool data:", error);

@@ -43,7 +43,7 @@ export function SttExampleCard({ providerId }) {
     setLocalEndpoint(window.location.origin);
     fetch("/api/keys")
       .then((r) => r.json())
-      .then((d) => { setApiKey((d.keys || []).find((k) => k.isActive !== false)?.key || ""); })
+      .then((d) => { setApiKey((d.keys || []).find((k) => k.isActive !== false && k.key)?.key || ""); })
       .catch(() => {});
     fetch("/api/tunnel/status")
       .then((r) => r.json())

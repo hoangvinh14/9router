@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {parse} from '@babel/parser';
-import {accountingStatusView,loadAccountingStatus} from '../../src/app/(dashboard)/dashboard/endpoint/components/accountingStatusClient.js';
+import {accountingStatusView,loadAccountingStatus,rotateBudgetKey} from '../../src/app/(dashboard)/dashboard/endpoint/components/accountingStatusClient.js';
 assert.equal(process.env.BUDGET_UI_SANDBOX,'1');
 assert.notEqual(fs.readlinkSync('/proc/self/ns/net'),process.env.BUDGET_OUTER_NET);
 const body=()=>({readiness:{ready:false,reason:'no_admitted_profile'},policy:{keyId:'key-A',version:1,bindingGeneration:'1',lifecycle:'active',limits:{weekly:'0',monthly:null}},retirementEvent:null,usage:null});
@@ -40,15 +40,29 @@ test('network parse and malformed response errors are sanitized',async()=>{
   await assert.rejects(loadAccountingStatus('key-A',{fetcher}),e=>e.message.includes('Accounting status unavailable')&&!e.message.includes('private'));
  }
 });
-test('new components and existing endpoint parse as JSX without changing reveal/copy controls',()=>{
+test('new components and existing endpoint parse as JSX with reveal and copy controls for available keys',()=>{
  const root='/app/src/app/(dashboard)/dashboard/endpoint/';
  const component=fs.readFileSync(root+'components/AccountingStatus.js','utf8');const endpoint=fs.readFileSync(root+'EndpointPageClient.js','utf8');
  for(const source of [component,endpoint])assert.ok(parse(source,{sourceType:'module',plugins:['jsx']}));
- assert.ok(endpoint.includes('<AccountingStatus keyId={key.id} />'));
+ assert.ok(endpoint.includes('<AccountingStatus keyId={key.id} onRotated='));
  assert.ok(endpoint.includes('visibleKeys.has(key.id) ? key.key : maskKey(key.key)'));assert.ok(endpoint.includes('onClick={() => copy(key.key, key.id)}'));
  // Source contract only, NOT mounted React effect/DOM or browser verification.
- assert.ok(component.includes('open && <StatusSnapshot key={keyId} keyId={keyId} />'));
+ assert.ok(component.includes('open && <StatusSnapshot key={keyId} keyId={keyId} onRotated={onRotated} />'));
  assert.ok(component.includes('current = false; controller.abort()'));assert.ok(component.includes('disabled={state.loading}'));
  assert.ok(component.includes('No recorded retirement event. This does not mean this key was never retired.'));
  assert.ok(!component.includes('dangerouslySetInnerHTML'));
+ assert.ok(endpoint.includes('{key.key && <div'));
+ assert.ok(component.includes('onClick={() => setSecret(null)}'));
+});
+
+
+test('rotation sends one request and asks for a status refresh after a lost response', async t => {
+  const fetcher=t.mock.method(globalThis,'fetch',async (url,options)=>{
+    assert.equal(url,'/api/keys/key-A/budget/rotate');
+    assert.deepEqual(JSON.parse(options.body),{expectedVersion:7});
+    assert.equal(options.cache,'no-store');
+    throw new Error('fixture network failure');
+  });
+  await assert.rejects(rotateBudgetKey('key-A',7), /Refresh accounting status/);
+  assert.equal(fetcher.mock.callCount(),1);
 });

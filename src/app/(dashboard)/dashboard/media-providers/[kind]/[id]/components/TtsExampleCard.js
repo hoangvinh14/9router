@@ -107,7 +107,7 @@ export function TtsExampleCard({ providerId }) {
     setLocalEndpoint(window.location.origin);
     fetch("/api/keys")
       .then((r) => r.json())
-      .then((d) => { setApiKey((d.keys || []).find((k) => k.isActive !== false)?.key || ""); })
+      .then((d) => { setApiKey((d.keys || []).find((k) => k.isActive !== false && k.key)?.key || ""); })
       .catch(() => {});
     fetch("/api/providers", { cache: "no-store" })
       .then((r) => r.json())

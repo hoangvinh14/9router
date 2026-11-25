@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {test,after} from 'node:test';
 import {spawnSync} from 'node:child_process';
 import {GET,POST,dynamic} from '../../src/app/api/keys/[id]/budget/retire/route.js';
+import {POST as rotate} from '../../src/app/api/keys/[id]/budget/rotate/route.js';
+import {keyManagementView} from '../../src/lib/accounting/key-management-view.js';
 import {getAdapter,getAdapterSync} from '../../src/lib/db/driver.js';
 import {initializeNodeKeyPolicy,createNodeKeyPolicy} from '../../src/lib/accounting/node-key-policy.js';
 import {initializeNodeAttemptLedger,createNodeAttemptLedger} from '../../src/lib/accounting/node-attempt-ledger.js';
@@ -52,8 +54,43 @@ test('ordinary installed DB without accounting schema refuses retirement without
  assert.equal(db.all("SELECT name FROM sqlite_schema WHERE name LIKE 'accounting_%'").length,0);
  assertAccountingHealthy();
 });
+test('dashboard rotation publishes the replacement only on a fresh committed version', async () => {
+  db.exec("VACUUM INTO '/tmp/before-rotation-schema.sqlite'");
+  initializeNodeKeyPolicy(db);
+  initializeNodeAttemptLedger(db);
+  db.run('INSERT INTO apiKeys(id,key,isActive,createdAt) VALUES(?,?,1,?)',
+    ['rotation', 'fixture-old-rotation', '2026-11-16T00:00:00.000Z']);
+  const target = { params: Promise.resolve({ id: 'rotation' }) };
+  const policy = createNodeKeyPolicy(db);
+  policy.save('rotation', 0, { weekly: '123', monthly: '456' });
+  assert.equal((await rotate(req({expectedVersion:1}, {}, null), target)).status, 401);
+  assert.equal((await rotate(req({expectedVersion:1}, {origin:'https://evil.invalid'}), target)).status, 403);
+  assert.equal((await rotate(req({expectedVersion:1, key:'supplied'}), target)).status, 400);
+  const response = await rotate(req(), target);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  const { key, policy: rotated } = await response.json();
+  assert.ok(/^sk-r[0-9a-f]{64}$/.test(key));
+  assert.equal(rotated.bindingGeneration, '2');
+  assert.deepEqual(rotated.limits, { weekly: '123', monthly: '456' });
+  assert.equal(await validateApiKey('fixture-old-rotation'), false);
+  assert.equal(await validateApiKey(key), true);
+  assert.equal(keyManagementView({ id: 'rotation', key }).key, null);
+  const replay = await rotate(req(), target);
+  assert.equal(replay.status, 409);
+  assert.equal(Object.hasOwn(await replay.json(), 'key'), false);
+  const status = await GET(req(), target);
+  assert.equal(status.status, 200);
+  const snapshot = await status.json();
+  assert.equal(snapshot.policy.version, 2);
+  assert.equal(JSON.stringify(snapshot).includes(key), false);
+  const next = await rotate(req({expectedVersion:2}), target);
+  assert.equal(next.status, 200);
+  assert.equal(await validateApiKey(key), false);
+  assert.equal(await validateApiKey((await next.json()).key), true);
+});
+
 test('actual installed services retirement preserves stable history and blocks reactivation without DELETE erasure',async()=>{
- initializeNodeKeyPolicy(db);initializeNodeAttemptLedger(db);
  const policy=createNodeKeyPolicy(db);policy.save('target',0,{weekly:'123',monthly:'456'});
  const inspected=policy.inspect('target');assert.equal(Object.isFrozen(inspected),true);assert.equal(Object.isFrozen(inspected.limits),true);
  const active=await GET(req(),params);assert.equal(active.status,200);assert.equal(active.headers.get('cache-control'),'no-store');
@@ -89,7 +126,7 @@ test('actual installed services retirement preserves stable history and blocks r
  assert.equal(db.get('SELECT monthly FROM accounting_key_policy_v1 WHERE key_id=?',['target']).monthly,'456');
  assert.equal(db.get('SELECT retired FROM accounting_key_generations_v1 WHERE key_id=?',['target']).retired,1);
  assertAccountingHealthy();original.settle(null);assert.deepEqual(ledger.totals('target',now),{weekly:'0',monthly:'0',unknown:1});
- assert.equal(policy.validateExistingBindings().validatedBindings,1);
+ assert.equal(policy.validateExistingBindings().validatedBindings,2);
  const retired=JSON.stringify([db.all('SELECT * FROM apiKeys'),db.all('SELECT * FROM accounting_key_policy_v1'),db.all('SELECT * FROM accounting_key_generations_v1')]);
  assert.equal((await POST(req(),params)).status,503); // existing owner repeat semantics, no retry/admission
  assert.equal(JSON.stringify([db.all('SELECT * FROM apiKeys'),db.all('SELECT * FROM accounting_key_policy_v1'),db.all('SELECT * FROM accounting_key_generations_v1')]),retired);
@@ -97,7 +134,7 @@ test('actual installed services retirement preserves stable history and blocks r
  const {createNodeSqliteAdapter}=await import('../../src/lib/db/adapters/nodeSqliteAdapter.js');
  const {DATA_FILE}=await import('../../src/lib/db/paths.js');
  const reopened=await createNodeSqliteAdapter(DATA_FILE);
- try{assert.deepEqual(reopened.all('SELECT * FROM accounting_admin_events_v1'),events);assert.equal(createNodeKeyPolicy(reopened).inspect('target').lifecycle,'retired');assert.equal(createNodeKeyPolicy(reopened).validateExistingBindings().validatedBindings,1);}finally{reopened.close();}
+ try{assert.deepEqual(reopened.all('SELECT * FROM accounting_admin_events_v1'),events);assert.equal(createNodeKeyPolicy(reopened).inspect('target').lifecycle,'retired');assert.equal(createNodeKeyPolicy(reopened).validateExistingBindings().validatedBindings,2);}finally{reopened.close();}
  db.run('INSERT INTO apiKeys(id,key,isActive,createdAt) VALUES(?,?,1,?)',['race','private-race','2026-11-16T00:00:00.000Z']);
  createNodeKeyPolicy(db).save('race',0,{weekly:null,monthly:'456'});
  const race=await Promise.all([POST(req(),{params:Promise.resolve({id:'race'})}),POST(req(),{params:Promise.resolve({id:'race'})})]);

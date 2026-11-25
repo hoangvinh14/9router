@@ -110,6 +110,22 @@ export function loadBudget(keyId, options) {
   return loadSnapshot(keyId, "", budgetView, () => new Error("Budget data unavailable."), options);
 }
 
+export async function rotateBudgetKey(keyId, expectedVersion) {
+  const failure = "Rotation could not be confirmed. Refresh accounting status before rotating again.";
+  let response;
+  try {
+    response = await fetch(`/api/keys/${encodeURIComponent(keyId)}/budget/rotate`, {
+      method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error",
+      headers: { "content-type": "application/json" }, body: JSON.stringify({ expectedVersion }),
+    });
+  } catch { throw new Error(failure); }
+  if (!response.ok) throw new Error(failure);
+  const result = await response.json().catch(() => null);
+  if (result?.policy?.keyId !== keyId || result.policy.version !== expectedVersion + 1 ||
+      !/^sk-r[0-9a-f]{64}$/.test(result.key)) throw new Error(failure);
+  return result.key;
+}
+
 export async function saveBudget(keyId, version, limits, signal) {
   const failure = "Save could not be confirmed. Refresh the budget before trying again.";
   let response;

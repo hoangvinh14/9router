@@ -36,7 +36,7 @@ export default function MitmPageClient() {
       const res = await fetch("/api/keys");
       if (res.ok) {
         const data = await res.json();
-        setApiKeys(data.keys || []);
+        setApiKeys((data.keys || []).filter(key => key.key));
       }
     } catch { /* ignore */ }
   };

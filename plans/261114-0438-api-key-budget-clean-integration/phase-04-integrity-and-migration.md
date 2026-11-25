@@ -29,6 +29,10 @@ The startup regression suite covers refusal before migrations on unqualified acc
 - [ ] Platform matrix Node/SQL.js, node:sqlite, better-sqlite3, Bun; optional dep absence falls back safely. Windows atomic paths/build/locking get appropriate CI/evidence; unavailable runner recorded **OPEN**, not waived. User-authorized narrower deployment would require exact disposition, not assumption.
 - [ ] Operational rollback design: code branch switch **không rollback DB**; no old binary on migrated DB without compatibility proof. Synthetic copied schema validation first; future real rollout needs authorized backup/restore+quiescence/migration plan. Never access/copy host DB in this plan/execution by inference.
 
+### Xoay key trên dashboard
+
+Owner chấp nhận hiển thị secret mới một lần. Route yêu cầu phiên dashboard, Origin hợp lệ và phiên bản policy hiện tại. Xoay key giữ ID ổn định, hạn mức và lịch sử chi phí. Nếu mất phản hồi, xem phiên bản và thế hệ credential trong Accounting status rồi xác nhận lần xoay mới. Gửi lại phiên bản cũ trả 409. Lịch sử thế hệ lưu fingerprint và trạng thái thu hồi. Biên nhận kiểm toán riêng theo mã thao tác trong thiết kế Phase 01 vẫn mở.
+
 ## Nâng cấp trên volume SQLite hiện có
 
 Dừng container cũ rồi khởi động image nội bộ với cùng volume và `DATA_DIR`. Trước khi mở HTTP, entrypoint chạy kiểm tra SQLite. Nếu chưa có bảng budget, nó sao lưu đầy đủ vào `before-budget-*/data.sqlite` trước khi gọi migration hiện có của 9Router và tạo bảng budget trong transaction. Lần chạy sau kiểm tra schema đã có, giữ nguyên dữ liệu và không tạo thêm bản sao lưu cho bước này. Nếu sao lưu, kiểm tra hoặc cập nhật thất bại, container dừng trước khi phục vụ request. Chính sách budget vẫn được bật riêng cho từng key qua dashboard.

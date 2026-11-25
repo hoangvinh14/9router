@@ -5,6 +5,7 @@ import {spawnSync} from 'node:child_process';
 if(process.platform!=='linux'||process.version!=='v24.21.0'||process.argv.length!==2||process.env.NODE_OPTIONS||process.env.NODE_PATH)throw new Error('Clean pinned Linux Node required');
 const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
 const files=[
+ 'src/app/api/keys/[id]/budget/rotate/route.js','src/lib/accounting/key-management-view.js',
  'src/app/api/keys/[id]/budget/retire/route.js','src/lib/accounting/profile-registry.js','src/lib/accounting/management-auth.js','src/lib/accounting/management-request.js','src/lib/accounting/installed-service.js',
  'src/lib/dataDir.js','src/lib/db/paths.js','src/lib/db/driver.js','src/lib/db/migrate.js','src/lib/db/schema.js',
  'src/lib/db/backup.js','src/lib/db/version.js','src/lib/db/helpers/nullBytes.js','src/lib/db/helpers/metaStore.js','src/lib/db/helpers/jsonCol.js',

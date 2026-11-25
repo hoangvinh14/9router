@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import PropTypes from "prop-types";
-import { loadAccountingStatus, loadBudget, saveBudget, resolveBudgetUsage } from "./accountingStatusClient";
+import { loadAccountingStatus, loadBudget, saveBudget, resolveBudgetUsage, rotateBudgetKey } from "./accountingStatusClient";
 
 function useSnapshot(keyId, load) {
   const [state, setState] = useState({ loading: true, value: null, error: null });
@@ -23,9 +23,26 @@ function useSnapshot(keyId, load) {
   return { state, refresh };
 }
 
-function StatusSnapshot({ keyId }) {
+function StatusSnapshot({ keyId, onRotated }) {
   const { state, refresh } = useSnapshot(keyId, loadAccountingStatus);
   const value = state.value;
+  const [pending, setPending] = useState(false);
+  const [secret, setSecret] = useState(null);
+  const [rotationError, setRotationError] = useState("");
+  async function rotate() {
+    if (pending || !window.confirm("Rotate this API key? The old key will stop working immediately.")) return;
+    setPending(true);
+    setRotationError("");
+    try {
+      setSecret(await rotateBudgetKey(keyId, value.version));
+      onRotated?.(keyId);
+    } catch (error) {
+      setRotationError(error.message);
+    } finally {
+      setPending(false);
+      refresh();
+    }
+  }
   return (
     <div className="mt-2 rounded border border-border p-3 text-xs text-text-muted" aria-busy={state.loading}>
       <p>Recorded policy and retirement status.</p>
@@ -53,6 +70,18 @@ function StatusSnapshot({ keyId }) {
           </>
         )}
       </div>
+      {value?.lifecycle === "active" && !secret && (
+        <button type="button" className="mt-2 mr-3 text-primary underline disabled:opacity-50"
+          disabled={pending} onClick={rotate}>Rotate API key</button>
+      )}
+      {rotationError && <p role="alert" className="mt-2">{rotationError}</p>}
+      {secret && (
+        <div className="mt-2">
+          <p>Copy the new API key now. It is shown once.</p>
+          <code className="block break-all select-all">{secret}</code>
+          <button type="button" className="mt-2 text-primary underline" onClick={() => setSecret(null)}>Done</button>
+        </div>
+      )}
       <button type="button" className="mt-2 text-primary underline disabled:opacity-50" disabled={state.loading}
         onClick={refresh}>
         Refresh accounting status
@@ -215,7 +244,7 @@ function BudgetSnapshot({ keyId }) {
 }
 BudgetSnapshot.propTypes = { keyId: PropTypes.string.isRequired };
 
-export default function AccountingStatus({ keyId }) {
+export default function AccountingStatus({ keyId, onRotated }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const [budgetOpen, setBudgetOpen] = useState(false);
@@ -231,9 +260,9 @@ export default function AccountingStatus({ keyId }) {
         {budgetOpen ? "Hide budget" : "View budget"}
       </button>
       <div id={budgetId}>{budgetOpen && <BudgetSnapshot key={keyId} keyId={keyId} />}</div>
-      <div id={panelId}>{open && <StatusSnapshot key={keyId} keyId={keyId} />}</div>
+      <div id={panelId}>{open && <StatusSnapshot key={keyId} keyId={keyId} onRotated={onRotated} />}</div>
     </div>
   );
 }
-StatusSnapshot.propTypes = { keyId: PropTypes.string.isRequired };
-AccountingStatus.propTypes = { keyId: PropTypes.string.isRequired };
+StatusSnapshot.propTypes = { keyId: PropTypes.string.isRequired, onRotated: PropTypes.func };
+AccountingStatus.propTypes = { keyId: PropTypes.string.isRequired, onRotated: PropTypes.func };
