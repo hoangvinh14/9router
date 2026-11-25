@@ -5,6 +5,7 @@
   "node_modules/react",
   "node_modules/typescript",
   "node_modules/@eslint-community/eslint-utils",
+  "node_modules/@isaacs/nonrecursive-glob-match",
   "node_modules/@eslint-community/regexpp",
   "node_modules/@eslint/config-array",
   "node_modules/@eslint/config-helpers",

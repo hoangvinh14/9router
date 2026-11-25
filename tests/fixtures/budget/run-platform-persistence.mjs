@@ -14,6 +14,15 @@ const attempt = attemptId => ({
   price: { currency: 'USD', unit: 'USD/1M tokens', revision: 'fixture', rates: { input: '1', output: '2' } },
 });
 
+function run(childStep, dataDir, env, cwd) {
+  const result = spawnSync(process.execPath, [fileURLToPath(import.meta.url), childStep], {
+    cwd, env: { ...env, DATA_DIR: dataDir, BUDGET_PLATFORM_FIXTURE: '1' },
+    stdio: 'inherit', timeout: 15000,
+  });
+  if (result.error) throw result.error;
+  assert.equal(result.status, 0, childStep);
+}
+
 async function exercise(step) {
   const { getAccountingAdapter } = await import('../../../src/lib/db/driver.js');
   const { DATA_DIR } = await import('../../../src/lib/dataDir.js');
@@ -33,19 +42,31 @@ async function exercise(step) {
     const ledger = createNodeAttemptLedger(db);
     const context = { presentedSecret, now };
     let sent = 0;
+    if (step === 'observe-in-flight') {
+      assert.deepEqual(ledger.validateExistingAttempts(), { validatedAttempts: 1, validatedTerminals: 0 });
+      assert.deepEqual(ledger.prepare(attempt('before-backup')), { replay: true });
+      assert.deepEqual(ledger.validateExistingAttempts(), { validatedAttempts: 1, validatedTerminals: 0 });
+      return;
+    }
     if (step === 'write') {
       db.run('INSERT INTO apiKeys(id,key,isActive,createdAt) VALUES(?,?,1,?)', [keyId, presentedSecret, now]);
       policy.save(keyId, 0, { weekly: null, monthly: limit });
       const original = ledger.prepare(attempt('before-backup'));
       ledger.dispatch(original.ack, context, () => sent++);
       assert.equal(sent, 1);
-      original.settle({ semantics: EXCLUSIVE_USAGE, components: [{ category: 'input', count: 3000, unit: 'USD/1M tokens' }] });
+      run('observe-in-flight', DATA_DIR, process.env, process.cwd());
+      const evidence = { semantics: EXCLUSIVE_USAGE, components: [{ category: 'input', count: 3000, unit: 'USD/1M tokens' }] };
+      original.settle(evidence);
+      assert.deepEqual(original.settle(evidence), { recorded: true, replay: true });
+      assert.throws(() => original.settle(null), error => error.status === 409);
       const destination = path.join(DATA_DIR, 'backup');
       fs.mkdirSync(destination);
       backupDbLite(db, destination);
     } else {
       assert.equal(policy.inspect(keyId).limits.monthly, limit);
       assert.equal(ledger.totals(keyId, now).monthly, limit);
+      assert.deepEqual(ledger.prepare(attempt('before-backup')), { replay: true });
+      assert.deepEqual(ledger.validateExistingAttempts(), { validatedAttempts: 1, validatedTerminals: 1 });
       const prepared = ledger.prepare(attempt('after-reopen'));
       assert.throws(() => ledger.dispatch(prepared.ack, context, () => sent++));
       assert.equal(sent, 0);
@@ -67,7 +88,7 @@ async function exercise(step) {
 
 const step = process.argv[2];
 if (step) {
-  assert.ok(['write', 'source', 'restored'].includes(step));
+  assert.ok(['write', 'source', 'restored', 'observe-in-flight'].includes(step));
   assert.equal(process.env.BUDGET_PLATFORM_FIXTURE, '1');
   await exercise(step);
 } else {
@@ -82,21 +103,13 @@ if (step) {
       env[name] = path.join(root, name);
       fs.mkdirSync(env[name]);
     }
-    function run(childStep, dataDir) {
-      const result = spawnSync(process.execPath, [fileURLToPath(import.meta.url), childStep], {
-        cwd: root, env: { ...env, DATA_DIR: dataDir, BUDGET_PLATFORM_FIXTURE: '1' },
-        stdio: 'inherit', timeout: 15000,
-      });
-      if (result.error) throw result.error;
-      assert.equal(result.status, 0, childStep);
-    }
     const source = path.join(root, 'source');
-    run('write', source);
-    run('source', source);
+    run('write', source, env, root);
+    run('source', source, env, root);
     const restored = path.join(root, 'restored');
     fs.mkdirSync(path.join(restored, 'db'), { recursive: true });
     fs.renameSync(path.join(source, 'backup', 'data.sqlite'), path.join(restored, 'db', 'data.sqlite'));
-    run('restored', restored);
+    run('restored', restored, env, root);
     console.log(`SQLite persistence passed on ${process.platform} ${process.arch} ${process.version}`);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 }

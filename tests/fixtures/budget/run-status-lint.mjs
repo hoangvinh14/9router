@@ -8,7 +8,7 @@ const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..')
 const page='src/app/(dashboard)/dashboard/endpoint/EndpointPageClient.js';
 const files=['eslint.config.mjs','package.json','jsconfig.json',page,'src/app/(dashboard)/dashboard/endpoint/components/AccountingStatus.js','src/app/(dashboard)/dashboard/endpoint/components/accountingStatusClient.js','tests/fixtures/budget/status-lint-check.mjs'];
 const packages=JSON.parse(fs.readFileSync(path.join(repo,'tests/fixtures/budget/status-lint-packages.json'),'utf8'));
-if(packages.length!==343||new Set(packages).size!==343)throw Error('Dependency inventory mismatch');
+if(packages.length!==344||new Set(packages).size!==344)throw Error('Dependency inventory mismatch');
 const internalLinks=new Map([
  ['node_modules/sharp/node_modules/.bin/semver',['../semver/bin/semver.js','node_modules/sharp']],
  ['node_modules/is-bun-module/node_modules/.bin/semver',['../semver/bin/semver.js','node_modules/is-bun-module']],
