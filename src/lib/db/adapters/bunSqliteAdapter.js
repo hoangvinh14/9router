@@ -12,7 +12,7 @@ const state = Object.freeze({
 
 async function openBunSqliteAttempt(filePath, options) {
   const { Database } = await import("bun:sqlite");
-  return openNativeSqliteAttempt(() => new Database(filePath, { create: true }), { driver: "bun:sqlite", state, ...options });
+  return openNativeSqliteAttempt(() => new Database(filePath, { create: true }), { driver: "bun:sqlite", filePath, state, ...options });
 }
 
 export function openInstalledBunSqliteAttempt(filePath, { requireMarked = false } = {}) {

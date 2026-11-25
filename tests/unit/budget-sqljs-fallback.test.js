@@ -2,6 +2,7 @@ import { expect, it, vi } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 // Exercise the optional-driver boundary while retaining the real WASM engine.
 vi.mock('../../src/lib/db/adapters/betterSqliteAdapter.js', () => { throw new Error('optional native addon unavailable'); });
@@ -72,7 +73,7 @@ for (const fault of ['fsyncSync', 'renameSync']) {
       try {
         expect(() => db.close()).toThrow('fixture storage failure');
         expect(fs.readFileSync(file)).toEqual(before);
-        expect(fs.readdirSync(dir)).toEqual(['data.sqlite']);
+        expect(fs.readdirSync(dir).sort()).toEqual(['data.sqlite', 'data.sqlite.sqljs-writer']);
       } finally {
         inject.mockRestore();
         db.close();
@@ -83,3 +84,32 @@ for (const fault of ['fsyncSync', 'renameSync']) {
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 }
+
+it('excludes a second process and the native opener until the image writer closes', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'budget-sqljs-owner-'));
+  const file = path.join(dir, 'data.sqlite');
+  const sqlJsUrl = new URL('../../src/lib/db/adapters/sqljsAdapter.js', import.meta.url).href;
+  const nativeUrl = new URL('../../src/lib/db/adapters/nodeSqliteAdapter.js', import.meta.url).href;
+  const { createSqlJsAdapter } = await import('../../src/lib/db/adapters/sqljsAdapter.js');
+  const first = await createSqlJsAdapter(file);
+  try {
+    first.exec('CREATE TABLE fixture (id INTEGER); INSERT INTO fixture VALUES (1)');
+    const child = spawnSync(process.execPath, ['--input-type=module', '--eval', `
+      import assert from 'node:assert/strict';
+      import { createSqlJsAdapter } from ${JSON.stringify(sqlJsUrl)};
+      import { openInstalledNodeSqliteAttempt } from ${JSON.stringify(nativeUrl)};
+      const file = process.argv[1];
+      await assert.rejects(createSqlJsAdapter(file), /already active or ownership is ambiguous/);
+      const native = await openInstalledNodeSqliteAttempt(file);
+      assert.equal(native.error.startupReason, 'sqljs_image_owned');
+    `, file], { encoding: 'utf8', timeout: 10000 });
+    expect(child.status, child.stderr).toBe(0);
+    first.close();
+    const reopened = await createSqlJsAdapter(file);
+    try { expect(reopened.get('SELECT id FROM fixture')).toEqual({ id: 1 }); }
+    finally { reopened.close(); }
+  } finally {
+    first.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

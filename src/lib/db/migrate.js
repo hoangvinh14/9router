@@ -351,7 +351,7 @@ function importLegacyDetails(adapter, data) {
 }
 
 // ─── Main entry ──────────────────────────────────────────────────────────
-export async function runMigrationOnce(adapter) {
+export async function runMigrationOnce(adapter, { requireMarked = false } = {}) {
   // Sole publication gate. A marked connection gets no bootstrap, sync,
   // backup or import work. The native opener's inventory is not admission.
   let reason = 'unqualified_accounting_state';
@@ -362,6 +362,19 @@ export async function runMigrationOnce(adapter) {
         const { auditMarkedNodeStartup } = await import('../accounting/node-existing-audit.js');
         auditMarkedNodeStartup(adapter);
         return;
+      }
+    } else {
+      const { sqliteImageTransactions } = await import('./adapters/nodeClosure.js');
+      if (sqliteImageTransactions(adapter.raw)) {
+        const { readAccountingMarkers, CURRENT_ACCOUNTING_MARKERS } = await import('../accounting/mutation-barrier.js');
+        const markers = readAccountingMarkers(adapter);
+        if (markers.length || requireMarked) {
+          if (markers.length !== CURRENT_ACCOUNTING_MARKERS.length ||
+              markers.some(row => row.type !== 'table' || !CURRENT_ACCOUNTING_MARKERS.includes(row.name))) throw new Error();
+          const { auditMarkedNodeStartup } = await import('../accounting/node-existing-audit.js');
+          auditMarkedNodeStartup(adapter);
+          return;
+        }
       }
     }
     reason = 'accounting_markers_or_inventory_failure';

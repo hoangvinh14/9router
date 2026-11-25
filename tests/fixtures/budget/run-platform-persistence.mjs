@@ -14,13 +14,14 @@ const attempt = attemptId => ({
   price: { currency: 'USD', unit: 'USD/1M tokens', revision: 'fixture', rates: { input: '1', output: '2' } },
 });
 
-function run(childStep, dataDir, env, cwd) {
+function run(childStep, dataDir, env, cwd, signal = null) {
   const result = spawnSync(process.execPath, [fileURLToPath(import.meta.url), childStep], {
     cwd, env: { ...env, DATA_DIR: dataDir, BUDGET_PLATFORM_FIXTURE: '1' },
     stdio: 'inherit', timeout: 15000,
   });
   if (result.error) throw result.error;
-  assert.equal(result.status, 0, childStep);
+  assert.equal(result.signal, signal, childStep);
+  assert.equal(result.status, signal ? null : 0, childStep);
 }
 
 async function exercise(step) {
@@ -41,7 +42,37 @@ async function exercise(step) {
     const policy = createNodeKeyPolicy(db);
     const ledger = createNodeAttemptLedger(db);
     const context = { presentedSecret, now };
+    const evidence = { semantics: EXCLUSIVE_USAGE, components: [{ category: 'input', count: 3000, unit: 'USD/1M tokens' }] };
     let sent = 0;
+    if (step === 'image-before-publish' || step === 'image-after-publish') {
+      policy.save(keyId, 1, { weekly: null, monthly: '6000000' });
+      const original = ledger.prepare(attempt('faulted-terminal'));
+      ledger.dispatch(original.ack, context, () => sent++);
+      const prepared = ledger.prepare(attempt('prepared-before-fault'));
+      const rename = fs.renameSync;
+      const sync = fs.fsyncSync;
+      let syncs = 0;
+      if (step === 'image-before-publish') fs.renameSync = () => { throw new Error('fixture rename failure'); };
+      else fs.fsyncSync = fd => {
+        if (++syncs === 2) throw new Error('fixture directory fsync failure');
+        return sync(fd);
+      };
+      try { assert.throws(() => original.settle(evidence)); }
+      finally { fs.renameSync = rename; fs.fsyncSync = sync; }
+      assert.throws(assertAccountingHealthy);
+      assert.throws(() => ledger.dispatch(prepared.ack, context, () => sent++));
+      assert.equal(sent, 1);
+      process.kill(process.pid, 'SIGKILL');
+    }
+    if (step === 'recover-before-publish' || step === 'recover-after-publish') {
+      const committed = step === 'recover-after-publish';
+      assert.equal(ledger.totals(keyId, now).monthly, committed ? '6000000' : limit);
+      const prepared = ledger.prepare(attempt('after-fault'));
+      if (committed) assert.throws(() => ledger.dispatch(prepared.ack, context, () => sent++));
+      else ledger.dispatch(prepared.ack, context, () => sent++);
+      assert.equal(sent, committed ? 0 : 1);
+      return;
+    }
     if (step === 'checkpoint-error') {
       policy.save(keyId, 1, { weekly: null, monthly: null });
       const prepared = ledger.prepare(attempt('checkpoint-error'));
@@ -72,8 +103,7 @@ async function exercise(step) {
       const original = ledger.prepare(attempt('before-backup'));
       ledger.dispatch(original.ack, context, () => sent++);
       assert.equal(sent, 1);
-      run('observe-in-flight', DATA_DIR, process.env, process.cwd());
-      const evidence = { semantics: EXCLUSIVE_USAGE, components: [{ category: 'input', count: 3000, unit: 'USD/1M tokens' }] };
+      if (db.driver !== 'sql.js') run('observe-in-flight', DATA_DIR, process.env, process.cwd());
       original.settle(evidence);
       assert.deepEqual(original.settle(evidence), { recorded: true, replay: true });
       assert.throws(() => original.settle(null), error => error.status === 409);
@@ -88,7 +118,7 @@ async function exercise(step) {
       const prepared = ledger.prepare(attempt('after-reopen'));
       assert.throws(() => ledger.dispatch(prepared.ack, context, () => sent++));
       assert.equal(sent, 0);
-      if (step === 'source') {
+      if (step === 'source' && db.driver !== 'sql.js') {
         policy.save(keyId, 1, { weekly: null, monthly: null });
         const peer = new db.raw.constructor(DATA_FILE);
         try {
@@ -111,13 +141,15 @@ async function exercise(step) {
 
 const step = process.argv[2];
 if (process.env.BUDGET_PLATFORM_FIXTURE === '1') {
-  assert.ok(['write', 'source', 'restored', 'observe-in-flight', 'checkpoint-error'].includes(step));
+  assert.ok(['write', 'source', 'restored', 'observe-in-flight', 'checkpoint-error',
+    'image-before-publish', 'image-after-publish', 'recover-before-publish', 'recover-after-publish'].includes(step));
   await exercise(step);
 } else {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), '9router-budget-platform-'));
   try {
     const expectedDriver = process.argv[2] ?? (process.versions.bun ? 'bun:sqlite' : 'node:sqlite');
     const env = { BUDGET_EXPECTED_DRIVER: expectedDriver };
+    if (expectedDriver === 'sql.js') env.NINEROUTER_SQLJS_ACCOUNTING = '1';
     for (const name of ['SystemRoot', 'WINDIR', 'PATH']) {
       if (process.env[name]) env[name] = process.env[name];
     }
@@ -131,9 +163,18 @@ if (process.env.BUDGET_PLATFORM_FIXTURE === '1') {
     run('source', source, env, root);
     const restored = path.join(root, 'restored');
     fs.mkdirSync(path.join(restored, 'db'), { recursive: true });
+    if (expectedDriver === 'sql.js') {
+      for (const timing of ['before-publish', 'after-publish']) {
+        const faultDir = path.join(root, timing);
+        fs.mkdirSync(path.join(faultDir, 'db'), { recursive: true });
+        fs.copyFileSync(path.join(source, 'backup', 'data.sqlite'), path.join(faultDir, 'db', 'data.sqlite'));
+        run('image-' + timing, faultDir, env, root, 'SIGKILL');
+        run('recover-' + timing, faultDir, env, root);
+      }
+    }
     fs.renameSync(path.join(source, 'backup', 'data.sqlite'), path.join(restored, 'db', 'data.sqlite'));
     run('restored', restored, env, root);
-    run('checkpoint-error', restored, env, root);
+    if (expectedDriver !== 'sql.js') run('checkpoint-error', restored, env, root);
     console.log(`SQLite persistence passed on ${expectedDriver} on ${process.platform} ${process.arch} ${process.versions.bun ?? process.version}`);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 }

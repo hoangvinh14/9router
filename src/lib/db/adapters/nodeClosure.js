@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 // Closure observation only: never overrides a thrown native close, checkpoint
 // failure, or accounting fault. Missing/unreadable runtime state is not evidence.
 export function nodeClosureConfirmed(db) {
@@ -27,4 +29,23 @@ export function sqliteIsOpen(db) {
 export function sqliteInTransaction(db) {
   const state = nativeStates.get(db);
   return state ? state.inTransaction(db) : db.isTransaction;
+}
+
+export function sqliteImageTransactions(db) {
+  return nativeStates.get(db)?.imageTransactions;
+}
+export function sqlJsWriterPath(filePath) {
+  return filePath + '.sqljs-writer';
+}
+
+export function assertNoSqlJsWriter(filePath) {
+  const files = [filePath];
+  if (fs.lstatSync(filePath, { throwIfNoEntry: false })?.isSymbolicLink()) files.push(fs.realpathSync(filePath));
+  for (const file of files) {
+    const owner = sqlJsWriterPath(file);
+    if (fs.lstatSync(owner, { throwIfNoEntry: false }) ||
+        fs.lstatSync(owner + '.guard', { throwIfNoEntry: false })) {
+      throw new Error('SQL.js owns this database image');
+    }
+  }
 }

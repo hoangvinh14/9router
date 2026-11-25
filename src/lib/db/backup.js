@@ -67,6 +67,7 @@ function backupIndexSql(sql, name) {
 }
 
 export function backupDbLite(adapter, destDir, destName = "data.sqlite") {
+  if (adapter.driver === 'sql.js') return adapter.backupTo(path.join(destDir, destName));
   // Never delete/reuse an artifact still attached by an earlier failed cleanup.
   // Do not close the shared caller-owned connection to force cleanup.
   if (adapter.all('PRAGMA database_list').some(db => db.name === 'bak')) throw new Error('Backup attachment unavailable');

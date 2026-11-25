@@ -1,6 +1,6 @@
 import { unavailable } from './attempt-payload.js';
 import { assertAccountingHealthy, faultAccounting } from './process-state.js';
-import { hasNativeSqliteState, sqliteInTransaction, sqliteIsOpen } from '../db/adapters/nodeClosure.js';
+import { hasNativeSqliteState, sqliteImageTransactions, sqliteInTransaction, sqliteIsOpen } from '../db/adapters/nodeClosure.js';
 import { createSqlOperationScope } from './sql-operation-scope.js';
 
 // Candidate, not installed on the adapter/driver. Same raw connection identity,
@@ -56,6 +56,7 @@ export function createNodeOuterTransaction(adapter, definitions) {
   if (!adapter?.raw || typeof adapter.raw !== 'object' || !hasNativeSqliteState(adapter) ||
       ['run', 'get', 'all', 'exec'].some(name => typeof adapter[name] !== 'function')) throw unavailable();
   const raw = adapter.raw;
+  const image = sqliteImageTransactions(raw);
   const exec = adapter.exec.bind(adapter);
   const get = adapter.get.bind(adapter);
   // Scoped operations share this immutable wrapper; storage exceptions are
@@ -109,24 +110,26 @@ export function createNodeOuterTransaction(adapter, definitions) {
       check();
       // Never take over, alter PRAGMAs or roll back another transaction.
       if (active() || typeof callback !== 'function') throw unavailable();
-      const mode = storage(() => get('PRAGMA journal_mode').journal_mode);
-      originalSync = storage(() => get('PRAGMA synchronous').synchronous);
-      if (mode !== 'wal' || ![1, 2].includes(originalSync)) throw unavailable();
-      touched = true;
-      storage(() => exec('PRAGMA synchronous = FULL'));
-      if (storage(() => get('PRAGMA synchronous').synchronous) !== 2) {
-        failStorage(token); throw unavailable();
+      if (!image) {
+        const mode = storage(() => get('PRAGMA journal_mode').journal_mode);
+        originalSync = storage(() => get('PRAGMA synchronous').synchronous);
+        if (mode !== 'wal' || ![1, 2].includes(originalSync)) throw unavailable();
+        touched = true;
+        storage(() => exec('PRAGMA synchronous = FULL'));
+        if (storage(() => get('PRAGMA synchronous').synchronous) !== 2) {
+          failStorage(token); throw unavailable();
+        }
       }
       check();
       beginAttempted = true;
-      storage(() => exec('BEGIN IMMEDIATE'));
+      storage(() => image ? image.begin() : exec('BEGIN IMMEDIATE'));
       if (!active()) { failStorage(token); throw unavailable(); }
       callbackStarted = true;
       value = scoped(callback);
       check();
       if (!active()) { failStorage(token); throw unavailable(); }
       commitAttempted = true;
-      storage(() => exec('COMMIT'));
+      storage(() => image ? image.commit() : exec('COMMIT'));
       // Only a normal COMMIT return AND confirmed inactive state is observed commit.
       if (active()) { failStorage(token); throw unavailable(); }
       outcome = 'commit_observed';
@@ -136,7 +139,7 @@ export function createNodeOuterTransaction(adapter, definitions) {
         outcome = 'unknown';
         try {
           if (active()) {
-            storage(() => exec('ROLLBACK'));
+            storage(() => image ? image.rollback() : exec('ROLLBACK'));
             if (active()) throw unavailable();
             outcome = 'rolled_back';
           } else if (!commitAttempted && !callbackStarted) {

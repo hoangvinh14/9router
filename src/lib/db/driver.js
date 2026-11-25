@@ -44,11 +44,18 @@ async function tryNativeSqlite(driver, load, requireMarked) {
   }
 }
 
-async function trySqlJs() {
+async function trySqlJs(accounting = false) {
   try {
     const { createSqlJsAdapter } = await import("./adapters/sqljsAdapter.js");
-    return await createSqlJsAdapter(DATA_FILE);
+    const adapter = await createSqlJsAdapter(DATA_FILE, { accounting });
+    if (accounting) {
+      state.accountingNodeRaw = adapter.raw;
+      state.accountingCloseStrict = adapter.closeStrict;
+      state.observeCheckpointFailure = adapter.observeCheckpointFailure;
+    }
+    return adapter;
   } catch (e) {
+    if (accounting) throw e;
     console.warn(`[DB] sql.js unavailable: ${e.message}`);
     return null;
   }
@@ -85,7 +92,9 @@ async function initAdapter(requireMarked = false) {
   //   Node: better-sqlite3 → node:sqlite (≥22.5) → sql.js
   const [major, minor] = process.versions.node.split(".").map(Number);
   let adapter;
-  if (process.versions.bun) {
+  if (process.env.NINEROUTER_SQLJS_ACCOUNTING === '1') {
+    adapter = await trySqlJs(true);
+  } else if (process.versions.bun) {
     adapter = await tryNativeSqlite("bun:sqlite", async () =>
       (await import("./adapters/bunSqliteAdapter.js")).openInstalledBunSqliteAttempt, requireMarked);
   } else {
@@ -114,7 +123,7 @@ async function initAdapter(requireMarked = false) {
       state.logged = true;
     }
     const { runMigrationOnce } = await import("./migrate.js");
-    await runMigrationOnce(adapter);
+    await runMigrationOnce(adapter, { requireMarked });
     return adapter;
   } catch (error) {
     // No publication/reopen/fallback after an acquired connection fails init.

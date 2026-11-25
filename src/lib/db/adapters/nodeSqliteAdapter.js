@@ -1,7 +1,7 @@
 // Built-in node:sqlite adapter — available in Node >= 22.5.0.
 // No native build, no npm install. Ordinary API mirrors betterSqliteAdapter.
 import { PRAGMA_SQL } from "../schema.js";
-import { nodeClosureConfirmed, registerNativeSqliteState } from "./nodeClosure.js";
+import { assertNoSqlJsWriter, nodeClosureConfirmed, registerNativeSqliteState } from "./nodeClosure.js";
 import { CURRENT_ACCOUNTING_MARKERS, readAccountingMarkers } from "../../accounting/mutation-barrier.js";
 
 const CHECKPOINT_INTERVAL_MS = 60 * 1000;
@@ -35,11 +35,11 @@ async function openAttempt(filePath, installed, requireMarked = false) {
   try { sqlite = await import("node:sqlite"); }
   catch (error) { return Object.freeze({ ok: false, phase: "unavailable_before_open", error }); }
   return openNativeSqliteAttempt(() => new sqlite.DatabaseSync(filePath), {
-    driver: "node:sqlite", installed, requireMarked,
+    driver: "node:sqlite", filePath, installed, requireMarked,
   });
 }
 
-export function openNativeSqliteAttempt(connect, { driver, installed = true, requireMarked = false, state }) {
+export function openNativeSqliteAttempt(connect, { driver, filePath, installed = true, requireMarked = false, state }) {
   let phase = "unavailable_before_open";
   let db;
   let checkpointTimer;
@@ -66,6 +66,15 @@ export function openNativeSqliteAttempt(connect, { driver, installed = true, req
   let onSigint;
   let onSigterm;
   const stmtCache = new Map();
+  function checkImageOwner() {
+    try { assertNoSqlJsWriter(filePath); }
+    catch {
+      phase = "startup_refused";
+      throw Object.assign(new Error('Accounting database startup unsupported'), {
+        status: 503, code: 'api_key_accounting_startup_unavailable', startupReason: 'sqljs_image_owned',
+      });
+    }
+  }
   const removeResources = () => {
     if (checkpointTimer !== undefined) clearInterval(checkpointTimer);
     if (onShutdown) process.removeListener("beforeExit", onShutdown);
@@ -105,6 +114,7 @@ export function openNativeSqliteAttempt(connect, { driver, installed = true, req
     db.close();
   }
   try {
+    if (filePath !== ":memory:") checkImageOwner();
     phase = "open_failed_unknown";
     db = connect();
     if (state) registerNativeSqliteState(db, state);
@@ -136,6 +146,12 @@ export function openNativeSqliteAttempt(connect, { driver, installed = true, req
       }
     }
     db.exec(PRAGMA_SQL);
+    // A SQL.js opening can race the pre-open check. The native connection
+    // must establish WAL mode before it can serve any writes.
+    if (filePath !== ":memory:") {
+      if (prepare('PRAGMA journal_mode').get()?.journal_mode !== 'wal') throw new Error('SQLite WAL unavailable');
+      checkImageOwner();
+    }
     checkpointTimer = setInterval(runCheckpoint, CHECKPOINT_INTERVAL_MS);
     if (typeof checkpointTimer.unref === "function") checkpointTimer.unref();
     // once removes itself even if close fails. Legacy signal exit behavior is
