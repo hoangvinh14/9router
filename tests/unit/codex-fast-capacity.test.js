@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { createServer } from "node:http";
+import { once } from "node:events";
+import { describe, expect, it, vi } from "vitest";
 import { CodexExecutor } from "../../open-sse/executors/codex.js";
 
 function streamFromText(text) {
@@ -12,6 +14,63 @@ function streamFromText(text) {
 }
 
 describe("Codex fast tier and capacity handling", () => {
+  it.each(["HTTP 503", "SSE overload"])("keeps compact and standard sessions separate during %s retry", async (failure) => {
+    const executor = new CodexExecutor();
+    const received = [];
+    const compactArrived = Promise.withResolvers();
+    const releaseCompact = Promise.withResolvers();
+    const server = createServer(async (req, res) => {
+      const chunks = [];
+      for await (const chunk of req) chunks.push(chunk);
+      const body = JSON.parse(Buffer.concat(chunks));
+      received.push([req.url, req.headers.session_id, body.prompt_cache_key, body._compact]);
+      if (received.length === 1) {
+        compactArrived.resolve();
+        await releaseCompact.promise;
+        if (failure === "SSE overload") {
+          res.writeHead(200, { "content-type": "text/event-stream" });
+          res.end('event: error\ndata: {"type":"error","code":"server_is_overloaded"}\n\n');
+          return;
+        }
+        res.writeHead(503);
+      }
+      res.end("data: [DONE]\n\n");
+    });
+    server.listen(0, "127.0.0.1");
+    await once(server, "listening");
+    const baseUrl = `http://127.0.0.1:${server.address().port}/responses`;
+    executor.config = { ...executor.config, baseUrl, baseUrls: [baseUrl], retry: { 503: { attempts: 1, delayMs: 0 } } };
+    const request = (session, compact) => ({
+      model: "gpt-6-sol", stream: true, credentials: { connectionId: session },
+      body: { input: "hello", prompt_cache_key: session, _compact: compact },
+    });
+    try {
+      vi.stubEnv("NO_PROXY", "127.0.0.1");
+      const compact = request("compact-session", true);
+      const first = executor.execute(compact);
+      await Promise.race([compactArrived.promise, first]);
+      try {
+        await executor.execute(request("standard-session", false));
+      } finally {
+        releaseCompact.resolve();
+        const result = await first;
+        expect(await result.response.text()).toBe("data: [DONE]\n\n");
+      }
+      // The ordinary auth-refresh path calls execute again with the same body.
+      await executor.execute(compact);
+      expect(received).toEqual([
+        ["/responses/compact", "compact-session", "compact-session", undefined],
+        ["/responses", "standard-session", "standard-session", undefined],
+        ["/responses/compact", "compact-session", "compact-session", undefined],
+        ["/responses/compact", "compact-session", "compact-session", undefined],
+      ]);
+    } finally {
+      vi.unstubAllEnvs();
+      server.closeAllConnections();
+      await new Promise(resolve => server.close(resolve));
+    }
+  });
+
   it("maps Codex fast tier to priority and max reasoning to xhigh", () => {
     const executor = new CodexExecutor();
     const body = executor.transformRequest("gpt-reserve", {
