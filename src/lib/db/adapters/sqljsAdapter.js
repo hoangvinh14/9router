@@ -10,9 +10,19 @@ async function loadSql() {
   return SQL;
 }
 
+function refuseNativeSidecars(filePath) {
+  if (['-wal', '-shm', '-journal'].some(suffix => fs.lstatSync(filePath + suffix, { throwIfNoEntry: false }))) {
+    throw new Error('SQL.js cannot open a native SQLite WAL database or a database with recovery sidecars');
+  }
+}
+
 export async function createSqlJsAdapter(filePath) {
   const SQLLib = await loadSql();
+  // The WASM image reader does not replay the native WAL or rollback journal.
+  refuseNativeSidecars(filePath);
   const buf = fs.existsSync(filePath) ? fs.readFileSync(filePath) : null;
+  if (buf?.[18] === 2 || buf?.[19] === 2) throw new Error('SQL.js cannot open a native SQLite WAL database');
+  refuseNativeSidecars(filePath);
   const db = new SQLLib.Database(buf);
   db.exec(PRAGMA_SQL);
   // Schema is created/synced by migrate.js after adapter init
