@@ -213,6 +213,7 @@ export async function createSqlJsAdapter(filePath, { accounting = false } = {}) 
     db.close();
     closed = true;
     process.off("beforeExit", closeOnExit);
+    process.off("exit", closeOnExit);
     process.off("SIGINT", flush);
     process.off("SIGTERM", flush);
     owner.release();
@@ -222,6 +223,8 @@ export async function createSqlJsAdapter(filePath, { accounting = false } = {}) 
   const flush = () => { if (dirty && !poisoned && !imageActive) try { persist(); } catch {} };
   const closeOnExit = () => { try { close(); } catch {} };
   process.on("beforeExit", closeOnExit);
+  // Server signal handlers can call process.exit() before the flush runs.
+  process.on("exit", closeOnExit);
   process.on("SIGINT", flush);
   process.on("SIGTERM", flush);
 
