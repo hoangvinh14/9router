@@ -1561,7 +1561,7 @@ for (const provider of stage ? [] : ['codex', 'claude']) {
 }
 
 for (const provider of stage ? [] : ['codex', 'claude']) {
-  const sseModes = provider === 'codex' ? ['sse-success','sse-limit','sse-missing','sse-after-output','sse-json'] : [];
+  const sseModes = provider === 'codex' ? ['sse-success','sse-limit','sse-missing','sse-after-output','sse-json'] : ['claude-partial-error'];
   for (const mode of ['success', 'limit', 'missing-usage', 'backup-auth-error', ...sseModes]) {
     test(`budgeted ${provider} transfers to the configured backup only after complete usage: ${mode}`, async () => {
       const codex = provider === 'codex';
@@ -1578,6 +1578,13 @@ for (const provider of stage ? [] : ['codex', 'claude']) {
           if (codex) failure.response.error.code = 'server_is_overloaded';
           else failure.error.type = 'overloaded_error';
           if (mode === 'missing-usage') delete (codex ? failure.response : failure).usage;
+          if (mode === 'claude-partial-error') {
+            return sseReply([
+              { type:'message_start', message:{ type:'message', role:'assistant', model, content:[], usage } },
+              { type:'message_delta', delta:{stop_reason:'end_turn'}, usage:{output_tokens:12} },
+              { type:'error', error:failure.error },
+            ].map(sseFrame))();
+          }
           if (mode.startsWith('sse-')) {
             failure.response.id = 'fixture-first';
             if (mode === 'sse-missing') delete failure.response.usage;
@@ -1605,9 +1612,17 @@ for (const provider of stage ? [] : ['codex', 'claude']) {
         });
         const response = codex ? await postResponses(mode === 'sse-json' ? jsonChat() : request()) : await postMessages(new Request('https://fixture.invalid/v1/messages',{
           method:'POST',headers:{authorization:'Bearer fixture-client'},body:JSON.stringify({
-            model:'claude/'+model,stream:false,max_tokens:20,messages:[{role:'user',content:'hello'}]})}));
-        assert.equal(response.status,['success','sse-success','sse-json','sse-missing','sse-after-output'].includes(mode) ? 200 : mode === 'backup-auth-error' ? 401 : 503);
+            model:'claude/'+model,stream:mode === 'claude-partial-error',max_tokens:20,messages:[{role:'user',content:'hello'}]})}));
+        assert.equal(response.status,['success','sse-success','sse-json','sse-missing','sse-after-output','claude-partial-error'].includes(mode) ? 200 : mode === 'backup-auth-error' ? 401 : 503);
         const body = await response.text();
+        if (mode === 'claude-partial-error') {
+          assert.match(body, /overloaded_error/);
+          assert.match(body, /message_delta/);
+          assert.doesNotMatch(body, /message_stop/);
+          assert.equal(rows().attempts.length, 1);
+          assert.equal(rows().terminals.length, 0);
+          assert.equal(totals().monthly, '0');
+        }
         if (mode === 'sse-success' || mode === 'sse-json') {
           assert.match(body, /fixture-second/);
           assert.doesNotMatch(body, /fixture-first/);
