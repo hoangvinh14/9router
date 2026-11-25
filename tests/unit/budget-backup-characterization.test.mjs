@@ -7,6 +7,8 @@ import {initializeNodeKeyPolicy,createNodeKeyPolicy} from '../../src/lib/account
 import {initializeNodeAttemptLedger,createNodeAttemptLedger} from '../../src/lib/accounting/node-attempt-ledger.js';
 import {EXCLUSIVE_USAGE} from '../../src/lib/accounting/terminal-cost.js';
 import {backupDbLite} from '../../src/lib/db/backup.js';
+import {validateCodexStandardReference} from '../../src/lib/accounting/exact-money.js';
+import {BUDGET_REFERENCE_SCOPE,codexStandardReferenceKey} from '../../src/lib/pricing/constants.js';
 assert.equal(process.env.BUDGET_DRIVER_SANDBOX,'1');
 assert.notEqual(fs.readlinkSync('/proc/self/ns/net'),process.env.BUDGET_OUTER_NET);
 let sequence=0;
@@ -72,6 +74,17 @@ test('retired identity generation history and administrative event survive actua
 test('restoring an older standalone snapshot enforces its saved policy and recorded spend', () => fixture(async (db, dir) => {
   const now = '2026-11-16T10:00:00.000Z';
   const context = { presentedSecret: 'fixture-secret', now };
+  const revision = codexStandardReferenceKey('gpt-6.2-sol');
+  const priceAtBackup = { revision, currency: 'USD', unit: 'USD/1M tokens', syncedAt: 1,
+    rates: { input: '1', cached: '0.1', output: '2' } };
+  const manualAtBackup = { 'gpt-6.2-sol': { input: 9, output: 9 } };
+  db.exec('CREATE TABLE kv(scope TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(scope,key))');
+  const savePrice = (scope, key, value) => db.run('INSERT OR REPLACE INTO kv VALUES(?,?,?)',
+    [scope, key, JSON.stringify(value)]);
+  const readPrice = (adapter, scope, key) => JSON.parse(adapter.get('SELECT value FROM kv WHERE scope=? AND key=?',
+    [scope, key]).value);
+  savePrice(BUDGET_REFERENCE_SCOPE, revision, priceAtBackup);
+  savePrice('pricing', 'openai', manualAtBackup);
   const original = id => ({
     attemptId: id, keyId: 'key-A', bindingGeneration: '1', provider: 'fixture', model: 'fixture', startedAt: now,
     price: { currency: 'USD', unit: 'USD/1M tokens', revision: 'fixture', rates: { input: '1', output: '2' } },
@@ -96,6 +109,10 @@ test('restoring an older standalone snapshot enforces its saved policy and recor
   assert.equal(totalsAtBackup.monthly, '3000000');
   const snapshot = backupDbLite(db, dir, 'backup.sqlite');
 
+  const newerPrice = { ...priceAtBackup, syncedAt: 2, rates: { ...priceAtBackup.rates, input: '3' } };
+  const newerManual = { 'gpt-6.2-sol': { input: 10, output: 10 } };
+  savePrice(BUDGET_REFERENCE_SCOPE, revision, newerPrice);
+  savePrice('pricing', 'openai', newerManual);
   sourcePolicy.save('key-A', policyAtBackup.version, { weekly: null, monthly: '6000000' });
   charge('after-backup');
   assert.equal(posts, 2);
@@ -110,6 +127,10 @@ test('restoring an older standalone snapshot enforces its saved policy and recor
     assert.deepEqual(policy.inspect('key-A'), policyAtBackup);
     assert.deepEqual(ledger.validateExistingAttempts(), { validatedAttempts: 2, validatedTerminals: 2 });
     assert.deepEqual(ledger.totals('key-A', now), totalsAtBackup);
+    const restoredPrice = readPrice(restored, BUDGET_REFERENCE_SCOPE, revision);
+    assert.deepEqual(restoredPrice, priceAtBackup);
+    assert.deepEqual(validateCodexStandardReference(restoredPrice), validateCodexStandardReference(priceAtBackup));
+    assert.deepEqual(readPrice(restored, 'pricing', 'openai'), manualAtBackup);
     const next = ledger.prepare(original('after-restore'));
     assert.throws(() => ledger.dispatch(next.ack, context, () => posts++));
     assert.equal(posts, 2);
@@ -122,6 +143,8 @@ test('restoring an older standalone snapshot enforces its saved policy and recor
   }
   assert.equal(sourcePolicy.inspect('key-A').limits.monthly, '6000000');
   assert.equal(sourceLedger.totals('key-A', now).monthly, '6000000');
+  assert.deepEqual(readPrice(db, BUDGET_REFERENCE_SCOPE, revision), newerPrice);
+  assert.deepEqual(readPrice(db, 'pricing', 'openai'), newerManual);
 }));
 
 test('older snapshots restore the credential generation and retirement state at backup time', () => fixture(async (db, dir) => {
