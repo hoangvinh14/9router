@@ -31,7 +31,6 @@ The startup regression suite covers refusal before migrations on unqualified acc
 ### Tiêu chí còn mở
 
 - [ ] Mất điện thực trên thiết bị và filesystem dùng một lần. Ca SIGKILL và lỗi syscall đã kiểm chứng ranh giới được tiêm lỗi.
-- [ ] Budget trên SQL.js. Đã kiểm tra fallback thường, từ chối DB native WAL và ghi ảnh an toàn hơn. Mỗi tiến trình SQL.js giữ ảnh DB riêng, nên vẫn thiếu cơ chế phối hợp writer và ACK bền vững cho budget.
 - [ ] Rollout trên instance thật. Đối chiếu các thu hồi hoặc lần xoay sau thời điểm sao lưu trước khi mở ingress.
 
 ### Windows và tiến trình đồng thời
@@ -71,6 +70,14 @@ Kết quả: composition HTTPS 76/76, counted 76/76, pure/ledger 123/123, backup
 Trên Linux, `node tests/fixtures/budget/run-pure.mjs --wal-sync` đạt 2/2 trên Node v22.23.2 và 2/2 trên v24.21.0. Fixture giữ cấu hình WAL/NORMAL của ứng dụng, tạo backup rồi dùng hai bản sao độc lập cho đối chứng và lỗi. Sau checkpoint TRUNCATE, `strace` xác định syscall đồng bộ tệp WAL trong chính lần ghi intent hoặc terminal. Chạy lại với EIO tại syscall đó, kiểm tra đường dẫn và lỗi trong trace. Lỗi ghi intent cho 0 lần gọi transport. Lỗi ghi terminal sau một lần gọi cho 0 lần gọi tiếp theo, kể cả với intent đã chuẩn bị. Tiến trình mở lại sau khi writer đóng giữ khoản đã ghi trước lỗi 3.000.000 nanoUSD, đúng số intent, một terminal và integrity_check thành công. Cả hai thao tác không gọi rename, renameat hoặc renameat2. Phép thử áp dụng cho lần sync WAL đầu tiên sau checkpoint. Ca checkpoint được ghi riêng bên dưới. [Kiểm thử syscall](../../tests/unit/budget-wal-sync.test.mjs).
 
 Ca Vitest `unit/budget-sqljs-fallback.test.js` đạt 4/4 trên Node v24.21.0 ở Linux và Windows. Khi thiếu driver native, SQL.js chạy migration thường và giữ bản ghi sau khi mở lại. Fixture native SQLite checkpoint bảng thường rồi tạo bảng accounting chỉ trong WAL. Trước bản sửa, SQL.js mở thành công ảnh DB cũ. Hiện adapter từ chối DB ở chế độ WAL hoặc có sidecar khôi phục. Đường lưu thường lấy cách ghi ảnh của OmniRoute làm đối chiếu. SQL.js đồng bộ tệp tạm rồi đổi tên trong cùng thư mục. Hai ca chèn lỗi ở fsync và rename giữ nguyên ảnh trước đó, và thử lại sau lỗi ghi được cả hai bản ghi. Lịch ghi thường vẫn theo debounce. [Kiểm thử fallback](../../tests/unit/budget-sqljs-fallback.test.js) · [OmniRoute](https://github.com/diegosouzapw/OmniRoute/blob/488f57e9d3fccc8d1741fdf21d35d5730b118a18/src/lib/db/adapters/sqljsAdapter.ts#L144-L194).
+
+### Kiểm chứng budget SQL.js trên Linux x64
+
+Đã nghiệm thu SQL.js với Node v24.21.0 trên volume cục bộ, một writer, và `NINEROUTER_SQLJS_ACCOUNTING=1`. Adapter từ chối DB native WAL và tiến trình ghi thứ hai. Giao dịch budget trả ACK sau khi đồng bộ tệp tạm, đổi tên và đồng bộ thư mục. Nếu bước lưu lỗi, attempt đã chuẩn bị thêm 0 lượt gọi transport. Sau SIGKILL, lỗi trước rename giữ 3.000.000 nanoUSD đã xác nhận trước đó. Lỗi đồng bộ thư mục sau rename cho phép tiến trình mới cùng boot và PID namespace đọc đủ 6.000.000 nanoUSD và chặn ngay ở hạn mức. Khôi phục từ backup giữ số đã ghi và schema, với bảng request log rỗng.
+
+GitHub Actions tại `ff2773c0` đạt cả bốn lane gồm SQL.js, Bun, better-sqlite3 trên Linux và node:sqlite cùng build standalone trên Windows. [CI](https://github.com/hoangvinh14/9router/actions/runs/45720291115) · [Kiểm thử persistence](../../tests/fixtures/budget/run-platform-persistence.mjs).
+
+**Docker nội bộ Linux amd64.** Image app và operator dùng Node v24.21.0. Operator tạo và mở lại DB SQL.js khi tắt mạng và từ chối mở DB native WAL ở chế độ SQL.js. Image app khởi động qua entrypoint thật, phục vụ HTTP loopback, rồi nhả quyền writer khi dừng bằng SIGTERM. Container mới trên cùng volume mở DB đã chuẩn bị, phục vụ HTTP và nhả quyền writer lần nữa. Startup đạt 33/33, HTTPS loopback đạt 103/103. Phép thử Docker kiểm chứng đóng gói, startup và shutdown trên dữ liệu dùng một lần.
 
 ### Kiểm chứng adapter native trên Linux x64
 
