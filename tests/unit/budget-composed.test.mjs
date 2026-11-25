@@ -1321,6 +1321,44 @@ if (stage === undefined) {
     });
   }
 
+  test('Messages uses Codex without forwarding the client output limit and settles each response once', () => {
+    const reply = () => sseReply([
+      {type:'response.output_text.delta',delta:'hello'},
+      {type:'response.completed',response:{id:'resp_messages',status:'completed',output:[
+        {type:'message',role:'assistant',content:[{type:'output_text',text:'hello'}]}],
+        usage:{input_tokens:100,input_tokens_details:{cached_tokens:40},output_tokens:25}}},
+    ].map(sseFrame))();
+    return codexFixture(async ({ state, rows, totals }) => {
+      const send = (stream, extra = {}) => postMessages(new Request('https://fixture.invalid/v1/messages', {
+        method:'POST', headers:{authorization:'Bearer fixture-client'}, body:JSON.stringify({
+          model:'codex/gpt-6.2-sol', max_tokens:1, stream, messages:[{role:'user',content:'Hi'}], ...extra,
+        }),
+      }));
+      assert.equal((await send(false, { tools:[{type:'web_search_20250305',name:'web_search'}] })).status, 503);
+      assert.equal(state.wire.length, 0);
+      for (const stream of [false,true]) {
+        const response = await send(stream);
+        const body = await response.text();
+        assert.equal(response.status, 200, body);
+        if (stream) {
+          assert.match(body, /event: message_stop/);
+          assert.match(body, /hello/);
+        } else {
+          const message = JSON.parse(body);
+          assert.equal(message.type, 'message');
+          assert.equal(message.content[0].text, 'hello');
+        }
+        const wire = state.wire.at(-1).body;
+        assert.equal(wire.max_tokens, undefined);
+        assert.equal(wire.max_output_tokens, undefined);
+      }
+      assert.equal(totals().monthly, '748000');
+      assert.equal(rows().terminals.length, 2);
+      assert.equal((await send(false)).status, 503);
+      assert.equal(state.wire.length, 2);
+    }, { monthly:'748000', reply });
+  });
+
   test('Codex forwards encrypted continuation without billing its byte length as estimated tokens', () => {
     return codexFixture(async ({ request, rows, state }) => {
       for (const ciphertext of ['fixture', 'fixture'.repeat(1000)]) {

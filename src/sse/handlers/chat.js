@@ -54,7 +54,7 @@ export async function handleChat(request, clientRawRequest = null) {
 export async function handleAccountedChatCandidate(request, { identity, createContext, provider = "anthropic", connectionId, fallbackConnectionId }) {
   try {
     const pathname = new URL(request.url).pathname;
-    const acceptsEndpoint = ['openai', 'codex'].includes(provider) ? isCodexBudgetEndpoint(pathname)
+    const acceptsEndpoint = ['openai', 'codex'].includes(provider) ? (isCodexBudgetEndpoint(pathname) || provider === "codex" && pathname === "/v1/messages")
       : connectionId && isCodexBudgetEndpoint(pathname) ? true
       : pathname === '/v1/messages' || (provider === 'claude' && pathname === '/v1/v1/messages');
     if (!['anthropic', 'claude', 'codex', 'openai'].includes(provider) || request.method !== 'POST' ||

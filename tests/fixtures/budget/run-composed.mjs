@@ -13,7 +13,7 @@ const files = [
   'src/app/api/v1/messages/route.js', 'src/app/api/v1/responses/route.js', 'src/app/api/v1/chat/completions/route.js',
   'src/lib/db/helpers/kvStore.js', 'src/lib/pricing/openai-standard-reference.js', 'src/lib/accounting/openai-dispatch-context.js',
   'open-sse/providers/registry/openai.js', 'open-sse/utils/accounted-openai-chat-stream.js',
-  'open-sse/utils/usageTracking.js', 'open-sse/translator/request/openai-responses.js', 'open-sse/translator/response/openai-responses.js',
+  'open-sse/translator/response/openai-to-claude.js', 'open-sse/utils/usageTracking.js', 'open-sse/translator/request/openai-responses.js', 'open-sse/translator/response/openai-responses.js',
   'open-sse/translator/concerns/chunk.js', 'open-sse/translator/concerns/usage.js',
   'open-sse/translator/concerns/reasoning.js', 'open-sse/translator/concerns/claudeMessage.js',
   'open-sse/translator/concerns/finishReason.js', 'open-sse/handlers/chatCore/sseToJsonHandler.js',

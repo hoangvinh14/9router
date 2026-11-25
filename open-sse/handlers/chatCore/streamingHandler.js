@@ -47,22 +47,31 @@ function buildTransformStream({ provider, sourceFormat, targetFormat, userAgent,
   return createPassthroughStreamWithLogger(provider, reqLogger, model, connectionId, body, onStreamComplete, apiKey, toolNameMap);
 }
 
-async function createChatCompletionsRenderer(model, includeUsage) {
+async function createChatCompletionsRenderer(model, includeUsage, messages = false) {
   const { openaiResponsesToOpenAIResponse } = await import("../../translator/response/openai-responses.js");
+  const toMessages = messages && (await import('../../translator/response/openai-to-claude.js')).openaiToClaudeResponse;
+  const messagesState = { toolCalls: new Map() };
   const state = { model };
   const frame = value => `data: ${JSON.stringify(value)}\n\n`;
   return (event, terminal) => {
     const incomplete = event.type === "response.incomplete";
     const finishReason = incomplete && incompleteChatFinishReason(event.response);
     if (event.type === "response.failed" || event.type === "error" || (incomplete && !finishReason)) {
+      if (messages) return 'event: error\ndata: ' + JSON.stringify({ type: 'error', error: {
+        type: 'api_error', message: event.response?.error?.message || event.error?.message || 'Codex response failed',
+      } }) + '\n\n';
       return frame({ error: event.response?.error || event.error ||
         { message: incomplete ? "Codex response incomplete" : "Codex response failed", type: "upstream_error" } }) + "data: [DONE]\n\n";
     }
     const chunk = openaiResponsesToOpenAIResponse(incomplete
       ? { ...event, type: "response.completed" } : event, state);
-    if (!chunk) return terminal ? "data: [DONE]\n\n" : "";
+    if (!chunk) return terminal && !messages ? "data: [DONE]\n\n" : "";
     const { usage, ...completion } = chunk;
     if (incomplete) completion.choices[0].finish_reason = finishReason;
+    if (messages) {
+      const events = toMessages({ ...completion, usage }, messagesState) || [];
+      return events.map(item => `event: ${item.type}\ndata: ${JSON.stringify(item)}\n\n`).join('');
+    }
     if (includeUsage) completion.usage = null;
     const trailer = includeUsage && usage ? frame({ ...completion, choices: [], usage }) : "";
     return frame(completion) + trailer + (terminal ? "data: [DONE]\n\n" : "");
@@ -80,7 +89,8 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
     const nativeClaude = ["anthropic", "claude"].includes(provider) && (sourceFormat === FORMATS.CLAUDE || convertedClaude) && targetFormat === FORMATS.CLAUDE;
     const chatCompletions = provider === "codex" && sourceFormat === FORMATS.OPENAI &&
       clientRawRequest?.endpoint === "/v1/chat/completions";
-    const nativeResponses = ["openai", "codex"].includes(provider) && (sourceFormat === FORMATS.OPENAI_RESPONSES || chatCompletions) &&
+    const messages = provider === 'codex' && sourceFormat === FORMATS.CLAUDE && clientRawRequest?.endpoint === '/v1/messages';
+    const nativeResponses = ["openai", "codex"].includes(provider) && (sourceFormat === FORMATS.OPENAI_RESPONSES || chatCompletions || messages) &&
       targetFormat === FORMATS.OPENAI_RESPONSES && typeof accountingAttempt.settleResponses === "function";
     if ((!nativeClaude && !nativeResponses && !nativeChat) || mediaType !== "text/event-stream" || !providerResponse.body) {
       await providerResponse.body?.cancel().catch(() => {});
@@ -88,8 +98,8 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
       return { success: false, response: Response.json({ error: { message: "Accounting response unavailable" } }, { status: 502 }) };
     }
     const onTerminal = () => trackPendingRequest(model, provider, connectionId, false);
-    const renderChat = chatCompletions && !accountedJson
-      ? await createChatCompletionsRenderer(model, body?.stream_options?.include_usage === true)
+    const renderChat = (chatCompletions || messages) && !accountedJson
+      ? await createChatCompletionsRenderer(model, body?.stream_options?.include_usage === true, messages)
       : null;
     const renderer = convertedClaude ? (await import('../../utils/claude-budget-output.js')).createClaudeBudgetOutput({
       endpoint: accountingAttempt.convertedEndpoint, model, includeUsage: body.stream_options?.include_usage === true,
@@ -110,6 +120,7 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
       : createAccountedAnthropicStream(accountingAttempt, onTerminal, renderer);
     const onAbortTerminal = convertedClaude ? () => new TextEncoder().encode(renderer.render({ type: 'error' }))
       : nativeChat ? () => buildStreamErrorBytes(502, "OpenAI stream ended before completion", FORMATS.OPENAI)
+      : messages && !accountedJson ? () => buildStreamErrorBytes(502, "Codex stream ended before completion", FORMATS.CLAUDE)
       : chatCompletions
       ? (accountedJson ? null : () => buildStreamErrorBytes(502, "Codex stream ended before completion", FORMATS.OPENAI))
       : nativeResponses ? buildAbortedResponsesTerminalBytes

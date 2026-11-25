@@ -57,8 +57,8 @@ export function resolve(specifier, context, nextResolve) {
   if (parent === root + 'open-sse/handlers/chatCore/sseToJsonHandler.js' && specifier === '../../config/providers.js') {
     return nextResolve(providerConfig, context);
   }
-  if (specifier === '../index.js' && ['request', 'response'].some(kind =>
-    parent === root + `open-sse/translator/${kind}/openai-responses.js`)) {
+  if (specifier === '../index.js' && (parent === root + 'open-sse/translator/response/openai-to-claude.js' || ['request', 'response'].some(kind =>
+    parent === root + `open-sse/translator/${kind}/openai-responses.js`))) {
     return nextResolve('data:text/javascript,export const register = () => {};', context);
   }
   if (parent === chat && specifier === '@/lib/accounting/oauth-refresh.js') return nextResolve(root + 'src/lib/accounting/oauth-refresh.js', context);

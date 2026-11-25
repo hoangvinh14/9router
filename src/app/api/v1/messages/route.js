@@ -39,16 +39,18 @@ export async function POST(request) {
   }
   const profile = state.kind === 'controlled' && await findInstalledBudgetProfileForKey(state.keyId);
   const pathname = new URL(request.url).pathname;
-  if (!profile || !(profile.provider === 'anthropic' && pathname === '/v1/messages' ||
+  if (!profile || !(['anthropic', 'codex'].includes(profile.provider) && pathname === '/v1/messages' ||
       profile.provider === 'claude' && ['/v1/messages', '/v1/v1/messages'].includes(pathname))) return accountingUnavailableResponse();
   try {
     const { getInstalledAccountingServices, bindAccountingIdentity } = await import('@/lib/accounting/installed-service.js');
-    const { createAnthropicDispatchContext } = await import('@/lib/accounting/anthropic-dispatch-context.js');
+    const createContext = profile.provider === 'codex'
+      ? (await import('@/lib/accounting/codex-dispatch-context.js')).createCodexDispatchContext
+      : (await import('@/lib/accounting/anthropic-dispatch-context.js')).createAnthropicDispatchContext;
     const identity = bindAccountingIdentity(await getInstalledAccountingServices(), selectedAccountingSecret(request));
     if (identity?.keyId !== state.keyId) return accountingUnavailableResponse();
     await ensureInitialized();
     return await handleAccountedChatCandidate(request, { identity, provider: profile.provider, connectionId: profile.connectionId, fallbackConnectionId: profile.fallbackProfile?.connectionId,
-      createContext: ({ routeProof, credentials, model, body }) => createAnthropicDispatchContext({ identity, routeProof, credentials, profile: credentials.connectionId === profile.fallbackProfile?.connectionId ? profile.fallbackProfile : profile,
+      createContext: ({ routeProof, credentials, model, body }) => createContext({ endpoint: pathname, identity, routeProof, credentials, profile: credentials.connectionId === profile.fallbackProfile?.connectionId ? profile.fallbackProfile : profile,
         model, stream: body.stream === true,
       }),
     });

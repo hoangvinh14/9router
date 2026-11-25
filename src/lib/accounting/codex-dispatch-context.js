@@ -62,7 +62,50 @@ function chatInput(model, body) {
   return openaiToOpenAIResponsesRequest(model, body, true);
 }
 
-export function createCodexDispatchContext({ identity, routeProof, credentials, profile, model = profile.model, clock }) {
+function messagesInput(model, body) {
+  const only = (obj, keys) => obj && typeof obj === 'object' && !Array.isArray(obj) &&
+    Object.keys(obj).every(key => keys.includes(key));
+  if (!only(body, ['model', 'messages', 'max_tokens', 'stream', 'system', 'tools']) ||
+      !Number.isSafeInteger(body.max_tokens) || body.max_tokens < 1 ||
+      (body.stream !== undefined && typeof body.stream !== 'boolean') ||
+      !Array.isArray(body.messages) || !body.messages.length) throw unavailable();
+  const input = [];
+  for (const msg of body.messages) {
+    if (!only(msg, ['role', 'content']) || !['user', 'assistant'].includes(msg.role)) throw unavailable();
+    const blocks = typeof msg.content === 'string' ? [{ type: 'text', text: msg.content }] : msg.content;
+    if (!Array.isArray(blocks) || !blocks.length) throw unavailable();
+    for (const block of blocks) {
+      if (only(block, ['type','text']) && block.type === 'text' && typeof block.text === 'string') {
+        input.push({ role: msg.role, content: block.text });
+      } else if (msg.role === 'assistant' && only(block, ['type','id','name','input']) &&
+          block.type === 'tool_use' && typeof block.id === 'string' && block.id && functionName(block.name) &&
+          block.input && typeof block.input === 'object' && !Array.isArray(block.input)) {
+        input.push({ type:'function_call', call_id:block.id, name:block.name, arguments:JSON.stringify(block.input) });
+      } else if (msg.role === 'user' && only(block, ['type','tool_use_id','content','is_error']) &&
+          block.type === 'tool_result' && (block.is_error === undefined || block.is_error === false) &&
+          typeof block.tool_use_id === 'string' && block.tool_use_id && typeof block.content === 'string') {
+        input.push({ type:'function_call_output', call_id:block.tool_use_id, output:block.content });
+      } else throw unavailable();
+    }
+  }
+  const result = { model, input, stream:true };
+  if (body.system !== undefined) {
+    if (!plainText(body.system)) throw unavailable();
+    result.instructions = typeof body.system === 'string' ? body.system : body.system.map(b => b.text).join('\n');
+  }
+  if (body.tools !== undefined) {
+    if (!Array.isArray(body.tools)) throw unavailable();
+    result.tools = body.tools.map(tool => {
+      if (!only(tool, ['name','description','input_schema']) || !functionName(tool.name) ||
+          (tool.description !== undefined && typeof tool.description !== 'string') ||
+          tool.input_schema?.type !== 'object') throw unavailable();
+      return { type:'function', name:tool.name, description:tool.description, parameters:tool.input_schema };
+    });
+  }
+  return result;
+}
+
+export function createCodexDispatchContext({ identity, routeProof, credentials, profile, model = profile.model, endpoint: ingress, clock }) {
   const { connectionId, accessToken, providerSpecificData } = credentials;
   const accountId = codexAccountId(providerSpecificData);
   const priceBasis = codexStandardReferenceKey(model);
@@ -91,7 +134,7 @@ export function createCodexDispatchContext({ identity, routeProof, credentials, 
     stream: true,
     validateInput(body, chatCompletions = false) {
       if (validated || ![model, `codex/${model}`].includes(body?.model)) throw unavailable();
-      const input = chatCompletions ? chatInput(model, body) : body;
+      const input = ingress === '/v1/messages' ? messagesInput(model, body) : chatCompletions ? chatInput(model, body) : body;
       validate(input);
       validated = true;
       return input;

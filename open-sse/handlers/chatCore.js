@@ -114,8 +114,11 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
       (sourceFormat === FORMATS.OPENAI_RESPONSES && clientRawRequest?.endpoint === '/v1/responses'));
   const codexChatAccounting = accounting?.provider === 'codex' && sourceFormat === FORMATS.OPENAI &&
     clientRawRequest?.endpoint === '/v1/chat/completions';
+  const codexMessagesAccounting = accounting?.provider === 'codex' && sourceFormat === FORMATS.CLAUDE &&
+    clientRawRequest?.endpoint === '/v1/messages';
+  const convertedCodex = codexChatAccounting || codexMessagesAccounting;
   const nativeCodexAccounting = provider === 'codex' && accounting?.provider === 'codex' &&
-    accounting.stream === true && (codexChatAccounting ||
+    accounting.stream === true && (convertedCodex ||
       (sourceFormat === FORMATS.OPENAI_RESPONSES && clientRawRequest?.endpoint === '/v1/responses'));
   const nativeClaudeOAuthAccounting = provider === 'claude' && accounting?.provider === 'claude';
   const claudeConversion = accounting?.convertedEndpoint && accounting.convertedEndpoint === clientRawRequest?.endpoint &&
@@ -123,7 +126,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
      (sourceFormat === FORMATS.OPENAI_RESPONSES && clientRawRequest.endpoint === '/v1/responses'));
   const nativeAnthropicAccounting = (provider === 'anthropic' || nativeClaudeOAuthAccounting) && (sourceFormat === FORMATS.CLAUDE || claudeConversion);
   if (accounting !== null && ((!nativeAnthropicAccounting && !nativeCodexAccounting && !nativeOpenAIAccounting) ||
-      (!claudeConversion && !codexChatAccounting && (accounting.nativeDefaults ? body.stream ?? false : body.stream) !== (accounting.stream === true)) || typeof accounting.prepare !== 'function' ||
+      (!claudeConversion && !convertedCodex && (accounting.nativeDefaults ? body.stream ?? false : body.stream) !== (accounting.stream === true)) || typeof accounting.prepare !== 'function' ||
       headroomEnabled || pxpipeEnabled || (rtkEnabled && !nativeClaudeOAuthAccounting) || cavemanEnabled || ponytailEnabled ||
       customPromptEnabled || providerThinking?.mode && providerThinking.mode !== 'auto')) {
     return { ...createErrorResult(503, 'Accounting profile unavailable'), accountingRefused: true };
@@ -267,7 +270,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   let customToolNames;
   if (passthrough) {
     log?.debug?.("PASSTHROUGH", `${clientTool} → ${provider} | native lossless`);
-    translatedBody = { ...((claudeConversion || codexChatAccounting || nativeOpenAIAccounting) ? accountedInput : body), model: stripThinkingSuffix(upstreamModel) };
+    translatedBody = { ...((claudeConversion || convertedCodex || nativeOpenAIAccounting) ? accountedInput : body), model: stripThinkingSuffix(upstreamModel) };
     if (provider === "codex" && !nativeCodexAccounting) {
       const suffixThinking = {};
       applyThinking(sourceFormat, upstreamModel, suffixThinking, provider);
@@ -654,7 +657,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
     return handleStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat,
       streamController, accountedJson: !clientRequestedStreaming });
   }
-  if (codexChatAccounting && !clientRequestedStreaming) {
+  if (convertedCodex && !clientRequestedStreaming) {
     const metered = await handleStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat,
       targetFormat: providerResponseFormat, streamController, accountedJson: true });
     if (!metered.success) return metered;
