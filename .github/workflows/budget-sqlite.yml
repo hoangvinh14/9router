@@ -15,7 +15,7 @@ permissions:
 jobs:
   windows:
     runs-on: windows-2025
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,3 +24,15 @@ jobs:
         with:
           node-version: "24.21.0"
       - run: node tests/fixtures/budget/run-platform-persistence.mjs
+      - run: npm install --no-audit --no-fund
+      - name: Build the standalone app
+        shell: pwsh
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          NEXT_DIST_DIR: budget-ci-build
+        run: |
+          $env:DATA_DIR = Join-Path $env:RUNNER_TEMP '9router-budget-build-data'
+          $env:APPDATA = Join-Path $env:RUNNER_TEMP '9router-budget-build-appdata'
+          npm run build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (!(Test-Path budget-ci-build/standalone/server.js)) { throw 'Missing standalone server' }
