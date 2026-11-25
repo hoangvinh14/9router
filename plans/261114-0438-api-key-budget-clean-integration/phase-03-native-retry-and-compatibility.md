@@ -1,6 +1,12 @@
 # Phase 03 — Retained Claude/Codex scope, retry/refresh và ordinary parity
 
-Status: in-progress. Priority: P1. Depends on: phase02 + exact applicable producer evidence. Target C1–C4 không được đóng bằng chỉ C0.
+Status: completed (nghiệm thu tích hợp offline ngày 2026-11-25). Priority: P1. Depends on: phase02 + exact applicable producer evidence. Target C1–C4 không được đóng bằng chỉ C0.
+
+### Chốt nghiệm thu tích hợp
+
+Owner chấp nhận từ chối riêng request dùng `gpt-reserve` trên key có budget khi chưa có đơn giá Codex áp dụng từ OpenAI. Model có trong ACL vẫn trả 503 trước POST, không tạo attempt hoặc terminal. Trong cùng fixture, ngay sau đó cùng key dùng `gpt-6.2-sol` thành công, tạo một POST, một attempt và một terminal 374.000 nanoUSD. Chính sách áp dụng theo snapshot giá, không cần blacklist model.
+
+Bộ kiểm thử transport đếm lượt đạt 96/96, HTTPS loopback đạt 103/103 và native fidelity đạt 12/12 trên Node v24.21.0. Nghiệm thu dùng SQLite và credential fixture. Các mục bên dưới ghi lại diễn tiến theo thời điểm. Quyết định cuối cùng về Claude SSE, Messages qua Codex và giá thiếu áp dụng cùng bằng chứng retry/refresh, strict CONNECT và continuity. Nghiệm thu image trên instance thật và ma trận lỗi lưu trữ/runtime tiếp tục theo Phase 04–05.
 
 ### Quyết định nghiệm thu Claude OAuth khi SSE báo lỗi, 2026-11-25
 

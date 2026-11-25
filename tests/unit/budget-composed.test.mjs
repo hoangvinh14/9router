@@ -1359,6 +1359,25 @@ if (stage === undefined) {
     }, { monthly:'748000', reply });
   });
 
+  test('an unpriced gpt-reserve request leaves the key available for priced Codex models', () =>
+    codexFixture(async ({ state, request, rows, totals }) => {
+      state.db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [
+        JSON.stringify(['codex/gpt-reserve', 'codex/gpt-6.2-sol']), 'fixture-key',
+      ]);
+      const refused = await postResponses(request({ model: 'codex/gpt-reserve' }));
+      assert.equal(refused.status, 503);
+      assert.equal(state.wire.length, 0);
+      assert.deepEqual(rows(), { attempts: [], terminals: [] });
+
+      const priced = await postResponses(request());
+      assert.equal(priced.status, 200);
+      assert.match(await priced.text(), /response.completed/);
+      assert.equal(state.wire.length, 1);
+      assert.equal(rows().attempts.length, 1);
+      assert.equal(rows().terminals.length, 1);
+      assert.equal(totals().monthly, codexFixtureLimit);
+    }));
+
   test('Codex forwards encrypted continuation without billing its byte length as estimated tokens', () => {
     return codexFixture(async ({ request, rows, state }) => {
       for (const ciphertext of ['fixture', 'fixture'.repeat(1000)]) {
