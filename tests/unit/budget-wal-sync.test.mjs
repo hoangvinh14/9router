@@ -18,9 +18,11 @@ const cases = [
   ['checkpoint-sync', 'EIO'],
   ['checkpoint-write', 'ENOSPC'],
   ['checkpoint-sync', 'ENOSPC'],
+  ['intent', 'ENOSPC', true],
+  ['terminal', 'ENOSPC', true],
 ];
-for (const [phase, errno] of cases) {
-  test(`SQLite ${errno} at ${phase} blocks dispatch and preserves acknowledged spend`, () => {
+for (const [phase, errno, walWrite = false] of cases) {
+  test(`SQLite ${errno} at ${phase}${walWrite ? ' WAL write' : ''} blocks dispatch and preserves acknowledged spend`, () => {
     const root = fs.mkdtempSync('/tmp/budget-sync-');
     try {
       run(root, [process.execPath, worker, 'seed']);
@@ -38,13 +40,14 @@ for (const [phase, errno] of cases) {
         assert.ok(start >= 0 && end > start);
         const measured = trace.slice(start + 1, end);
         assert.equal(measured.some(line => /^rename(?:at2?)?\(/.test(line)), false);
-        const target = phase === 'checkpoint-write' ? /^pwrite64\(.*\/ledger\.sqlite>/
+        const target = walWrite ? /^pwrite64\(.*\/ledger\.sqlite-wal>/
+          : phase === 'checkpoint-write' ? /^pwrite64\(.*\/ledger\.sqlite>/
           : phase === 'checkpoint-sync' ? /^(fsync|fdatasync)\(.*\/ledger\.sqlite>/
           : /^(fsync|fdatasync)\(.*\/ledger\.sqlite-wal>/;
         const sync = measured.find(line => target.test(line));
-        assert.ok(sync, 'expected a native WAL synchronization inside the measured operation');
+        assert.ok(sync, 'expected the target SQLite syscall inside the measured operation');
         if (mode === 'control') {
-          assert.match(sync, phase === 'checkpoint-write' ? /= [1-9]\d*$/ : /= 0$/);
+          assert.match(sync, walWrite || phase === 'checkpoint-write' ? /= [1-9]\d*$/ : /= 0$/);
           const name = sync.split('(')[0];
           const ordinal = trace.slice(0, trace.indexOf(sync, start) + 1).filter(line => line.startsWith(name + '(')).length;
           injection = 'inject=' + name + ':error=' + errno + ':when=' + ordinal;
