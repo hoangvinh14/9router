@@ -209,7 +209,7 @@ sequenceDiagram
 
 The default release image refuses accounting-controlled API keys before routing. An internal candidate carries the actual direct or nested combo branch and selected account into the final SQLite authorization transaction. That transaction rechecks the captured routing inputs alongside current key policy and spend. Its successful `COMMIT` orders revocation; transaction cleanup and the process health check must still succeed before invocation. Unverified helper, capacity-adapter and retry paths do not inherit that authorization.
 
-The Node SQLite adapter remembers checkpoint storage failures. An enrolled connection faults the accounting process immediately, blocking further budget dispatch. A connection that encountered the failure earlier refuses accounting enrollment. Temporary lock contention can defer a checkpoint.
+The native SQLite adapters (`node:sqlite`, `bun:sqlite`, and `better-sqlite3`) remember checkpoint storage failures. An enrolled connection faults the accounting process immediately, blocking further budget dispatch. A connection that encountered the failure earlier refuses accounting enrollment. Temporary lock contention can defer a checkpoint. SQL.js serves ordinary databases as a fallback. It publishes complete images through a synced temporary file and rename. The fallback rejects native WAL databases and recovery sidecars. Budget requires a native SQLite adapter.
 
 SQLite lightweight backups retain WAL mode when the source uses WAL. They preserve the `requestDetails` table and its indexes with an empty table so the database can pass the installed schema audit. An older snapshot contains the policy and recorded spend from the time it was taken.
 

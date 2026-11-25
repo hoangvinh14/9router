@@ -31,7 +31,7 @@ The startup regression suite covers refusal before migrations on unqualified acc
 ### Tiêu chí còn mở
 
 - [ ] Mất điện thực trên thiết bị và filesystem dùng một lần. Ca SIGKILL và lỗi syscall đã kiểm chứng ranh giới được tiêm lỗi.
-- [ ] Ma trận runtime ngoài node:sqlite. Bun, better-sqlite3 và SQL.js có bằng chứng giữ dữ liệu thường và từ chối cấp accounting adapter. Nghiệm thu chạy budget trên các engine này còn mở.
+- [ ] Budget trên SQL.js. Đã kiểm tra fallback thường, từ chối DB native WAL và ghi ảnh an toàn hơn. Mỗi tiến trình SQL.js giữ ảnh DB riêng, nên vẫn thiếu cơ chế phối hợp writer và ACK bền vững cho budget.
 - [ ] Rollout trên instance thật. Đối chiếu các thu hồi hoặc lần xoay sau thời điểm sao lưu trước khi mở ingress.
 
 ### Windows và tiến trình đồng thời
@@ -70,13 +70,13 @@ Kết quả: composition HTTPS 76/76, counted 76/76, pure/ledger 123/123, backup
 
 Trên Linux, `node tests/fixtures/budget/run-pure.mjs --wal-sync` đạt 2/2 trên Node v22.23.2 và 2/2 trên v24.21.0. Fixture giữ cấu hình WAL/NORMAL của ứng dụng, tạo backup rồi dùng hai bản sao độc lập cho đối chứng và lỗi. Sau checkpoint TRUNCATE, `strace` xác định syscall đồng bộ tệp WAL trong chính lần ghi intent hoặc terminal. Chạy lại với EIO tại syscall đó, kiểm tra đường dẫn và lỗi trong trace. Lỗi ghi intent cho 0 lần gọi transport. Lỗi ghi terminal sau một lần gọi cho 0 lần gọi tiếp theo, kể cả với intent đã chuẩn bị. Tiến trình mở lại sau khi writer đóng giữ khoản đã ghi trước lỗi 3.000.000 nanoUSD, đúng số intent, một terminal và integrity_check thành công. Cả hai thao tác không gọi rename, renameat hoặc renameat2. Phép thử áp dụng cho lần sync WAL đầu tiên sau checkpoint. Ca checkpoint được ghi riêng bên dưới. [Kiểm thử syscall](../../tests/unit/budget-wal-sync.test.mjs).
 
-Ca Vitest `unit/budget-sqljs-fallback.test.js` đạt 1/1 trên Node v24.21.0. Khi mô phỏng thiếu driver native, driver ứng dụng chọn engine SQL.js thật, chạy migration thường, giữ bản ghi sau khi đóng và mở lại, đồng thời từ chối cấp adapter accounting. SQL.js ghi ảnh DB trực tiếp bằng writeFileSync sau debounce. Không có bước rename trong đường lưu này. Budget trên SQL.js, better-sqlite3, Bun và Windows vẫn mở. [Kiểm thử fallback](../../tests/unit/budget-sqljs-fallback.test.js).
+Ca Vitest `unit/budget-sqljs-fallback.test.js` đạt 4/4 trên Node v24.21.0 ở Linux và Windows. Khi thiếu driver native, SQL.js chạy migration thường và giữ bản ghi sau khi mở lại. Fixture native SQLite checkpoint bảng thường rồi tạo bảng accounting chỉ trong WAL. Trước bản sửa, SQL.js mở thành công ảnh DB cũ. Hiện adapter từ chối DB ở chế độ WAL hoặc có sidecar khôi phục. Đường lưu thường lấy cách ghi ảnh của OmniRoute làm đối chiếu. SQL.js đồng bộ tệp tạm rồi đổi tên trong cùng thư mục. Hai ca chèn lỗi ở fsync và rename giữ nguyên ảnh trước đó, và thử lại sau lỗi ghi được cả hai bản ghi. Lịch ghi thường vẫn theo debounce. [Kiểm thử fallback](../../tests/unit/budget-sqljs-fallback.test.js) · [OmniRoute](https://github.com/diegosouzapw/OmniRoute/blob/488f57e9d3fccc8d1741fdf21d35d5730b118a18/src/lib/db/adapters/sqljsAdapter.ts#L144-L194).
 
-### Kiểm chứng adapter trên Linux x64
+### Kiểm chứng adapter native trên Linux x64
 
-Bun 1.4.5 với `bun:sqlite` và Node v22.23.2 với `better-sqlite3` 12.11.1 đều giữ dữ liệu thường sau khi đóng và mở lại bằng tiến trình mới. Trên DB thường, cả hai từ chối cấp adapter budget. Sau khi sao lưu DB thử nghiệm và dùng Node v24.21.0 để tạo schema accounting, tiến trình mới trên mỗi engine trả mã `api_key_accounting_startup_unavailable` khi mở DB và `api_key_accounting_unavailable` khi xin adapter budget.
+Bun 1.4.5 với `bun:sqlite` và Node v22.23.2 với `better-sqlite3` 12.11.1 dùng cùng đường kiểm tra startup, transaction WAL/FULL, kiểm tra checkpoint và đóng kết nối như `node:sqlite`. Bộ kiểm thử dùng driver cài đặt thật trên DB dùng một lần. Mỗi engine ghi 3.000.000 nanoUSD, giữ đúng khoản đó qua restart và khôi phục backup, rồi thêm 0 lượt gửi ở đúng giới hạn. Tiến trình thứ hai đọc được intent đang chạy, writer gốc ghi đúng một terminal. Cả hai engine chặn attempt đã chuẩn bị khi tranh khóa hoặc khi checkpoint bị chèn lỗi I/O. Mọi connection trong fixture xác nhận đã đóng. [CI hai engine](https://github.com/hoangvinh14/9router/actions/runs/45593772782) · [Fixture](../../tests/fixtures/budget/run-platform-persistence.mjs).
 
-Phép thử gọi driver ứng dụng thật với filesystem dùng một lần và mạng cô lập. Package cục bộ ban đầu thiếu binding native cho Node 22 nên driver chuyển sang `node:sqlite`. Ca `better-sqlite3` dùng package cùng phiên bản cài riêng cho Node 22. Nghiệm thu chạy budget bằng các engine này, Windows và mất điện thực vẫn mở.
+Kết quả hồi quy trên Linux Node v24.21.0 gồm HTTPS loopback 103/103, startup 33/33, driver 16/16, route retirement/rotation 26/26 và WAL syscall 8/8.
 
 ### Lỗi checkpoint trên tệp DB chính
 
