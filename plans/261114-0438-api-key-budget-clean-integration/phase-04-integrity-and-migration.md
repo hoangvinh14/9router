@@ -18,7 +18,7 @@ Root `/home/gmo/projects/9router`: admitted `src/lib/db/{schema,driver,migrate,b
 
 The startup regression suite covers refusal before migrations on unqualified accounting state and successful startup from a current lightweight backup. [Startup regression suite](../../tests/unit/budget-startup-barrier.test.mjs).
 
-- [ ] Rename và verified rotation cùng stable ID giữ policy/spend/history theo approved D04. Donor validator currently rejects changed fingerprint; test new authorized binding operation, old-secret revocation, stale/CAS/concurrent/fault rollback without half-rebind. Delete retires binding/history, no automatic purge; genuinely new ID does not inherit old money. Import cannot reuse retired IDs. Legal retention duration remains separate rollout gate; no plaintext in accounting records.
+- [x] Rename và verified rotation cùng stable ID giữ policy/spend/history theo approved D04. Donor validator currently rejects changed fingerprint; test new authorized binding operation, old-secret revocation, stale/CAS/concurrent/fault rollback without half-rebind. Delete retires binding/history, no automatic purge; genuinely new ID does not inherit old money. Import cannot reuse retired IDs. Legal retention duration remains separate rollout gate; no plaintext in accounting records.
 - [x] Budget policy update CAS và simultaneous request gate: không double draft overwrite, không money rounding/negative corruption. Tách keys và periods, same-key concurrent preadmitted requests có documented overshoot; peer settlement trước final gate phải chặn successor. Không reserve pending.
 - [x] Week/month Asia/Ho_Chi_Minh boundary tests: exact just-before/at reset, independent weekly/monthly limits, clock injection server-owned; late received usage gắn original startedAt/price/key/window. Price/policy rename/credential drift sau dispatch không reprice/reattribute settlement; final gate trước dispatch rechecks relevant changes.
 - [ ] Durable ledger & saved policy survive clean restart và actual process kill at bounded phases (before intent publish, after intent own ACK, after exposure, before/after terminal publish/ACK). Distinguish known durable truth, ambiguous ACK, interrupted-no-evidence and normal missing/invalid usage. No spend erased/no old authority revived; no new post-death acquisition product. Migrations/readiness never silently restore ledgerStartedAt/coverage as proof.
@@ -31,7 +31,9 @@ The startup regression suite covers refusal before migrations on unqualified acc
 
 ### Xoay key trên dashboard
 
-Owner chấp nhận hiển thị secret mới một lần. Route yêu cầu phiên dashboard, Origin hợp lệ và phiên bản policy hiện tại. Xoay key giữ ID ổn định, hạn mức và lịch sử chi phí. Nếu mất phản hồi, xem phiên bản và thế hệ credential trong Accounting status rồi xác nhận lần xoay mới. Gửi lại phiên bản cũ trả 409. Lịch sử thế hệ lưu fingerprint và trạng thái thu hồi. Biên nhận kiểm toán riêng theo mã thao tác trong thiết kế Phase 01 vẫn mở.
+Owner chấp nhận hiển thị secret mới một lần. Route yêu cầu phiên dashboard, Origin hợp lệ và phiên bản policy hiện tại. Xoay key giữ ID ổn định, hạn mức và lịch sử chi phí. Biên nhận theo mã thao tác được ghi cùng transaction với lần xoay. Nếu mất phản hồi, dashboard tra biên nhận và người vận hành xác nhận lần xoay mới để nhận secret khác. Gửi lại cùng mã trả đúng biên nhận, kể cả sau lần xoay tiếp theo. Dùng mã mới với phiên bản cũ trả 409. Lịch sử thế hệ lưu fingerprint và trạng thái thu hồi.
+
+Node v24.21.0 trên Linux đạt route 26/26, logic dashboard 9/9, dashboard mounted 1/1, policy 33/33, backup 16/16 và startup 33/33. Hai request đồng thời cùng mã trả một secret và cùng biên nhận. Ca lỗi ghi biên nhận rollback cả thay đổi key lẫn policy. Ca mất ACK sau COMMIT trả 503, rồi tiến trình mới đọc được cả biên nhận và binding mới. Snapshot nhẹ giữ biên nhận của hai lần xoay. [Kiểm thử route](../../tests/unit/budget-retirement-route.test.mjs).
 
 ## Nâng cấp trên volume SQLite hiện có
 

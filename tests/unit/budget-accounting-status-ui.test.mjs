@@ -56,13 +56,25 @@ test('new components and existing endpoint parse as JSX with reveal and copy con
 });
 
 
-test('rotation sends one request and asks for a status refresh after a lost response', async t => {
-  const fetcher=t.mock.method(globalThis,'fetch',async (url,options)=>{
-    assert.equal(url,'/api/keys/key-A/budget/rotate');
-    assert.deepEqual(JSON.parse(options.body),{expectedVersion:7});
-    assert.equal(options.cache,'no-store');
-    throw new Error('fixture network failure');
+for (const committed of [false, true]) {
+  test(`lost rotation response checks the original operation without another POST (committed=${committed})`, async t => {
+    let operationId;
+    const fetcher = t.mock.method(globalThis, 'fetch', async (url, options) => {
+      assert.equal(options.cache, 'no-store');
+      if (options.method === 'POST') {
+        assert.equal(url, '/api/keys/key-A/budget/rotate');
+        const command = JSON.parse(options.body);
+        assert.equal(command.expectedVersion, 7);
+        operationId = command.operationId;
+        assert.match(operationId, /^[0-9a-f]{32}$/);
+        throw new Error('fixture network failure');
+      }
+      assert.equal(url, `/api/keys/key-A/budget/rotate?operationId=${operationId}`);
+      return committed ? Response.json({ receipt: { operationId, keyId: 'key-A',
+        previousVersion: 7, version: 8, bindingGeneration: '2', action: 'rotate' } }) : new Response(null, { status: 404 });
+    });
+    if (committed) assert.deepEqual(await rotateBudgetKey('key-A', 7), { key: null });
+    else await assert.rejects(rotateBudgetKey('key-A', 7), /Refresh accounting status/);
+    assert.equal(fetcher.mock.callCount(), 2);
   });
-  await assert.rejects(rotateBudgetKey('key-A',7), /Refresh accounting status/);
-  assert.equal(fetcher.mock.callCount(),1);
-});
+}

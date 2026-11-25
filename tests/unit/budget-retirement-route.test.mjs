@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import {test,after} from 'node:test';
 import {spawnSync} from 'node:child_process';
 import {GET,POST,dynamic} from '../../src/app/api/keys/[id]/budget/retire/route.js';
-import {POST as rotate} from '../../src/app/api/keys/[id]/budget/rotate/route.js';
+import {GET as lookupRotation,POST as rotate} from '../../src/app/api/keys/[id]/budget/rotate/route.js';
 import {keyManagementView} from '../../src/lib/accounting/key-management-view.js';
+import {createNodeSqliteAdapter} from '../../src/lib/db/adapters/nodeSqliteAdapter.js';
+import {backupDbLite} from '../../src/lib/db/backup.js';
 import {getAdapter,getAdapterSync} from '../../src/lib/db/driver.js';
 import {initializeNodeKeyPolicy,createNodeKeyPolicy} from '../../src/lib/accounting/node-key-policy.js';
 import {initializeNodeAttemptLedger,createNodeAttemptLedger} from '../../src/lib/accounting/node-attempt-ledger.js';
@@ -63,31 +65,63 @@ test('dashboard rotation publishes the replacement only on a fresh committed ver
   const target = { params: Promise.resolve({ id: 'rotation' }) };
   const policy = createNodeKeyPolicy(db);
   policy.save('rotation', 0, { weekly: '123', monthly: '456' });
-  assert.equal((await rotate(req({expectedVersion:1}, {}, null), target)).status, 401);
-  assert.equal((await rotate(req({expectedVersion:1}, {origin:'https://evil.invalid'}), target)).status, 403);
-  assert.equal((await rotate(req({expectedVersion:1, key:'supplied'}), target)).status, 400);
-  const response = await rotate(req(), target);
-  assert.equal(response.status, 200);
-  assert.equal(response.headers.get('cache-control'), 'no-store');
-  const { key, policy: rotated } = await response.json();
+  const operationId = '1010'.repeat(8);
+  const command = { expectedVersion: 1, operationId };
+  const lookup = (token = 'fixture-admin') => {
+    const request = new Request(`https://dashboard.invalid/api/keys/rotation/budget/rotate?operationId=${operationId}`);
+    Object.defineProperty(request, 'cookies', { value: { get: () => token ? { value: token } : undefined } });
+    return request;
+  };
+  assert.equal((await rotate(req(command, {}, null), target)).status, 401);
+  assert.equal((await rotate(req(command, {origin:'https://evil.invalid'}), target)).status, 403);
+  assert.equal((await rotate(req({...command, key:'supplied'}), target)).status, 400);
+  assert.equal((await rotate(req(), target)).status, 400);
+  assert.equal((await lookupRotation(lookup(null), target)).status, 401);
+  assert.equal((await lookupRotation(lookup(), target)).status, 404);
+
+  const responses = await Promise.all([rotate(req(command), target), rotate(req(command), target)]);
+  const results = [];
+  for (const response of responses) {
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    results.push(await response.json());
+  }
+  const { key, policy: rotated, receipt } = results.find(result => Object.hasOwn(result, 'key'));
+  assert.deepEqual(results.find(result => !Object.hasOwn(result, 'key')), { receipt });
   assert.ok(/^sk-r[0-9a-f]{64}$/.test(key));
   assert.equal(rotated.bindingGeneration, '2');
   assert.deepEqual(rotated.limits, { weekly: '123', monthly: '456' });
+  assert.deepEqual(receipt, { operationId, keyId: 'rotation', previousVersion: 1, version: 2,
+    bindingGeneration: '2', occurredAt: new Date(receipt.occurredAt).toISOString(),
+    action: 'rotate', actorClass: 'dashboard-session' });
   assert.equal(await validateApiKey('fixture-old-rotation'), false);
   assert.equal(await validateApiKey(key), true);
   assert.equal(keyManagementView({ id: 'rotation', key }).key, null);
-  const replay = await rotate(req(), target);
-  assert.equal(replay.status, 409);
-  assert.equal(Object.hasOwn(await replay.json(), 'key'), false);
+  assert.equal((await rotate(req({...command, expectedVersion:2}), target)).status, 409);
+  assert.equal((await rotate(req(command), params)).status, 409);
+  assert.equal((await lookupRotation(lookup(), params)).status, 404);
   const status = await GET(req(), target);
   assert.equal(status.status, 200);
   const snapshot = await status.json();
   assert.equal(snapshot.policy.version, 2);
   assert.equal(JSON.stringify(snapshot).includes(key), false);
-  const next = await rotate(req({expectedVersion:2}), target);
+
+  const nextId = '2020'.repeat(8);
+  assert.equal((await rotate(req({expectedVersion:1, operationId:nextId}), target)).status, 409);
+  const next = await rotate(req({expectedVersion:2, operationId:nextId}), target);
   assert.equal(next.status, 200);
   assert.equal(await validateApiKey(key), false);
   assert.equal(await validateApiKey((await next.json()).key), true);
+  const observed = await lookupRotation(lookup(), target);
+  assert.equal(observed.status, 200);
+  assert.equal(observed.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(await observed.json(), { receipt });
+  assert.deepEqual(await (await rotate(req(command), target)).json(), { receipt });
+  const recovered = await createNodeSqliteAdapter(backupDbLite(db, '/tmp', 'rotation-receipts.sqlite'));
+  try {
+    assert.deepEqual(createNodeKeyPolicy(recovered).inspectRotation('rotation', operationId), receipt);
+    assert.equal(recovered.get("SELECT COUNT(*) AS n FROM kv WHERE scope = 'budgetKeyRotation'").n, 2);
+  } finally { recovered.close(); }
 });
 
 test('actual installed services retirement preserves stable history and blocks reactivation without DELETE erasure',async()=>{
@@ -248,3 +282,69 @@ for(const mode of ['partial','history','audit-absent','audit-view','event-write'
  const r=spawnSync('/runtime/node',['--unhandled-rejections=strict','--experimental-loader','/app/tests/fixtures/budget/retirement-loader.mjs','--input-type=module','--eval',source],{env:{...process.env,DATA_DIR:'/tmp/retire-'+mode},encoding:'utf8',timeout:10000});
  assert.equal(r.error,undefined);assert.equal(r.signal,null);assert.equal(r.status,0,r.stdout+r.stderr);
 });
+
+for (const interrupted of ['receipt-write', 'after-commit']) {
+  test(`rotation receipt and binding recover together after ${interrupted}`, () => {
+    const source = `
+      import assert from 'node:assert/strict';
+      import {POST} from '/app/src/app/api/keys/[id]/budget/rotate/route.js';
+      import {getAdapter} from '/app/src/lib/db/driver.js';
+      import {initializeNodeKeyPolicy,createNodeKeyPolicy} from '/app/src/lib/accounting/node-key-policy.js';
+      import {initializeNodeAttemptLedger} from '/app/src/lib/accounting/node-attempt-ledger.js';
+      const db = await getAdapter();
+      const committed = ${interrupted === 'after-commit'};
+      db.run("INSERT INTO apiKeys(id,key,isActive,createdAt) VALUES('target','fixture-old',1,'2026-11-16T00:00:00.000Z')");
+      initializeNodeKeyPolicy(db);
+      initializeNodeAttemptLedger(db);
+      createNodeKeyPolicy(db).save('target', 0, { weekly: '123', monthly: '456' });
+      const run = db.run, exec = db.exec;
+      let attemptedReceipt = false;
+      db.run = (sql, args) => {
+        if (sql.includes("VALUES ('budgetKeyRotation'")) {
+          attemptedReceipt = true;
+          if (!committed) throw new Error('fixture receipt write failure');
+        }
+        return run(sql, args);
+      };
+      db.exec = sql => {
+        const result = exec(sql);
+        if (sql === 'COMMIT' && attemptedReceipt) throw new Error('fixture lost commit acknowledgement');
+        return result;
+      };
+      const request = new Request('https://dashboard.invalid/api/keys/target/budget/rotate', {
+        method: 'POST', headers: { origin: 'https://dashboard.invalid', 'content-type': 'application/json' },
+        body: JSON.stringify({ expectedVersion: 1, operationId: 'abcd'.repeat(8) }),
+      });
+      Object.defineProperty(request, 'cookies', { value: { get: () => ({ value: 'fixture-admin' }) } });
+      const result = await POST(request, { params: { id: 'target' } });
+      assert.equal(result.status, 503);
+      assert.equal(Object.hasOwn(await result.json(), 'key'), false);
+      assert.equal(attemptedReceipt, true);
+      assert.equal(db.raw.isTransaction, false);
+      db.close();
+    `;
+    const reopened = `
+      import assert from 'node:assert/strict';
+      import {createNodeSqliteAdapter} from '/app/src/lib/db/adapters/nodeSqliteAdapter.js';
+      import path from 'node:path';
+      import {createNodeKeyPolicy} from '/app/src/lib/accounting/node-key-policy.js';
+      const db = await createNodeSqliteAdapter(path.join(process.env.DATA_DIR, 'db', 'data.sqlite'));
+      try {
+        const policy = createNodeKeyPolicy(db);
+        const committed = ${interrupted === 'after-commit'};
+        const receipt = policy.inspectRotation('target', 'abcd'.repeat(8));
+        assert.equal(receipt?.version ?? null, committed ? 2 : null);
+        assert.equal(policy.inspect('target').version, committed ? 2 : 1);
+        assert.equal(db.get('SELECT COUNT(*) AS n FROM accounting_key_generations_v1').n, committed ? 2 : 1);
+        assert.equal(db.get("SELECT key = 'fixture-old' AS old_key FROM apiKeys").old_key, committed ? 0 : 1);
+      } finally { db.close(); }
+    `;
+    for (const script of [source, reopened]) {
+      const child = spawnSync('/runtime/node', ['--experimental-loader', '/app/tests/fixtures/budget/retirement-loader.mjs',
+        '--input-type=module', '--eval', script], {
+        env: { ...process.env, DATA_DIR: `/tmp/rotation-${interrupted}` }, encoding: 'utf8', timeout: 10000,
+      });
+      assert.equal(child.status, 0, child.stdout + child.stderr);
+    }
+  });
+}

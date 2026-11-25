@@ -28,6 +28,8 @@ const DEFS = {
   insertRetirementEvent: { method: 'run', sql: "INSERT INTO accounting_admin_events_v1 VALUES (?, ?, ?, ?, 'retire', 'dashboard-session', ?)" },
   eventPage: { method: 'all', sql: 'SELECT * FROM accounting_admin_events_v1 WHERE key_id > ? ORDER BY key_id, version LIMIT 3' },
   eventByKey: { method: 'get', sql: 'SELECT * FROM accounting_admin_events_v1 WHERE key_id = ?' },
+  rotationReceipt: { method: 'get', sql: "SELECT value FROM kv WHERE scope = 'budgetKeyRotation' AND key = ?" },
+  insertRotationReceipt: { method: 'run', sql: "INSERT INTO kv(scope, key, value) VALUES ('budgetKeyRotation', ?, ?)" },
   invalidEventId: { method: 'get', sql: "SELECT 1 AS invalid FROM accounting_admin_events_v1 WHERE typeof(key_id) <> 'text' OR key_id <= '' LIMIT 1" },
   retireGeneration: { method: 'run', sql: 'UPDATE accounting_key_generations_v1 SET retired = 1 WHERE key_id = ? AND generation = ? AND retired = 0' },
   rotateKey: { method: 'run', sql: 'UPDATE apiKeys SET key = ? WHERE id = ? AND key = ? AND isActive = 1' },
@@ -38,6 +40,7 @@ const DEFS = {
   update: { method: 'run', sql: 'UPDATE accounting_key_policy_v1 SET weekly = ?, monthly = ?, version = version + 1 WHERE key_id = ? AND version = ? AND retired = 0' },
 };
 const digest = secret => createHash('sha256').update(secret).digest('hex');
+export const isRotationOperationId = value => typeof value === 'string' && /^[0-9a-f]{32}$/.test(value);
 function id(value) {
   if (typeof value !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value)) throw unavailable();
   return value;
@@ -243,6 +246,24 @@ export function createNodeKeyPolicy(adapter) {
   transact(check);
   const corrupt = () => { quarantineNodeAccountingConnection(adapter); faultAccounting(); throw unavailable(); };
   const { readBinding, resolve, audit, inspectPolicy } = createKeyPolicyReadValidator(corrupt);
+  const readRotationReceipt = (scope, operationId) => {
+    const row = scope.rotationReceipt([operationId]);
+    if (!row) return null;
+    try {
+      const { operationId: recordedId, keyId, previousVersion, version, bindingGeneration, occurredAt, action, actorClass } = JSON.parse(row.value);
+      id(keyId);
+      timestamp(occurredAt);
+      const generation = Number(bindingGeneration);
+      const binding = scope.binding([keyId]);
+      if (recordedId !== operationId || action !== 'rotate' || actorClass !== 'dashboard-session' ||
+          !Number.isSafeInteger(previousVersion) || previousVersion < 1 ||
+          !Number.isSafeInteger(version) || version !== previousVersion + 1 ||
+          !Number.isSafeInteger(generation) || generation < 2 || String(generation) !== bindingGeneration ||
+          generation > version || !binding || binding.version < version || binding.generation < generation ||
+          !scope.generation([keyId, generation])) throw unavailable();
+      return { operationId, keyId, previousVersion, version, bindingGeneration, occurredAt, action, actorClass };
+    } catch { corrupt(); }
+  };
   // Both management projections reuse ONE target/history snapshot. Optional
   // event absence means only no recorded event, never never-retired/completeness.
   const inspect = (keyId, includeEvent) => {
@@ -286,6 +307,40 @@ export function createNodeKeyPolicy(adapter) {
     if (collision) throw conflict();
     return Object.freeze({ retired: true });
   };
+  const rotate = (keyId, expectedVersion, expectedSecret, replacementSecret, operationId) => {
+    assertAccountingHealthy();
+    id(keyId);
+    assertPresentedSecret(replacementSecret);
+    if (operationId === null) assertPresentedSecret(expectedSecret);
+    if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) throw unavailable();
+    const { value } = transact(scope => {
+      if (operationId !== null) {
+        const receipt = readRotationReceipt(scope, operationId);
+        if (receipt) return receipt.keyId === keyId && receipt.previousVersion === expectedVersion ? { receipt } : null;
+      }
+      const key = scope.keyById([keyId]);
+      if (!key || key.isActive !== 1) throw unavailable();
+      const previous = readBinding(scope, key);
+      if (!previous || previous.version !== expectedVersion ||
+          (operationId === null && key.key !== expectedSecret)) return null;
+      if (previous.generation >= Number.MAX_SAFE_INTEGER || previous.version >= Number.MAX_SAFE_INTEGER) throw unavailable();
+      const fingerprint = digest(replacementSecret);
+      if (scope.fingerprint([fingerprint]) || scope.keyBySecret([replacementSecret])) return null;
+      if (scope.retireGeneration([keyId, previous.generation]).changes !== 1 ||
+          scope.rotateKey([replacementSecret, keyId, key.key]).changes !== 1) corrupt();
+      scope.insertGeneration([keyId, previous.generation + 1, fingerprint]);
+      if (scope.rotatePolicy([fingerprint, previous.generation + 1, keyId, expectedVersion]).changes !== 1) corrupt();
+      const policy = publicPolicy(readBinding(scope, scope.keyById([keyId])));
+      if (operationId === null) return { policy };
+      const receipt = { operationId, keyId, previousVersion: expectedVersion, version: policy.version,
+        bindingGeneration: policy.bindingGeneration, occurredAt: new Date().toISOString(),
+        action: 'rotate', actorClass: 'dashboard-session' };
+      if (scope.insertRotationReceipt([operationId, JSON.stringify(receipt)]).changes !== 1) corrupt();
+      return { policy, receipt };
+    });
+    if (!value) throw conflict();
+    return value;
+  };
   return Object.freeze({
     // Read-only prerequisite for enrolled restart, NOT restart admission. Use
     // the same runtime binding validator for every key, including disabled
@@ -322,31 +377,20 @@ export function createNodeKeyPolicy(adapter) {
       if (collision) throw conflict();
       return result;
     },
-    // Trusted internal lifecycle seam, not proof of management authorization.
-    // Public routes must verify admin/current secret and generate replacement.
     rotate(keyId, expectedVersion, expectedSecret, replacementSecret) {
-      assertAccountingHealthy();
+      return rotate(keyId, expectedVersion, expectedSecret, replacementSecret, null).policy;
+    },
+    rotateAudited(keyId, expectedVersion, operationId, replacementSecret) {
+      if (!isRotationOperationId(operationId)) throw unavailable();
+      return rotate(keyId, expectedVersion, null, replacementSecret, operationId);
+    },
+    inspectRotation(keyId, operationId) {
       id(keyId);
-      if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1 ||
-          typeof expectedSecret !== 'string' || !expectedSecret || expectedSecret.includes('\0') ||
-          typeof replacementSecret !== 'string' || !replacementSecret || replacementSecret.includes('\0')) throw unavailable();
-      let collision = false; let result;
-      transact(scope => {
-        const key = scope.keyById([keyId]);
-        if (!key || key.isActive !== 1) throw unavailable();
-        const previous = readBinding(scope, key);
-        if (!previous || previous.version !== expectedVersion || key.key !== expectedSecret) { collision = true; return; }
-        if (previous.generation >= Number.MAX_SAFE_INTEGER || previous.version >= Number.MAX_SAFE_INTEGER) throw unavailable();
-        const fingerprint = digest(replacementSecret);
-        if (scope.fingerprint([fingerprint]) || scope.keyBySecret([replacementSecret])) { collision = true; return; }
-        if (scope.retireGeneration([keyId, previous.generation]).changes !== 1 ||
-            scope.rotateKey([replacementSecret, keyId, expectedSecret]).changes !== 1) corrupt();
-        scope.insertGeneration([keyId, previous.generation + 1, fingerprint]);
-        if (scope.rotatePolicy([fingerprint, previous.generation + 1, keyId, expectedVersion]).changes !== 1) corrupt();
-        result = publicPolicy(readBinding(scope, scope.keyById([keyId])));
-      });
-      if (collision) throw conflict();
-      return result;
+      if (!isRotationOperationId(operationId)) throw unavailable();
+      return transact(scope => {
+        const receipt = readRotationReceipt(scope, operationId);
+        return receipt?.keyId === keyId ? receipt : null;
+      }).value;
     },
     // Trusted internal primitive only; no production public caller may use this
     // unaudited seam. Route uses retireAudited after strict session/Origin gate.

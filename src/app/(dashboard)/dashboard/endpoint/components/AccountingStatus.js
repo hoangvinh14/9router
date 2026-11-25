@@ -34,7 +34,9 @@ function StatusSnapshot({ keyId, onRotated }) {
     setPending(true);
     setRotationError("");
     try {
-      setSecret(await rotateBudgetKey(keyId, value.version));
+      const { key } = await rotateBudgetKey(keyId, value.version);
+      setSecret(key);
+      if (!key) setRotationError("Rotation committed. Confirm a new rotation to obtain a fresh key.");
       onRotated?.(keyId);
     } catch (error) {
       setRotationError(error.message);

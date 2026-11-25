@@ -111,19 +111,33 @@ export function loadBudget(keyId, options) {
 }
 
 export async function rotateBudgetKey(keyId, expectedVersion) {
-  const failure = "Rotation could not be confirmed. Refresh accounting status before rotating again.";
-  let response;
+  const operationId = Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, "0")).join("");
+  const url = `/api/keys/${encodeURIComponent(keyId)}/budget/rotate`;
+  const options = { credentials: "same-origin", cache: "no-store", redirect: "error" };
+  const validReceipt = receipt => receipt?.operationId === operationId && receipt.keyId === keyId &&
+    receipt.previousVersion === expectedVersion && receipt.version === expectedVersion + 1 &&
+    receipt.action === "rotate" && generation(receipt.bindingGeneration);
+  let submitted = false;
   try {
-    response = await fetch(`/api/keys/${encodeURIComponent(keyId)}/budget/rotate`, {
-      method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error",
-      headers: { "content-type": "application/json" }, body: JSON.stringify({ expectedVersion }),
+    const response = await fetch(url, {
+      ...options, method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expectedVersion, operationId }),
     });
-  } catch { throw new Error(failure); }
-  if (!response.ok) throw new Error(failure);
-  const result = await response.json().catch(() => null);
-  if (result?.policy?.keyId !== keyId || result.policy.version !== expectedVersion + 1 ||
-      !/^sk-r[0-9a-f]{64}$/.test(result.key)) throw new Error(failure);
-  return result.key;
+    submitted = response.ok || response.status >= 500;
+    if (response.ok) {
+      const result = await response.json();
+      if (validReceipt(result?.receipt)) {
+        return { key: typeof result.key === "string" && /^sk-r[0-9a-f]{64}$/.test(result.key) ? result.key : null };
+      }
+    }
+  } catch { submitted = true; }
+  if (submitted) {
+    try {
+      const response = await fetch(`${url}?operationId=${operationId}`, options);
+      if (response.ok && validReceipt((await response.json()).receipt)) return { key: null };
+    } catch {}
+  }
+  throw new Error(`Rotation could not be confirmed. Refresh accounting status before rotating again. Operation ID: ${operationId}.`);
 }
 
 export async function saveBudget(keyId, version, limits, signal) {
