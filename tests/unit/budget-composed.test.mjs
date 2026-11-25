@@ -1321,6 +1321,27 @@ if (stage === undefined) {
     });
   }
 
+  test('Codex forwards encrypted continuation without billing its byte length as estimated tokens', () => {
+    return codexFixture(async ({ request, rows, state }) => {
+      for (const ciphertext of ['fixture', 'fixture'.repeat(1000)]) {
+        const input = [
+          { type: 'reasoning', encrypted_content: ciphertext, summary: [] },
+          { role: 'user', content: 'Continue' },
+        ];
+        const response = await postResponses(request({ input }));
+        assert.equal(response.status, 200);
+        assert.match(await response.text(), /response.completed/);
+        assert.equal(state.wire.at(-1).body.input.find(item => item.type === 'reasoning').encrypted_content, ciphertext);
+      }
+      const amounts = rows().terminals.map(row => row.amount);
+      assert.equal(amounts.length, 2);
+      assert.ok(BigInt(amounts[0]) > 0n);
+      assert.equal(amounts[0], amounts[1]);
+    }, { monthly: '999999999', reply: () => sseReply([sseFrame({
+      type: 'response.completed', response: { id: 'fixture', status: 'completed' },
+    })])() });
+  });
+
   test('Codex failure with unknown usage allows another POST below the spend limit', () => {
     const terminal = 'data: {"type":"response.failed","response":{"id":"fixture","status":"failed","usage":null}}\n\n';
     return codexFixture(async ({ request, rows, state, reopen, resolveUsage }) => {

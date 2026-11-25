@@ -20,6 +20,16 @@ const plainText = content => typeof content === 'string' || (Array.isArray(conte
     Object.keys(block).every(key => key === 'type' || key === 'text')));
 const functionName = name => typeof name === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(name);
 
+function estimateCodexInput(body) {
+  if (!Array.isArray(body.input)) return estimateInputTokens(body);
+  const input = body.input.map(item => {
+    if (item.type !== 'reasoning' || !Object.hasOwn(item, 'encrypted_content')) return item;
+    const { encrypted_content, ...visible } = item;
+    return visible;
+  });
+  return estimateInputTokens({ ...body, input });
+}
+
 function chatInput(model, body) {
   if (Object.keys(body).some(key => !chatFields.has(key)) ||
       (body.stream !== undefined && typeof body.stream !== 'boolean') ||
@@ -102,7 +112,7 @@ export function createCodexDispatchContext({ identity, routeProof, credentials, 
       return Object.freeze({
         dispatch: () => identity.dispatch(attempt.ack, budgetInstant(clock), initiate),
         priceCacheWrites: 'included-in-input',
-        inputEstimate: estimateInputTokens(body),
+        inputEstimate: estimateCodexInput(body),
         settleResponses: attempt.settle,
         overloadSuccessor(evidence, receipt) {
           if (!receipt?.recorded || receipt.replay || !evidence) return null;
