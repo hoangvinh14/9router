@@ -1,6 +1,6 @@
 # Phase 04 — Identity, SQLite persistence và fault validation
 
-Status: in-progress. Priority: P1. Depends on: phase03. Foundation đã phải có từ phase01/02; phase04 **mở rộng kiểm chứng/integration**, không là lần đầu thêm durability.
+Status: completed. Priority: P1. Depends on: phase03. Foundation đã phải có từ phase01/02; phase04 **mở rộng kiểm chứng/integration**, không là lần đầu thêm durability.
 
 **Current D01 amendment:** Codex Standard ước tính input/output còn thiếu trên terminal hoàn tất khi có dữ liệu phù hợp. Phần còn lại đóng góp 0 và được đánh dấu unknown/defaulted; không chặn key hoặc yêu cầu admin duyệt vì lý do đó. Bảo toàn known cost, xử lý late/conflicting evidence idempotent; D02/D03 và E2 riêng. Amendment này thay mọi yêu cầu unresolved-block cũ trong phase.
 
@@ -23,15 +23,16 @@ The startup regression suite covers refusal before migrations on unqualified acc
 - [x] Week/month Asia/Ho_Chi_Minh boundary tests: exact just-before/at reset, independent weekly/monthly limits, clock injection server-owned; late received usage gắn original startedAt/price/key/window. Price/policy rename/credential drift sau dispatch không reprice/reattribute settlement; final gate trước dispatch rechecks relevant changes.
 - [x] Durable ledger & saved policy survive clean restart và actual process kill at bounded phases (before intent publish, after intent own ACK, after exposure, before/after terminal publish/ACK). Distinguish known durable truth, ambiguous ACK, interrupted-no-evidence and normal missing/invalid usage. No spend erased/no old authority revived; no new post-death acquisition product. Migrations/readiness never silently restore ledgerStartedAt/coverage as proof.
 - [x] D01. Kiểm chứng usage không biết bằng default-zero, giữ chi phí xác định được và không chặn riêng vì thiếu usage. Gửi evidence trùng hoặc mâu thuẫn không ghi thêm terminal. Sau khi mở lại, replay intent không cấp quyền gửi hoặc ghi lại terminal. Một tiến trình khởi động trong khi writer còn giữ attempt đã gửi chỉ đọc intent hiện có, sau đó writer gốc vẫn settle đúng một lần. Attempt dở dang vẫn giữ nguyên intent nếu writer chết. Không tạo terminal hay gán lại quyền dựa vào thời gian hoặc trạng thái tiến trình.
-- [x] D03 trên node:sqlite. Kiểm chứng lỗi transaction, EIO và ENOSPC khi ghi hoặc đồng bộ WAL và checkpoint DB chính, READONLY, BUSY, cùng ca mất ACK. Latch chặn cả finite và unlimited trong tiến trình phát hiện. Đường WAL được kiểm tra theo syscall và không dùng atomic rename. Driver SQL.js dùng đường ghi ảnh riêng, được kiểm chứng ở chế độ thường. Mất điện thực thuộc tiêu chí còn mở bên dưới.
+- [x] D03 trên node:sqlite. Kiểm chứng lỗi transaction, EIO và ENOSPC khi ghi hoặc đồng bộ WAL và checkpoint DB chính, READONLY, BUSY, cùng ca mất ACK. Latch chặn cả finite và unlimited trong tiến trình phát hiện. Đường WAL được kiểm tra theo syscall và không dùng atomic rename. Driver SQL.js dùng đường ghi ảnh riêng, đã kiểm chứng chế độ budget opt-in trên Linux.
 - [x] Bổ sung bảng budget trên SQLite 9Router hiện có bằng thay đổi additive. Sao lưu trước khi đổi schema, giữ dữ liệu và key hiện có. Kiểm chứng bật budget cho key với số đã dùng bằng 0, ghi chi phí mới, mở lại DB và chặn lượt kế tại hạn mức.
 - [x] Backup/restore SQLite giữ policy, spend, định danh đã retire, biên nhận xoay và dữ liệu giá. Khởi động từ chối schema thiếu hoặc hỏng. Import/export JSON thường vẫn chạy trên DB thường và từ chối trên DB có accounting trước khi thay dữ liệu hoặc xuất snapshot thiếu.
 - [x] Thiết kế rollback offline. Ghép snapshot SQLite với binary tương thích, dừng app trước khi đổi dữ liệu, kiểm tra bản sao cô lập và đối chiếu các lần thu hồi credential sau thời điểm sao lưu. Kiểm thử đã áp dụng retirement lại lên các thế hệ đã biết trên bản sao. Việc đối chiếu credential thật thuộc rollout.
 
-### Tiêu chí còn mở
+### Quyết định nghiệm thu ngày 2026-11-26
 
-- [ ] Mất điện thực trên thiết bị và filesystem dùng một lần. Ca SIGKILL và lỗi syscall đã kiểm chứng ranh giới được tiêm lỗi.
-- [ ] Rollout trên instance thật. Đối chiếu các thu hồi hoặc lần xoay sau thời điểm sao lưu trước khi mở ingress.
+Owner chốt hoàn tất Phase 04 dựa trên SIGKILL, lỗi syscall, khôi phục SQLite và kiểm tra chặn ở đúng hạn mức. Kiểm thử cắt điện vật lý dành cho nghiệm thu độ bền trên phần cứng và filesystem cụ thể khi cần cam kết đó.
+
+Khi rollout bản phục hồi lên instance thật, đối chiếu các lần thu hồi hoặc xoay credential sau thời điểm sao lưu trước khi mở ingress. [Điều kiện rollout](./phase-05-acceptance-and-handoff.md#completion--handoff).
 
 ### Windows và tiến trình đồng thời
 
@@ -89,7 +90,7 @@ Kết quả hồi quy trên Linux Node v24.21.0 gồm HTTPS loopback 103/103, st
 
 Trước khi sửa, hai ca EIO tại checkpoint cho thấy tiến trình vẫn cho phép accounting sau khi SQLite báo lỗi. Adapter hiện ghi nhớ lỗi checkpoint, ngừng cấp quyền gửi request có budget trong tiến trình và cách ly connection đang dùng cho accounting. Lỗi xảy ra trước khi bật accounting được kiểm tra khi xin cấp adapter. Đã kiểm tra cả callback theo lịch và trường hợp tranh khóa tạm thời.
 
-Qua `run-pure.mjs --wal-sync`, trace xác nhận EIO ngay tại syscall ghi trang hoặc đồng bộ tệp DB chính trong checkpoint. Một lượt mới đã ghi thêm 3.000.000 nanoUSD trước checkpoint; sau lỗi, attempt đã chuẩn bị thêm 0 lần gọi transport. Writer thoát ngay, bỏ qua close của adapter. Tiến trình mới đọc đúng hai terminal với tổng 6.000.000 nanoUSD, đúng hạn mức 9.000.000 và integrity_check thành công. Một lượt nữa được gửi và ghi đủ 9.000.000; lượt sau chạm hạn mức thêm 0 lần gọi. Bốn ca syscall đạt 4/4 trên mỗi bản Node v22.23.2 và v24.21.0. Linux Node 24 đạt driver 16/16, pure/ledger 123/123, startup 33/33, composition HTTPS loopback 76/76. Phép thử dùng SQLite dùng một lần và lỗi I/O được chèn bằng strace. Mất điện thực và các runtime chưa có bằng chứng vẫn mở. [Kiểm thử syscall](../../tests/unit/budget-wal-sync.test.mjs).
+Qua `run-pure.mjs --wal-sync`, trace xác nhận EIO ngay tại syscall ghi trang hoặc đồng bộ tệp DB chính trong checkpoint. Một lượt mới đã ghi thêm 3.000.000 nanoUSD trước checkpoint; sau lỗi, attempt đã chuẩn bị thêm 0 lần gọi transport. Writer thoát ngay, bỏ qua close của adapter. Tiến trình mới đọc đúng hai terminal với tổng 6.000.000 nanoUSD, đúng hạn mức 9.000.000 và integrity_check thành công. Một lượt nữa được gửi và ghi đủ 9.000.000; lượt sau chạm hạn mức thêm 0 lần gọi. Bốn ca syscall đạt 4/4 trên mỗi bản Node v22.23.2 và v24.21.0. Linux Node 24 đạt driver 16/16, pure/ledger 123/123, startup 33/33, composition HTTPS loopback 76/76. Phép thử dùng SQLite dùng một lần và lỗi I/O được chèn bằng strace. Kết quả áp dụng cho các runtime và ranh giới lỗi đã kiểm thử. [Kiểm thử syscall](../../tests/unit/budget-wal-sync.test.mjs).
 
 **Hết dung lượng khi checkpoint.** Bổ sung hai ca chèn `ENOSPC` tại syscall ghi trang và đồng bộ tệp DB chính. Sau lỗi, attempt đã chuẩn bị thêm 0 lần gọi transport. Tiến trình mới đọc đủ 6.000.000 nanoUSD đã ghi và chặn ở đúng hạn mức 9.000.000 sau một lượt nữa. Lane `run-pure.mjs --wal-sync` đạt 6/6 trên cả Node v22.23.2 và v24.21.0. Kết quả dùng lỗi syscall được chèn trên SQLite dùng một lần.
 

@@ -1,6 +1,6 @@
 # Phase 05 — Isolated integrated acceptance, security và handoff
 
-Status: pending. Priority: P1. Depends on: phase04 và mọi required unamended support/evidence gate. Không production/live/commit-push/activation authority implicit.
+Status: in-progress. Priority: P1. Depends on: phase04 và mọi required unamended support/evidence gate. Không production/live/commit-push/activation authority implicit.
 
 <!-- Updated: Validation Session 1 - SQLite storage facts; approved recovery/rotation/storage acceptance -->
 
@@ -61,6 +61,23 @@ Command paths/exact CLI args validated in sandbox before launch; no hardcoded ro
 Cùng image Docker nội bộ đã qua HTTP thật, HTTPS loopback và restart cho Codex Standard Responses SSE, Anthropic API-key Sonnet 4.6 JSON, Claude OAuth Opus 5.5 SSE và Sonnet 5 JSON qua combo. Mỗi đường đã kiểm tra đúng chi phí và 0 POST sau khi chạm hạn mức. Admin route kiểm tra phiên, origin và phiên bản policy. Bản backup SQLite qua lại 16/16 ca trên Node 24. Startup, composition, native wire và dashboard đều có kết quả theo image hoặc revision ghi trong Phase 03. [Nghiệm thu Phase 03](./phase-03-native-retry-and-compatibility.md#nghiệm-thu-claude-oauth-standard-trên-docker-nội-bộ) · [Phục hồi SQLite](./phase-04-integrity-and-migration.md#phục-hồi-cho-docker-nội-bộ).
 
 Nghiệm thu này để mở các hàng bắt buộc về refresh/retry có kết toán, các cấu hình chưa được qualification, ma trận runtime ngoài Docker Linux amd64 và rollout. Việc đối chiếu credential trên bản phục hồi thuộc rollout và cần được thực hiện trước khi mở ingress thật.
+
+## Kiểm chứng offline ngày 2026-11-26
+
+Trên Linux x64 Node v24.21.0, dùng các runner hiện có ở `tests/fixtures/budget/`. Bubblewrap gắn source và dependency cần thiết ở chế độ chỉ đọc, dùng HOME và SQLite tạm riêng, tách network namespace và chỉ cho phép loopback trong ca transport. Các ca dưới đây dùng source ứng dụng tại `23ef4c70` và dữ liệu fixture.
+
+| Runner | Kết quả | Phạm vi |
+|---|---:|---|
+| `run-management.mjs` | 5/5 | Phiên dashboard, Origin và forwarded host, payload bounds và đọc lại SQLite |
+| `run-retirement-jwt.mjs`, `run-retirement.mjs` | 3/3, 26/26 | JWT thật, CAS, retirement, secret hiển thị một lần, mất ACK và biên nhận |
+| `run-guard.mjs`, `run-boundary.mjs` | 4/4, 12/12 | Route allowlist, credential precedence, trạng thái DB lỗi và key đã thu hồi |
+| `run-default-fidelity.mjs`, `run-transport.mjs` | 12/12, 10/10 | Ordinary executor, HTTPS loopback, xác thực TLS, ACK trước POST và 0 lượt gửi mới tại hạn mức |
+| `run-status-ui.mjs`, `run-status-mounted.mjs` | 9/9, 1/1 | Save/reload/CAS, lỗi được lọc, số dư chính xác và lịch reset. Chromium mở các mục bằng Tab, Enter và Space ở viewport rộng 390px |
+| `run-status-lint.mjs` | Đạt so sánh | Hai component budget có 0 lỗi. Endpoint còn 5 lỗi và 2 cảnh báo có sẵn trong baseline cùng đường dẫn |
+
+CI cho `23ef4c70` đạt cả bốn lane persistence, gồm build standalone Windows. Docker Linux amd64 đã kiểm chứng đóng gói SQL.js, preflight và mở lại volume sau dừng. [GitHub Actions](https://github.com/hoangvinh14/9router/actions/runs/45722467735) · [Bằng chứng lưu trữ](./phase-04-integrity-and-migration.md#kiểm-chứng-budget-sqljs-trên-linux-x64).
+
+Phase 05 còn kết quả layout trên dashboard có CSS thật, so sánh hiệu năng với baseline `1855aa44` và rà soát bàn giao cuối. Đối chiếu credential trên instance thật thuộc rollout.
 
 ## Completion / handoff
 
