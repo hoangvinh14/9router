@@ -6,8 +6,8 @@ C0 Messages JSON và các profile đại diện của Codex/Claude OAuth đã ng
 
 ## Phần còn mở
 
-- Đã đối chiếu sáu model Codex cũ với bảng giá OpenAI và Responses SSE. Tiếp tục đối chiếu từng tổ hợp C5 còn mở với profile đã chạy. [Kết quả theo model](./references/scope-and-decisions.md#đối-chiếu-các-model-codex-đã-giữ-trong-c1).
-- Ghi kết quả đối chiếu các yêu cầu cũ về đọc trạng thái muộn trong request native và timeout. Xem [chi tiết còn thiếu](./references/scope-and-decisions.md#phạm-vi-đã-kiểm-tra-và-bằng-chứng-còn-thiếu).
+- Đã đối chiếu sáu model Codex cũ với bảng giá OpenAI và Responses SSE. Kiểm một request đại diện cho từng nhóm C5 còn mở gồm review, 1M, compatible/reseller và tool hoặc media có đường xử lý khác. Dùng key được cấp quyền và còn hạn mức. Luồng hỗ trợ phải ghi đúng chi phí. Luồng ngoài phạm vi phải thêm 0 POST, xác nhận qua bộ đếm upstream loopback. [Kết quả theo model](./references/scope-and-decisions.md#đối-chiếu-các-model-codex-đã-giữ-trong-c1).
+- Chạy một ca native đồng thời và kiểm tra lại CONNECT cùng lưu trữ trên cấu hình đích theo tiêu chí đã thu gọn. Xem [chi tiết còn thiếu](./references/scope-and-decisions.md#phạm-vi-đã-kiểm-tra-và-bằng-chứng-còn-thiếu).
 - Giữ các bước bên dưới làm checklist thiết kế ban đầu. Dùng các mục còn mở ở trên và hồ sơ nghiệm thu hiện hành để theo dõi việc còn lại.
 
 ## Inputs và files

@@ -1,6 +1,6 @@
 # Phase 02 — First real vertical slice
 
-Status: pending / positive support producer-gated. Priority: P1. Depends on: phase01 approved selected cell, policies, bounded admission. Không có approval implementation từ bản plan này.
+Status: completed / nghiệm thu offline cho C0 Messages JSON trên Docker nội bộ.
 
 ### Resume — dashboard budget readback
 

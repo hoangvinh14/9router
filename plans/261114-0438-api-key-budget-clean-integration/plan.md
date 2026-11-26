@@ -49,10 +49,13 @@ Bốn luồng Docker Linux amd64 đã kiểm chứng ghi chi phí theo API key v
 - Anh tự build và nghiệm thu image Docker mới nhất. Bỏ bước này khỏi tiêu chí đóng plan của phiên triển khai theo quyết định ngày 2026-11-24. [Bàn giao nghiệm thu](./phase-05-acceptance-and-handoff.md#completion--handoff).
 - Phase 03 đã nghiệm thu offline theo tiêu chí ban đầu. Ca HTTPS loopback đã kiểm chứng ngoại lệ 0 nanoUSD cho `gpt-reserve` khi thiếu dòng giá và 0 POST khi chạm hạn mức. Claude OAuth bị ngắt trước usage cuối trả lỗi và có thể ghi thiếu chi phí. [Kết quả và quyết định](./phase-03-native-retry-and-compatibility.md#chốt-nghiệm-thu-tích-hợp).
 - Codex Standard bổ sung Chat Completions SSE và JSON dùng chung budget với Responses. Khi phản hồi hoàn tất mà thiếu usage, tính phần ước tính có thể xác định theo cách OmniRoute và chặn theo tổng đã ghi. [Phạm vi và cách tính](./phase-03-native-retry-and-compatibility.md#chat-completions-và-usage-ước-tính).
-- **Phạm vi hỗ trợ.** Năm model Codex cũ đã ghi chi phí từ bảng giá OpenAI qua Responses SSE loopback. `gpt-reserve` được tính 0 nanoUSD theo [quyết định mới](./phase-03-native-retry-and-compatibility.md#ngoại-lệ-gpt-reserve-ngày-2026-11-26). Một số tổ hợp C5 còn mở. Các route ngoài profile được kiểm tra từ chối trước POST trong phạm vi fixture tương ứng. [Phase 01](./phase-01-scope-and-boundaries.md#phần-còn-mở).
-- **Bằng chứng đồng thời và timing.** Cần tiêu chí phân biệt lỗi đọc trạng thái muộn trên luồng native (E3-07) và đối chiếu các timeout cũ với đường chạy hiện hành (E4, E3-01-T1, E3-06-T1). [Điều kiện còn mở](./references/scope-and-decisions.md#phạm-vi-đã-kiểm-tra-và-bằng-chứng-còn-thiếu).
-- **Runtime.** Đã có kiểm thử persistence trên Windows x64 và các adapter Linux x64. Nghiệm thu đóng gói và luồng budget đầy đủ ngoài Docker Linux amd64 vẫn mở. [Kết quả persistence](./phase-04-integrity-and-migration.md#kiểm-chứng-adapter-native-trên-linux-x64).
-- **Bàn giao và rollout.** Chốt manifest của lần nghiệm thu cuối sau khi xử lý các mục thuộc phạm vi. Rollout hai instance gồm credential thật, khôi phục volume, ingress và origin theo `BASE_URL` thật. [Bàn giao](./phase-05-acceptance-and-handoff.md#completion--handoff).
+### Checklist đóng plan cho Docker Linux amd64
+
+Phạm vi nghiệm thu cuối áp dụng cho cấu hình Docker Linux amd64 của hai instance đích. Theo yêu cầu ngày 2026-11-26, bỏ yêu cầu tạo phép thử đọc trạng thái muộn nhân tạo, điều tra lại timeout lịch sử khi ca hiện hành đạt, và chạy end-to-end trên mọi runtime. Các bằng chứng lưu trữ đã có vẫn nằm ở Phase 04.
+
+1. Kiểm tra đại diện từng nhóm route còn mở. Dùng key được cấp quyền và còn hạn mức. Luồng hỗ trợ ghi đúng chi phí, luồng ngoài phạm vi thêm 0 POST. [Phạm vi và phép kiểm](./phase-01-scope-and-boundaries.md#phần-còn-mở).
+2. Chạy một ca đồng thời qua hai key và hai connection, đảo thứ tự hoàn tất. Đối chiếu account/session và khoản ghi cho từng key. Chạy một lượt các ca CONNECT và lưu trữ hiện có trên cấu hình đích. Xử lý timeout nếu tái hiện. [Tiêu chí](./references/scope-and-decisions.md#phạm-vi-đã-kiểm-tra-và-bằng-chứng-còn-thiếu).
+3. Chốt commit, digest image, runtime/adapter, kết quả kiểm thử và giới hạn còn lại. Rollout và đối chiếu credential, volume, ingress cùng `BASE_URL` thật là bước riêng. [Bàn giao](./phase-05-acceptance-and-handoff.md#completion--handoff).
 
 ## Đối chiếu OmniRoute cho các mục follow-up
 
