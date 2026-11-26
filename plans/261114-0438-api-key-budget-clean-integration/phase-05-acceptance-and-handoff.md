@@ -6,6 +6,8 @@ Status: completed (nghiệm thu offline trong phạm vi đã chốt). Priority: 
 
 ## Isolation prerequisite — trước import/test/install/build
 
+Checklist dùng cho từng lượt chạy. Kết quả các lượt đã thực hiện nằm ở mục kiểm chứng bên dưới.
+
 - [ ] Review selected preserved sandbox runner code/arguments/dependency fixture copy list trước run; không chạy tooling từ `scripts/accounting` chỉ vì đã preserve. Có runner mới thì authorize exact files/commands.
 - [ ] External sandbox boundary (ví dụ bwrap fail-closed pattern đã có trong historical offline runner), repo input read-only ngoài approved writable output; writable test/build copy là disposable directory, **không worktree implementation mới**. All artifacts output trong approved temp location, không dùng `.next-*` cache hiện tại.
 - [ ] Disposable **HOME, XDG_CONFIG_HOME, XDG_DATA_HOME, DATA_DIR, TMPDIR**, fake test-only JWT/API secrets; no host `.env`, credentials/proxy env, `~/.9router`, captures/logs/DB, `.pi/.unipi`. `src/lib/usageDb.js` là SQLite re-export; usage/history trong `usageHistory`, logs được derive trên read, DB path từ DATA_DIR. `dataDir.js` fallback HOME/APPDATA khi configured path bị EACCES/EPERM hoặc Unix path trên Windows, có import-time directory creation. Vì vậy DATA_DIR riêng **không đủ** làm isolation; Windows runner phải có disposable APPDATA nữa. Không dựa mô tả JSON legacy đã stale trong root/architecture docs.
@@ -75,6 +77,15 @@ Trên Linux x64 Node v24.21.0, dùng các runner hiện có ở `tests/fixtures/
 | `run-status-ui.mjs`, `run-status-mounted.mjs` | 9/9, 1/1 | Save/reload/CAS, lỗi được lọc, số dư chính xác và lịch reset. Chromium mở các mục bằng Tab, Enter và Space ở viewport rộng 390px |
 | `run-status-lint.mjs` | Đạt so sánh | Hai component budget có 0 lỗi. Endpoint còn 5 lỗi và 2 cảnh báo có sẵn trong baseline cùng đường dẫn |
 
+Kiểm chứng bổ sung trên Node v24.21.0 tại `94f594d1`, dùng SQLite tạm và Bubblewrap:
+
+| Runner | Kết quả | Phạm vi |
+|---|---:|---|
+| `run-composed.mjs --tls` | 103/103 | HTTPS loopback qua route, giá đồng bộ, lỗi native, retry/refresh, CONNECT, continuation và SQLite restart |
+| `run-route-readers.mjs` | 28/28 | ACL, alias, đồ thị combo, thay đổi account/proxy trước dispatch. Fixture gắn thêm module kiểm tra trạng thái SQLite ở chế độ chỉ đọc và tạo bảng proxy pool dùng một lần. |
+| `run-reconstruction.mjs` | 3/3 | Compact, Gemini và thứ tự chọn credential qua request reconstruction. |
+| `run-error-owner.mjs` | 5/5 | Phân biệt body lỗi bị ngắt với JSON lỗi nhận đủ, kiểm tra đọc một lần, chờ ACK và truyền lỗi ghi. |
+
 CI cho `23ef4c70` đạt cả bốn lane persistence, gồm build standalone Windows. Docker Linux amd64 đã kiểm chứng đóng gói SQL.js, preflight và mở lại volume sau dừng. [GitHub Actions](https://github.com/hoangvinh14/9router/actions/runs/45722467735) · [Bằng chứng lưu trữ](./phase-04-integrity-and-migration.md#kiểm-chứng-budget-sqljs-trên-linux-x64).
 
 ### Dashboard và hiệu năng bản đóng gói
@@ -101,7 +112,7 @@ Theo quyết định ngày 2026-11-24, anh tự build và kiểm tra image Docke
 
 - [ ] Freeze reviewed source/test/config/dep hashes and exact selectors, expected cases/skips, adapter/environment/isolation proof; run affected/security matrix, preserve outputs without private payloads.
 - [ ] Required cells/evidence/policies fulfilled or exact owner amendments recorded across plan/phase/UI docs. Blocked encrypted/history/failed usage/retry/models or applicable timing/platform gates mean **partial/BLOCKED**, not feature success. No blanket M1 proof campaign just to accumulate counts.
-- [ ] Record candidate integration SHA, donor provenance per admitted slice, final diff against pinned master, migration/rollback limits, WIP preservation refs and no-touch evidence. Develop and preserved WIP remain recoverable; no wholesale merge/cherry-pick.
+- [ ] Chốt SHA và diff của ứng viên cuối cùng. Đã ghi SHA image, nguồn donor, mốc đối chiếu master, giới hạn migration/rollback và ref WIP cho lần nghiệm thu hiện tại ở Phase 00, Phase 04 và mục dashboard ở trên.
 - [x] Advisor rà soát tiêu chí offline và các giới hạn còn lại. Kết quả thực thi do phiên nghiệm thu kiểm chứng.
 - [x] Handoff separate execution/rollout decision: delivered isolated shipping coverage != host production activation. Real DB backup/migration, actual upstream credentials/inference, `ledgerStartedAt` enablement, service restart/deploy, commit/push/PR require own approval not conferred here.
 

@@ -1,6 +1,14 @@
 # Phase 01 — Exact scope/evidence và boundary design trước port
 
-Status: **in-progress / partial; positive slice producer-blocked**. Priority: P1. Depends on: phase00 (verified). [Boundary design](./references/phase01-boundary-design.md), [support register](./references/phase01-support-manifest.json), [retry/exposure inventory](./references/phase01-retry-inventory.md), [management/identity comparison](./references/phase01-management-closure.md), [session/rotation protocol](./references/phase01-session-and-rotation-protocol.md), [persistence dependency register](./references/phase01-persistence-admission.json), [factory/migration/authority comparison](./references/phase01-factory-migration-closure.md), [static source manifest](./references/phase01-static-manifest.json) record bounded progress. No step below marked complete merely from a partial route/body review; full transitive closure/protocol admission/selectors remain open. Exception: [minimal pure helper slice](./references/pure-budget-admission.md) now ported with8/8 isolated fake-data tests; no existing LLM/DB/auth path changed or shipping budget activated. Other runtime/protocol/test gates remain open.
+Status: **in-progress / còn disposition về phạm vi và bằng chứng**. Priority: P1. Depends on: phase00 (verified). Hồ sơ thiết kế trước port gồm [Boundary design](./references/phase01-boundary-design.md), [support register](./references/phase01-support-manifest.json), [retry/exposure inventory](./references/phase01-retry-inventory.md), [management/identity comparison](./references/phase01-management-closure.md), [session/rotation protocol](./references/phase01-session-and-rotation-protocol.md), [persistence dependency register](./references/phase01-persistence-admission.json), [factory/migration/authority comparison](./references/phase01-factory-migration-closure.md), [static source manifest](./references/phase01-static-manifest.json).
+
+C0 Messages JSON và các profile đại diện của Codex/Claude OAuth đã nghiệm thu offline. Phase 03 ghi phạm vi thật của từng đường, gồm retry, CONNECT, continuity và ngoại lệ do owner chốt. Phase 04–05 ghi bằng chứng lưu trữ, rotation, dashboard và packaging. [Phase 03](./phase-03-native-retry-and-compatibility.md) · [Phase 04](./phase-04-integrity-and-migration.md) · [Phase 05](./phase-05-acceptance-and-handoff.md).
+
+## Phần còn mở
+
+- Đối chiếu manifest thiết kế C0–C7 với profile đã chạy, các model cũ còn được yêu cầu và từng tổ hợp C5 ngoài profile. Ghi hỗ trợ, từ chối trước POST hoặc chờ bằng chứng theo từng trường hợp.
+- Ghi kết quả đối chiếu các yêu cầu cũ về đọc trạng thái muộn trong request native và timeout. Xem [chi tiết còn thiếu](./references/scope-and-decisions.md#phạm-vi-đã-kiểm-tra-và-bằng-chứng-còn-thiếu).
+- Giữ các bước bên dưới làm checklist thiết kế ban đầu. Dùng các mục còn mở ở trên và hồ sơ nghiệm thu hiện hành để theo dõi việc còn lại.
 
 ## Inputs và files
 
