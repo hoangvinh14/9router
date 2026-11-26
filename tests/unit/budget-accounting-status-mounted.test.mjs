@@ -31,7 +31,7 @@ test('actual mounted disclosure refresh collapse key-switch late response and er
  const browser=await chromium.launch({executablePath:'/browser/chrome-headless-shell',headless:true,chromiumSandbox:false,timeout:10000,args:['--disable-dev-shm-usage','--disable-gpu','--disable-background-networking','--no-proxy-server','--host-resolver-rules=MAP * ~NOTFOUND'],env:{HOME:'/sandbox/home',TMPDIR:'/sandbox/tmp',LANG:'C',TZ:'UTC'}});
  const errors=[];let actualRequests=0;
  try{
-  const context=await browser.newContext({serviceWorkers:'block'});
+  const context=await browser.newContext({serviceWorkers:'block',viewport:{width:390,height:844}});
   await context.route('**/*',route=>{actualRequests++;return route.abort();});
   const page=await context.newPage();page.setDefaultTimeout(5000);
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
@@ -47,7 +47,9 @@ test('actual mounted disclosure refresh collapse key-switch late response and er
   const open=page.getByRole('button',{name:'Accounting status',exact:true});
   const refresh=page.getByRole('button',{name:'Refresh accounting status',exact:true});
   assert.equal(await count(),0);assert.equal(await open.getAttribute('aria-expanded'),'false');
-  await open.click();await waitCount(1);assert.equal(await expanded.getAttribute('aria-expanded'),'true');
+  await page.keyboard.press('Tab');
+  assert.equal(await open.evaluate(button=>button===document.activeElement),true);
+  await page.keyboard.press('Enter');await waitCount(1);assert.equal(await expanded.getAttribute('aria-expanded'),'true');
   assert.equal(await refresh.isDisabled(),true);assert.match(await text(),/Loading accounting status/);
   await settle(0,body());await waitText('Policy version: 1');assert.equal(await refresh.isEnabled(),true);
   assert.match(await text(),/Weekly limit \(nano-USD\): 0/);assert.match(await text(),/Monthly limit \(nano-USD\): Unlimited/);
@@ -80,7 +82,7 @@ test('actual mounted disclosure refresh collapse key-switch late response and er
     usage:{weekly:{spent:'9007199254740993',remaining:'0',resetAt:'2026-11-22T17:00:00.000Z'},
       monthly:{spent:'9007199254740993',remaining:null,resetAt:'2026-11-30T17:00:00.000Z'},
       timezone:'Asia/Ho_Chi_Minh',unknownDefaulted:1,unrecorded:2}};
-  await openBudget.click();await waitCount(8);
+  await openBudget.press('Space');await waitCount(8);
   assert.equal(await page.evaluate(()=>requests[7].url),'/api/keys/key-B/budget');
   await settle(7,budget);await waitText('Recorded spend (nano-USD): 9007199254740993');
   for(const expected of ['Policy version 4 (active)','Remaining (nano-USD): 0','Remaining (nano-USD): Unlimited',
