@@ -1,6 +1,6 @@
 # Phase 05 — Isolated integrated acceptance, security và handoff
 
-Status: in-progress. Priority: P1. Depends on: phase04 và mọi required unamended support/evidence gate. Không production/live/commit-push/activation authority implicit.
+Status: completed (nghiệm thu offline trong phạm vi đã chốt). Priority: P1. Depends on: phase04 và mọi required unamended support/evidence gate. Không production/live/commit-push/activation authority implicit.
 
 <!-- Updated: Validation Session 1 - SQLite storage facts; approved recovery/rotation/storage acceptance -->
 
@@ -60,7 +60,7 @@ Command paths/exact CLI args validated in sandbox before launch; no hardcoded ro
 
 Cùng image Docker nội bộ đã qua HTTP thật, HTTPS loopback và restart cho Codex Standard Responses SSE, Anthropic API-key Sonnet 4.6 JSON, Claude OAuth Opus 5.5 SSE và Sonnet 5 JSON qua combo. Mỗi đường đã kiểm tra đúng chi phí và 0 POST sau khi chạm hạn mức. Admin route kiểm tra phiên, origin và phiên bản policy. Bản backup SQLite qua lại 16/16 ca trên Node 24. Startup, composition, native wire và dashboard đều có kết quả theo image hoặc revision ghi trong Phase 03. [Nghiệm thu Phase 03](./phase-03-native-retry-and-compatibility.md#nghiệm-thu-claude-oauth-standard-trên-docker-nội-bộ) · [Phục hồi SQLite](./phase-04-integrity-and-migration.md#phục-hồi-cho-docker-nội-bộ).
 
-Nghiệm thu này để mở các hàng bắt buộc về refresh/retry có kết toán, các cấu hình chưa được qualification, ma trận runtime ngoài Docker Linux amd64 và rollout. Việc đối chiếu credential trên bản phục hồi thuộc rollout và cần được thực hiện trước khi mở ingress thật.
+Kết quả refresh/retry được chốt ở Phase 03, và kết quả persistence theo runtime được chốt ở Phase 04. Mỗi kết quả áp dụng cho cấu hình đã kiểm thử. Việc đối chiếu credential trên bản phục hồi thuộc rollout và cần được thực hiện trước khi mở ingress thật.
 
 ## Kiểm chứng offline ngày 2026-11-26
 
@@ -77,7 +77,23 @@ Trên Linux x64 Node v24.21.0, dùng các runner hiện có ở `tests/fixtures/
 
 CI cho `23ef4c70` đạt cả bốn lane persistence, gồm build standalone Windows. Docker Linux amd64 đã kiểm chứng đóng gói SQL.js, preflight và mở lại volume sau dừng. [GitHub Actions](https://github.com/hoangvinh14/9router/actions/runs/45722467735) · [Bằng chứng lưu trữ](./phase-04-integrity-and-migration.md#kiểm-chứng-budget-sqljs-trên-linux-x64).
 
-Phase 05 còn kết quả layout trên dashboard có CSS thật, so sánh hiệu năng với baseline `1855aa44` và rà soát bàn giao cuối. Đối chiếu credential trên instance thật thuộc rollout.
+### Dashboard và hiệu năng bản đóng gói
+
+Ở bản `23ef4c70`, Next.js có thể dùng hostname listener để tạo URL nội bộ. Dashboard mở từ một origin khác nhận HTTP 403 khi lưu budget. Bản `01869139` dùng origin của `BASE_URL` do người vận hành cấu hình cho kiểm tra write. Hồi quy management, JWT và retirement đạt 34/34, gồm từ chối cross-site, sai origin và forwarded host giả.
+
+Docker Linux amd64 chạy `01869139` với Node 24.21.0, node:sqlite, hostname listener mặc định và `BASE_URL=http://127.0.0.1:20128`. Chromium trong cùng network namespace cô lập tải hai stylesheet thật, đăng nhập bằng tài khoản thử, mở budget bằng bàn phím, lưu hạn mức tuần 3.000.000 nanoUSD với kỳ tháng Unlimited rồi đọc lại trong phiên mới. Ở 390px hai ô xếp dọc, ở 1280px hai ô nằm cạnh nhau. Cả hai không tràn ngang và có 0 lỗi JavaScript trang. Image candidate `sha256:0bc85ab2c852af4437b42b09586541856f590502193283a35e46b53c45a1bcbe`.
+
+So sánh với master `1855aa44473e88feac9d3f131b9c0c5fc9706b68` (image `sha256:171740aa160e0ad3ff6b5278d1f4d78437d9d9a75a32bd914dad3a880e4a87a7`) trên cùng Linux host, Node 24 Alpine, network chỉ loopback và volume SQLite mới mỗi lượt. Chạy xen kẽ 5 lần mỗi image. Startup đo từ `docker start` đến HTTP health và auth status đầu tiên, gồm preflight của image nội bộ. Mỗi lượt bỏ 20 request khởi động rồi đo 100 GET `/api/auth/status`.
+
+| Đo lường | Master | Nội bộ |
+|---|---:|---:|
+| Startup p50 | 8,80 s | 10,35 s |
+| Request p50 | 21,34 ms | 21,21 ms |
+| Request p95 | 36,50 ms | 35,91 ms |
+
+Startup nội bộ thêm 1,55 s (~18%) trong phép đo này. Độ trễ route thường tương đương trong mẫu loopback. Phép đo áp dụng cho một route HTTP trên một máy, với image nội bộ có preflight SQLite.
+
+Rà soát bàn giao đối chiếu source candidate `018691394ea21239c80b758be63c4bfca8d5401c` với master đã ghim, ghi nhận 242 tệp runtime, build và test thay đổi. Hồ sơ bảo toàn WIP và donor ở Phase 00. Rà soát độc lập xác nhận phạm vi nghiệm thu offline sau hai phép kiểm trên. Credential thật, origin qua ingress thật và kích hoạt production thuộc rollout. [Bảo toàn WIP và provenance](./references/phase00-execution.md) · [Khôi phục SQLite](./phase-04-integrity-and-migration.md#phục-hồi-cho-docker-nội-bộ).
 
 ## Completion / handoff
 
@@ -87,6 +103,6 @@ Theo quyết định ngày 2026-11-24, anh tự build và kiểm tra image Docke
 - [ ] Required cells/evidence/policies fulfilled or exact owner amendments recorded across plan/phase/UI docs. Blocked encrypted/history/failed usage/retry/models or applicable timing/platform gates mean **partial/BLOCKED**, not feature success. No blanket M1 proof campaign just to accumulate counts.
 - [ ] Record candidate integration SHA, donor provenance per admitted slice, final diff against pinned master, migration/rollback limits, WIP preservation refs and no-touch evidence. Develop and preserved WIP remain recoverable; no wholesale merge/cherry-pick.
 - [ ] Advisor completion review with exact checks/remaining risks; independent security/compat review only if authorized, never imply it was performed by static plan review.
-- [ ] Handoff separate execution/rollout decision: delivered isolated shipping coverage != host production activation. Real DB backup/migration, actual upstream credentials/inference, `ledgerStartedAt` enablement, service restart/deploy, commit/push/PR require own approval not conferred here.
+- [x] Handoff separate execution/rollout decision: delivered isolated shipping coverage != host production activation. Real DB backup/migration, actual upstream credentials/inference, `ledgerStartedAt` enablement, service restart/deploy, commit/push/PR require own approval not conferred here.
 
 **Stop/report:** unsafe sandbox, external network/private access, WIP loss/collision, hidden dispatch, unexpected regression, missing evidence, unapproved policy change → retain failing artifacts, report exact blocker+next finite input, do not silently downgrade assertions or claim security sign-off.
