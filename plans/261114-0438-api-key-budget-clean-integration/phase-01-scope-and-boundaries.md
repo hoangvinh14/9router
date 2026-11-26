@@ -6,7 +6,7 @@ C0 Messages JSON và các profile đại diện của Codex/Claude OAuth đã ng
 
 ## Phần còn mở
 
-- Đối chiếu manifest thiết kế C0–C7 với profile đã chạy, các model cũ còn được yêu cầu và từng tổ hợp C5 ngoài profile. Ghi hỗ trợ, từ chối trước POST hoặc chờ bằng chứng theo từng trường hợp.
+- Đã đối chiếu sáu model Codex cũ với bảng giá OpenAI và Responses SSE. Tiếp tục đối chiếu từng tổ hợp C5 còn mở với profile đã chạy. [Kết quả theo model](./references/scope-and-decisions.md#đối-chiếu-các-model-codex-đã-giữ-trong-c1).
 - Ghi kết quả đối chiếu các yêu cầu cũ về đọc trạng thái muộn trong request native và timeout. Xem [chi tiết còn thiếu](./references/scope-and-decisions.md#phạm-vi-đã-kiểm-tra-và-bằng-chứng-còn-thiếu).
 - Giữ các bước bên dưới làm checklist thiết kế ban đầu. Dùng các mục còn mở ở trên và hồ sơ nghiệm thu hiện hành để theo dõi việc còn lại.
 

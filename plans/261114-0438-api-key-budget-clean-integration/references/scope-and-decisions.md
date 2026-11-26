@@ -45,10 +45,27 @@ Mỗi manifest row gồm: canonical client/logical/reference/wire model identiti
 ## Phạm vi đã kiểm tra và bằng chứng còn thiếu
 
 - C0–C4 có kết quả trên các profile và model cụ thể trong [Phase 03](../phase-03-native-retry-and-compatibility.md#chốt-nghiệm-thu-tích-hợp). Giá được chọn theo snapshot bên ngoài. Ngoại lệ `gpt-reserve` và Claude OAuth mất usage cuối được owner chốt ở đó. C5 cần disposition theo tổ hợp ngoài profile đã nghiệm thu. Refusal đã được kiểm tra cho compact, một số helper strategy/capacity và route reconstruction. [Phép kiểm bổ sung](../phase-05-acceptance-and-handoff.md#kiểm-chứng-offline-ngày-2026-11-26).
-- **Tổ hợp C5 đã đối chiếu.** Nested fallback qua alias đã ghi chi phí và chặn ở đúng hạn mức. Smart/Fusion và capacity expansion trong fixture route readers bị từ chối trước chọn account. Codex compact bị từ chối cho key có budget ở đường reconstruction. Paid tools và content block ngoài profile SSE Anthropic bị từ chối trước transport. Các ca này xác nhận hành vi hiện tại của từng fixture. Trạng thái nghiệm thu của các biến thể hosted search/MCP, media ngoài profile, review/premium và dynamic compatible/reseller vẫn cần xác định theo từng trường hợp. [Kiểm chứng bổ sung](../phase-05-acceptance-and-handoff.md#kiểm-chứng-offline-ngày-2026-11-26).
+- **Tổ hợp C5 đã đối chiếu.** Nested fallback qua alias đã ghi chi phí và chặn ở đúng hạn mức. Smart/Fusion và capacity expansion trong fixture route readers bị từ chối trước chọn account. Codex compact bị từ chối cho key có budget ở đường reconstruction. Paid tools và content block ngoài profile SSE Anthropic bị từ chối trước transport. Các ca này xác nhận hành vi hiện tại của từng fixture. Codex Responses SSE đã kiểm tra thêm hosted search/MCP, ảnh URL và priority. Các biến thể ở profile khác, review/1M và dynamic compatible/reseller còn cần đối chiếu. [Kiểm chứng bổ sung](../phase-05-acceptance-and-handoff.md#kiểm-chứng-offline-ngày-2026-11-26).
 - **E3-07.** Bằng chứng cũ có request native chạy đồng thời qua key/account khác nhau và ghi đúng khoản. Phần còn thiếu là một phép kiểm có thể phân biệt lỗi đọc lại account/session trễ trên đường production thực. Route readers kiểm tra thay đổi trước giao dịch cuối. Error owner kiểm tra đọc body và ACK. Hai phép kiểm có phạm vi riêng, nên E3-07 vẫn mở.
 - **E4 và các timeout liên quan.** Hồ sơ M1 ở ref bảo toàn `7a4f3a3e`, tệp `plans/261101-0716-m1-codex-standard-accounting/references/remaining-items-owner-review.md`, ghi CONNECT 1.040 ms với ngưỡng 1.000 ms và SQL.js close/crash/JSON/rename vượt 5.000 ms. E3-01-T1 là timeout lần đầu ở Messages JSON. E3-06-T1 là timeout rename Claude với SQL.js. Phase 03–04 có các phép kiểm mới trên CONNECT và SQLite hiện tại. Cần đối chiếu đường gây timeout hoặc có quyết định riêng cho phần rủi ro còn lại.
 - **Runtime.** Windows x64 có persistence và standalone build. Linux x64 có persistence trên `node:sqlite`, SQL.js, Bun và `better-sqlite3`. Phạm vi end-to-end của image được kiểm chứng trên Linux amd64. [Kết quả theo runtime](../phase-04-integrity-and-migration.md).
+
+## Đối chiếu các model Codex đã giữ trong C1
+
+Ngày 2026-11-26, bộ phân tích giá của 9Router đọc bảng ChatGPT Work and Codex models từ [OpenAI](https://help.openai.com/en/articles/20001415-chatgpt-rate-card-enterprise-token-based-pricing). Cả sáu ID có trong [registry Codex](../../../open-sse/providers/registry/codex.js). Bảng dưới ghi USD trên một triệu token và khoản debit với 100 input (40 cached) và 25 output.
+
+| Model | Input | Cached input | Output | HTTPS loopback |
+|---|---:|---:|---:|---|
+| `gpt-6-astra` | 10.00 | 1.00 | 50.00 | 1.890.000 nanoUSD |
+| `gpt-5.6-sol` | 4.00 | 0.40 | 20.00 | 756.000 nanoUSD |
+| `gpt-5.6-terra` | 2.00 | 0.20 | 12.00 | 428.000 nanoUSD |
+| `gpt-5.6-luna` | 0.20 | 0.02 | 1.20 | 42.800 nanoUSD |
+| `gpt-daybreak-blue-latest` | 4.00 | 0.40 | 20.00 | 756.000 nanoUSD |
+| `gpt-reserve` | — | — | — | HTTP 503 trước POST theo quyết định Phase 03 |
+
+Ca xác minh tạm trên source ứng dụng `6fcc3cd3` nạp năm dòng giá đã đọc vào fixture Codex. Responses SSE gửi đúng ID qua HTTPS loopback, ghi tổng 3.872.800 nanoUSD vào cùng key và chặn lượt sau ở đúng ngưỡng. Credential và usage thuộc fixture. Tình trạng model trên từng tài khoản thật thuộc rollout.
+
+Cùng lượt kiểm thử, Responses SSE của Codex từ chối `web_search`, `mcp`, ảnh URL và `service_tier: priority` với HTTP 503, không tạo intent và có 0 lượt gửi inference. Toàn suite `run-composed.mjs --tls` đạt 104/104 khi có ca xác minh tạm. Phần review/1M và dynamic compatible/reseller còn cần đối chiếu riêng.
 
 ## Decision register
 
