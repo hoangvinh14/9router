@@ -1,14 +1,16 @@
 # Phase 01 — Exact scope/evidence và boundary design trước port
 
-Status: **in-progress / còn disposition về phạm vi và bằng chứng**. Priority: P1. Depends on: phase00 (verified). Hồ sơ thiết kế trước port gồm [Boundary design](./references/phase01-boundary-design.md), [support register](./references/phase01-support-manifest.json), [retry/exposure inventory](./references/phase01-retry-inventory.md), [management/identity comparison](./references/phase01-management-closure.md), [session/rotation protocol](./references/phase01-session-and-rotation-protocol.md), [persistence dependency register](./references/phase01-persistence-admission.json), [factory/migration/authority comparison](./references/phase01-factory-migration-closure.md), [static source manifest](./references/phase01-static-manifest.json).
+Status: **completed / nghiệm thu offline theo checklist đích**. Priority: P1. Depends on: phase00 (verified). Hồ sơ thiết kế trước port gồm [Boundary design](./references/phase01-boundary-design.md), [support register](./references/phase01-support-manifest.json), [retry/exposure inventory](./references/phase01-retry-inventory.md), [management/identity comparison](./references/phase01-management-closure.md), [session/rotation protocol](./references/phase01-session-and-rotation-protocol.md), [persistence dependency register](./references/phase01-persistence-admission.json), [factory/migration/authority comparison](./references/phase01-factory-migration-closure.md), [static source manifest](./references/phase01-static-manifest.json).
 
 C0 Messages JSON và các profile đại diện của Codex/Claude OAuth đã nghiệm thu offline. Phase 03 ghi phạm vi thật của từng đường, gồm retry, CONNECT, continuity và ngoại lệ do owner chốt. Phase 04–05 ghi bằng chứng lưu trữ, rotation, dashboard và packaging. [Phase 03](./phase-03-native-retry-and-compatibility.md) · [Phase 04](./phase-04-integrity-and-migration.md) · [Phase 05](./phase-05-acceptance-and-handoff.md).
 
-## Phần còn mở
+## Kết quả kiểm tra cuối
 
-- Đã đối chiếu sáu model Codex cũ với bảng giá OpenAI và Responses SSE. Kiểm một request đại diện cho từng nhóm C5 còn mở gồm review, 1M, compatible/reseller và tool hoặc media có đường xử lý khác. Dùng key được cấp quyền và còn hạn mức. Luồng hỗ trợ phải ghi đúng chi phí. Luồng ngoài phạm vi phải thêm 0 POST, xác nhận qua bộ đếm upstream loopback. [Kết quả theo model](./references/scope-and-decisions.md#đối-chiếu-các-model-codex-đã-giữ-trong-c1).
-- Chạy một ca native đồng thời và kiểm tra lại CONNECT cùng lưu trữ trên cấu hình đích theo tiêu chí đã thu gọn. Xem [chi tiết còn thiếu](./references/scope-and-decisions.md#phạm-vi-đã-kiểm-tra-và-bằng-chứng-còn-thiếu).
-- Giữ các bước bên dưới làm checklist thiết kế ban đầu. Dùng các mục còn mở ở trên và hồ sơ nghiệm thu hiện hành để theo dõi việc còn lại.
+Đã hoàn tất các phép kiểm dưới đây ngày 2026-11-27. Xem [kết quả bàn giao](./phase-05-acceptance-and-handoff.md#kiểm-chứng-chốt-plan-ngày-2026-11-27).
+
+- Đã đối chiếu sáu model Codex cũ với bảng giá OpenAI và Responses SSE. Đã kiểm một request đại diện cho từng nhóm C5 còn mở gồm review, 1M, compatible/reseller và tool hoặc media có đường xử lý khác. Dùng key được cấp quyền và còn hạn mức. Luồng hỗ trợ phải ghi đúng chi phí. Luồng ngoài phạm vi phải thêm 0 POST, xác nhận qua bộ đếm upstream loopback. [Kết quả theo model](./references/scope-and-decisions.md#đối-chiếu-các-model-codex-đã-giữ-trong-c1).
+- Đã chạy một ca native đồng thời và kiểm tra lại CONNECT cùng lưu trữ trên cấu hình đích theo tiêu chí đã thu gọn. Xem [chi tiết còn thiếu](./references/scope-and-decisions.md#phạm-vi-đã-kiểm-tra-và-bằng-chứng-còn-thiếu).
+- Giữ các bước bên dưới làm checklist thiết kế ban đầu. Kết quả trên áp dụng cho phạm vi offline đã chốt.
 
 ## Inputs và files
 

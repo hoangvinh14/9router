@@ -106,13 +106,29 @@ Startup nội bộ thêm 1,55 s (~18%) trong phép đo này. Độ trễ route t
 
 Rà soát bàn giao đối chiếu source candidate `018691394ea21239c80b758be63c4bfca8d5401c` với master đã ghim, ghi nhận 242 tệp runtime, build và test thay đổi. Hồ sơ bảo toàn WIP và donor ở Phase 00. Advisor rà soát hồ sơ và xác định hai phép kiểm cuối là layout có CSS thật và so sánh hiệu năng. Kết quả hai phép kiểm được ghi ở trên. Credential thật, origin qua ingress thật và kích hoạt production thuộc rollout. [Bảo toàn WIP và provenance](./references/phase00-execution.md) · [Khôi phục SQLite](./phase-04-integrity-and-migration.md#phục-hồi-cho-docker-nội-bộ).
 
+## Kiểm chứng chốt plan ngày 2026-11-27
+
+Source ứng dụng `d1369f714c37a01bdc5ddfc3de4a443e06115680`, Linux amd64, Node v24.21.0 với `node:sqlite`, Bubblewrap và SQLite tạm. Hai ca bổ sung dùng fixture tạm trên cùng source ứng dụng.
+
+| Lệnh | Kết quả |
+|---|---|
+| `node tests/fixtures/budget/run-route-readers.mjs` | 28/28 |
+| `node tests/fixtures/budget/run-composed.mjs --tls` | 105/105 gồm hai ca bổ sung và strict CONNECT |
+| `node tests/fixtures/budget/run-startup.mjs` | 33/33 gồm backup, khởi tạo budget trên DB có sẵn, mở lại và 0 lượt gửi ở hạn mức |
+
+Ca từ chối dùng key còn hạn mức với ACL mở. Codex Responses trả 503 cho review, 1M, dynamic compatible, reseller, web search, MCP và ảnh URL. Cả bảy request có 0 POST upstream và 0 attempt. Ca đồng thời giữ request đầu ở HTTPS upstream, đổi binding fixture để request kế dùng key và connection khác, rồi cho request kế hoàn tất trước. Upstream nhận đúng account, token và session từng request. SQLite ghi đúng 20.000 và 40.000 nanoUSD vào hai key tương ứng. Ca CONNECT và startup hoàn tất. Nguyên nhân timeout lịch sử vẫn chưa được xác định.
+
+Bằng chứng dashboard đóng gói dùng image Linux amd64 tại `01869139`, ID `sha256:0bc85ab2c852af4437b42b09586541856f590502193283a35e46b53c45a1bcbe`. Bằng chứng restart và chặn ở đúng hạn mức trên volume có sẵn dùng image `561a7ad8`, ID `sha256:4b593e54d5173964858c2e0fcde34fbe213b501884e1bafbd02b5822286f81e1`. [Kiểm chứng trên SQLite có sẵn](./phase-04-integrity-and-migration.md#success-evidence).
+
+Từ `01869139` tới source chốt, thay đổi duy nhất trong runtime và đóng gói là quy tắc chọn giá cho `gpt-reserve`. Một lượt loopback trong suite cuối xác nhận khoản 0 nanoUSD và từ chối khi đã chạm hạn mức. Người vận hành tự build và kiểm tra image mới nhất theo bàn giao.
+
 ## Completion / handoff
 
 Theo quyết định ngày 2026-11-24, anh tự build và kiểm tra image Docker mới nhất, gồm luồng mở lại volume SQLite hiện có. Bước này được bàn giao và bỏ khỏi tiêu chí đóng plan của phiên triển khai. Kết quả nghiệm thu đã ghi áp dụng cho từng image hoặc revision tương ứng.
 
-- [ ] Trên commit bàn giao, chạy các ca ảnh hưởng trực tiếp theo [checklist đóng plan](./plan.md#checklist-đóng-plan-cho-docker-linux-amd64). Các runner có sẵn gồm `run-route-readers.mjs`, `run-composed.mjs --tls` và `run-startup.mjs` trong `tests/fixtures/budget/`. Dùng thêm ca lưu trữ của adapter đích và ghi rõ kết quả ca đồng thời, các nhóm route đã kiểm, cùng lỗi tái hiện nếu có.
-- [ ] Đối chiếu bằng chứng Docker Linux amd64 cho adapter đích: lưu hạn mức, ghi một khoản, mở lại cùng volume và chặn ở đúng hạn mức. Chạy lại ca này nếu image hoặc adapter thay đổi phần liên quan.
-- [ ] Ghi commit, digest image được kiểm thử, runtime/adapter, lệnh chạy, kết quả và giới hạn còn lại. Tham chiếu Phase 00 và 04 cho nguồn donor, WIP và giới hạn migration/rollback.
+- [x] Trên commit bàn giao, chạy các ca ảnh hưởng trực tiếp theo [checklist đóng plan](./plan.md#checklist-đóng-plan-cho-docker-linux-amd64). Các runner có sẵn gồm `run-route-readers.mjs`, `run-composed.mjs --tls` và `run-startup.mjs` trong `tests/fixtures/budget/`. Dùng thêm ca lưu trữ của adapter đích và ghi rõ kết quả ca đồng thời, các nhóm route đã kiểm, cùng lỗi tái hiện nếu có.
+- [x] Đối chiếu bằng chứng Docker Linux amd64 cho adapter đích: lưu hạn mức, ghi một khoản, mở lại cùng volume và chặn ở đúng hạn mức. Chạy lại ca này nếu image hoặc adapter thay đổi phần liên quan.
+- [x] Ghi commit, digest image được kiểm thử, runtime/adapter, lệnh chạy, kết quả và giới hạn còn lại. Tham chiếu Phase 00 và 04 cho nguồn donor, WIP và giới hạn migration/rollback.
 - [x] Advisor rà soát tiêu chí offline và các giới hạn còn lại. Kết quả thực thi do phiên nghiệm thu kiểm chứng.
 - [x] Handoff separate execution/rollout decision: delivered isolated shipping coverage != host production activation. Real DB backup/migration, actual upstream credentials/inference, `ledgerStartedAt` enablement, service restart/deploy, commit/push/PR require own approval not conferred here.
 

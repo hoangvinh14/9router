@@ -1,7 +1,7 @@
 ---
 title: "API-key budget — clean integration từ synced master"
 description: "Bảo toàn WIP trong cùng checkout, rồi selective port các vertical slices đáp ứng B01–B08 từ develop."
-status: in-progress
+status: completed
 priority: P1
 effort: "Chưa ước lượng đáng tin trước dependency/evidence gates; không cam kết ETA"
 branch: feat/api-key-budget-integration
@@ -51,9 +51,11 @@ Bốn luồng Docker Linux amd64 đã kiểm chứng ghi chi phí theo API key v
 - Codex Standard bổ sung Chat Completions SSE và JSON dùng chung budget với Responses. Khi phản hồi hoàn tất mà thiếu usage, tính phần ước tính có thể xác định theo cách OmniRoute và chặn theo tổng đã ghi. [Phạm vi và cách tính](./phase-03-native-retry-and-compatibility.md#chat-completions-và-usage-ước-tính).
 ### Checklist đóng plan cho Docker Linux amd64
 
+Đã đóng nghiệm thu offline ngày 2026-11-27. Kết quả áp dụng cho source và image ghi riêng trong hồ sơ bàn giao.
+
 Phạm vi nghiệm thu cuối áp dụng cho cấu hình Docker Linux amd64 của hai instance đích. Theo yêu cầu ngày 2026-11-26, bỏ yêu cầu tạo phép thử đọc trạng thái muộn nhân tạo, điều tra lại timeout lịch sử khi ca hiện hành đạt, và chạy end-to-end trên mọi runtime. Các bằng chứng lưu trữ đã có vẫn nằm ở Phase 04.
 
-1. Kiểm tra đại diện từng nhóm route còn mở. Dùng key được cấp quyền và còn hạn mức. Luồng hỗ trợ ghi đúng chi phí, luồng ngoài phạm vi thêm 0 POST. [Phạm vi và phép kiểm](./phase-01-scope-and-boundaries.md#phần-còn-mở).
+1. Kiểm tra đại diện từng nhóm route còn mở. Dùng key được cấp quyền và còn hạn mức. Luồng hỗ trợ ghi đúng chi phí, luồng ngoài phạm vi thêm 0 POST. [Phạm vi và phép kiểm](./phase-01-scope-and-boundaries.md#kết-quả-kiểm-tra-cuối).
 2. Chạy một ca đồng thời qua hai key và hai connection, đảo thứ tự hoàn tất. Đối chiếu account/session và khoản ghi cho từng key. Chạy một lượt các ca CONNECT và lưu trữ hiện có trên cấu hình đích. Xử lý timeout nếu tái hiện. [Tiêu chí](./references/scope-and-decisions.md#phạm-vi-đã-kiểm-tra-và-bằng-chứng-còn-thiếu).
 3. Chốt commit, digest image, runtime/adapter, kết quả kiểm thử và giới hạn còn lại. Rollout và đối chiếu credential, volume, ingress cùng `BASE_URL` thật là bước riêng. [Bàn giao](./phase-05-acceptance-and-handoff.md#completion--handoff).
 
@@ -101,7 +103,7 @@ Một writer trong checkout. Thực hiện tuần tự; không runtime parallel 
 | Phase | Nội dung / exit gate | Phụ thuộc | Trạng thái |
 |---|---|---|---|
 | [00 — preservation & switch](./phase-00-preserve-and-switch.md) | Reviewed preservation + owner no-backup disposition cho exclusions; collision/service preflight, pin master và normal clean switch | Owner continuation authority | completed; local baseline commit `5b1fc863adac5227b6b77ad93a29c5d68cfa3835` verified |
-| [01 — support & boundary design](./phase-01-scope-and-boundaries.md) | Exact cells/evidence, policy decisions, identity/durability/ACK/no-bypass design, per-slice admission | 00 | in-progress / C0–C4 có kết quả theo profile offline; disposition và bằng chứng mở; [boundary design](./references/phase01-boundary-design.md) |
+| [01 — support & boundary design](./phase-01-scope-and-boundaries.md) | Exact cells/evidence, policy decisions, identity/durability/ACK/no-bypass design, per-slice admission | 00 | completed / nghiệm thu offline theo checklist đích; [boundary design](./references/phase01-boundary-design.md) |
 | [02 — first real vertical slice](./phase-02-first-vertical-slice.md) | API/UI → shipping ingress → actual native dummy TLS POST → durable exact debit → next **0 POST** | 01; evidence/policy cho selected cell | completed / Docker nội bộ cho C0 Messages JSON |
 | [03 — retained native compatibility](./phase-03-native-retry-and-compatibility.md) | Codex + Anthropic API-key + Claude OAuth, retained ingress/history/functions, retry/refresh/fallback | 02; applicable producer gates | nghiệm thu offline cho retry, continuity và strict CONNECT. Ngoại lệ 0 nanoUSD cho `gpt-reserve` đã kiểm chứng |
 | [04 — identity, persistence & faults](./phase-04-integrity-and-migration.md) | Khởi tạo budget trên SQLite hiện có, kiểm chứng tính theo key và kỳ, restart, backup/restore và lỗi lưu trữ | 03 | completed / kiểm chứng offline rotation, restart, backup/restore và lỗi lưu trữ. Đối chiếu credential thật thuộc rollout. [Quyết định nghiệm thu](./phase-04-integrity-and-migration.md#quyết-định-nghiệm-thu-ngày-2026-11-26) |
