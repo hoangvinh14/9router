@@ -15,6 +15,7 @@ const files = [
   'open-sse/services/model.js', 'open-sse/utils/error.js', 'open-sse/config/runtimeConfig.js', 'open-sse/config/errorConfig.js',
   'src/lib/accounting/node-routing-snapshot.js', 'src/lib/accounting/node-outer-transaction.js',
   'src/lib/accounting/attempt-payload.js', 'src/lib/accounting/process-state.js', 'src/lib/accounting/sql-operation-scope.js',
+  'src/lib/db/adapters/nodeClosure.js',
   'src/lib/db/helpers/jsonCol.js', 'src/lib/db/repos/settingsRepo.js', 'src/shared/utils/keyAccess.js',
   'src/sse/handlers/chat.js', 'src/lib/accounting/installed-service.js', 'src/lib/accounting/request-boundary.js',
   'src/lib/accounting/node-attempt-ledger.js', 'src/lib/accounting/node-key-policy.js', 'src/lib/accounting/budget-windows.js',

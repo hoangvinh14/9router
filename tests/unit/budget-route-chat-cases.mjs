@@ -36,6 +36,7 @@ async function fixture(run, { beforeBegin, afterCommit, requireAccount = false }
       CREATE TABLE kv(scope TEXT, key TEXT, value TEXT, PRIMARY KEY(scope,key));
       CREATE TABLE providerNodes(id TEXT PRIMARY KEY, type TEXT, data TEXT);
       CREATE TABLE providerConnections(id TEXT PRIMARY KEY, provider TEXT, authType TEXT, isActive INTEGER, data TEXT);
+      CREATE TABLE proxyPools(id TEXT PRIMARY KEY, isActive INTEGER, data TEXT);
       CREATE TABLE settings(id INTEGER PRIMARY KEY, data TEXT);
       INSERT INTO settings VALUES(1,'{}');
       INSERT INTO apiKeys VALUES('key','fixture-client',1,1,'["Root"]');
