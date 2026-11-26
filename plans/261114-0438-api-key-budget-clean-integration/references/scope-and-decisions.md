@@ -61,7 +61,7 @@ Ngày 2026-11-26, bộ phân tích giá của 9Router đọc bảng ChatGPT Work
 | `gpt-5.6-terra` | 2.00 | 0.20 | 12.00 | 428.000 nanoUSD |
 | `gpt-5.6-luna` | 0.20 | 0.02 | 1.20 | 42.800 nanoUSD |
 | `gpt-daybreak-blue-latest` | 4.00 | 0.40 | 20.00 | 756.000 nanoUSD |
-| `gpt-reserve` | — | — | — | Tiêu chí cũ trả 503 trước POST. Tiêu chí mới tính 0 nanoUSD, chờ kiểm chứng. |
+| `gpt-reserve` | — | — | — | Khi còn hạn mức, một POST và một terminal 0 nanoUSD. Tại hạn mức, 0 POST. |
 
 Ca xác minh tạm trên source ứng dụng `6fcc3cd3` nạp năm dòng giá đã đọc vào fixture Codex. Responses SSE gửi đúng ID qua HTTPS loopback, ghi tổng 3.872.800 nanoUSD vào cùng key và chặn lượt sau ở đúng ngưỡng. Credential và usage thuộc fixture. Tình trạng model trên từng tài khoản thật thuộc rollout.
 

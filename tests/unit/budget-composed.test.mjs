@@ -1359,23 +1359,32 @@ if (stage === undefined) {
     }, { monthly:'748000', reply });
   });
 
-  test('an unpriced gpt-reserve request leaves the key available for priced Codex models', () =>
+  test('unpriced gpt-reserve settles at zero and still obeys ACL and the recorded spend limit', () =>
     codexFixture(async ({ state, request, rows, totals }) => {
+      const reserve = () => postResponses(request({ model: 'codex/gpt-reserve' }));
+      assert.equal((await reserve()).status, 503);
       state.db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [
-        JSON.stringify(['codex/gpt-reserve', 'codex/gpt-6.2-sol']), 'fixture-key',
+        JSON.stringify(['codex/gpt-reserve', 'codex/gpt-6.2-sol', 'codex/gpt-6.1-terra']), 'fixture-key',
       ]);
-      const refused = await postResponses(request({ model: 'codex/gpt-reserve' }));
-      assert.equal(refused.status, 503);
+      assert.equal((await postResponses(request({ model: 'codex/gpt-6.1-terra' }))).status, 503);
       assert.equal(state.wire.length, 0);
       assert.deepEqual(rows(), { attempts: [], terminals: [] });
+
+      const response = await reserve();
+      assert.equal(response.status, 200);
+      assert.match(await response.text(), /response.completed/);
+      assert.equal(state.wire[0].body.model, 'gpt-reserve');
+      assert.equal(rows().attempts.length, 1);
+      assert.deepEqual(rows().terminals.map(row => row.amount), ['0']);
+      assert.equal(totals().monthly, '0');
 
       const priced = await postResponses(request());
       assert.equal(priced.status, 200);
       assert.match(await priced.text(), /response.completed/);
-      assert.equal(state.wire.length, 1);
-      assert.equal(rows().attempts.length, 1);
-      assert.equal(rows().terminals.length, 1);
       assert.equal(totals().monthly, codexFixtureLimit);
+      assert.equal((await reserve()).status, 503);
+      assert.equal(state.wire.length, 2);
+      assert.deepEqual(rows().terminals.map(row => row.amount), ['0', codexFixtureLimit]);
     }));
 
   test('Codex forwards encrypted continuation without billing its byte length as estimated tokens', () => {

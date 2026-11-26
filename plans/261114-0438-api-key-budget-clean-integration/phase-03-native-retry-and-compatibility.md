@@ -12,7 +12,7 @@ Bộ kiểm thử transport đếm lượt đạt 96/96, HTTPS loopback đạt 1
 
 Owner chốt bỏ qua chi phí của `gpt-reserve` trên Codex OAuth Standard. Request đủ điều kiện được gửi khi budget còn mở và đóng góp **0 nanoUSD** vào số đã dùng. Đây là quy tắc budget nội bộ khi thiếu đơn giá OpenAI. Các kiểm tra quyền model, connection và hạn mức trước khi gửi vẫn áp dụng. Model khác thiếu giá tiếp tục bị từ chối trước POST.
 
-- [ ] Áp dụng và nghiệm thu ngoại lệ. Với key còn hạn mức và được cấp quyền cho model, ca loopback phải có một POST và tổng chi phí giữ nguyên. Khi key đã chạm hạn mức, ca kiểm tra phải có 0 POST. Giữ kết quả 503 trước POST ở trên làm bằng chứng cho tiêu chí cũ.
+- [x] Đã kiểm chứng qua HTTPS loopback. Key được cấp quyền và còn hạn mức gửi một POST, ghi terminal 0 nanoUSD và giữ nguyên tổng đã dùng. Sau khi model có giá đưa tổng lên đúng hạn mức, `gpt-reserve` trả 503 trước POST. Thiếu quyền model và model khác thiếu giá đều phát sinh 0 POST. Binding Codex vẫn cần ít nhất một dòng giá đồng bộ hợp lệ để sẵn sàng. Khi có dòng giá hợp lệ cho chính `gpt-reserve`, ledger dùng dòng giá đó.
 
 ### Quyết định nghiệm thu Claude OAuth khi SSE báo lỗi, 2026-11-25
 

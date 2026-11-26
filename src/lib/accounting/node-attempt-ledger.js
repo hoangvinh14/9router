@@ -34,10 +34,17 @@ const CODEX_PRICE_READS = Object.freeze({
   referencePrice: Object.freeze({ method: 'get', sql: 'SELECT value FROM kv WHERE scope = ? AND key = ?' }),
 });
 
+const codexReservePrice = Object.freeze({
+  currency: 'USD',
+  unit: 'USD/1M tokens',
+  revision: '9router:codex/gpt-reserve:zero-cost:v1',
+  rates: Object.freeze({ input: '0', cached: '0', output: '0' }),
+});
+
 function readCodexPrice(scope, revision) {
   if (!revision) return null;
   const row = scope.referencePrice([BUDGET_REFERENCE_SCOPE, revision]);
-  if (!row) return null;
+  if (!row) return revision === codexStandardReferenceKey('gpt-reserve') ? codexReservePrice : null;
   try {
     const price = validateCodexStandardReference(JSON.parse(row.value));
     return price.revision === revision ? price : null;
