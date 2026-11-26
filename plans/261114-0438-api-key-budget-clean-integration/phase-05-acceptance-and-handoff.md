@@ -93,7 +93,7 @@ So sánh với master `1855aa44473e88feac9d3f131b9c0c5fc9706b68` (image `sha256:
 
 Startup nội bộ thêm 1,55 s (~18%) trong phép đo này. Độ trễ route thường tương đương trong mẫu loopback. Phép đo áp dụng cho một route HTTP trên một máy, với image nội bộ có preflight SQLite.
 
-Rà soát bàn giao đối chiếu source candidate `018691394ea21239c80b758be63c4bfca8d5401c` với master đã ghim, ghi nhận 242 tệp runtime, build và test thay đổi. Hồ sơ bảo toàn WIP và donor ở Phase 00. Rà soát độc lập xác nhận phạm vi nghiệm thu offline sau hai phép kiểm trên. Credential thật, origin qua ingress thật và kích hoạt production thuộc rollout. [Bảo toàn WIP và provenance](./references/phase00-execution.md) · [Khôi phục SQLite](./phase-04-integrity-and-migration.md#phục-hồi-cho-docker-nội-bộ).
+Rà soát bàn giao đối chiếu source candidate `018691394ea21239c80b758be63c4bfca8d5401c` với master đã ghim, ghi nhận 242 tệp runtime, build và test thay đổi. Hồ sơ bảo toàn WIP và donor ở Phase 00. Advisor rà soát hồ sơ và xác định hai phép kiểm cuối là layout có CSS thật và so sánh hiệu năng. Kết quả hai phép kiểm được ghi ở trên. Credential thật, origin qua ingress thật và kích hoạt production thuộc rollout. [Bảo toàn WIP và provenance](./references/phase00-execution.md) · [Khôi phục SQLite](./phase-04-integrity-and-migration.md#phục-hồi-cho-docker-nội-bộ).
 
 ## Completion / handoff
 
@@ -102,7 +102,7 @@ Theo quyết định ngày 2026-11-24, anh tự build và kiểm tra image Docke
 - [ ] Freeze reviewed source/test/config/dep hashes and exact selectors, expected cases/skips, adapter/environment/isolation proof; run affected/security matrix, preserve outputs without private payloads.
 - [ ] Required cells/evidence/policies fulfilled or exact owner amendments recorded across plan/phase/UI docs. Blocked encrypted/history/failed usage/retry/models or applicable timing/platform gates mean **partial/BLOCKED**, not feature success. No blanket M1 proof campaign just to accumulate counts.
 - [ ] Record candidate integration SHA, donor provenance per admitted slice, final diff against pinned master, migration/rollback limits, WIP preservation refs and no-touch evidence. Develop and preserved WIP remain recoverable; no wholesale merge/cherry-pick.
-- [ ] Advisor completion review with exact checks/remaining risks; independent security/compat review only if authorized, never imply it was performed by static plan review.
+- [x] Advisor rà soát tiêu chí offline và các giới hạn còn lại. Kết quả thực thi do phiên nghiệm thu kiểm chứng.
 - [x] Handoff separate execution/rollout decision: delivered isolated shipping coverage != host production activation. Real DB backup/migration, actual upstream credentials/inference, `ledgerStartedAt` enablement, service restart/deploy, commit/push/PR require own approval not conferred here.
 
 **Stop/report:** unsafe sandbox, external network/private access, WIP loss/collision, hidden dispatch, unexpected regression, missing evidence, unapproved policy change → retain failing artifacts, report exact blocker+next finite input, do not silently downgrade assertions or claim security sign-off.
