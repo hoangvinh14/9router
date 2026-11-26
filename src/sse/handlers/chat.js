@@ -441,6 +441,7 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
       ponytailLevel: chatSettings.ponytailLevel || "full",
       customPromptEnabled: !!chatSettings.customPromptEnabled,
       customPrompt: chatSettings.customPrompt || "",
+      reaAllowEnabled: !!chatSettings.reaAllowEnabled,
       pxpipeEnabled: !!chatSettings.pxpipeEnabled,
       pxpipeMinChars: chatSettings.pxpipeMinChars,
       pxpipeTimeoutMs: chatSettings.pxpipeTimeoutMs,
