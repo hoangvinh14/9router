@@ -61,7 +61,7 @@ Ngày 2026-11-26, bộ phân tích giá của 9Router đọc bảng ChatGPT Work
 | `gpt-5.6-terra` | 2.00 | 0.20 | 12.00 | 428.000 nanoUSD |
 | `gpt-5.6-luna` | 0.20 | 0.02 | 1.20 | 42.800 nanoUSD |
 | `gpt-daybreak-blue-latest` | 4.00 | 0.40 | 20.00 | 756.000 nanoUSD |
-| `gpt-reserve` | — | — | — | HTTP 503 trước POST theo quyết định Phase 03 |
+| `gpt-reserve` | — | — | — | Tiêu chí cũ trả 503 trước POST. Tiêu chí mới tính 0 nanoUSD, chờ kiểm chứng. |
 
 Ca xác minh tạm trên source ứng dụng `6fcc3cd3` nạp năm dòng giá đã đọc vào fixture Codex. Responses SSE gửi đúng ID qua HTTPS loopback, ghi tổng 3.872.800 nanoUSD vào cùng key và chặn lượt sau ở đúng ngưỡng. Credential và usage thuộc fixture. Tình trạng model trên từng tài khoản thật thuộc rollout.
 
@@ -77,7 +77,7 @@ Không hỏi lại settled §8. **Current continuation:** A0 completed per [phas
 |---|---|---|
 | A0 / owner | **COMPLETED continuation:** reviewed preservation + owner no-backup disposition exclusions, exact master fetch and normal integration switch, docs/tooling commit `5b1fc863…` | External receipts and [phase00 execution](./phase00-execution.md); no service stop/private backup/deletion implied |
 | D01 / owner + implementer | **APPROVED Session 1:** normal/error missing/malformed/contradictory usage → unresolved NULL + safe error/status, block affected key until authorized resolution; preserve known cost. Add minimal authenticated audited CAS admin recovery for unresolved | Phase01 designs bounded operation/actor/reason/evidence/idempotency/version contract; phase02 shipping API/UI recovery, phase04 faults. B1/E2 interrupted-no-evidence remains unrecorded/may-undercount, not zero claim, no required post-death recovery |
-| D02 / owner + implementer | **APPROVED Session 1:** unpriced/invalid tariff → deterministic pre-POST refusal; estimates separate, not exact authoritative debit | Phase01/02 exact producer counters+price evidence still required. No guessed source/zero defaults |
+| D02 / owner + implementer | **APPROVED Session 1:** unpriced/invalid tariff → deterministic pre-POST refusal; estimates separate, not exact authoritative debit | Ngoại lệ được owner chốt ngày 2026-11-26 áp dụng riêng cho Codex OAuth Standard `gpt-reserve` và tính 0 nanoUSD. Các model khác giữ quy tắc D02. [Tiêu chí nghiệm thu](../phase-03-native-retry-and-compatibility.md#ngoại-lệ-gpt-reserve-ngày-2026-11-26). |
 | D03 / owner | **APPROVED Session 1:** recording/storage unhealthy → fail closed every accounting-controlled path including unlimited identified keys; no unauthorized successor; ordinary behavior preserved only if genuinely independent | Phase01/02 remove old dedicated unlimited continuation only through admitted dependency/migration change; retain health latch, durable known truth and own ACK safety |
 | D04 / owner | **APPROVED Session 1:** rename + verified authorized secret rotation keep stable ID/policy/spend/history; delete retires binding/history; no ID reuse or automatic purge | Phase01 new explicit rotation/binding protocol (donor currently rejects changed fingerprint), phase02 minimum operation, phase04 import/backup/fault tests. Legal retention duration remains separate rollout gate; never invent purge deadline |
 | D05 / owner nếu đổi guarantee | DB-centric sidecar replacement/selected config versions only after equivalent invariant proof | Phase01 dependency admission; migration/read/write/import/export/restore semantics, smaller alternative comparison. Không approval → retain existing invariant/mechanism or stop if closure cannot bound |

@@ -4,9 +4,15 @@ Status: completed (nghiệm thu tích hợp offline ngày 2026-11-25). Priority:
 
 ### Chốt nghiệm thu tích hợp
 
-Owner chấp nhận từ chối riêng request dùng `gpt-reserve` trên key có budget khi chưa có đơn giá Codex áp dụng từ OpenAI. Model có trong ACL vẫn trả 503 trước POST, không tạo attempt hoặc terminal. Trong cùng fixture, ngay sau đó cùng key dùng `gpt-6.2-sol` thành công, tạo một POST, một attempt và một terminal 374.000 nanoUSD. Chính sách áp dụng theo snapshot giá, không cần blacklist model.
+Theo tiêu chí cũ, fixture từ chối request dùng `gpt-reserve` trên key có budget khi chưa có đơn giá Codex áp dụng từ OpenAI. Model có trong ACL vẫn trả 503 trước POST, không tạo attempt hoặc terminal. Trong cùng fixture, ngay sau đó cùng key dùng `gpt-6.2-sol` thành công, tạo một POST, một attempt và một terminal 374.000 nanoUSD. Chính sách áp dụng theo snapshot giá, không cần blacklist model.
 
 Bộ kiểm thử transport đếm lượt đạt 96/96, HTTPS loopback đạt 103/103 và native fidelity đạt 12/12 trên Node v24.21.0. Nghiệm thu dùng SQLite và credential fixture. Các mục bên dưới ghi lại diễn tiến theo thời điểm. Quyết định cuối cùng về Claude SSE, Messages qua Codex và giá thiếu áp dụng cùng bằng chứng retry/refresh, strict CONNECT và continuity. Nghiệm thu image trên instance thật và ma trận lỗi lưu trữ/runtime tiếp tục theo Phase 04–05.
+
+### Ngoại lệ gpt-reserve ngày 2026-11-26
+
+Owner chốt bỏ qua chi phí của `gpt-reserve` trên Codex OAuth Standard. Request đủ điều kiện được gửi khi budget còn mở và đóng góp **0 nanoUSD** vào số đã dùng. Đây là quy tắc budget nội bộ khi thiếu đơn giá OpenAI. Các kiểm tra quyền model, connection và hạn mức trước khi gửi vẫn áp dụng. Model khác thiếu giá tiếp tục bị từ chối trước POST.
+
+- [ ] Áp dụng và nghiệm thu ngoại lệ. Với key còn hạn mức và được cấp quyền cho model, ca loopback phải có một POST và tổng chi phí giữ nguyên. Khi key đã chạm hạn mức, ca kiểm tra phải có 0 POST. Giữ kết quả 503 trước POST ở trên làm bằng chứng cho tiêu chí cũ.
 
 ### Quyết định nghiệm thu Claude OAuth khi SSE báo lỗi, 2026-11-25
 
