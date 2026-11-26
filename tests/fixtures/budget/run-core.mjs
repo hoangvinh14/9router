@@ -11,6 +11,7 @@ const files=[
  'src/lib/accounting/node-attempt-ledger.js','src/lib/accounting/node-key-policy.js','src/lib/accounting/terminal-cost.js','src/lib/accounting/anthropic-usage.js',
  'src/lib/pricing/constants.js','src/lib/pricing/decimalMoney.js','src/lib/db/adapters/nodeSqliteAdapter.js','src/lib/db/adapters/nodeClosure.js','src/lib/db/schema.js',
  'open-sse/handlers/chatCore.js','open-sse/handlers/chatCore/nonStreamingHandler.js','open-sse/utils/error.js',
+ 'open-sse/translator/concerns/systemPrompt.js','open-sse/translator/schema/blocks.js','open-sse/translator/schema/roles.js','open-sse/rtk/systemInject.js',
  'open-sse/utils/accountingResponse.js','open-sse/services/combo.js',
  'open-sse/utils/upstreamHeaders.js','open-sse/config/errorConfig.js','open-sse/config/runtimeConfig.js','open-sse/translator/formats.js',
  'tests/fixtures/budget/core-loader.mjs','tests/fixtures/budget/core-stubs.mjs','tests/unit/budget-core-accounting.test.mjs',
