@@ -25,6 +25,19 @@ test('management writes require exact Origin and reject cross-site and forwarded
   {'sec-fetch-site':'cross-site'},{origin:'https://evil.invalid','x-forwarded-host':'evil.invalid','x-forwarded-proto':'https'}]){
   assert.equal((await PUT(req(payload,headers),params)).status,403);
  }
+ const savedBase = process.env.BASE_URL;
+ try {
+  process.env.BASE_URL = 'https://public-dashboard.invalid';
+  assert.equal((await PUT(req(payload,{origin:'https://public-dashboard.invalid','sec-fetch-site':'same-origin'}),params)).status,503);
+  assert.equal((await PUT(req(payload),params)).status,403);
+  assert.equal((await PUT(req(payload,{origin:'https://public-dashboard.invalid','sec-fetch-site':'cross-site'}),params)).status,403);
+  assert.equal((await PUT(req(payload,{origin:'https://evil.invalid','x-forwarded-host':'evil.invalid'}),params)).status,403);
+  process.env.BASE_URL = 'https://user:pass@dashboard.invalid';
+  assert.equal((await PUT(req(payload),params)).status,403);
+ } finally {
+  if (savedBase === undefined) delete process.env.BASE_URL;
+  else process.env.BASE_URL = savedBase;
+ }
 });
 
 test('management refuses finite and unlimited enrollment while real production coverage remains empty',async()=>{

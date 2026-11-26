@@ -13,13 +13,15 @@ export async function requireAccountingAdmin(request, mutation = false) {
   } catch { return refusal(401); }
   if (session?.authenticated !== true || session.mustChangePassword === true) return refusal(401);
   if (mutation) {
-    // Deliberately do not trust X-Forwarded-Host/Proto or a client Host override.
-    // Reverse-proxy external-origin mapping needs separate deployment evidence.
+    // Standalone Next can form request.url from the listener hostname.
+    // BASE_URL is the operator's public URL and never comes from request headers.
     const origin = request.headers.get('origin');
     const fetchSite = request.headers.get('sec-fetch-site');
     try {
       const parsed = new URL(origin);
-      if (!origin || parsed.origin !== origin || parsed.origin !== new URL(request.url).origin ||
+      const expected = new URL(process.env.BASE_URL || request.url);
+      if (!origin || parsed.origin !== origin || parsed.origin !== expected.origin ||
+          expected.username || expected.password ||
           !['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password ||
           fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none') return refusal(403);
     } catch { return refusal(403); }
