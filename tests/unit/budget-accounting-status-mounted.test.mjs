@@ -7,7 +7,7 @@ import {chromium} from 'playwright-core';
 assert.equal(process.env.BUDGET_UI_MOUNT_SANDBOX,'1');
 assert.notEqual(fs.readlinkSync('/proc/self/ns/net'),process.env.BUDGET_OUTER_NET);
 assert.equal(/^CapEff:\s+0+$/m.test(fs.readFileSync('/proc/self/status','utf8')),true);
-const base='/app/src/app/(dashboard)/dashboard/endpoint/components/';
+const base='/app/src/app/(dashboard)/dashboard/';
 const moduleFiles={
  react:'react/cjs/react.production.js',
  'react/jsx-runtime':'react/cjs/react-jsx-runtime.production.js',
@@ -24,11 +24,20 @@ for (const [id, file] of [['@/lib/pricing/decimalMoney.js', 'decimalMoney.js'], 
  const source = fs.readFileSync('/app/src/lib/pricing/' + file, 'utf8');
  modules[id] = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
 }
-for(const [id,file] of [['./accountingStatusClient','accountingStatusClient.js'],['component','AccountingStatus.js']]){
+modules['@/shared/components/Card']='module.exports=({children})=>children;';
+modules['@/shared/components/Loading']='exports.CardSkeleton=()=>null;';
+for(const [id,file] of [
+ ['./accountingStatusClient','endpoint/components/accountingStatusClient.js'],
+ ['../../endpoint/components/accountingStatusClient','endpoint/components/accountingStatusClient.js'],
+ ['../../useAccountingSnapshot','useAccountingSnapshot.js'],
+ ['component','endpoint/components/AccountingStatus.js'],
+ ['budget','usage/components/BudgetTab.js'],
+ ['./BudgetDetails','usage/components/BudgetDetails.js'],
+]){
  const result=ts.transpileModule(fs.readFileSync(base+file,'utf8'),{fileName:file,reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}});
  assert.deepEqual(result.diagnostics,[]);modules[id]=result.outputText;
 }
-const bundle=`(()=>{const sources=${JSON.stringify(modules)},cache=Object.create(null);function require(id){if(!Object.hasOwn(sources,id))throw Error('Unadmitted module '+id);if(cache[id])return cache[id].exports;const module={exports:{}};cache[id]=module;new Function('require','module','exports',sources[id])(require,module,module.exports);return module.exports;}window.React=require('react');window.ReactDOM=require('react-dom');window.Component=require('component').default;window.root=require('react-dom/client').createRoot(document.getElementById('root'));window.renderKey=id=>ReactDOM.flushSync(()=>root.render(React.createElement(Component,{keyId:id})));})();`;
+const bundle=`(()=>{const sources=${JSON.stringify(modules)},cache=Object.create(null);function require(id){if(!Object.hasOwn(sources,id))throw Error('Unadmitted module '+id);if(cache[id])return cache[id].exports;const module={exports:{}};cache[id]=module;new Function('require','module','exports',sources[id])(require,module,module.exports);return module.exports;}window.React=require('react');window.ReactDOM=require('react-dom');window.Component=require('component').default;window.root=require('react-dom/client').createRoot(document.getElementById('root'));window.renderKey=id=>ReactDOM.flushSync(()=>root.render(React.createElement(Component,{keyId:id})));window.renderBudget=id=>ReactDOM.flushSync(()=>root.render(React.createElement(require('budget').default,{key:id,keyId:id})));})();`;
 const body=(id='key-A',version=1)=>({readiness:{ready:false,reason:'no_admitted_profile'},policy:{keyId:id,version,bindingGeneration:'1',lifecycle:'active',limits:{weekly:'0',monthly:null}},retirementEvent:null,usage:null});
 
 test('actual mounted disclosure refresh collapse key-switch late response and errors in offline browser', {timeout:30000},async()=>{
@@ -40,7 +49,9 @@ test('actual mounted disclosure refresh collapse key-switch late response and er
   const page=await context.newPage();page.setDefaultTimeout(5000);
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   await page.setContent('<!doctype html><html lang="en"><title>Offline accounting fixture</title><div id="root"></div></html>');
-  await page.evaluate(()=>{window.requests=[];window.budgets=[];window.fetch=(url,options)=>new Promise((resolve,reject)=>{(url.endsWith('/retire')?requests:budgets).push({url,options,resolve,reject});});});
+  await page.evaluate(()=>{window.requests=[];window.budgets=[];window.fetch=(url,options)=>new Promise((resolve,reject)=>{if(url === '/api/keys?view=budget') return resolve(Response.json({keys:[
+    {id:'key-B',name:'Production',isActive:true}, {id:'key-C',name:'Sandbox',isActive:true}, {id:'key-D',name:'Legacy',isActive:false},
+   ]})); (url.endsWith('/retire')?requests:budgets).push({url,options,resolve,reject});});});
   await page.evaluate(bundle);await page.evaluate(()=>renderKey('key-A'));
   const text=()=>page.locator('#root').textContent();
   const count=()=>page.evaluate(()=>requests.length);
@@ -80,8 +91,13 @@ test('actual mounted disclosure refresh collapse key-switch late response and er
   assert.deepEqual(observed.map(x=>x.url),['key-A','key-A','key-B','key-B','key-B','key-B','key-B'].map(id=>`/api/keys/${id}/budget/retire`));
   for(const request of observed)assert.deepEqual({...request,url:undefined},{url:undefined,keys:['cache','credentials','method','redirect','signal'],method:'GET',credentials:'same-origin',cache:'no-store',redirect:'error',isSignal:true});
   await expanded.click();
-  const openBudget = page.getByRole('button',{name:'View budget',exact:true});
-  const refreshBudget = page.getByRole('button',{name:'Refresh budget',exact:true});
+  assert.equal(await page.evaluate(() => budgets.length), 0);
+  await page.evaluate(()=>renderBudget('key-B'));
+  const production = page.locator('details').filter({hasText:'Production'});
+  const sandbox = page.locator('details').filter({hasText:'Sandbox'});
+  const refreshBudget = production.getByRole('button',{name:'Refresh budget',exact:true});
+  assert.equal(await production.getAttribute('open'),'');
+  assert.equal(await page.locator('summary').count(),3);
   const budget = {readiness:{ready:true,reason:null}, policy:body('key-B',4).policy,
     usage:{weekly:{spent:'9007199254740993',remaining:'0',resetAt:'2026-11-22T17:00:00.000Z'},
       monthly:{spent:'9007199254740993',remaining:null,resetAt:'2026-11-30T17:00:00.000Z'},
@@ -91,9 +107,8 @@ test('actual mounted disclosure refresh collapse key-switch late response and er
     budgets[index].resolve({ok:status===200,status,json:async()=>value});
   }, {index,value,status});
   await budgetCount(2);
-  assert.equal(await page.evaluate(() => budgets[1].url), '/api/keys/key-B/budget');
-  await openBudget.press('Space');
-  await settleBudget(1,budget);await waitText('Recorded spend (USD): 9007199.254740993');
+  assert.deepEqual(await page.evaluate(() => budgets.map(item => item.url)), ['/api/keys/key-B/budget','/api/keys/key-C/budget']);
+  await settleBudget(0,budget);await waitText('Recorded spend (USD): 9007199.254740993');
   for (const expected of ['Policy version 4 (active)','Remaining (USD): 0','Remaining (USD): Unlimited',
     '23 Nov 2026, 00:00','1 Dec 2026, 00:00','Asia/Ho_Chi_Minh','Unknown/defaulted usage','no recorded terminal cost']) {
     assert.ok((await text()).includes(expected),expected);
@@ -101,40 +116,40 @@ test('actual mounted disclosure refresh collapse key-switch late response and er
   await refreshBudget.click();await budgetCount(3);await settleBudget(2,null,503);await waitText('Budget storage unavailable');
   assert.doesNotMatch(await text(),/Recorded spend/);
   assert.equal(await page.getByRole('button',{name:'Save budget'}).count(),0);
-  await page.getByRole('button',{name:'Hide budget',exact:true}).click();
-  await page.evaluate(()=>renderKey('key-C'));await budgetCount(4);
-  await settleBudget(3,{keyId:'key-C',error:{code:'budget_not_configured'}},503);
-  await page.getByRole('button',{name:'Set budget',exact:true}).click();
+  await settleBudget(1,{keyId:'key-C',error:{code:'budget_not_configured'}},503);
+  await sandbox.locator('summary').press('Space');
+  assert.equal(await production.getAttribute('open'),'');
+  assert.equal(await sandbox.getAttribute('open'),'');
+  await sandbox.getByRole('button',{name:'Set budget',exact:true}).click();
   await waitText('Saving a budget can block requests');
   const save = page.getByRole('button',{name:'Save budget',exact:true});
   await page.getByLabel('weekly limit (USD)').fill('0');
-  await save.click();await budgetCount(5);
-  assert.deepEqual(await page.evaluate(()=>JSON.parse(budgets[4].options.body)),
+  await save.click();await budgetCount(4);
+  assert.deepEqual(await page.evaluate(()=>JSON.parse(budgets[3].options.body)),
     {expectedVersion:0,limits:{weekly:'0',monthly:null}});
-  assert.equal(await page.evaluate(()=>budgets[4].options.method),'PUT');
+  assert.equal(await page.evaluate(()=>budgets[3].options.method),'PUT');
   const saved = {...budget,policy:{...budget.policy,keyId:'key-C',version:1}};
-  await settleBudget(4,{policy:saved.policy});await budgetCount(6);await settleBudget(5,saved);
+  await settleBudget(3,{policy:saved.policy});await budgetCount(5);await settleBudget(4,saved);
   await waitText('Policy version 1 (active)');
   await page.getByLabel('weekly limit (USD)').fill('  ');
   await page.getByLabel('monthly limit (USD)').fill('1234567.890123456');
-  await save.click();await budgetCount(7);
-  assert.deepEqual(await page.evaluate(()=>JSON.parse(budgets[6].options.body)),
+  await save.click();await budgetCount(6);
+  assert.deepEqual(await page.evaluate(()=>JSON.parse(budgets[5].options.body)),
     {expectedVersion:1,limits:{weekly:null,monthly:'1234567890123456'}});
-  await settleBudget(6,null,409);await waitText('The policy changed.');
-  await refreshBudget.click();await budgetCount(8);await settleBudget(7,saved);
-  await save.click();await budgetCount(9);
-  await page.evaluate(()=>budgets[8].reject(Error('private fixture error')));
+  await settleBudget(5,null,409);await waitText('The policy changed.');
+  await sandbox.getByRole('button',{name:'Refresh budget',exact:true}).click();await budgetCount(7);await settleBudget(6,saved);
+  await save.click();await budgetCount(8);
+  await page.evaluate(()=>budgets[7].reject(Error('private fixture error')));
   await waitText('Save could not be confirmed.');
   assert.doesNotMatch(await text(),/private fixture error/);
-  await save.click();await budgetCount(10);
-  await settleBudget(9,{error:{message:'Invalid request origin'}},403);
+  await save.click();await budgetCount(9);
+  await settleBudget(8,{error:{message:'Invalid request origin'}},403);
   await waitText('Set BASE_URL to the dashboard URL');
-  await save.click();await budgetCount(11);
-  await page.evaluate(()=>renderKey('key-D'));await budgetCount(12);
-  await page.waitForFunction(()=>budgets[10].options.signal.aborted);
-  await settleBudget(10,{policy:{...saved.policy,version:2}});
-  await settleBudget(11,null,503);
-  await waitText('Budget storage unavailable');
+  await save.click();await budgetCount(10);
+  await page.evaluate(()=>renderKey('key-D'));
+  await page.waitForFunction(()=>budgets[9].options.signal.aborted);
+  await settleBudget(9,{policy:{...saved.policy,version:2}});
+  await waitText('Accounting status');
   assert.equal(actualRequests,0);assert.deepEqual(errors,[]);
   console.log('mounted assertions: retirement disclosure; loading; refresh-clears; production inner-key stale+pending; collapse abort+late/reopen;401/network/malformed sanitized; versioned budget creation, reload and conflict;0real network/console errors');
   await context.close();

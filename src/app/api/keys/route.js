@@ -1,3 +1,4 @@
+import { requireAccountingAdmin } from "@/lib/accounting/management-auth.js";
 import { keyManagementView } from '@/lib/accounting/key-management-view.js';
 import { NextResponse } from "next/server";
 import { getApiKeys, createApiKey } from "@/lib/localDb";
@@ -6,10 +7,16 @@ import { getConsistentMachineId } from "@/shared/utils/machineId";
 export const dynamic = "force-dynamic";
 
 // GET /api/keys - List API keys
-export async function GET() {
+export async function GET(request) {
+  const budgetView = request && new URL(request.url).searchParams.get("view") === "budget";
+  if (budgetView) {
+    const denied = await requireAccountingAdmin(request);
+    if (denied) return denied;
+  }
   try {
     const keys = await getApiKeys();
-    return NextResponse.json({ keys: keys.map(keyManagementView) }, { headers: { "cache-control": "no-store" } });
+    const view = budgetView ? keys.map(({ id, name, isActive }) => ({ id, name, isActive })) : keys.map(keyManagementView);
+    return NextResponse.json({ keys: view }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     console.log("Error fetching keys:", error);
     return NextResponse.json({ error: "Failed to fetch keys" }, { status: 500 });

@@ -160,3 +160,20 @@ export async function resolveBudgetUsage(keyId, attemptId, operation) {
   const receipt = response.ok ? await response.json().catch(() => null) : null;
   if (receipt?.operationId !== operation.operationId) throw new Error("Resolution could not be confirmed. Refresh the budget or retry.");
 }
+
+export async function loadBudgetKeys(_, { signal, fetcher = fetch } = {}) {
+  const failure = () => new Error("API keys could not be loaded.");
+  let response;
+  try {
+    response = await fetcher("/api/keys?view=budget", {
+      credentials: "same-origin", cache: "no-store", redirect: "error", signal,
+    });
+  } catch { throw failure(); }
+  if (response.status === 401) throw new Error("Sign in to the dashboard to view budgets.");
+  if (!response.ok) throw failure();
+  const { keys } = (await response.json().catch(() => null)) ?? {};
+  if (!Array.isArray(keys) || !keys.every(key =>
+    validId(key?.id) && typeof key.name === "string" && typeof key.isActive === "boolean"
+  )) throw failure();
+  return keys.map(({ id, name, isActive }) => ({ id, name, isActive }));
+}

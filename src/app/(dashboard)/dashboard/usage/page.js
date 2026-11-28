@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { RequestLogger, CardSkeleton, SegmentedControl } from "@/shared/components";
 import UsageStats from "@/shared/components/UsageStats";
 import RequestDetailsTab from "./components/RequestDetailsTab";
+import BudgetTab from "./components/BudgetTab";
 
 const PERIODS = [
   { value: "today", label: "Today" },
@@ -30,7 +31,7 @@ function UsageContent() {
   const [period, setPeriod] = useState("today");
 
   const tabFromUrl = searchParams.get("tab");
-  const activeTab = tabFromUrl && ["overview", "logs", "details"].includes(tabFromUrl)
+  const activeTab = tabFromUrl && ["overview", "logs", "details", "budget"].includes(tabFromUrl)
     ? tabFromUrl
     : "overview";
 
@@ -38,6 +39,7 @@ function UsageContent() {
     if (value === activeTab) return;
     const params = new URLSearchParams(searchParams);
     params.set("tab", value);
+    if (value !== "budget") params.delete("keyId");
     router.push(`/dashboard/usage?${params.toString()}`, { scroll: false });
   };
 
@@ -49,6 +51,7 @@ function UsageContent() {
           options={[
             { value: "overview", label: "Overview" },
             { value: "details", label: "Details" },
+            { value: "budget", label: "Budget" },
           ]}
           value={activeTab}
           onChange={handleTabChange}
@@ -72,6 +75,7 @@ function UsageContent() {
       )}
       {activeTab === "logs" && <RequestLogger />}
       {activeTab === "details" && <RequestDetailsTab />}
+      {activeTab === "budget" && <BudgetTab keyId={searchParams.get("keyId")} />}
     </div>
   );
 }

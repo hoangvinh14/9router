@@ -11,6 +11,9 @@ const font = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
 const fontConfig = path.join(repo, 'tests/fixtures/budget/chromium-fonts.conf');
 const files=[
  'src/app/(dashboard)/dashboard/endpoint/components/AccountingStatus.js',
+ 'src/app/(dashboard)/dashboard/useAccountingSnapshot.js',
+ 'src/app/(dashboard)/dashboard/usage/components/BudgetTab.js',
+ 'src/app/(dashboard)/dashboard/usage/components/BudgetDetails.js',
  'src/app/(dashboard)/dashboard/endpoint/components/accountingStatusClient.js',
  'tests/unit/budget-accounting-status-mounted.test.mjs',
  'src/lib/pricing/decimalMoney.js','src/lib/pricing/constants.js',

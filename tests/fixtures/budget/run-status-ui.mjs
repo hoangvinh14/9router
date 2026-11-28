@@ -8,6 +8,9 @@ const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..')
 const files=[
  'src/app/(dashboard)/dashboard/endpoint/EndpointPageClient.js',
  'src/app/(dashboard)/dashboard/endpoint/components/AccountingStatus.js',
+ 'src/app/(dashboard)/dashboard/useAccountingSnapshot.js',
+ 'src/app/(dashboard)/dashboard/usage/components/BudgetTab.js',
+ 'src/app/(dashboard)/dashboard/usage/components/BudgetDetails.js',
  'src/app/(dashboard)/dashboard/endpoint/components/accountingStatusClient.js',
  'tests/unit/budget-accounting-status-ui.test.mjs',
  'node_modules/@babel/parser/package.json','node_modules/@babel/parser/lib/index.js',

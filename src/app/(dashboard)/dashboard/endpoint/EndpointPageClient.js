@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import PropTypes from "prop-types";
+import Link from "next/link";
 import { Card, Button, Input, Modal, CardSkeleton, Toggle, ConfirmModal } from "@/shared/components";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import {
@@ -1060,6 +1061,12 @@ export default function APIPageClient({ machineId }) {
                   <AccountingStatus keyId={key.id} onRotated={id => {
                     setKeys(current => current.map(item => item.id === id ? { ...item, key: null } : item));
                   }} key={`${key.id}:${key.isActive}`} />
+                  <Link
+                    className="inline-block text-xs text-primary underline"
+                    href={`/dashboard/usage?tab=budget&keyId=${encodeURIComponent(key.id)}`}
+                  >
+                    Manage budget
+                  </Link>
                   <KeyAccessControls
                     apiKey={key}
                     onChange={(access) => handleUpdateKeyAccess(key.id, access)}
