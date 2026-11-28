@@ -129,7 +129,8 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   const nativeAnthropicAccounting = (provider === 'anthropic' || nativeClaudeOAuthAccounting) && (sourceFormat === FORMATS.CLAUDE || claudeConversion);
   if (accounting !== null && ((!nativeAnthropicAccounting && !nativeCodexAccounting && !nativeOpenAIAccounting) ||
       (!claudeConversion && !convertedCodex && (accounting.nativeDefaults ? body.stream ?? false : body.stream) !== (accounting.stream === true)) || typeof accounting.prepare !== 'function' ||
-      headroomEnabled || pxpipeEnabled || (rtkEnabled && !nativeClaudeOAuthAccounting) || cavemanEnabled || ponytailEnabled ||
+      headroomEnabled || pxpipeEnabled || (rtkEnabled && !nativeClaudeOAuthAccounting && !nativeCodexAccounting) ||
+      cavemanEnabled || ponytailEnabled ||
       customPromptEnabled || providerThinking?.mode && providerThinking.mode !== 'auto')) {
     return { ...createErrorResult(503, 'Accounting profile unavailable'), accountingRefused: true };
   }
@@ -353,7 +354,12 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   }
 
   // RTK: compress tool_result content. Skipped when already done pre-translate.
-  const rtkStats = preTranslateRtk || compressMessages(translatedBody, tokenSaverEnabled && rtkEnabled);
+  const useRtk = tokenSaverEnabled && rtkEnabled;
+  if (useRtk && nativeCodexAccounting && !convertedCodex && Array.isArray(translatedBody.input)) {
+    // RTK edits nested tool outputs in place. Keep the ingress body for OAuth retry validation.
+    translatedBody.input = structuredClone(translatedBody.input);
+  }
+  const rtkStats = preTranslateRtk || compressMessages(translatedBody, useRtk);
 
   // Headroom: optional external proxy compression; fail open if proxy is absent.
   const headroomDiagnostics = {};

@@ -923,6 +923,88 @@ for (const target of ['claude-haiku-4-5', 'claude-haiku-4-5-20251001']) {
 
 }
 
+const gitStatusOutput = ['On branch main', ...Array.from({ length: 40 }, (_, index) =>
+  `?? generated/file-${index}.txt`)].join('\n');
+const compressedGitStatusOutput = ['* main', '? Untracked: 40 files', ...Array.from({ length: 10 },
+  (_, index) => `   generated/file-${index}.txt`), '   ... +30 more'].join('\n');
+
+if (!stage) test('budgeted Claude Code Messages compresses tool output with default RTK', () => {
+  const target = 'claude-haiku-4-5';
+  const revision = 'anthropic:claude/claude-haiku-4-5:standard:v1';
+  const limit = '35300';
+  const frames = [
+    { type: 'message_start', message: { type: 'message', role: 'assistant', model: target, content: [], usage } },
+    { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: usage.output_tokens } },
+    { type: 'message_stop' },
+  ].map(sseFrame);
+  return fixture(async ({ state, rows, totals }) => {
+    const result = { type: 'tool_result', tool_use_id: 'toolu_status', content: gitStatusOutput };
+    const messages = [
+      { role: 'user', content: 'Check git status' },
+      { role: 'assistant', content: [{ type: 'tool_use', id: result.tool_use_id, name: 'Bash', input: { command: 'git status' } }] },
+      { role: 'user', content: [result] },
+    ];
+    const send = () => postMessages(new Request('https://fixture.invalid/v1/messages?beta=true', {
+      method: 'POST', headers: { authorization: 'Bearer fixture-client', 'user-agent': 'claude-cli/2.1.0 (external, cli)' },
+      body: JSON.stringify({ model: `claude/${target}`, max_tokens: 20, stream: true, messages }),
+    }));
+
+    const response = await send();
+    const streamed = await response.text();
+    assert.equal(response.status, 200, streamed);
+    assert.match(streamed, /event: message_stop/);
+    assert.equal(state.wire.length, 1);
+    assert.deepEqual(state.wire[0].body.messages, [
+      ...messages.slice(0, 2),
+      { role: 'user', content: [{ ...result, content: compressedGitStatusOutput }] },
+    ]);
+    assert.deepEqual(rows().attempts.map(({ keyId }) => keyId), ['fixture-key']);
+    assert.deepEqual(rows().terminals.map(({ amount }) => amount), [limit]);
+    assert.equal(totals().monthly, limit);
+    assert.equal((await send()).status, 503);
+    assert.equal(state.wire.length, 1);
+  }, { monthly: limit, profile: { provider: 'claude' }, reply: sseReply(frames), prepareDb(db) {
+    db.run("UPDATE settings SET data = '{}' WHERE id = 1");
+    db.run('UPDATE apiKeys SET accessAllow = ? WHERE id = ?', [JSON.stringify([`claude/${target}`]), 'fixture-key']);
+    db.run(`INSERT INTO providerConnections (id, provider, authType, priority, isActive, data, createdAt, updatedAt)
+      VALUES ('fixture-claude','claude','oauth',1,1,?,?,?)`, [JSON.stringify({ accessToken: 'fixture-token' }), now, now]);
+    db.run('INSERT INTO kv VALUES (?,?,?)', [referenceScope, revision, JSON.stringify({
+      currency: 'USD', unit: 'USD/1M tokens', revision, syncedAt: 2,
+      source: 'https://platform.claude.com/docs/en/about-claude/pricing.md',
+      rates: { input: '1', cached: '0.10', cache_creation: '1.25', cache_creation_1h: '2', output: '5' },
+    })]);
+  } });
+});
+
+for (const optOut of [false, true]) {
+  if (!stage) test(`budgeted Codex Responses uses default RTK unless the request opts out (optOut=${optOut})`, () =>
+    codexFixture(async ({ request, rows, state, totals }) => {
+      state.db.run("UPDATE settings SET data = '{}' WHERE id = 1");
+      const prompt = { role: 'user', content: [{ type: 'input_text', text: 'Check git status' }] };
+      const call = { type: 'function_call', call_id: 'call_status', name: 'shell', arguments: '{"cmd":"git status"}' };
+      const result = { type: 'function_call_output', call_id: call.call_id, output: gitStatusOutput };
+      const send = () => {
+        const fixtureRequest = request({ input: [prompt, call, result] });
+        if (optOut) fixtureRequest.headers.set('x-9router-token-saver', 'off');
+        return postResponses(new Request('https://fixture.invalid/v1/responses?version=2024', fixtureRequest));
+      };
+
+      const response = await send();
+      assert.equal(response.status, 200, response.status === 200 ? undefined : await response.text());
+      assert.match(await response.text(), /response.completed/);
+      assert.equal(state.wire.length, 1);
+      const upstreamInput = state.wire[0].body.input;
+      assert.deepEqual(upstreamInput.slice(0, 2), [prompt, call]);
+      assert.equal(upstreamInput.length, 3);
+      assert.deepEqual(upstreamInput[2], { ...result, output: optOut ? gitStatusOutput : compressedGitStatusOutput });
+      assert.deepEqual(rows().attempts.map(({ keyId }) => keyId), ['fixture-key']);
+      assert.deepEqual(rows().terminals.map(({ amount }) => amount), [codexFixtureLimit]);
+      assert.equal(totals().monthly, codexFixtureLimit);
+      assert.equal((await send()).status, 503);
+      assert.equal(state.wire.length, 1);
+    }));
+}
+
 if (!stage) test('two Codex models share one budget and use their own synchronized prices', () =>
   codexFixture(async ({ request, rows, state, totals }) => {
     for (const target of ['gpt-6.2-sol', 'gpt-6.1-terra']) {

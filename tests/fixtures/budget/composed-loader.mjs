@@ -77,7 +77,9 @@ export function resolve(specifier, context, nextResolve) {
   if (dbRepos.has(parent) && specifier === 'uuid') {
     return nextResolve('data:text/javascript,export function v4(){throw new Error("Unexpected account creation in fixture");}', context);
   }
-  if (parent === core && specifier === '../utils/clientDetector.js') return nextResolve(specifier, context);
+  if (parent === core && ['../utils/clientDetector.js', '../rtk/index.js'].includes(specifier)) {
+    return nextResolve(specifier, context);
+  }
   if (parent === core && ['./chatCore/streamingHandler.js', './chatCore/sseToJsonHandler.js', '../utils/streamHandler.js'].includes(specifier)) {
     return nextResolve(specifier, context);
   }
