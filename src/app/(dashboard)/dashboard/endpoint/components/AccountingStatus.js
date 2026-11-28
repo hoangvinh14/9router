@@ -113,7 +113,7 @@ function BudgetEditor({ keyId, budget, refresh }) {
     const limits = {};
     for (const period of ["weekly", "monthly"]) {
       const input = data.get(period).trim();
-      if (input.toLowerCase() === "unlimited") limits[period] = null;
+      if (input === "" || input.toLowerCase() === "unlimited") limits[period] = null;
       else {
         try { limits[period] = decimalToNanoUsd(input); }
         catch { setError("Enter a USD amount from 0 to 9,000,000 with up to nine decimal places, or Unlimited."); return; }
@@ -139,12 +139,12 @@ function BudgetEditor({ keyId, budget, refresh }) {
       {["weekly", "monthly"].map(name => {
         const period = budget.periods.find(item => item.name === name);
         return <label key={name} className="grid gap-1 capitalize">{name} limit (USD)
-          <input name={name} required autoComplete="off" className="rounded border border-border bg-transparent px-2 py-1"
+          <input name={name} autoComplete="off" className="rounded border border-border bg-transparent px-2 py-1"
             defaultValue={period ? displayUsd(period.limit) : ""} />
         </label>;
       })}
     </fieldset>
-    <p>Enter 0 to block the next request, or Unlimited for no limit.</p>
+    <p>Leave a limit blank or enter Unlimited for no limit. Enter 0 to block the next request.</p>
     <p>Saving a budget can block requests when the router cannot find an account with supported usage accounting and pricing.</p>
     {error && <p role="alert">{error}</p>}
     <button type="submit" disabled={saving} className="text-primary underline disabled:opacity-50">{saving ? "Saving…" : "Save budget"}</button>

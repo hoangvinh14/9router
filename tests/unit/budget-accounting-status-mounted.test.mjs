@@ -108,7 +108,6 @@ test('actual mounted disclosure refresh collapse key-switch late response and er
   await waitText('Saving a budget can block requests');
   const save = page.getByRole('button',{name:'Save budget',exact:true});
   await page.getByLabel('weekly limit (USD)').fill('0');
-  await page.getByLabel('monthly limit (USD)').fill('Unlimited');
   await save.click();await budgetCount(5);
   assert.deepEqual(await page.evaluate(()=>JSON.parse(budgets[4].options.body)),
     {expectedVersion:0,limits:{weekly:'0',monthly:null}});
@@ -116,10 +115,11 @@ test('actual mounted disclosure refresh collapse key-switch late response and er
   const saved = {...budget,policy:{...budget.policy,keyId:'key-C',version:1}};
   await settleBudget(4,{policy:saved.policy});await budgetCount(6);await settleBudget(5,saved);
   await waitText('Policy version 1 (active)');
-  await page.getByLabel('weekly limit (USD)').fill('1234567.890123456');
+  await page.getByLabel('weekly limit (USD)').fill('  ');
+  await page.getByLabel('monthly limit (USD)').fill('1234567.890123456');
   await save.click();await budgetCount(7);
   assert.deepEqual(await page.evaluate(()=>JSON.parse(budgets[6].options.body)),
-    {expectedVersion:1,limits:{weekly:'1234567890123456',monthly:null}});
+    {expectedVersion:1,limits:{weekly:null,monthly:'1234567890123456'}});
   await settleBudget(6,null,409);await waitText('The policy changed.');
   await refreshBudget.click();await budgetCount(8);await settleBudget(7,saved);
   await save.click();await budgetCount(9);
@@ -127,10 +127,13 @@ test('actual mounted disclosure refresh collapse key-switch late response and er
   await waitText('Save could not be confirmed.');
   assert.doesNotMatch(await text(),/private fixture error/);
   await save.click();await budgetCount(10);
-  await page.evaluate(()=>renderKey('key-D'));await budgetCount(11);
-  await page.waitForFunction(()=>budgets[9].options.signal.aborted);
-  await settleBudget(9,{policy:{...saved.policy,version:2}});
-  await settleBudget(10,null,503);
+  await settleBudget(9,{error:{message:'Invalid request origin'}},403);
+  await waitText('Set BASE_URL to the dashboard URL');
+  await save.click();await budgetCount(11);
+  await page.evaluate(()=>renderKey('key-D'));await budgetCount(12);
+  await page.waitForFunction(()=>budgets[10].options.signal.aborted);
+  await settleBudget(10,{policy:{...saved.policy,version:2}});
+  await settleBudget(11,null,503);
   await waitText('Budget storage unavailable');
   assert.equal(actualRequests,0);assert.deepEqual(errors,[]);
   console.log('mounted assertions: retirement disclosure; loading; refresh-clears; production inner-key stale+pending; collapse abort+late/reopen;401/network/malformed sanitized; versioned budget creation, reload and conflict;0real network/console errors');

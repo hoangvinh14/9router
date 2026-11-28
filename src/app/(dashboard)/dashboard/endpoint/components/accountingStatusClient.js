@@ -138,6 +138,12 @@ export async function saveBudget(keyId, version, limits, signal) {
     throw new Error("The policy changed. Refresh the budget to edit the current limits.");
   }
   if (response.status === 401) throw new Error("Sign in to the dashboard and refresh the budget.");
+  if (response.status === 403) {
+    const body = await response.json().catch(() => null);
+    if (body?.error?.message === "Invalid request origin") {
+      throw new Error("The server rejected this dashboard URL. Set BASE_URL to the dashboard URL and reopen it.");
+    }
+  }
   if (!response.ok) throw new Error(failure);
   const policy = (await response.json().catch(() => null))?.policy;
   if (policy?.keyId !== keyId || policy.version !== version + 1 ||
