@@ -1,8 +1,7 @@
 import { handleChat, handleAccountedChatCandidate } from "@/sse/handlers/chat.js";
 import { initTranslators } from "open-sse/translator/index.js";
 
-import { accountingUnavailableResponse, inspectAccountingRequest, isCodexBudgetEndpoint, selectedAccountingSecret } from '@/lib/accounting/request-boundary.js';
-import { findInstalledBudgetProfileForKey } from '@/lib/accounting/profile-registry.js';
+import { routeBudgetChat } from '@/lib/accounting/budget-chat-route.js';
 
 let initialized = false;
 
@@ -28,29 +27,5 @@ export async function OPTIONS() {
  * Now handled by translator pattern (openai-responses format auto-detected)
  */
 export async function POST(request) {
-  const state = await inspectAccountingRequest(request);
-  if (state.kind === 'ordinary') {
-    await ensureInitialized();
-    return handleChat(request);
-  }
-  if (state.kind !== 'controlled' || !isCodexBudgetEndpoint(new URL(request.url).pathname)) return accountingUnavailableResponse();
-  try {
-    const profile = await findInstalledBudgetProfileForKey(state.keyId);
-    if (!['anthropic', 'claude', 'codex', 'openai'].includes(profile?.provider)) return accountingUnavailableResponse();
-    const { getInstalledAccountingServices, bindAccountingIdentity } = await import('@/lib/accounting/installed-service.js');
-    const identity = bindAccountingIdentity(await getInstalledAccountingServices(), selectedAccountingSecret(request));
-    if (identity?.keyId !== state.keyId) return accountingUnavailableResponse();
-    await ensureInitialized();
-    const createContext = profile.provider === 'codex'
-      ? (await import('@/lib/accounting/codex-dispatch-context.js')).createCodexDispatchContext
-      : profile.provider === 'openai'
-        ? (await import('@/lib/accounting/openai-dispatch-context.js')).createOpenAIDispatchContext
-        : (await import('@/lib/accounting/anthropic-dispatch-context.js')).createAnthropicDispatchContext;
-    const endpoint = new URL(request.url).pathname;
-    return await handleAccountedChatCandidate(request, { identity, provider: profile.provider, connectionId: profile.connectionId, fallbackConnectionId: profile.fallbackProfile?.connectionId,
-      createContext: args => createContext({ ...args, identity, profile: args.credentials.connectionId === profile.fallbackProfile?.connectionId ? profile.fallbackProfile : profile, endpoint, stream: true }),
-    });
-  } catch {
-    return accountingUnavailableResponse();
-  }
+  return routeBudgetChat(request, { initialize: ensureInitialized, handleChat, handleAccountedChatCandidate });
 }

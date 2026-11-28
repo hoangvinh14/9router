@@ -16,10 +16,6 @@ mock.module('/app/fixtures/local-db.js',{namedExports:{getSettings:async()=>({re
 mock.module('/app/fixtures/machine-id.js',{namedExports:{getConsistentMachineId:async()=>{authReads++;return 'fixture-cli';}}});
 mock.module('/app/fixtures/dashboard-session.js',{namedExports:{verifyDashboardAuthToken:async()=>true}});
 mock.module('/app/fixtures/trusted-peer.js',{namedExports:{hasTrustedPeerHeaders:()=>true}});
-let budgetProfile = null;
-mock.module('/app/src/lib/accounting/profile-registry.js', {
-  namedExports: { findInstalledBudgetProfileForKey: async keyId => keyId === 'key-A' ? budgetProfile : null },
-});
 const {proxy}=await import('/app/src/dashboardGuard.js');
 const request=(path,headers={})=>({url:'https://fixture.invalid'+path,nextUrl:new URL('https://fixture.invalid'+path),headers:new Headers(headers),cookies:{get:()=>({value:'fixture-jwt'})}});
 
@@ -52,26 +48,13 @@ test('actual guard uses authoritative credential precedence without granting sha
 });
 
 
-test('middleware admits only the exact POST route for the installed provider profile', async () => {
+test('middleware admits only the exact supported ingress and leaves provider selection to the router', async () => {
   const run = (path, method = 'POST') => proxy({ ...request(path, { authorization: 'Bearer controlled' }), method });
-  try {
-    budgetProfile = { provider: 'codex' };
-    assert.equal((await run('/v1/responses')).status, 204);
-    assert.equal((await run('/v1/chat/completions')).status, 204);
-    for (const path of ['/v1/messages', '/api/v1/responses', '/v1/responses/compact']) {
-      assert.equal((await run(path)).status, 503);
-    }
-    assert.equal((await run('/v1/responses', 'GET')).status, 503);
-    for (const provider of ['anthropic', 'claude']) {
-      budgetProfile = { provider };
-      for (const path of ['/v1/messages', '/v1/chat/completions', '/v1/responses']) {
-        assert.equal((await run(path)).status, 204);
-      }
-      assert.equal((await run('/v1/responses/compact')).status, 503);
-      assert.equal((await run('/v1/v1/messages')).status, provider === 'claude' ? 204 : 503);
-    }
-    budgetProfile = { provider: 'openai' };
-    assert.equal((await run('/v1/chat/completions')).status, 204);
-    assert.equal((await run('/v1/messages')).status, 503);
-  } finally { budgetProfile = null; }
+  for (const path of ['/v1/responses', '/v1/chat/completions', '/v1/messages', '/v1/v1/messages']) {
+    assert.equal((await run(path)).status, 204);
+    assert.equal((await run(path, 'GET')).status, 503);
+  }
+  for (const path of ['/api/v1/responses', '/v1/responses/compact']) {
+    assert.equal((await run(path)).status, 503);
+  }
 });

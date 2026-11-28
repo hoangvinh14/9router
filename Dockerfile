@@ -30,12 +30,11 @@ RUN --mount=type=cache,target=/root/.npm \
       --fetch-timeout=300000
 
 COPY . ./
-# Dedicated internal build only. The default registry stays empty.
+# The internal edition prepares the installed budget schema before serving.
 ARG ACCOUNTING_EDITION=release
 RUN case "$ACCOUNTING_EDITION" in \
       release) ;; \
-      internal) test "$(node -p 'process.versions.node.split(".")[0]')" = 24 && \
-        cp docker/internal-profile-registry.js src/lib/accounting/profile-registry.js ;; \
+      internal) test "$(node -p 'process.versions.node.split(".")[0]')" = 24 ;; \
       *) exit 1 ;; \
     esac
 # Bundle the same local SQLite runner used by the offline companion. The
@@ -46,7 +45,7 @@ RUN mkdir -p /opt/9router-startup && \
         src/lib/dataDir.js src/lib/db src/lib/accounting \
         src/lib/pricing \
         src/shared/utils/keyAccess.js src/shared/constants/keyAccess.js \
-        open-sse/services/accountFallback.js open-sse/config/errorConfig.js; do \
+        open-sse/services/accountFallback.js open-sse/config/errorConfig.js open-sse/utils/ordinary-dispatch.js; do \
         target="/opt/9router-startup/$(dirname "$source")"; \
         mkdir -p "$target" && cp -R "$source" "$target/" || exit 1; \
       done; \

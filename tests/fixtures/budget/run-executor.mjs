@@ -8,26 +8,27 @@ const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..')
 const files=[
   'src/lib/accounting/attempt-payload.js','src/lib/accounting/budget-windows.js','src/lib/accounting/exact-money.js',
   'src/lib/accounting/process-state.js','src/lib/accounting/mutation-barrier.js','src/lib/accounting/sql-operation-scope.js','src/lib/accounting/node-outer-transaction.js',
-  'src/lib/accounting/node-attempt-ledger.js','src/lib/accounting/node-key-policy.js','src/lib/accounting/terminal-cost.js','src/lib/accounting/anthropic-usage.js',
+  'src/lib/accounting/node-attempt-ledger.js','src/lib/accounting/node-key-policy.js', 'open-sse/utils/ordinary-dispatch.js','src/lib/accounting/terminal-cost.js','src/lib/accounting/anthropic-usage.js',
   'src/lib/pricing/constants.js','src/lib/pricing/decimalMoney.js','src/lib/db/adapters/nodeSqliteAdapter.js',
   'src/lib/db/adapters/nodeClosure.js','src/lib/db/schema.js',
   'open-sse/utils/proxyFetch.js','open-sse/utils/debugLog.js','open-sse/utils/claudeCliVersion.js',
   'open-sse/config/runtimeConfig.js','open-sse/config/errorConfig.js',
   'open-sse/executors/base.js', 'tests/unit/budget-executor.test.mjs','tests/fixtures/budget/executor-bootstrap.mjs',
 ];
+files.push('tests/fixtures/budget/commonjs-scope.json');
 const args=['--unshare-all','--unshare-user','--unshare-net','--uid','0','--gid','0','--cap-drop','ALL','--cap-add','CAP_NET_ADMIN','--cap-add','CAP_SETPCAP','--die-with-parent','--new-session','--ro-bind','/usr','/usr','--symlink','usr/bin','/bin','--ro-bind','/lib','/lib'];
 if(fs.existsSync('/lib64'))args.push('--ro-bind','/lib64','/lib64');
 for(const file of [...files,'tests/fixtures/budget/module-scope.json']){
   const source=path.join(repo,file);
   for(let p=source;p!==repo;p=path.dirname(p))if(fs.lstatSync(p).isSymbolicLink())throw new Error('Symlink input refused');
   if(!fs.statSync(source).isFile())throw new Error('Nonfile input refused');
-  args.push('--ro-bind',source,file.endsWith('module-scope.json')?'/app/package.json':`/app/${file}`);
+  args.push('--ro-bind',source,file.endsWith('commonjs-scope.json')?'/app/src/mitm/package.json':file.endsWith('module-scope.json')?'/app/package.json':`/app/${file}`);
 }
 // Explicit mocks isolate credential/provider registry discovery, not base logic.
 const stub=path.join(repo,'tests/fixtures/budget/executor-dependency-stub.mjs');
 for(let p=stub;p!==repo;p=path.dirname(p))if(fs.lstatSync(p).isSymbolicLink())throw new Error('Symlink stub refused');
 if(!fs.statSync(stub).isFile())throw new Error('Nonfile stub refused');
-for (const target of ['open-sse/services/oauthCredentialManager.js','open-sse/providers/shared.js','open-sse/services/provider.js']) {
+for (const target of ['open-sse/services/oauthCredentialManager.js','open-sse/providers/shared.js', 'src/mitm/antigravityIdeVersion.js','open-sse/services/provider.js']) {
   args.push('--ro-bind',stub,`/app/${target}`);
 }
 // Already-installed dependency, no npm scripts/install/network; exact tree hash

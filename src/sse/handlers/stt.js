@@ -12,7 +12,7 @@ import { AI_PROVIDERS } from "@/shared/constants/providers";
 import * as log from "../utils/logger.js";
 import { checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy.js";
-import { refuseUnadmittedAccountingRequest } from "@/lib/accounting/request-boundary.js";
+import { runOrdinaryAccountingRequest } from "@/lib/accounting/request-boundary.js";
 
 // Providers requiring credentials for STT
 const CREDENTIALED_PROVIDERS = new Set(
@@ -39,8 +39,10 @@ async function resolveCustomModelTransport(provider, model) {
 }
 
 export async function handleStt(request) {
-  const accountingRefusal = await refuseUnadmittedAccountingRequest(request);
-  if (accountingRefusal) return accountingRefusal;
+  return runOrdinaryAccountingRequest(request, () => handleSttOrdinary(request));
+}
+
+async function handleSttOrdinary(request) {
   let formData;
   try {
     formData = await request.formData();

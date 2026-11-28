@@ -1,3 +1,4 @@
+import { assertOrdinaryDispatch } from '../utils/ordinary-dispatch.js';
 import { Buffer } from "node:buffer";
 
 // Gemini Live API realtime STT transport.
@@ -149,6 +150,7 @@ export async function transcribeGeminiLive({ cfg, file, model, token, formData, 
     const send = (frame) => {
       if (ws.readyState !== WS.OPEN) return false;
       try {
+        assertOrdinaryDispatch();
         ws.send(JSON.stringify(frame));
       } catch {
         return false; // socket died mid-send — streamAudioAndPrompt maps this to a 502

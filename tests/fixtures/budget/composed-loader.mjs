@@ -28,7 +28,8 @@ const executorDependencies = new Map([
   ['../config/appConstants.js', ['open-sse/executors/default.js']],
   ['../shared/clineAuth.js', ['open-sse/executors/default.js']],
   ['../utils/claudeCloaking.js', ['open-sse/executors/default.js']],
-  ['../../providers/capabilities.js', ['open-sse/translator/concerns/paramSupport.js']],
+  ['../../providers/capabilities.js', ['open-sse/translator/concerns/paramSupport.js', 'open-sse/translator/formats/gemini.js']],
+  ['../providers/capabilities.js', ['open-sse/utils/geminiLongDecode.js']],
   ['../utils/proxyFetch.js', ['open-sse/executors/base.js', 'open-sse/executors/default.js']],
   ['../../../open-sse/utils/proxyFetch.js', ['src/lib/accounting/oauth-refresh.js', 'src/lib/accounting/anthropic-dispatch-context.js', 'src/lib/accounting/codex-dispatch-context.js', 'src/lib/accounting/openai-dispatch-context.js']],
 ]);
@@ -47,7 +48,7 @@ export function resolve(specifier, context, nextResolve) {
     if (specifier === 'open-sse/translator/index.js') return nextResolve('data:text/javascript,export const initTranslators=()=>{};', context);
     if (specifier.startsWith('@/lib/accounting/')) return nextResolve(root + specifier.replace('@/', 'src/'), context);
   }
-  if (['oauth-refresh.js', 'installed-service.js', 'request-boundary.js', 'profile-registry.js'].some(name => parent === `${root}src/lib/accounting/${name}`) &&
+  if (['oauth-refresh.js', 'installed-service.js', 'request-boundary.js', 'router-dispatch-context.js'].some(name => parent === `${root}src/lib/accounting/${name}`) &&
       specifier === '../db/driver.js') return nextResolve(stub, context);
   if (parent === root + 'open-sse/handlers/chatCore/sseToJsonHandler.js' &&
       ['./requestDetail.js', '@/lib/usageDb.js'].includes(specifier)) return nextResolve(coreStubs, context);

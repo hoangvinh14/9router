@@ -1,3 +1,4 @@
+import { withOpaqueOrdinaryDispatch } from '../utils/ordinary-dispatch.js';
 // TLS-impersonating HTTP client for grok.com.
 //
 // Grok sits behind Cloudflare Enterprise, which rejects Node's native TLS
@@ -71,7 +72,7 @@ export async function grokTlsFetch(url, { method = "GET", headers = {}, body, ti
   if (body !== undefined) options.body = body;
   if (signal) options.signal = signal;
 
-  const res = await session.fetch(url, options);
+  const res = await withOpaqueOrdinaryDispatch(() => session.fetch(url, options));
   // Buffer as ArrayBuffer, never text(): asset downloads are binary JPEGs and
   // UTF-8 decoding would mangle every non-ASCII byte into U+FFFD.
   const buffer = await res.arrayBuffer();

@@ -1,17 +1,11 @@
-// Executable production coverage, NOT catalog or fixture capabilities. No cell
-// is admitted yet; never auto-enroll a model from pricing/provider discovery.
-// Entries require exact producer/profile/transport and shipping route evidence.
-const PROFILES = Object.freeze([]);
+// These ingress paths use the native usage producers below. The context
+// factories still validate the body and the exact wire request before POST.
+const ingress = new Map([
+  ['/v1/messages', ['anthropic', 'claude', 'codex']],
+  ['/v1/v1/messages', ['claude']],
+  ['/v1/responses', ['anthropic', 'claude', 'codex', 'openai']],
+  ['/v1/chat/completions', ['anthropic', 'claude', 'codex', 'openai']],
+]);
 
-export function installedBudgetReadiness() {
-  return Object.freeze({ ready: PROFILES.length > 0, reason: PROFILES.length ? null : 'no_admitted_profile' });
-}
-
-// Exact enrolled client identity; no request option or global readiness grants access.
-export function findInstalledBudgetProfileForKey(keyId) {
-  return PROFILES.find(profile => profile.keyId === keyId)?.dispatch ?? null;
-}
-
-export function findInstalledBudgetProfile(provider, model) {
-  return PROFILES.find(profile => profile.provider === provider && profile.model === model) ?? null;
-}
+export const isBudgetChatEndpoint = pathname => ingress.has(pathname);
+export const supportsBudgetProvider = (pathname, provider) => ingress.get(pathname)?.includes(provider) === true;

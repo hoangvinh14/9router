@@ -346,7 +346,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         return proof;
       } });
     },
-    async bindAnthropicAccount(routeProof, connectionId, apiKey, inferenceGeo, requireSynced, expectedProxy = null) {
+    async bindAnthropicAccount(routeProof, connectionId, apiKey, inferenceGeo, requireSynced, expectedProxy = null, { probe = false, workspaceBinding } = {}) {
       const route = ownRoutes.get(routeProof);
       if (!requireAccount || route?.provider !== 'anthropic') throw unavailable();
       identifier(connectionId);
@@ -354,10 +354,14 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         import('./node-anthropic-account.js'), import('./anthropic-reference-price.js'),
       ]);
       const digest = owner.credentialDigest(apiKey);
-      const accountMatches = scope => owner.readAnthropicAccount(scope, connectionId, route.model, expectedProxy) === digest;
+      const accountMatches = scope => owner.readAnthropicAccount(scope, connectionId, route.model, expectedProxy) === digest &&
+        (!workspaceBinding || owner.readAnthropicWorkspace(scope, connectionId, digest)?.workspaceId === workspaceBinding.workspaceId);
       const readPrice = scope => readAnthropicReferencePrice(scope, route.model, inferenceGeo, requireSynced);
-      const { value: price } = checkRouteTransaction(scope =>
-        route.matches(scope, route.keyId, route.stamp) && accountMatches(scope) ? readPrice(scope) : null);
+      const { value: price } = checkRouteTransaction(scope => {
+        if (!route.matches(scope, route.keyId, route.stamp)) throw unavailable();
+        return accountMatches(scope) ? readPrice(scope) : null;
+      });
+      if (probe) return Boolean(price);
       if (!price) throw unavailable();
       const encodedPrice = canonical(price);
       const proof = Object.freeze(Object.create(null));
@@ -365,7 +369,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         matches: scope => accountMatches(scope) && canonical(readPrice(scope)) === encodedPrice });
       return Object.freeze({ proof, price: Object.freeze({ ...price, rates: Object.freeze(price.rates) }) });
     },
-    async bindOpenAIAccount(routeProof, connectionId, apiKey, expectedProxy = null) {
+    async bindOpenAIAccount(routeProof, connectionId, apiKey, expectedProxy = null, { probe = false } = {}) {
       const route = ownRoutes.get(routeProof);
       if (!requireAccount || route?.provider !== 'openai') throw unavailable();
       identifier(connectionId);
@@ -375,8 +379,11 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
       const digest = credentialDigest(apiKey);
       const matches = scope => readApiKeyAccount(scope, connectionId, route.model, 'openai', expectedProxy) === digest;
       const readPrice = scope => readOpenAIStandardReference(scope, route.model);
-      const { value: price } = checkRouteTransaction(scope =>
-        route.matches(scope, route.keyId, route.stamp) && matches(scope) ? readPrice(scope) : null);
+      const { value: price } = checkRouteTransaction(scope => {
+        if (!route.matches(scope, route.keyId, route.stamp)) throw unavailable();
+        return matches(scope) ? readPrice(scope) : null;
+      });
+      if (probe) return Boolean(price);
       if (!price) throw unavailable();
       const encodedPrice = canonical(price);
       const proof = Object.freeze(Object.create(null));
@@ -384,7 +391,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         matches: scope => matches(scope) && canonical(readPrice(scope)) === encodedPrice });
       return Object.freeze({ proof, price });
     },
-    async bindCodexAccount(routeProof, connectionId, accessToken, accountId, priceBasis, expectedProxy = null) {
+    async bindCodexAccount(routeProof, connectionId, accessToken, accountId, priceBasis, expectedProxy = null, { probe = false } = {}) {
       const route = ownRoutes.get(routeProof);
       if (!requireAccount || route?.provider !== 'codex' || !priceBasis ||
           priceBasis !== codexStandardReferenceKey(route.model)) throw unavailable();
@@ -393,11 +400,14 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
       const { credentialDigest, readCodexAccount } = await import('./node-anthropic-account.js');
       const digest = credentialDigest(accessToken);
       const matches = scope => {
-        const current = readCodexAccount(scope, connectionId, route.model, Date.now(), expectedProxy);
+        const current = readCodexAccount(scope, connectionId, route.model, probe ? undefined : Date.now(), expectedProxy);
         return current?.digest === digest && current.accountId === accountId;
       };
-      const { value: price } = checkRouteTransaction(scope =>
-        route.matches(scope, route.keyId, route.stamp) && matches(scope) ? readCodexPrice(scope, priceBasis) : null);
+      const { value: price } = checkRouteTransaction(scope => {
+        if (!route.matches(scope, route.keyId, route.stamp)) throw unavailable();
+        return matches(scope) ? readCodexPrice(scope, priceBasis) : null;
+      });
+      if (probe) return Boolean(price);
       if (!price) throw unavailable();
       const encodedPrice = canonical(price);
       const proof = Object.freeze(Object.create(null));
@@ -405,7 +415,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         matches: scope => matches(scope) && canonical(readCodexPrice(scope, priceBasis)) === encodedPrice });
       return Object.freeze({ proof, price: Object.freeze({ ...price, rates: Object.freeze(price.rates) }) });
     },
-    async bindClaudeAccount(routeProof, connectionId, accessToken, expectedProxy = null) {
+    async bindClaudeAccount(routeProof, connectionId, accessToken, expectedProxy = null, { probe = false } = {}) {
       const route = ownRoutes.get(routeProof);
       if (!requireAccount || route?.provider !== 'claude') throw unavailable();
       identifier(connectionId);
@@ -413,10 +423,13 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         import('./node-anthropic-account.js'), import('../pricing/claude-standard-reference.js'),
       ]);
       const digest = credentialDigest(accessToken);
-      const matches = scope => readClaudeAccount(scope, connectionId, route.model, Date.now(), expectedProxy) === digest;
+      const matches = scope => readClaudeAccount(scope, connectionId, route.model, probe ? undefined : Date.now(), expectedProxy) === digest;
       const readPrice = scope => readClaudeStandardReference(scope, route.model);
-      const { value: price } = checkRouteTransaction(scope =>
-        route.matches(scope, route.keyId, route.stamp) && matches(scope) ? readPrice(scope) : null);
+      const { value: price } = checkRouteTransaction(scope => {
+        if (!route.matches(scope, route.keyId, route.stamp)) throw unavailable();
+        return matches(scope) ? readPrice(scope) : null;
+      });
+      if (probe) return Boolean(price);
       if (!price) throw unavailable();
       const encodedPrice = canonical(price);
       const proof = Object.freeze(Object.create(null));
@@ -495,9 +508,10 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
       const windows = budgetWindows(copy.now);
       if (windows.weekly.startAt !== state.original.windows.weekly.startAt ||
           windows.monthly.startAt !== state.original.windows.monthly.startAt) throw unavailable();
-      return finalAccountingDispatch(() => {
+      let limitReached = false;
+      const finalCheck = () => {
         const { route } = state;
-        const { value: allowed } = (route ? checkRouteTransaction : finalTransaction)(scope => {
+        const { value: decision } = (route ? checkRouteTransaction : finalTransaction)(scope => {
           const binding = resolve(scope, copy.presentedSecret);
           if (!binding || binding.key_id !== state.original.keyId ||
               String(binding.generation) !== state.original.bindingGeneration) return false;
@@ -506,14 +520,22 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
           checkedSchema(scope); verifyOriginal(scope, state.original, state.encoded);
           if (scope.terminal([state.original.attemptId])) throw unavailable();
           const spend = totals(scope, state.original.keyId, windows);
-          return ['weekly', 'monthly'].every(period => binding[period] === null || BigInt(spend[period]) < BigInt(binding[period]));
+          return ['weekly', 'monthly'].some(period => binding[period] !== null && BigInt(spend[period]) >= BigInt(binding[period]))
+            ? 'limit' : true;
         });
         // COMMIT orders concurrent changes; only successful cleanup and the
         // final process health check can lead to actual invocation.
-        if (!allowed || state.used || state.terminal) return false;
+        limitReached = decision === 'limit';
+        if (decision !== true || state.used || state.terminal) return false;
         state.used = true; // Before actual synchronous invocation, even if it throws.
         return true;
-      }, initiate);
+      };
+      try {
+        return finalAccountingDispatch(finalCheck, initiate);
+      } catch (error) {
+        if (limitReached) throw Object.assign(unavailable('API key budget exhausted'), { code: 'budget_limit_reached' });
+        throw error;
+      }
     },
     inspectBudget(keyId, clock, priceBasis) {
       identifier(keyId);
@@ -527,7 +549,7 @@ export function createNodeAttemptLedger(adapter, { requireRoute = false, require
         if (scope.emptyAttempt() || scope.orphanTerminal()) corrupt();
         if (!policy) {
           if (scope.page([keyId, '']).length) corrupt();
-          return { policy: null, usage: null };
+          return { policy: null, usage: null, ...(scope.keyById([keyId]).isActive === 0 ? { inactive: true } : {}) };
         }
         const observation = { unrecorded: 0 };
         const spend = totals(scope, keyId, windows, observation);

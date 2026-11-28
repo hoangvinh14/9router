@@ -29,10 +29,11 @@ import { getProjectIdForConnection } from "open-sse/services/projectId.js";
 import { stripModelContextMarker } from "open-sse/utils/modelMarkers.js";
 import { getKeyAccessContext, enforceKeyAccess, filterAdapterModels, isRequestedTargetAllowed } from "../services/keyAccess.js";
 import { resolveSmartChoice } from "../services/systemoneRouter.js";
-import { refuseUnadmittedAccountingRequest, accountingUnavailableResponse, isCodexBudgetEndpoint, selectedAccountingSecret } from "@/lib/accounting/request-boundary.js";
+import { runOrdinaryAccountingRequest, accountingUnavailableResponse, selectedAccountingSecret } from "@/lib/accounting/request-boundary.js";
+import { isBudgetChatEndpoint, supportsBudgetProvider } from "@/lib/accounting/profile-registry.js";
 import { markAccountingResponse } from "open-sse/utils/accountingResponse.js";
 
-const refuseCandidate = () => markAccountingResponse(accountingUnavailableResponse());
+const refuseCandidate = message => markAccountingResponse(accountingUnavailableResponse(message));
 const extendBranch = (branch, target) => Object.freeze([...branch, target]);
 const supportsAccountedCombo = strategy => ["fallback", "round-robin"].includes(strategy);
 
@@ -42,28 +43,20 @@ const supportsAccountedCombo = strategy => ["fallback", "round-robin"].includes(
  * Format detection and translation handled by translator
  */
 export async function handleChat(request, clientRawRequest = null) {
-  // Direct/internal callers need the same check as the public guard, before
-  // parsing, routing, naming bypass, helper inference or credential discovery.
-  const accountingRefusal = await refuseUnadmittedAccountingRequest(request);
-  if (accountingRefusal) return accountingRefusal;
-  return routeChat(request, clientRawRequest, null);
+  return runOrdinaryAccountingRequest(request, () => routeChat(request, clientRawRequest, null));
 }
 
 // Internal candidate composition only. Public callers cannot select this entry
 // or supply an identity, routing readers, or context factory through a request.
-export async function handleAccountedChatCandidate(request, { identity, createContext, provider = "anthropic", connectionId, fallbackConnectionId }) {
+export async function handleAccountedChatCandidate(request, { identity, createContext }) {
   try {
     const pathname = new URL(request.url).pathname;
-    const acceptsEndpoint = ['openai', 'codex'].includes(provider) ? (isCodexBudgetEndpoint(pathname) || provider === "codex" && pathname === "/v1/messages")
-      : connectionId && isCodexBudgetEndpoint(pathname) ? true
-      : pathname === '/v1/messages' || (provider === 'claude' && pathname === '/v1/v1/messages');
-    if (!['anthropic', 'claude', 'codex', 'openai'].includes(provider) || request.method !== 'POST' ||
-        !acceptsEndpoint ||
+    if (request.method !== 'POST' || !isBudgetChatEndpoint(pathname) ||
         request.headers.has('anthropic-workspace-id') ||
         !identity.matchesSecret(selectedAccountingSecret(request))) return refuseCandidate();
     const view = await identity.captureRoute();
     const settings = mergeWithDefaults(view.reads.getSettingsData());
-    return await routeChat(request, null, { view, settings, createContext, provider, connectionId, fallbackConnectionId });
+    return await routeChat(request, null, { view, settings, createContext, budgetAvailable: identity.budgetAvailable });
   } catch {
     return refuseCandidate();
   }
@@ -158,7 +151,6 @@ async function routeChat(request, clientRawRequest, candidate) {
   // Check if model is a combo (has multiple models with fallback)
   const comboModels = await getComboModels(modelStr, candidate?.view.reads);
   if (comboModels) {
-    if (["codex", "openai"].includes(candidate?.provider)) return refuseCandidate();
     // Check for combo-specific strategy first, fallback to global
     const comboStrategies = settings.comboStrategies || {};
     const comboSpecificStrategy = comboStrategies[modelStr]?.fallbackStrategy;
@@ -343,7 +335,8 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
   }
 
   const { provider, model } = modelInfo;
-  if (candidate && provider !== candidate.provider) return refuseCandidate();
+  if (candidate && (!supportsBudgetProvider(clientRawRequest.endpoint, provider) ||
+      (branch.length > 1 && ['codex', 'openai'].includes(provider)))) return refuseCandidate();
   let routeProof = candidate ? await candidate.view.select(branch, { provider, model }) : null;
 
   // Routing shown in the unified "▶" line (client model → provider/model)
@@ -352,7 +345,7 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
   const userAgent = request?.headers?.get("user-agent") || "";
 
   // Try with available accounts (fallback on errors)
-  let pinnedConnection = candidate?.connectionId;
+  let isAccountSuccessor = false;
   const excludeConnectionIds = new Set();
   let lastError = null;
   let lastStatus = null;
@@ -362,13 +355,12 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
     const credentialOptions = { requestedModel: requestedModel || model };
     if (candidate) {
       credentialOptions.accountedSettings = candidate.settings;
-      credentialOptions.preferredConnectionId = pinnedConnection;
     }
     const credentials = await getProviderCredentials(provider, excludeConnectionIds, model, credentialOptions);
 
     // All accounts unavailable
     if (!credentials || credentials.allRateLimited) {
-      if (candidate) return refuseCandidate();
+      if (candidate) return refuseCandidate("No eligible upstream account for budget accounting");
       if (credentials?.allRateLimited) {
         const errorMsg = lastError || credentials.lastError || "Unavailable";
         const status = HTTP_STATUS.SERVICE_UNAVAILABLE;
@@ -383,14 +375,6 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
       return errorResponse(lastStatus || HTTP_STATUS.SERVICE_UNAVAILABLE, lastError || "All accounts unavailable", lastHeaders);
     }
 
-    // Account selection shown in the unified "▶" line (acc:...)
-    // The accounted request remains bound to this selected account.
-    if (candidate) {
-      const matchesAuth = provider === "codex" || provider === "claude"
-        ? credentials.authType === "oauth" && credentials.accessToken && !credentials.apiKey
-        : credentials.authType === "apikey" && credentials.apiKey && !credentials.accessToken && !credentials.refreshToken;
-      if (!matchesAuth || (pinnedConnection && credentials.connectionId !== pinnedConnection)) return refuseCandidate();
-    }
     const refreshedCredentials = candidate ? credentials : await checkAndRefreshToken(provider, credentials);
 
     // Ensure real project ID is available for providers that need it (P0 fix: cold miss)
@@ -407,10 +391,14 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
     const chatSettings = candidate ? candidate.settings : await getSettings();
     const providerThinking = (chatSettings.providerThinking || {})[provider] || null;
     const accounting = candidate ? await candidate.createContext({ routeProof, provider, model, credentials, settings: chatSettings, body }) : null;
-    if (candidate && !accounting) return refuseCandidate();
+    if (candidate && !accounting) {
+      if (candidate.budgetAvailable && !candidate.budgetAvailable()) return refuseCandidate("API key budget exhausted or unavailable");
+      request.signal.throwIfAborted();
+      excludeConnectionIds.add(credentials.connectionId);
+      continue;
+    }
     const result = await handleChatCore({
-      ...(candidate ? { accounting, isAccountSuccessor: pinnedConnection !== candidate.connectionId, allowAccountFallback: Boolean(candidate.fallbackConnectionId &&
-        pinnedConnection === candidate.connectionId && textOnlyForAccountFallback(body)) } : {}),
+      ...(candidate ? { accounting, isAccountSuccessor, allowAccountFallback: !isAccountSuccessor && textOnlyForAccountFallback(body) } : {}),
       ...(candidate && ['claude', 'codex'].includes(provider) ? {
         clientSignal: request.signal,
         async refreshAccounting(successorProof) {
@@ -421,7 +409,7 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
           return { credentials: next, accounting: nextAccounting };
         },
       } : {}),
-      body: { ...(candidate?.fallbackConnectionId ? structuredClone(body) : body), model: `${provider}/${model}` },
+      body: { ...(candidate ? structuredClone(body) : body), model: `${provider}/${model}` },
       modelInfo: { provider, model },
       credentials: refreshedCredentials,
       log,
@@ -477,16 +465,16 @@ async function dispatchSingleModel(body, modelStr, clientRawRequest, request, ap
     // Accounting failures/refusals never become provider cooldown or implicit
     // next-account retries. A fresh owned successor requires explicit evidence.
     if (candidate) {
-      if (result.accountFallbackProof && pinnedConnection === candidate.connectionId && candidate.fallbackConnectionId) {
+      if (result.accountFallbackProof && !isAccountSuccessor) {
         request.signal.throwIfAborted();
-        excludeConnectionIds.add(pinnedConnection);
-        pinnedConnection = candidate.fallbackConnectionId;
+        excludeConnectionIds.add(credentials.connectionId);
+        isAccountSuccessor = true;
         routeProof = result.accountFallbackProof;
         continue;
       }
       return markAccountingResponse(result.response);
     }
-    if (result.accountingRefused) return result.response;
+    if (result.accountingRefused) return markAccountingResponse(result.response);
     if (result.success) return result.response;
 
     // Antigravity 409/429: refresh live quota to get exact resetAt before locking

@@ -1,3 +1,4 @@
+import { hasOpaqueOrdinaryDispatch } from '../../../open-sse/utils/ordinary-dispatch.js';
 import { createHash } from 'node:crypto';
 import { conflict, snapshotPayload, timestamp, unavailable } from './attempt-payload.js';
 import { nanoUsd } from './exact-money.js';
@@ -132,6 +133,8 @@ function validateRetirementEvent(event, binding) {
 const publicPolicy = row => Object.freeze({ keyId: row.key_id, bindingGeneration: String(row.generation), version: row.version,
     limits: Object.freeze({ weekly: row.weekly, monthly: row.monthly }) });
 
+const inactiveKey = () => Object.assign(new Error('API key is inactive'), { code: 'budget_key_inactive', status: 409 });
+
 export function createKeyPolicyReadValidator(corrupt) {
   // One retirement event per stable identity: retirement is irreversible in
   // this profile. Internal primitive retirement may have no admin event; public
@@ -200,7 +203,7 @@ export function createKeyPolicyReadValidator(corrupt) {
       // Skip ONLY retired-business refusal, not secret/history invariants.
       const binding = readBinding(scope, key, true);
       if (!binding) {
-        if (allowNew && key.isActive === 1 && !scope.eventByKey([keyId])) return null;
+        if (allowNew && !scope.eventByKey([keyId])) return null;
         throw unavailable();
       }
       return { ...publicPolicy(binding), lifecycle: binding.retired ? 'retired' : key.isActive ? 'active' : 'disabled' };
@@ -358,14 +361,16 @@ export function createNodeKeyPolicy(adapter) {
     save(keyId, expectedVersion, requestedLimits) {
       id(keyId); const copied = limits(requestedLimits);
       if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 0) throw unavailable();
-      let collision = false; let result;
+      let collision = false; let inactive = false; let result;
       transact(scope => {
         const key = scope.keyById([keyId]);
+        if (key?.isActive === 0) { inactive = true; return; }
         if (!key || key.isActive !== 1 || typeof key.key !== 'string' || !key.key || key.key.includes('\0')) throw unavailable();
         const previous = readBinding(scope, key);
         if ((previous?.version ?? 0) !== expectedVersion) { collision = true; return; }
         if (previous?.version >= Number.MAX_SAFE_INTEGER) throw unavailable();
         if (!previous) {
+          if (hasOpaqueOrdinaryDispatch(key.key)) { collision = true; return; }
           const fingerprint = digest(key.key);
           if (scope.fingerprint([fingerprint])) { collision = true; return; }
           scope.insert([keyId, fingerprint, copied.weekly, copied.monthly]);
@@ -374,6 +379,7 @@ export function createNodeKeyPolicy(adapter) {
         else if (scope.update([copied.weekly, copied.monthly, keyId, expectedVersion]).changes !== 1) { corrupt(); }
         result = publicPolicy(readBinding(scope, key));
       });
+      if (inactive) throw inactiveKey();
       if (collision) throw conflict();
       return result;
     },

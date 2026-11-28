@@ -4,6 +4,7 @@ import path from 'node:path';
 // Run offline before serving traffic. The operator controls the parent and
 // must keep the new directory private until this command exits successfully.
 const [command, directory] = process.argv.slice(2);
+const importing = command === '--import-workspace-binding';
 const checking = command === '--check-binding';
 const starting = command === '--prepare-startup';
 const enabling = command === '--enable-existing';
@@ -41,7 +42,7 @@ function inspectDb(directory, { startup = false } = {}) {
   return file;
 }
 
-async function backupExistingDb(directory, file, { allowPrepared = false } = {}) {
+async function backupExistingDb(directory, file, { allowPrepared = false, backupPrepared = false } = {}) {
   const { DatabaseSync, backup } = await import('node:sqlite');
   const { readAccountingMarkers } = await import('../src/lib/accounting/mutation-barrier.js');
   const source = new DatabaseSync(file, { readOnly: true });
@@ -51,8 +52,12 @@ async function backupExistingDb(directory, file, { allowPrepared = false } = {})
     }
     const accountingObjects = source.prepare("SELECT 1 FROM main.sqlite_schema WHERE lower(name) GLOB 'accounting_*'").get();
     if (accountingObjects || readAccountingMarkers({ all: (sql, params) => source.prepare(sql).all(...params) }).length) {
-      if (allowPrepared) return false;
-      throw new Error('Refused: existing accounting schema');
+      if (!backupPrepared) {
+        if (allowPrepared) return false;
+        throw new Error('Refused: existing accounting schema');
+      }
+    } else if (backupPrepared) {
+      throw new Error('Prepare the accounting database before importing workspace evidence');
     }
     const backupDir = fs.mkdtempSync(path.join(directory, 'before-budget-'));
     await backup(source, path.join(backupDir, 'data.sqlite'));
@@ -64,17 +69,21 @@ async function backupExistingDb(directory, file, { allowPrepared = false } = {})
 }
 
 try {
-  if (process.argv.length !== 4 || (!checking && !enabling && !starting && command !== '--create-new') || !path.isAbsolute(directory ?? '') ||
+  if (process.argv.length !== 4 || (!checking && !enabling && !starting && !importing && command !== '--create-new') || !path.isAbsolute(directory ?? '') ||
       path.normalize(directory) !== directory || directory.endsWith('/') || process.platform !== 'linux' ||
       Number(process.versions.node.split('.')[0]) !== 24 || process.getuid() === 0) {
-    throw new Error('Usage (non-root Linux Node 24): node scripts/provision-internal-accounting.mjs {--create-new|--enable-existing|--check-binding|--prepare-startup} /absolute/directory');
+    throw new Error('Usage (non-root Linux Node 24): node scripts/provision-internal-accounting.mjs {--create-new|--enable-existing|--check-binding|--import-workspace-binding|--prepare-startup} /absolute/directory');
   }
   const parent = path.dirname(directory);
   if (fs.realpathSync(parent) !== parent) throw new Error('Use a canonical, operator-controlled parent directory');
   let binding;
   let prepared = false;
-  if (checking) {
-    try { binding = await readBinding(); inspectDb(directory); }
+  if (checking || importing) {
+    try {
+      binding = await readBinding();
+      const file = inspectDb(directory);
+      if (importing) await backupExistingDb(directory, file, { backupPrepared: true });
+    }
     catch { throw new Error('Refused: invalid binding input or private existing database unavailable'); }
   } else if (starting) {
     try {
@@ -95,11 +104,18 @@ try {
     const { DATA_DIR } = await import('../src/lib/dataDir.js');
     if (DATA_DIR !== directory) throw new Error();
     const driver = await import('../src/lib/db/driver.js');
-    const adapter = await ((checking || prepared) ? driver.getMarkedAccountingAdapterForOfflineCheck() : driver.getAccountingAdapter());
+    const adapter = await ((checking || importing || prepared) ? driver.getMarkedAccountingAdapterForOfflineCheck() : driver.getAccountingAdapter());
     try {
       if (checking) {
         const { resolveInternalOperatorBinding } = await import('../src/lib/accounting/internal-binding.js');
         await resolveInternalOperatorBinding(adapter, binding);
+      } else if (importing) {
+        const { isSingleWorkspaceBinding } = await import('../src/lib/accounting/node-anthropic-account.js');
+        const { saveAnthropicWorkspace } = await import('../src/lib/accounting/anthropic-workspace.js');
+        if (!binding || Object.keys(binding).sort().join() !== 'clientKeyId,workspaceBinding' ||
+            !isSingleWorkspaceBinding(binding.workspaceBinding)) throw new Error();
+        const { connectionId, workspaceId, keyDigest } = binding.workspaceBinding;
+        saveAnthropicWorkspace(adapter, connectionId, workspaceId, keyDigest);
       } else if (!prepared) {
         const { provisionEmptyNodeAccountingSchema } = await import('../src/lib/accounting/node-existing-audit.js');
         provisionEmptyNodeAccountingSchema(adapter, { existingSqlite: enabling || starting });
@@ -108,10 +124,10 @@ try {
     const disposition = globalThis._dbAdapter.accountingCloseDisposition;
     if (disposition?.closure !== 'confirmed' || disposition.checkpoint !== 'confirmed' || disposition.retirementFailed !== false) throw new Error();
     console.log(checking ? 'Local binding matched; no profile or budget was enabled.' :
-      prepared ? 'Accounting schema already prepared.' : 'Accounting schema prepared; no profile or budget was enabled.');
+      importing ? 'Anthropic workspace evidence imported.' : prepared ? 'Accounting schema already prepared.' : 'Accounting schema prepared; no profile or budget was enabled.');
   } catch {
     // Preserve the new directory for inspection; no implicit removal or retry.
-    throw new Error(checking ? 'Binding check failed; no admission granted' : starting
+    throw new Error(checking ? 'Binding check failed; no admission granted' : importing ? 'Workspace import failed; inspect the existing data and backup' : starting
       ? 'Startup SQLite preparation failed; inspect the existing data and any backup'
       : 'Provisioning failed: keep the instance offline and inspect the data and any backup');
   }

@@ -21,6 +21,7 @@ const chatDependencies = new Set([
   'open-sse/utils/modelMarkers.js', '../services/systemoneRouter.js',
 ]);
 const appAccounting = new Map([
+  ['@/lib/accounting/profile-registry.js', '/app/src/lib/accounting/profile-registry.js'],
   ['@/lib/accounting/request-boundary.js', '/app/src/lib/accounting/request-boundary.js'],
   ['@/lib/db/repos/settingsRepo.js', '/app/src/lib/db/repos/settingsRepo.js'],
   ['open-sse/services/combo.js', '/app/open-sse/services/combo.js'],

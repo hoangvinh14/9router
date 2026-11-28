@@ -10,6 +10,7 @@ if (process.platform !== 'linux' || process.version !== 'v24.21.0' || (!tls && p
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const files = [
   'tests/fixtures/budget/claude-conversion-restart.mjs', 'tests/fixtures/budget/claude-conversion-cases.mjs', 'src/lib/accounting/claude-converted-request.js', 'src/lib/accounting/claude-tool-continuity.js', 'open-sse/utils/claude-budget-output.js',
+  'src/lib/accounting/profile-registry.js', 'src/lib/accounting/budget-chat-route.js', 'src/lib/accounting/router-dispatch-context.js',
   'src/app/api/v1/messages/route.js', 'src/app/api/v1/responses/route.js', 'src/app/api/v1/chat/completions/route.js',
   'src/lib/db/helpers/kvStore.js', 'src/lib/pricing/openai-standard-reference.js', 'src/lib/accounting/openai-dispatch-context.js',
   'open-sse/providers/registry/openai.js', 'open-sse/utils/accounted-openai-chat-stream.js',
@@ -26,7 +27,7 @@ const files = [
   'src/lib/db/adapters/nodeSqliteAdapter.js', 'src/lib/db/adapters/nodeClosure.js',
   'src/lib/accounting/oauth-refresh.js', 'src/lib/accounting/internal-binding.js', 'src/lib/accounting/installed-service.js', 'src/lib/accounting/request-boundary.js', 'src/lib/accounting/mutation-barrier.js',
   'src/lib/accounting/node-routing-snapshot.js', 'src/lib/accounting/node-outer-transaction.js', 'src/lib/accounting/sql-operation-scope.js',
-  'src/lib/accounting/node-attempt-ledger.js', 'src/lib/accounting/node-key-policy.js', 'src/lib/accounting/node-anthropic-account.js',
+  'src/lib/accounting/node-attempt-ledger.js', 'src/lib/accounting/node-key-policy.js', 'open-sse/utils/ordinary-dispatch.js', 'src/lib/accounting/node-anthropic-account.js',
   'src/lib/accounting/anthropic-reference-price.js', 'src/lib/accounting/responses-usage.js', 'src/lib/accounting/anthropic-dispatch-context.js', 'src/lib/accounting/anthropic-usage.js',
   'src/lib/accounting/attempt-payload.js', 'src/lib/accounting/process-state.js', 'src/lib/accounting/budget-windows.js',
   'src/lib/accounting/exact-money.js', 'src/lib/accounting/terminal-cost.js', 'src/lib/pricing/claude-standard-reference.js', 'src/lib/pricing/constants.js', 'src/lib/pricing/decimalMoney.js',
@@ -37,14 +38,15 @@ const files = [
   'open-sse/utils/streamHandler.js', 'open-sse/utils/responsesStreamHelpers.js', 'open-sse/utils/streamHelpers.js',
   'open-sse/utils/sseConstants.js', 'open-sse/translator/concerns/toolCall.js',
   'open-sse/executors/codex.js', 'open-sse/config/codexInstructions.js', 'open-sse/utils/codexToolSchema.js',
-  'open-sse/utils/sessionManager.js', 'open-sse/translator/formats/responsesApi.js',
+  'open-sse/utils/sessionManager.js', 'open-sse/translator/formats/responsesApi.js', 'open-sse/translator/formats/gemini.js', 'open-sse/translator/concerns/json.js',
   'open-sse/translator/schema/index.js', 'open-sse/translator/schema/roles.js',
   'open-sse/translator/schema/blocks.js', 'open-sse/translator/schema/finishReasons.js',
   'open-sse/translator/schema/streamEvents.js', 'open-sse/translator/schema/defaults.js', 'open-sse/providers/registry/codex.js', 'open-sse/providers/models/helpers.js',
-  'open-sse/executors/base.js', 'open-sse/executors/default.js', 'open-sse/providers/registry/claude.js', 'open-sse/providers/registry/anthropic.js', 'open-sse/providers/shared.js',
+  'open-sse/executors/base.js', 'open-sse/executors/default.js', 'open-sse/utils/geminiLongDecode.js', 'open-sse/shared/kiroIdentity.js', 'open-sse/config/kiroClient.js', 'open-sse/providers/registry/claude.js', 'open-sse/providers/registry/anthropic.js', 'open-sse/providers/shared.js', 'src/mitm/antigravityIdeVersion.js',
   'open-sse/config/runtimeConfig.js', 'open-sse/config/errorConfig.js', 'open-sse/translator/formats.js', 'open-sse/translator/concerns/paramSupport.js',
   'open-sse/utils/error.js', 'open-sse/utils/upstreamHeaders.js', 'open-sse/utils/accountingResponse.js',
   'open-sse/utils/clientDetector.js', 'open-sse/utils/modelMarkers.js', 'open-sse/utils/claudeCliVersion.js',
+  'open-sse/translator/concerns/systemPrompt.js', 'open-sse/rtk/systemInject.js',
   'open-sse/utils/debugLog.js', 'open-sse/utils/reasoningContentInjector.js',
   'tests/fixtures/budget/route-readers-loader.mjs', 'tests/fixtures/budget/route-chat-stubs.mjs',
   'tests/fixtures/budget/core-loader.mjs', 'tests/fixtures/budget/core-stubs.mjs',
@@ -52,6 +54,7 @@ const files = [
   'tests/fixtures/budget/composed-account-db.mjs', 'tests/unit/budget-composed.test.mjs',
   'tests/fixtures/budget/module-scope.json',
 ];
+files.push('tests/fixtures/budget/commonjs-scope.json');
 const args = ['--unshare-all', '--die-with-parent', '--new-session', '--ro-bind', '/usr', '/usr', '--ro-bind', '/lib', '/lib'];
 if (tls) {
   files.push('tests/fixtures/budget/composed-undici.mjs', 'open-sse/utils/proxyFetch.js', 'tests/fixtures/budget/composed-tls-bootstrap.mjs');
@@ -65,11 +68,9 @@ if (fs.existsSync('/lib64')) args.push('--ro-bind', '/lib64', '/lib64');
 for (const file of files) {
   const source = path.resolve(repo, file);
   if (fs.realpathSync(source) !== source || !fs.statSync(source).isFile()) throw new Error(`Unsafe fixture input: ${file}`);
-  args.push('--ro-bind', source, file.endsWith('/module-scope.json') ? '/app/package.json' : `/app/${file}`);
+  args.push('--ro-bind', source, file.endsWith('/commonjs-scope.json') ? '/app/src/mitm/package.json' : file.endsWith('/module-scope.json') ? '/app/package.json' : `/app/${file}`);
 }
-const registry = path.resolve(repo, 'docker/internal-profile-registry.js');
-if (fs.realpathSync(registry) !== registry || !fs.statSync(registry).isFile()) throw new Error('Unsafe Docker registry input');
-args.push('--ro-bind', registry, '/app/src/lib/accounting/profile-registry.js', '--tmpfs', '/run/9router');
+args.push('--tmpfs', '/run/9router');
 args.push('--proc', '/proc', '--dev', '/dev', '--tmpfs', '/tmp', '--ro-bind', fs.realpathSync(process.execPath), '/runtime/node',
   '--chdir', '/app', '--remount-ro', '/', '--', '/runtime/node', '--unhandled-rejections=strict');
 if (tls) args.push('/app/tests/fixtures/budget/composed-tls-bootstrap.mjs');

@@ -60,6 +60,33 @@ test('offline check validates exact binding without policy or row changes',()=>{
  assert.deepEqual(fs.readFileSync(dir+'/db/data.sqlite'),before);
 });
 
+test('offline workspace import backs up an existing volume and refuses stale evidence', () => {
+ const dir = '/tmp/import-workspace';
+ assert.equal(run([cli, '--create-new', dir]).status, 0);
+ const seed = run(['--input-type=module', '--eval', `
+  import { getAccountingAdapter } from '/app/src/lib/db/driver.js';
+  const db = await getAccountingAdapter();
+  db.run("INSERT INTO providerConnections(id,provider,authType,isActive,data,createdAt,updatedAt) VALUES('provider','anthropic','apikey',1,?,'2026-11-16','2026-11-16')",
+   [JSON.stringify({apiKey:${JSON.stringify(fixtureKey)}})]);
+  db.close();
+ `], { DATA_DIR: dir });
+ assert.equal(seed.status, 0, seed.stderr);
+ const wrong = binding.replace(/"keyDigest":"[a-f0-9]+"/, `"keyDigest":"${'0'.repeat(64)}"`);
+ const read = db => db.prepare("SELECT value FROM kv WHERE scope = 'accounting.anthropic.workspace.v1' AND key = 'provider'").get()?.value;
+ assert.equal(run([cli, '--import-workspace-binding', dir], {}, wrong).status, 1);
+ assert.equal(inspect(dir, read), undefined);
+ const result = run([cli, '--import-workspace-binding', dir], {}, binding);
+ assert.equal(result.status, 0, result.stderr);
+ const backup = result.stdout.match(/SQLite backup saved in (before-budget-\S+)/)?.[1];
+ assert.ok(backup);
+ const savedBackup = new DatabaseSync(dir + '/' + backup + '/data.sqlite', { readOnly: true });
+ try { assert.equal(read(savedBackup), undefined); } finally { savedBackup.close(); }
+ const evidence = JSON.parse(inspect(dir, read));
+ assert.deepEqual(evidence, JSON.parse(binding).workspaceBinding);
+ assert.equal(run([cli, '--import-workspace-binding', dir], {}, binding).status, 0);
+ assert.deepEqual(JSON.parse(inspect(dir, read)), evidence);
+});
+
 test('offline check refuses absent file, oversized input and unmarked schema without initializing DB',()=>{
  const dir='/tmp/check-unmarked';fs.mkdirSync(dir,{mode:0o700});
  for(const input of [binding,'x'.repeat(4097),'{']){

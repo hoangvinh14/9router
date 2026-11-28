@@ -69,7 +69,7 @@ function oauthMessageBlock(block, role) {
   return nativeMessageBlock(plain, role);
 }
 
-export function createAnthropicDispatchContext({ identity, routeProof, credentials, profile, model = profile?.model, clock, stream = false, endpoint, toolStore = claudeToolStore }) {
+export function createAnthropicDispatchContext({ identity, routeProof, credentials, profile, model = profile?.model, clock, stream = false, endpoint, requireStoredWorkspace = false, toolStore = claudeToolStore }) {
   const config = snapshotPayload(profile);
   const oauth = config?.provider === 'claude';
   const nativeDefaults = oauth || config?.model === undefined;
@@ -189,7 +189,7 @@ export function createAnthropicDispatchContext({ identity, routeProof, credentia
       // before its first await. The selected account is rechecked at COMMIT.
       const { proof: accountProof, price } = await (oauth
         ? identity.bindClaudeAccount(routeProof, connectionId, accessToken, selectedProxy)
-        : identity.bindAnthropicAccount(routeProof, connectionId, apiKey, body.inference_geo ?? config.inferenceGeo, nativeDefaults, selectedProxy));
+        : identity.bindAnthropicAccount(routeProof, connectionId, apiKey, body.inference_geo ?? config.inferenceGeo, nativeDefaults, selectedProxy, requireStoredWorkspace ? { workspaceBinding: binding } : undefined));
       const initiate = await prepareAccountedDirectPost(url, { ...options, body: encodedBody, headers }, proxyOptions, selectedProxy);
       const attempt = identity.prepare({ attemptId: randomUUID(), provider, model,
         startedAt: budgetInstant(clock), price }, routeProof, accountProof);

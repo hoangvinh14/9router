@@ -11,7 +11,7 @@ const files=[
  'src/lib/db/migrations/index.js','src/lib/db/migrations/001-initial.js','src/lib/db/adapters/nodeSqliteAdapter.js','src/lib/db/adapters/nodeClosure.js',
  'src/lib/accounting/attempt-payload.js','src/lib/accounting/budget-windows.js','src/lib/accounting/exact-money.js','src/lib/accounting/process-state.js',
  'src/lib/accounting/sql-operation-scope.js','src/lib/accounting/node-outer-transaction.js','src/lib/accounting/node-attempt-ledger.js',
- 'src/lib/accounting/terminal-cost.js','src/lib/accounting/node-key-policy.js','src/lib/accounting/request-boundary.js','src/lib/accounting/mutation-barrier.js',
+ 'src/lib/accounting/terminal-cost.js','src/lib/accounting/node-key-policy.js', 'open-sse/utils/ordinary-dispatch.js','src/lib/accounting/request-boundary.js','src/lib/accounting/mutation-barrier.js',
  'src/lib/pricing/constants.js','src/lib/pricing/decimalMoney.js',
  'src/app/api/v1/responses/compact/route.js','src/app/api/v1beta/models/[...path]/route.js',
  'tests/fixtures/budget/reconstruction-loader.mjs','tests/fixtures/budget/reconstruction-stubs.mjs','tests/unit/budget-reconstruction-boundary.test.mjs',

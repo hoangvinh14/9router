@@ -1,3 +1,4 @@
+import { withOrdinaryDispatch } from '../../../open-sse/utils/ordinary-dispatch.js';
 import { createHash } from 'node:crypto';
 import { createNodeKeyPolicy } from './node-key-policy.js';
 import { createNodeAttemptLedger } from './node-attempt-ledger.js';
@@ -76,16 +77,37 @@ export async function inspectAccountingRequest(request) {
   }
 }
 
-// Empty production registry means all controlled execution is presently refused.
-// Do not grow an invented nonbillable allowlist or return permission based on a
-// profile count. Each future positive operation needs exact full-path admission.
+// Each ordinary transport checks the observed database synchronously after
+// its asynchronous setup and immediately before starting the upstream call.
+export async function runOrdinaryAccountingRequest(request, run, additionalRequest = null) {
+  const secrets = [...new Set([selectedAccountingSecret(request), selectedAccountingSecret(additionalRequest)])]
+    .filter(secret => secret !== null);
+  if (!secrets.length) return run();
+  let adapter;
+  try {
+    const { getAdapter } = await import('../db/driver.js');
+    adapter = await getAdapter();
+  } catch { return accountingUnavailableResponse(); }
+  const check = () => secrets.every(secret => classifyAccountingSecret(adapter, secret).kind === 'ordinary');
+  if (!check()) return accountingUnavailableResponse();
+  return withOrdinaryDispatch(secrets, check, async context => {
+    try {
+      const response = await run();
+      return context.refused ? accountingUnavailableResponse() : response;
+    } catch (error) {
+      if (context.refused) return accountingUnavailableResponse();
+      throw error;
+    }
+  });
+}
+
 export async function refuseUnadmittedAccountingRequest(request) {
   const state = await inspectAccountingRequest(request);
   if (state.kind === 'ordinary') return null; // existing auth still decides
   return accountingUnavailableResponse();
 }
 
-export function accountingUnavailableResponse() {
-  return Response.json({ error: { message: 'Accounting profile unavailable', type: 'api_key_accounting_unavailable' } },
+export function accountingUnavailableResponse(message = 'Accounting unavailable for this request') {
+  return Response.json({ error: { message, type: 'api_key_accounting_unavailable' } },
     { status: 503, headers: { 'cache-control': 'no-store' } });
 }

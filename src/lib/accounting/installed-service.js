@@ -4,8 +4,7 @@ import { createNodeKeyPolicy } from './node-key-policy.js';
 
 // Same application adapter only. No schema creation/migration or cached health
 // promise: each access rechecks actual driver provenance and process fault.
-// Missing accounting schema refuses. Management cannot activate finite policy
-// from fixture capability; shipping coverage readiness remains mandatory.
+// An absent or unqualified accounting schema refuses management and dispatch.
 export async function getInstalledAccountingServices() {
   const adapter = await getAccountingAdapter();
   return Object.freeze({ ledger: createNodeAttemptLedger(adapter, { requireAccount: true }), policy: createNodeKeyPolicy(adapter) });
@@ -19,6 +18,12 @@ export function bindAccountingIdentity({ policy, ledger }, presentedSecret) {
   return Object.freeze({ keyId: original.keyId, bindingGeneration: original.bindingGeneration,
     matchesSecret: secret => secret === presentedSecret,
     captureRoute: () => ledger.captureRoute(original.keyId),
+    budgetAvailable() {
+      const current = policy.resolve(presentedSecret);
+      if (current?.bindingGeneration !== original.bindingGeneration || current.keyId !== original.keyId) return false;
+      const { usage } = ledger.inspectBudget(original.keyId);
+      return usage && usage.weekly.remaining !== '0' && usage.monthly.remaining !== '0';
+    },
     bindAnthropicAccount: ledger.bindAnthropicAccount,
     bindOpenAIAccount: ledger.bindOpenAIAccount,
     bindClaudeAccount: ledger.bindClaudeAccount,

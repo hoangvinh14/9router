@@ -8,7 +8,7 @@ const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..')
 const files=[
  'src/lib/accounting/attempt-payload.js','src/lib/accounting/budget-windows.js','src/lib/accounting/exact-money.js',
  'src/lib/accounting/process-state.js','src/lib/accounting/mutation-barrier.js','src/lib/accounting/sql-operation-scope.js','src/lib/accounting/node-outer-transaction.js',
- 'src/lib/accounting/node-attempt-ledger.js','src/lib/accounting/node-key-policy.js','src/lib/accounting/terminal-cost.js','src/lib/accounting/anthropic-usage.js',
+ 'src/lib/accounting/node-attempt-ledger.js','src/lib/accounting/node-key-policy.js', 'open-sse/utils/ordinary-dispatch.js','src/lib/accounting/terminal-cost.js','src/lib/accounting/anthropic-usage.js',
  'src/lib/pricing/constants.js','src/lib/pricing/decimalMoney.js','src/lib/db/adapters/nodeSqliteAdapter.js','src/lib/db/adapters/nodeClosure.js','src/lib/db/schema.js',
  'open-sse/handlers/chatCore.js','open-sse/handlers/chatCore/nonStreamingHandler.js','open-sse/utils/error.js',
  'open-sse/translator/concerns/systemPrompt.js','open-sse/translator/schema/blocks.js','open-sse/translator/schema/roles.js','open-sse/rtk/systemInject.js',

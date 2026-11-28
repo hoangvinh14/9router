@@ -6,6 +6,7 @@ import { getStatusVariant as getConnectionStatusVariant } from "@/shared/utils/c
 import PropTypes from "prop-types";
 import { Badge, Toggle, Tooltip } from "@/shared/components";
 import CooldownTimer from "./CooldownTimer";
+import AnthropicWorkspace from "./AnthropicWorkspace";
 
 export default function ConnectionRow({ connection, proxyPools, isOAuth, isFirst, isLast, onMoveUp, onMoveDown, onToggleActive, onUpdateProxy, onEdit, onDelete, oneByOneStatus = null, autoPing = null }) {
   const [showProxyDropdown, setShowProxyDropdown] = useState(false);
@@ -254,6 +255,9 @@ export default function ConnectionRow({ connection, proxyPools, isOAuth, isFirst
                 </span>
               )}
             </div>
+          )}
+          {connection.provider === "anthropic" && rowAuthType === "apikey" && (
+            <AnthropicWorkspace connectionId={connection.id} />
           )}
         </div>
       </div>

@@ -40,12 +40,12 @@ test('management writes require exact Origin and reject cross-site and forwarded
  }
 });
 
-test('management refuses finite and unlimited enrollment while real production coverage remains empty',async()=>{
+test('management refuses finite and unlimited enrollment when accounting storage is unavailable',async()=>{
  for(const limits of [{weekly:'0',monthly:'1000'},{weekly:null,monthly:null}]){
   const result=await PUT(req({expectedVersion:0,limits}),params);assert.equal(result.status,503);assert.equal(result.headers.get('cache-control'),'no-store');
  }
- const response=await GET(req(),params);assert.equal(response.status,200);
- const body=await response.json();assert.deepEqual(body,{readiness:{ready:false,reason:'no_admitted_profile'},policy:null,usage:null});
+ const response=await GET(req(),params);assert.equal(response.status,503);
+ const body=await response.json();assert.deepEqual(body,{error:{message:'Budget storage unavailable',code:'api_key_accounting_unavailable'}});
 });
 
 test('management payload validates exact integer money CAS schema content type and byte bounds before any save',async()=>{

@@ -14,7 +14,7 @@ import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { handleComboChat, getComboModelsFromData } from "open-sse/services/combo.js";
 import { getKeyAccessContext, enforceKeyAccessProvider } from "../services/keyAccess.js";
-import { refuseUnadmittedAccountingRequest } from "@/lib/accounting/request-boundary.js";
+import { runOrdinaryAccountingRequest } from "@/lib/accounting/request-boundary.js";
 
 /**
  * Handle web search request for the SSE/Next.js server.
@@ -23,8 +23,10 @@ import { refuseUnadmittedAccountingRequest } from "@/lib/accounting/request-boun
  * @param {Request} request
  */
 export async function handleSearch(request) {
-  const accountingRefusal = await refuseUnadmittedAccountingRequest(request);
-  if (accountingRefusal) return accountingRefusal;
+  return runOrdinaryAccountingRequest(request, () => handleSearchOrdinary(request));
+}
+
+async function handleSearchOrdinary(request) {
   let body;
   try {
     body = await request.json();

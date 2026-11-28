@@ -1059,7 +1059,7 @@ export default function APIPageClient({ machineId }) {
                   )}
                   <AccountingStatus keyId={key.id} onRotated={id => {
                     setKeys(current => current.map(item => item.id === id ? { ...item, key: null } : item));
-                  }} />
+                  }} key={`${key.id}:${key.isActive}`} />
                   <KeyAccessControls
                     apiKey={key}
                     onChange={(access) => handleUpdateKeyAccess(key.id, access)}

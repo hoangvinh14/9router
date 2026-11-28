@@ -1,3 +1,4 @@
+import { ordinaryDispatchRefused, withOpaqueOrdinaryDispatch } from '../utils/ordinary-dispatch.js';
 import { detectFormat, getTargetFormat, resolveTransport } from "../services/provider.js";
 import { translateRequest } from "../translator/index.js";
 import { applyThinking, extractThinking, stripThinkingSuffix } from "../translator/concerns/thinkingUnified.js";
@@ -471,7 +472,7 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
   // exception: it is decoded by the executor into OpenAI-compatible output.
   let providerResponseFormat = targetFormat;
   try {
-    const execute = () => executor.execute({
+    const invoke = () => executor.execute({
       model,
       body: translatedBody,
       stream,
@@ -499,6 +500,8 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
         ? credentials.expiresAt * (credentials.expiresAt < 1e12 ? 1000 : 1) : Date.parse(credentials.expiresAt);
       if (Number.isFinite(expiry) && expiry <= Date.now()) await rotate();
     }
+    const execute = () => ['gemini-web', 'muse-web'].includes(provider)
+      ? withOpaqueOrdinaryDispatch(invoke) : invoke();
     let result = await execute();
     if (refreshed) allowAccountFallback = false;
     if (refreshAccounting && !isAccountSuccessor && !refreshed && credentials.refreshToken && [401, 403].includes(result.response.status)) {
@@ -527,10 +530,13 @@ async function handleChatCoreInternal({ body, modelInfo, credentials, log, onCre
     }
     if (!claudeConversion) reqLogger.logTargetRequest(providerUrl, providerHeaders, finalBody);
   } catch (error) {
+    if (ordinaryDispatchRefused()) {
+      return { ...createErrorResult(503, 'Accounting unavailable for this request'), accountingRefused: true };
+    }
     if (accounting !== null) {
       // Do not feed accounting denial/storage failure into account cooldown or
       // outer retry. Transport outcome may be exposed/unknown, never replay.
-      return { ...createErrorResult(503, 'Accounting request unavailable'), accountingRefused: true };
+      return { ...createErrorResult(503, error?.code === 'budget_limit_reached' ? 'API key budget exhausted' : 'Accounting request unavailable'), accountingRefused: true };
     }
     trackPendingRequest(model, provider, connectionId, false, true);
     appendRequestLog({ model, provider, connectionId, status: `FAILED ${error.name === "AbortError" ? 499 : HTTP_STATUS.BAD_GATEWAY}` }).catch(() => { });

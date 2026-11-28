@@ -1,3 +1,4 @@
+import { assertOrdinaryDispatch, ordinaryDispatchRefused, withOpaqueOrdinaryDispatch } from './ordinary-dispatch.js';
 import { Readable } from "stream";
 import {
   MEMORY_CONFIG,
@@ -41,6 +42,7 @@ export function isStaleSocketError(error) {
 let undiciFetch = null;
 async function rawFetch(url, options) {
   undiciFetch ??= (await import("undici")).fetch;
+  assertOrdinaryDispatch();
   return undiciFetch(url, options);
 }
 
@@ -381,10 +383,11 @@ async function fetchWithTlsFallback(url, options, proxyUrl, forceFreshSocket = f
   try {
     // Protocol adapters may need Node's HTTP/1 transport on the direct path.
     // Keep proxy/no-proxy resolution and strict-proxy enforcement here.
-    if (!proxyUrl && options.directFetch) return await options.directFetch(url, options);
+    if (!proxyUrl && options.directFetch) return await withOpaqueOrdinaryDispatch(() => options.directFetch(url, options));
     const dispatcher = await getDispatcher(proxyUrl, false, forceFreshSocket);
     return await rawFetch(url, { ...options, dispatcher });
   } catch (err) {
+    if (ordinaryDispatchRefused()) throw err;
     const isStrictSsl = options.strictTls === true || process.env.STRICT_SSL === "true" || process.env.STRICT_SSL === "1";
     if (!isStrictSsl && isTlsCertError(err)) {
       if (!isBodyReplaySafe(options.body)) {
@@ -445,6 +448,8 @@ async function createBypassRequest(parsedUrl, realIP, options) {
         },
       };
 
+      try { assertOrdinaryDispatch(); }
+      catch (error) { socket.destroy(); reject(error); return; }
       const req = https.request(reqOptions, (res) => {
         const response = {
           ok: res.statusCode >= HTTP_SUCCESS_MIN && res.statusCode < HTTP_SUCCESS_MAX,
@@ -587,7 +592,7 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
   // keep the undici path below.
   if (proxyUrl && options?.directFetch?.proxyCapable === true) {
     try {
-      const res = await options.directFetch(url, { ...options, proxyUrl }, proxyUrl);
+      const res = await withOpaqueOrdinaryDispatch(() => options.directFetch(url, { ...options, proxyUrl }, proxyUrl));
       // Reported only after the adapter that holds the tunnel returned.
       const via = res?.headers?.get?.("x-9r-proxy-via");
       dbg("PROXY", `PROXY ROUTING VERIFIED | ${safeTargetHost(targetUrl)} | transport=adapter | proxy=${via || safeProxyHost(proxyUrl)} | status=${res?.status}`);

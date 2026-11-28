@@ -1,3 +1,5 @@
+import { assertOrdinaryDispatch } from '../../open-sse/utils/ordinary-dispatch.js';
+import { runOrdinaryAccountingRequest } from '../../src/lib/accounting/request-boundary.js';
 import { exerciseClaudeConversion } from '../fixtures/budget/claude-conversion-cases.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -225,6 +227,7 @@ async function fixture(run, { weekly = null, monthly = null, reply, interrupted 
         db.run(`INSERT INTO providerConnections (id, provider, authType, priority, isActive, data, createdAt, updatedAt)
           VALUES (?, 'anthropic', 'apikey', ?, ?, ?, ?, ?)`, [id, priority, isActive, JSON.stringify(data), now, now]);
       }
+      db.run('INSERT INTO kv VALUES (?, ?, ?)', ['accounting.anthropic.workspace.v1', workspaceBinding.connectionId, JSON.stringify(workspaceBinding)]);
       prepareDb?.(db);
       initializeNodeKeyPolicy(db);
       initializeNodeAttemptLedger(db);
@@ -740,7 +743,7 @@ if (!stage) test('request SSE flag and headers cannot opt a JSON profile into SS
   assert.deepEqual(rows(), { attempts: [], terminals: [] });
 }, { reply: success }));
 
-if (!stage) test('native SSE candidate refuses Chat and Responses ingress before routing', () => fixture(async ({ chat, state, rows }) => {
+if (!stage) test('native SSE input on compatibility routes is refused before dispatch', () => fixture(async ({ chat, state, rows }) => {
   const native = { stream: true, system: 'fixture system prompt' };
   for (const [path, request] of [
     ['/v1/chat/completions', native],
@@ -752,7 +755,8 @@ if (!stage) test('native SSE candidate refuses Chat and Responses ingress before
     assert.equal(response.status, 503);
     assert.equal(isAccountingResponse(response), true);
   }
-  assert.deepEqual([state.accounts, state.contexts, state.preparations, state.wire.length], [0, 0, 0, 0]);
+  assert.equal(state.preparations, 0);
+  assert.equal(state.wire.length, 0);
   assert.deepEqual(rows(), { attempts: [], terminals: [] });
 }, { stream: true, reply: () => assert.fail('foreign ingress reached upstream') }));
 
@@ -825,7 +829,7 @@ const codexFixtureLimit = '374000';
 const priceBasis = 'openai:codex/gpt-6.2-sol:standard:v1';
 const referenceScope = 'budgetReferencePricing';
 
-function codexFixture(run, { additionalPrices = {}, ...options } = {}) {
+function codexFixture(run, { additionalPrices = {}, secondAccount = false, ...options } = {}) {
   const model = 'gpt-6.2-sol';
   const profile = { provider: 'codex', auth: 'oauth', producerAdmitted: true, connectionId: 'fixture-codex',
     accountId: 'fixture-account', model, priceBasis };
@@ -856,13 +860,17 @@ function codexFixture(run, { additionalPrices = {}, ...options } = {}) {
       JSON.stringify({ accessToken: 'fixture-token', providerSpecificData: { chatgptAccountId: 'fixture-account' } }), now, now,
     ]);
   }
-  const bindingPath = '/run/9router/accounting-binding.json';
-  fs.writeFileSync(bindingPath, JSON.stringify({ clientKeyId: 'fixture-key', codexBinding: {
-    connectionId: profile.connectionId, accountId: profile.accountId, serviceTier: 'standard',
-  } }));
   return fixture(context => run({ ...context, request }), {
-    monthly: codexFixtureLimit, profile, reply, prepareDb, ...options,
-  }).finally(() => fs.rmSync(bindingPath, { force: true }));
+    monthly: codexFixtureLimit, profile, reply, prepareDb(db) {
+      prepareDb(db);
+      if (secondAccount) {
+        db.run(`INSERT INTO providerConnections (id, provider, authType, priority, isActive, data, createdAt, updatedAt)
+          VALUES ('second-codex','codex','oauth',2,1,?,?,?)`, [
+          JSON.stringify({ accessToken: 'fixture-second-token', providerSpecificData: { chatgptAccountId: 'fixture-second-account' } }), now, now,
+        ]);
+      }
+    }, ...options,
+  });
 }
 
 if (!stage) test('operator Anthropic binding requires a synchronized tariff before the first POST', async () => {
@@ -928,6 +936,65 @@ if (!stage) test('two Codex models share one budget and use their own synchroniz
     assert.equal((await postResponses(request())).status, 503);
     assert.equal(state.wire.length, 2);
   }, { monthly: '561000', additionalPrices: { 'gpt-6.1-terra': { input: '1', cached: '0.05', output: '5' } } }));
+
+if (!stage) test('router accounts for two selected Codex connections without a binding mount', () =>
+  codexFixture(async ({ request, rows, state, totals }) => {
+    const first = await postResponses(request());
+    assert.equal(first.status, 200);
+    await first.text();
+    state.db.run("UPDATE providerConnections SET isActive = 0 WHERE id = 'fixture-codex'");
+    const second = await postResponses(request());
+    assert.equal(second.status, 200);
+    await second.text();
+    assert.deepEqual(state.wire.map(({ headers }) => headers['chatgpt-account-id']), ['fixture-account', 'fixture-second-account']);
+    assert.deepEqual(rows().attempts.map(({ keyId }) => keyId), ['fixture-key', 'fixture-key']);
+    assert.equal(totals().monthly, '748000');
+    assert.equal((await postResponses(request())).status, 503);
+    assert.equal(state.wire.length, 2);
+  }, { secondAccount: true, monthly: '748000' }));
+
+if (!stage) test('router skips an ineligible Codex account before dispatch and refuses when no successor is eligible', () =>
+  codexFixture(async ({ request, rows, state }) => {
+    state.db.run("UPDATE providerConnections SET data = ? WHERE id = 'fixture-codex'", [
+      JSON.stringify({ accessToken: 'fixture-no-account-id' }),
+    ]);
+    const response = await postResponses(request());
+    assert.equal(response.status, 200);
+    await response.text();
+    assert.deepEqual(state.wire.map(({ headers }) => headers['chatgpt-account-id']), ['fixture-second-account']);
+    state.db.run("UPDATE providerConnections SET isActive = 0 WHERE id = 'second-codex'");
+    const refused = await postResponses(request());
+    assert.match(await refused.text(), /No eligible upstream account/);
+    assert.equal(state.wire.length, 1);
+    assert.equal(rows().attempts.length, 1);
+  }, { secondAccount: true, monthly: null }));
+
+for (const alreadyDispatched of [false, true]) {
+  if (!stage) test(`first save orders ordinary dispatch and retry (started=${alreadyDispatched})`, () =>
+    fixture(async ({ state, rows }) => {
+      state.db.run('INSERT INTO apiKeys VALUES (?, ?, 1, 0, ?)', ['new-key', 'new-fixture-client', '[]']);
+      const request = new Request('https://fixture.invalid/v1/chat/completions', {
+        method: 'POST', headers: { authorization: 'Bearer new-fixture-client' },
+      });
+      const ready = Promise.withResolvers();
+      const resume = Promise.withResolvers();
+      let posts = 0;
+      const post = () => { assertOrdinaryDispatch(); posts++; };
+      const waiting = runOrdinaryAccountingRequest(request, async () => {
+        if (alreadyDispatched) post();
+        ready.resolve();
+        await resume.promise;
+        post();
+        return new Response('fixture');
+      });
+      await ready.promise;
+      createNodeKeyPolicy(state.db).save('new-key', 0, { weekly: '0', monthly: null });
+      resume.resolve();
+      assert.equal((await waiting).status, 503);
+      assert.equal(posts, alreadyDispatched ? 1 : 0);
+      assert.equal(rows().attempts.length, 0);
+    }));
+}
 
 if (checkpoint === 'codex') {
   const writing = stage === '--restart-write';
@@ -1650,7 +1717,7 @@ for (const provider of stage ? [] : ['codex', 'claude']) {
 for (const provider of stage ? [] : ['codex', 'claude']) {
   const sseModes = provider === 'codex' ? ['sse-success','sse-limit','sse-missing','sse-after-output','sse-json'] : ['claude-partial-error'];
   for (const mode of ['success', 'limit', 'missing-usage', 'backup-auth-error', ...sseModes]) {
-    test(`budgeted ${provider} transfers to the configured backup only after complete usage: ${mode}`, async () => {
+    test(`budgeted ${provider} uses a router-selected successor only after complete usage: ${mode}`, async () => {
       const codex = provider === 'codex';
       const model = codex ? 'gpt-6.2-sol' : 'claude-sonnet-5';
       const primary = 'fixture-' + provider;
@@ -1736,7 +1803,7 @@ for (const provider of stage ? [] : ['codex', 'claude']) {
             revision,syncedAt:2,source:'https://platform.claude.com/docs/en/about-claude/pricing.md',
             rates:{input:'3',cached:'0.30',cache_creation:'3.75',cache_creation_1h:'6',output:'15'}})]);
           db.run('UPDATE apiKeys SET accessAllow=?',[JSON.stringify(['claude/'+model])]);
-          db.run("INSERT INTO providerConnections(id,provider,authType,isActive,data,createdAt,updatedAt) VALUES(?,'claude','oauth',1,'{}',?,?)",[primary,now,now]);
+          db.run("INSERT INTO providerConnections(id,provider,authType,isActive,priority,data,createdAt,updatedAt) VALUES(?,'claude','oauth',1,1,'{}',?,?)",[primary,now,now]);
         }});
       } finally { fs.rmSync(bindingFile,{force:true}); }
     });

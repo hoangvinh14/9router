@@ -128,7 +128,7 @@ test('actual installed services retirement preserves stable history and blocks r
  const policy=createNodeKeyPolicy(db);policy.save('target',0,{weekly:'123',monthly:'456'});
  const inspected=policy.inspect('target');assert.equal(Object.isFrozen(inspected),true);assert.equal(Object.isFrozen(inspected.limits),true);
  const active=await GET(req(),params);assert.equal(active.status,200);assert.equal(active.headers.get('cache-control'),'no-store');
- assert.deepEqual(await active.json(),{readiness:{ready:false,reason:'no_admitted_profile'},policy:{keyId:'target',bindingGeneration:'1',version:1,limits:{weekly:'123',monthly:'456'},lifecycle:'active'},retirementEvent:null,usage:null});
+ assert.deepEqual(await active.json(),{readiness:{ready:true,reason:null},policy:{keyId:'target',bindingGeneration:'1',version:1,limits:{weekly:'123',monthly:'456'},lifecycle:'active'},retirementEvent:null,usage:null});
  const ledger=createNodeAttemptLedger(db);const now='2026-11-16T10:00:00.000Z';
  const original=ledger.prepare({attemptId:'original',keyId:'target',bindingGeneration:'1',provider:'fixture',model:'fixture',startedAt:now,price:{currency:'USD',unit:'USD/1M tokens',revision:'original',rates:{input:'1',output:'2'}}});
  const before=JSON.stringify([db.all('SELECT * FROM apiKeys'),db.all('SELECT * FROM accounting_key_policy_v1'),db.all('SELECT * FROM accounting_key_generations_v1')]);
@@ -176,7 +176,7 @@ test('actual installed services retirement preserves stable history and blocks r
  assert.equal(db.get('SELECT COUNT(*) AS n FROM accounting_admin_events_v1 WHERE key_id=?',['race']).n,1);
  assert.equal(db.get('SELECT version FROM accounting_key_policy_v1 WHERE key_id=?',['race']).version,2);
  const status=await GET(req(),params);assert.equal(status.status,200);assert.equal(status.headers.get('cache-control'),'no-store');
- assert.deepEqual(await status.json(),{readiness:{ready:false,reason:'no_admitted_profile'},policy:{keyId:'target',bindingGeneration:'1',version:2,limits:{weekly:'123',monthly:'456'},lifecycle:'retired'},retirementEvent:{action:'retire',actorClass:'dashboard-session',occurredAt:occurred_at,version:2,previousVersion:1,bindingGeneration:'1'},usage:null});
+ assert.deepEqual(await status.json(),{readiness:{ready:true,reason:null},policy:{keyId:'target',bindingGeneration:'1',version:2,limits:{weekly:'123',monthly:'456'},lifecycle:'retired'},retirementEvent:{action:'retire',actorClass:'dashboard-session',occurredAt:occurred_at,version:2,previousVersion:1,bindingGeneration:'1'},usage:null});
  assert.equal(db.raw.isTransaction,false);assertAccountingHealthy();
 });
 for(const mode of ['missing','unbound','disabled','malformed','history','view','faulted-absent','internal-retired','event-time','event-version','event-active','event-read'])test('status snapshot '+mode+' preserves narrow existing-binding contract',()=>{
@@ -216,9 +216,9 @@ for(const mode of ['missing','unbound','disabled','malformed','history','view','
  if(mode==='internal-retired'){
   assert.equal(response.status,200);const body=await response.json();
   assert.equal(body.policy.lifecycle,'retired');assert.equal(body.policy.version,2);assert.equal(body.retirementEvent,null);
-  assert.deepEqual(body.readiness,{ready:false,reason:'no_admitted_profile'});assert.equal(body.usage,null);assertAccountingHealthy();
+  assert.deepEqual(body.readiness,{ready:true,reason:null});assert.equal(body.usage,null);assertAccountingHealthy();
  }else if(mode==='disabled'){
-  assert.equal(response.status,200);assert.deepEqual(await response.json(),{readiness:{ready:false,reason:'no_admitted_profile'},policy:{keyId:'target',bindingGeneration:'1',version:1,limits:{weekly:'123',monthly:'456'},lifecycle:'disabled'},retirementEvent:null,usage:null});assertAccountingHealthy();
+  assert.equal(response.status,200);assert.deepEqual(await response.json(),{readiness:{ready:true,reason:null},policy:{keyId:'target',bindingGeneration:'1',version:1,limits:{weekly:'123',monthly:'456'},lifecycle:'disabled'},retirementEvent:null,usage:null});assertAccountingHealthy();
  }else{
   assert.equal(response.status,503);assert.ok(!(await response.text()).includes('private-target'));
   if(['malformed','history','faulted-absent','event-time','event-version','event-active','event-read'].includes(mode))assert.throws(assertAccountingHealthy);else assertAccountingHealthy();

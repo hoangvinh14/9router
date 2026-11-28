@@ -16,7 +16,7 @@ export const OAUTH_ENDPOINTS = {}, NOUS_ATTRIBUTION = {};
 export const refreshProviderCredentials = blocked;
 export const shouldRefreshCredentials = blocked, resolveOpenAICompatibleApiType = blocked, buildKimiHeaders = blocked;
 export const buildClineHeaders = blocked, extractClaudeSessionIdFromUserId = () => null;
-export const getCapabilitiesForModel = blocked;
+export const getCapabilitiesForModel = blocked, isGemini4Model = blocked;
 export const proxyAwareFetch = blocked;
 export async function prepareAccountedDirectPost(url, options, proxyOptions, selectedProxy) {
   const fixture = globalThis.routeFixture;

@@ -15,7 +15,7 @@ import { updateProviderCredentials, checkAndRefreshToken } from "../services/tok
 import { handleComboChat, getComboModelsFromData } from "open-sse/services/combo.js";
 import { getKeyAccessContext, enforceKeyAccessProvider } from "../services/keyAccess.js";
 import { assertPublicUrlResolved } from "@/shared/utils/ssrfGuard.js";
-import { refuseUnadmittedAccountingRequest } from "@/lib/accounting/request-boundary.js";
+import { runOrdinaryAccountingRequest } from "@/lib/accounting/request-boundary.js";
 
 /**
  * Handle web fetch (URL extraction) request for the SSE/Next.js server.
@@ -24,8 +24,10 @@ import { refuseUnadmittedAccountingRequest } from "@/lib/accounting/request-boun
  * @param {Request} request
  */
 export async function handleFetch(request) {
-  const accountingRefusal = await refuseUnadmittedAccountingRequest(request);
-  if (accountingRefusal) return accountingRefusal;
+  return runOrdinaryAccountingRequest(request, () => handleFetchOrdinary(request));
+}
+
+async function handleFetchOrdinary(request) {
   let body;
   try {
     body = await request.json();

@@ -16,7 +16,7 @@ import { updateProviderCredentials, checkAndRefreshToken } from "../services/tok
 import { handleComboChat } from "open-sse/services/combo.js";
 import * as log from "../utils/logger.js";
 import { saveRequestUsage } from "@/lib/usageDb.js";
-import { refuseUnadmittedAccountingRequest } from "@/lib/accounting/request-boundary.js";
+import { runOrdinaryAccountingRequest } from "@/lib/accounting/request-boundary.js";
 
 // Providers that don't require credentials (noAuth)
 const NO_AUTH_PROVIDERS = new Set(["sdwebui", "comfyui", "veoaifree-web"]);
@@ -46,8 +46,10 @@ function recordImageRequestUsage({ provider, model, connectionId, apiKey, endpoi
  * @param {Request} request
  */
 export async function handleImageGeneration(request) {
-  const accountingRefusal = await refuseUnadmittedAccountingRequest(request);
-  if (accountingRefusal) return accountingRefusal;
+  return runOrdinaryAccountingRequest(request, () => handleImageGenerationOrdinary(request));
+}
+
+async function handleImageGenerationOrdinary(request) {
   let body;
   try {
     body = await request.json();

@@ -48,26 +48,6 @@ function budgetView(body, keyId) {
         new Date(resetAt).toISOString() !== resetAt) throw unavailable();
     return { name, limit, spent, remaining, resetAt };
   });
-  const price = body.referencePrice;
-  const rates = price?.rates;
-  const referencePrice = price?.revision === "openai:codex/gpt-6.2-sol:standard:v1" &&
-    Number.isSafeInteger(price.syncedAt) && price.syncedAt > 0 && price.syncedAt <= 8640000000000000 &&
-    [rates?.input, rates?.cached, rates?.output].every(rate => typeof rate === "string" && /^\d+(?:\.\d+)?$/.test(rate))
-    ? { input: rates.input, cached: rates.cached, output: rates.output, syncedAt: new Date(price.syncedAt).toISOString() }
-    : null;
-  const referencePrices = Array.isArray(body.referencePrices)
-    ? body.referencePrices.slice(0, 128).flatMap(price => {
-      const match = /^(anthropic:claude|openai:codex)\/([a-z0-9][a-z0-9.-]+):standard:v1$/.exec(price?.revision);
-      const codex = match?.[1] === "openai:codex";
-      const rates = price?.rates;
-      const required = ["input", "output", "cached", ...(codex ? [] : ["cache_creation", "cache_creation_1h"])];
-      if (!match || !Number.isSafeInteger(price.syncedAt) || price.syncedAt <= 0 || price.syncedAt > 8640000000000000 ||
-          !required.every(field => typeof rates?.[field] === "string" && /^\d+(?:\.\d+)?$/.test(rates[field]))) return [];
-      const inputThreshold = Number.isSafeInteger(price.inputThreshold) && price.inputThreshold > 0
-        ? price.inputThreshold : undefined;
-      return [{ model: match[2], rates, codex, inputThreshold, syncedAt: new Date(price.syncedAt).toISOString() }];
-    })
-    : [];
   const unresolvedAttempts = usage.blockedByUnresolvedUsage === true && Array.isArray(usage.unresolvedAttempts)
     ? usage.unresolvedAttempts.slice(0, 20)
       .filter(item => validId(item?.attemptId) && typeof item.startedAt === "string" &&
@@ -75,8 +55,6 @@ function budgetView(body, keyId) {
       .map(({ attemptId, startedAt, knownCost }) => ({ attemptId, startedAt, knownCost }))
     : [];
   return { available: true, version: policy.version, lifecycle: policy.lifecycle, periods, unresolvedAttempts,
-    ...(referencePrice ? { referencePrice } : {}),
-    ...(referencePrices.length ? { referencePrices } : {}),
     ...(usage.blockedByUnresolvedUsage === true ? { blockedByUnresolvedUsage: true } : {}),
     ...(usage.estimated ? { estimated: usage.estimated } : {}),
     unknownDefaulted: usage.unknownDefaulted, unrecorded: usage.unrecorded, timezone: usage.timezone };
@@ -97,6 +75,10 @@ async function loadSnapshot(keyId, suffix, project, failure, { signal, fetcher =
       return { available: false, canCreate: true, version: 0, periods: [] };
     }
   }
+  if (response.status === 409 && suffix === "") {
+    const body = await response.json().catch(() => null);
+    if (body?.error?.code === "budget_key_inactive") throw new Error("This API key is inactive.");
+  }
   if (!response.ok) throw failure();
   try { return project(await response.json(), keyId); }
   catch { throw failure(); }
@@ -107,7 +89,7 @@ export function loadAccountingStatus(keyId, options) {
 }
 
 export function loadBudget(keyId, options) {
-  return loadSnapshot(keyId, "", budgetView, () => new Error("Budget data unavailable."), options);
+  return loadSnapshot(keyId, "", budgetView, () => new Error("Budget storage unavailable."), options);
 }
 
 export async function rotateBudgetKey(keyId, expectedVersion) {
@@ -149,8 +131,12 @@ export async function saveBudget(keyId, version, limits, signal) {
       headers: { "content-type": "application/json" }, body: JSON.stringify({ expectedVersion: version, limits }),
     });
   } catch { throw new Error(failure); }
-  if (response.status === 400) throw new Error("Enter a limit from 0 to 9000000000000000 nano-USD, or Unlimited.");
-  if (response.status === 409) throw new Error("The policy changed. Refresh the budget to edit the current limits.");
+  if (response.status === 400) throw new Error("Enter a USD amount from 0 to 9,000,000 with up to nine decimal places, or Unlimited.");
+  if (response.status === 409) {
+    const body = await response.json().catch(() => null);
+    if (body?.error?.code === "budget_key_inactive") throw new Error("This API key is inactive.");
+    throw new Error("The policy changed. Refresh the budget to edit the current limits.");
+  }
   if (response.status === 401) throw new Error("Sign in to the dashboard and refresh the budget.");
   if (!response.ok) throw new Error(failure);
   const policy = (await response.json().catch(() => null))?.policy;

@@ -11,13 +11,8 @@ import { createNodeAttemptLedger, initializeNodeAttemptLedger } from '../../src/
 test('qualified GET reads the saved policy and recorded cost after reopening the database', async t => {
   assert.equal(process.env.BUDGET_PURE_SANDBOX, '1');
   assert.notEqual(fs.readlinkSync('/proc/self/ns/net'), process.env.BUDGET_OUTER_NET);
-  const profile = 'export const installedBudgetReadiness=()=>({ready:true,reason:null});' +
-    'export const findInstalledBudgetProfileForKey=id=>id==="qualified";';
   const fixtureDriver = 'data:text/javascript,export let db;export const setDb=v=>db=v;export const getAccountingAdapter=()=>db;';
   const hooks = registerHooks({ resolve(specifier, context, next) {
-    if (specifier.endsWith('/profile-registry.js') && context.parentURL?.endsWith('/budget/route.js')) {
-      return { url: 'data:text/javascript,' + encodeURIComponent(profile), shortCircuit: true };
-    }
     if (specifier === '../db/driver.js' && context.parentURL?.endsWith('/installed-service.js')) {
       return { url: fixtureDriver, shortCircuit: true };
     }
@@ -42,6 +37,15 @@ test('qualified GET reads the saved policy and recorded cost after reopening the
     initializeNodeAttemptLedger(db);
     db.run('INSERT INTO apiKeys VALUES (?,?,1)', ['qualified','disposable-client']);
     assert.equal((await GET(new Request(url),params)).status,401);
+    db.run('UPDATE apiKeys SET isActive = 0 WHERE id = ?', ['qualified']);
+    const inactive = await get();
+    assert.equal(inactive.status, 409);
+    assert.equal((await inactive.json()).error.code, 'budget_key_inactive');
+    const inactiveSave = await PUT(signed(new Request(url, {method:'PUT',headers:{origin:new URL(url).origin,'content-type':'application/json'},
+      body: JSON.stringify({expectedVersion:0,limits:{weekly:'0',monthly:null}})})), params);
+    assert.equal(inactiveSave.status, 409);
+    assert.equal((await inactiveSave.json()).error.code, 'budget_key_inactive');
+    db.run('UPDATE apiKeys SET isActive = 1 WHERE id = ?', ['qualified']);
     const unconfigured = await get();
     assert.equal(unconfigured.status,503);
     assert.deepEqual(await unconfigured.json(),{keyId:'qualified',error:{code:'budget_not_configured'}});
@@ -69,7 +73,7 @@ test('qualified GET reads the saved policy and recorded cost after reopening the
     db.exec('DROP TABLE accounting_terminals_v1');
     const failure = await get();
     assert.equal(failure.status,503);
-    assert.deepEqual(await failure.json(),{error:{message:'Accounting profile unavailable',code:'api_key_accounting_unavailable'}});
+    assert.deepEqual(await failure.json(),{error:{message:'Budget storage unavailable',code:'api_key_accounting_unavailable'}});
   } finally {
     db.close();
     hooks.deregister();

@@ -1,3 +1,4 @@
+import { withOpaqueOrdinaryDispatch } from '../utils/ordinary-dispatch.js';
 // GeminiWebExecutor — Gemini Web Session Provider
 //
 // Routes requests through Google Gemini's web interface using browser
@@ -752,7 +753,11 @@ export class GeminiWebExecutor extends BaseExecutor {
    *
    * @returns {Promise<Array<{ b64: string, mime: string, width?: number, height?: number }>>}
    */
-  async generateMedia({ prompt, n = 1, size, credentials, signal, log }) {
+  async generateMedia(options) {
+    return withOpaqueOrdinaryDispatch(() => this.generateMediaOrdinary(options));
+  }
+
+  async generateMediaOrdinary({ prompt, n = 1, size, credentials, signal, log }) {
     if (!prompt) throw new Error("prompt is required for image generation");
     const cookie = resolveGeminiWebCookie(credentials);
     if (!cookie) throw new Error("Missing Gemini cookies");

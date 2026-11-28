@@ -1,3 +1,4 @@
+import { ordinaryDispatchRefused } from '../utils/ordinary-dispatch.js';
 import { HTTP_STATUS, RETRY_CONFIG, DEFAULT_RETRY_CONFIG, resolveRetryEntry, FETCH_CONNECT_TIMEOUT_MS } from "../config/runtimeConfig.js";
 import { shouldRefreshCredentials } from "../services/oauthCredentialManager.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
@@ -210,7 +211,7 @@ export class BaseExecutor {
       } catch (error) {
         clearTimeout(connectTimer);
         lastError = error;
-        if (accounting !== null) throw error; // Never replay an exposed/uncertain attempt.
+        if (accounting !== null || ordinaryDispatchRefused()) throw error;
         const isConnectTimeout = connectCtrl.signal.aborted && error.name === "AbortError";
         dbg("FETCH", `${this.provider.toUpperCase()} ✖ ${error.name}: ${error.message}${isConnectTimeout ? " (connect timeout)" : ""}`);
         // Connect timeout is internal — convert to retryable network error, don't propagate AbortError

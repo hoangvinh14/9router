@@ -10,7 +10,7 @@ const files=[
  'src/lib/db/adapters/nodeSqliteAdapter.js','src/lib/db/adapters/nodeClosure.js',
  'src/lib/accounting/attempt-payload.js','src/lib/accounting/budget-windows.js','src/lib/accounting/exact-money.js','src/lib/accounting/process-state.js','src/lib/accounting/mutation-barrier.js',
  'src/lib/accounting/sql-operation-scope.js','src/lib/accounting/node-outer-transaction.js','src/lib/accounting/node-attempt-ledger.js',
- 'src/lib/accounting/terminal-cost.js','src/lib/accounting/node-key-policy.js','src/lib/pricing/constants.js','src/lib/pricing/decimalMoney.js',
+ 'src/lib/accounting/terminal-cost.js','src/lib/accounting/node-key-policy.js', 'open-sse/utils/ordinary-dispatch.js','src/lib/pricing/constants.js','src/lib/pricing/decimalMoney.js',
  'tests/fixtures/budget/alias-loader.mjs','tests/unit/budget-backup-characterization.test.mjs',
 ];
 const args=['--unshare-all','--die-with-parent','--new-session','--ro-bind','/usr','/usr','--symlink','usr/bin','/bin','--ro-bind','/lib','/lib'];

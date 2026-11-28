@@ -1,7 +1,6 @@
 import { requireAccountingAdmin } from '../../../../../../lib/accounting/management-auth.js';
 import { boundedAccountingJson } from '../../../../../../lib/accounting/management-request.js';
 import { getInstalledAccountingServices } from '../../../../../../lib/accounting/installed-service.js';
-import { installedBudgetReadiness } from '../../../../../../lib/accounting/profile-registry.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +17,7 @@ export async function GET(request, { params }) {
   }
   try {
     const { policy } = await getInstalledAccountingServices();
-    return json({ readiness: await installedBudgetReadiness(id), ...policy.inspectRetirement(id), usage: null });
+    return json({ readiness: { ready: true, reason: null }, ...policy.inspectRetirement(id), usage: null });
   } catch {
     return json({ error: { message: 'Accounting retirement status unavailable', code: 'api_key_accounting_unavailable' } }, 503);
   }

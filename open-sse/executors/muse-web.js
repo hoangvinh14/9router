@@ -1,3 +1,4 @@
+import { withOpaqueOrdinaryDispatch } from '../utils/ordinary-dispatch.js';
 // MuseWebExecutor — muse.ai Hatch (muse.ai) session provider
 //
 // Routes requests through muse.ai's Hatch web client using browser cookies +
@@ -645,7 +646,11 @@ export class MuseWebExecutor extends BaseExecutor {
    *
    * @returns {Promise<Array<{ b64: string, mime: string, width?: number, height?: number }>>}
    */
-  async generateMedia({ prompt, kind = "image", size, duration, n = 1, images, credentials, signal, log }) {
+  async generateMedia(options) {
+    return withOpaqueOrdinaryDispatch(() => this.generateMediaOrdinary(options));
+  }
+
+  async generateMediaOrdinary({ prompt, kind = "image", size, duration, n = 1, images, credentials, signal, log }) {
     if (!prompt) throw new MuseWebUpstreamError("prompt is required for media generation");
     const mediaPrompt = buildMediaPrompt(prompt, kind, size, duration, Boolean(images?.length));
     const timeoutMs = kind === "video" ? VIDEO_TIMEOUT_MS : IMAGE_TIMEOUT_MS;

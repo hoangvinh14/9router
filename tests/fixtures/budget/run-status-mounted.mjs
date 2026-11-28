@@ -13,6 +13,7 @@ const files=[
  'src/app/(dashboard)/dashboard/endpoint/components/AccountingStatus.js',
  'src/app/(dashboard)/dashboard/endpoint/components/accountingStatusClient.js',
  'tests/unit/budget-accounting-status-mounted.test.mjs',
+ 'src/lib/pricing/decimalMoney.js','src/lib/pricing/constants.js',
  'node_modules/typescript/package.json','node_modules/typescript/lib/typescript.js',
  'node_modules/react/cjs/react.production.js','node_modules/react/cjs/react-jsx-runtime.production.js',
  'node_modules/react-dom/cjs/react-dom.production.js','node_modules/react-dom/cjs/react-dom-client.production.js',

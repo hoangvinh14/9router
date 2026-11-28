@@ -11,8 +11,8 @@ const files=[
  'src/lib/accounting/anthropic-usage.js','src/lib/accounting/terminal-cost.js','src/lib/accounting/anthropic-dispatch-context.js',
  'src/lib/accounting/node-anthropic-account.js','src/lib/accounting/anthropic-reference-price.js','open-sse/services/accountFallback.js',
  'src/lib/pricing/constants.js','src/lib/pricing/decimalMoney.js','src/lib/pricing/claude-standard-reference.js',
- 'open-sse/executors/base.js','open-sse/executors/default.js','open-sse/providers/registry/anthropic.js','open-sse/providers/shared.js',
- 'open-sse/config/runtimeConfig.js','open-sse/config/errorConfig.js','open-sse/utils/debugLog.js','open-sse/utils/claudeCliVersion.js',
+ 'open-sse/executors/base.js','open-sse/executors/default.js', 'open-sse/utils/geminiLongDecode.js', 'open-sse/shared/kiroIdentity.js', 'open-sse/config/kiroClient.js','open-sse/providers/registry/anthropic.js','open-sse/providers/shared.js', 'src/mitm/antigravityIdeVersion.js',
+ 'open-sse/utils/ordinary-dispatch.js', 'open-sse/config/runtimeConfig.js','open-sse/config/errorConfig.js','open-sse/utils/debugLog.js','open-sse/utils/claudeCliVersion.js',
  'open-sse/utils/reasoningContentInjector.js','open-sse/translator/concerns/paramSupport.js','tests/unit/budget-default-fidelity.test.mjs',
 ];
 const targets=['open-sse/config/providers.js','open-sse/services/oauthCredentialManager.js','open-sse/services/provider.js',
@@ -23,6 +23,7 @@ if(fs.existsSync('/lib64'))args.push('--ro-bind','/lib64','/lib64');
 function bind(file,target){const source=path.join(repo,file);for(let p=source;p!==repo;p=path.dirname(p))if(fs.lstatSync(p).isSymbolicLink())throw new Error('Symlink refused');if(!fs.statSync(source).isFile())throw new Error('Nonfile refused');args.push('--ro-bind',source,target);}
 for(const file of files)bind(file,'/app/'+file);
 bind('tests/fixtures/budget/module-scope.json','/app/package.json');
+bind('tests/fixtures/budget/commonjs-scope.json','/app/src/mitm/package.json');
 for(const target of targets)bind('tests/fixtures/budget/default-fidelity-stub.mjs','/app/'+target);
 args.push('--ro-bind',fs.realpathSync(process.execPath),'/runtime/node','--proc','/proc','--dev','/dev','--tmpfs','/tmp','--tmpfs','/sandbox');
 for(const name of ['home','data','config','cache','tmp'])args.push('--dir',`/sandbox/${name}`);

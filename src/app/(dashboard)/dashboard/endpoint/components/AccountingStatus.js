@@ -2,22 +2,26 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import PropTypes from "prop-types";
+import { decimalToNanoUsd, nanoUsdToDecimal } from "@/lib/pricing/decimalMoney.js";
+
+const displayUsd = amount => amount === null ? "Unlimited" : nanoUsdToDecimal(amount);
 import { loadAccountingStatus, loadBudget, saveBudget, resolveBudgetUsage, rotateBudgetKey } from "./accountingStatusClient";
 
 function useSnapshot(keyId, load) {
-  const [state, setState] = useState({ loading: true, value: null, error: null });
+  const [snapshot, setState] = useState(null);
+  const state = snapshot?.keyId === keyId ? snapshot : { loading: true, value: null, error: null };
   const [revision, setRevision] = useState(0);
   useEffect(() => {
     const controller = new AbortController();
     let current = true;
     load(keyId, { signal: controller.signal }).then(
-      value => { if (current) setState({ loading: false, value, error: null }); },
-      error => { if (current) setState({ loading: false, value: null, error: error.message }); },
+      value => { if (current) setState({ keyId, loading: false, value, error: null }); },
+      error => { if (current) setState({ keyId, loading: false, value: null, error: error.message }); },
     );
     return () => { current = false; controller.abort(); };
   }, [keyId, load, revision]);
   function refresh() {
-    setState({ loading: true, value: null, error: null });
+    setState({ keyId, loading: true, value: null, error: null });
     setRevision(n => n + 1);
   }
   return { state, refresh };
@@ -57,8 +61,8 @@ function StatusSnapshot({ keyId, onRotated }) {
               <div><dt className="inline font-medium">Policy state: </dt><dd className="inline">{value.lifecycle}</dd></div>
               <div><dt className="inline font-medium">Policy version: </dt><dd className="inline">{value.version}</dd></div>
               <div><dt className="inline font-medium">Binding generation: </dt><dd className="inline">{value.bindingGeneration}</dd></div>
-              <div><dt className="inline font-medium">Weekly limit (nano-USD): </dt><dd className="inline">{value.weekly ?? "Unlimited"}</dd></div>
-              <div><dt className="inline font-medium">Monthly limit (nano-USD): </dt><dd className="inline">{value.monthly ?? "Unlimited"}</dd></div>
+              <div><dt className="inline font-medium">Weekly limit (USD): </dt><dd className="inline">{displayUsd(value.weekly)}</dd></div>
+              <div><dt className="inline font-medium">Monthly limit (USD): </dt><dd className="inline">{displayUsd(value.monthly)}</dd></div>
             </dl>
             {value.retirementEvent ? (
               <div className="mt-2 break-words">
@@ -110,8 +114,10 @@ function BudgetEditor({ keyId, budget, refresh }) {
     for (const period of ["weekly", "monthly"]) {
       const input = data.get(period).trim();
       if (input.toLowerCase() === "unlimited") limits[period] = null;
-      else if (/^(0|[1-9][0-9]{0,15})$/.test(input)) limits[period] = input;
-      else { setError("Enter a whole nano-USD amount or Unlimited for each period."); return; }
+      else {
+        try { limits[period] = decimalToNanoUsd(input); }
+        catch { setError("Enter a USD amount from 0 to 9,000,000 with up to nine decimal places, or Unlimited."); return; }
+      }
     }
     const controller = new AbortController();
     pending.current = controller;
@@ -132,13 +138,14 @@ function BudgetEditor({ keyId, budget, refresh }) {
       <legend className="mb-1 font-medium">{budget.canCreate ? "Set budget limits" : "Edit budget limits"}</legend>
       {["weekly", "monthly"].map(name => {
         const period = budget.periods.find(item => item.name === name);
-        return <label key={name} className="grid gap-1 capitalize">{name} limit (nano-USD)
+        return <label key={name} className="grid gap-1 capitalize">{name} limit (USD)
           <input name={name} required autoComplete="off" className="rounded border border-border bg-transparent px-2 py-1"
-            defaultValue={period ? period.limit ?? "Unlimited" : ""} />
+            defaultValue={period ? displayUsd(period.limit) : ""} />
         </label>;
       })}
     </fieldset>
     <p>Enter 0 to block the next request, or Unlimited for no limit.</p>
+    <p>Saving a budget can block requests when the router cannot find an account with supported usage accounting and pricing.</p>
     {error && <p role="alert">{error}</p>}
     <button type="submit" disabled={saving} className="text-primary underline disabled:opacity-50">{saving ? "Saving…" : "Save budget"}</button>
   </form>;
@@ -194,37 +201,22 @@ UsageResolution.propTypes = {
   refresh: PropTypes.func.isRequired,
 };
 
-function BudgetSnapshot({ keyId }) {
-  const { state, refresh } = useSnapshot(keyId, loadBudget);
+function BudgetSnapshot({ keyId, state, refresh }) {
   const budget = state.value;
   return (
     <div className="mt-2 rounded border border-border p-3 text-xs text-text-muted" aria-busy={state.loading}>
       <div role="status" aria-live="polite">
         {state.loading && <p>Loading budget…</p>}
         {state.error && <p>{state.error}</p>}
-        {budget?.available === false && !budget.canCreate && <p>No budget profile is available for this key.</p>}
+        {budget?.available === false && !budget.canCreate && <p>Budget storage is unavailable for this key.</p>}
         {budget?.available && <>
           <p>Policy version {budget.version} ({budget.lifecycle})</p>
-          {budget.referencePrice && <p>
-            OpenAI Codex Standard reference (USD per million tokens): input {budget.referencePrice.input},
-            cached input {budget.referencePrice.cached}, output {budget.referencePrice.output}.
-            Synced <time dateTime={budget.referencePrice.syncedAt}>{resetFormat.format(new Date(budget.referencePrice.syncedAt))}</time>.
-          </p>}
-          {budget.referencePrices?.map(({ model, rates, syncedAt, codex, inputThreshold }) => <p key={model}>
-            {codex
-              ? <a className="underline" href="https://help.openai.com/en/articles/20001415-chatgpt-rate-card-enterprise-token-based-pricing">OpenAI Codex USD reference</a>
-              : <a className="underline" href="https://platform.claude.com/docs/en/about-claude/pricing#model-pricing">Anthropic Standard price</a>}
-            {" for "}{model}{inputThreshold && ` up to ${inputThreshold.toLocaleString()} prompt tokens`} (USD per million tokens). Input {rates.input}, cache read {rates.cached},
-            {!codex && <> cache write (5m) {rates.cache_creation}, cache write (1h) {rates.cache_creation_1h}, </>}
-            output {rates.output}.
-            Synced <time dateTime={syncedAt}>{resetFormat.format(new Date(syncedAt))}</time>.
-          </p>)}
           <div className="my-2 grid gap-3 sm:grid-cols-2">
             {budget.periods.map(period => <section key={period.name}>
               <h4 className="font-medium capitalize">{period.name} budget</h4>
-              <p>Limit (nano-USD): {period.limit ?? "Unlimited"}</p>
-              <p>Recorded spend (nano-USD): {period.spent}</p>
-              <p>Remaining (nano-USD): {period.remaining ?? "Unlimited"}</p>
+              <p>Limit (USD): {displayUsd(period.limit)}</p>
+              <p>Recorded spend (USD): {displayUsd(period.spent)}</p>
+              <p>Remaining (USD): {displayUsd(period.remaining)}</p>
               <p>Resets <time dateTime={period.resetAt}>{resetFormat.format(new Date(period.resetAt))}</time> ({budget.timezone})</p>
             </section>)}
           </div>
@@ -244,12 +236,13 @@ function BudgetSnapshot({ keyId }) {
     </div>
   );
 }
-BudgetSnapshot.propTypes = { keyId: PropTypes.string.isRequired };
+BudgetSnapshot.propTypes = { keyId: PropTypes.string.isRequired, state: PropTypes.object.isRequired, refresh: PropTypes.func.isRequired };
 
 export default function AccountingStatus({ keyId, onRotated }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const [budgetOpen, setBudgetOpen] = useState(false);
+  const budget = useSnapshot(keyId, loadBudget);
   const budgetId = useId();
   return (
     <div className="mt-2">
@@ -259,9 +252,9 @@ export default function AccountingStatus({ keyId, onRotated }) {
       </button>
       <button type="button" className="ml-3 text-xs text-primary underline" aria-expanded={budgetOpen} aria-controls={budgetId}
         onClick={() => setBudgetOpen(value => !value)}>
-        {budgetOpen ? "Hide budget" : "View budget"}
+        {budgetOpen ? "Hide budget" : budget.state.value?.canCreate ? "Set budget" : "View budget"}
       </button>
-      <div id={budgetId}>{budgetOpen && <BudgetSnapshot key={keyId} keyId={keyId} />}</div>
+      <div id={budgetId}>{budgetOpen && <BudgetSnapshot key={keyId} keyId={keyId} {...budget} />}</div>
       <div id={panelId}>{open && <StatusSnapshot key={keyId} keyId={keyId} onRotated={onRotated} />}</div>
     </div>
   );

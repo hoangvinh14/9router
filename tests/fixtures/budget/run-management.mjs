@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 if(process.platform!=='linux'||process.version!=='v24.21.0'||process.argv.length!==2||process.env.NODE_OPTIONS||process.env.NODE_PATH)throw new Error('Clean pinned Linux Node required');
 const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
-const files=['src/app/api/keys/[id]/budget/route.js','src/lib/accounting/management-auth.js','src/lib/accounting/profile-registry.js',
+const files=['open-sse/utils/ordinary-dispatch.js', 'src/app/api/keys/[id]/budget/route.js','src/lib/accounting/management-auth.js','src/lib/accounting/profile-registry.js',
  'src/lib/accounting/management-request.js','src/lib/accounting/exact-money.js','src/lib/accounting/attempt-payload.js','src/lib/pricing/decimalMoney.js','src/lib/pricing/constants.js',
  'tests/fixtures/budget/management-loader.mjs','tests/fixtures/budget/management-session-stub.mjs','tests/unit/budget-management-route.test.mjs'];
 const readbackTest = 'tests/unit/budget-management-readback.test.mjs';

@@ -4,7 +4,9 @@ import { isModelLockActive } from '../../../open-sse/services/accountFallback.js
 
 export const ACCOUNTED_ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 export const ACCOUNTED_CLAUDE_URL = ACCOUNTED_ANTHROPIC_URL + '?beta=true';
+export const ANTHROPIC_WORKSPACE_SCOPE = 'accounting.anthropic.workspace.v1';
 export const PROVIDER_ACCOUNT_READS = Object.freeze({
+  anthropicWorkspace: Object.freeze({ method:'get', sql:'SELECT value FROM kv WHERE scope = ? AND key = ?' }),
   savedProxy: Object.freeze({ method:'get', sql:'SELECT isActive, data FROM proxyPools WHERE id = ?' }),
   providerAccount: Object.freeze({ method:'get', sql:'SELECT provider, authType, isActive, data FROM providerConnections WHERE id = ?' }),
 });
@@ -79,6 +81,14 @@ export function isSingleWorkspaceBinding(binding) {
     /^wrkspc_[A-Za-z0-9]{1,128}(?![\s\S])/.test(binding.workspaceId) &&
     typeof binding.connectionId === 'string' && binding.connectionId.length > 0 &&
     typeof binding.keyDigest === 'string' && /^[a-f0-9]{64}(?![\s\S])/.test(binding.keyDigest);
+}
+
+export function readAnthropicWorkspace(scope, connectionId, digest) {
+  const row = scope.anthropicWorkspace([ANTHROPIC_WORKSPACE_SCOPE, connectionId]);
+  if (!row) return null;
+  const binding = objectJson(row.value);
+  return isSingleWorkspaceBinding(binding) && binding.connectionId === connectionId && binding.keyDigest === digest
+    ? binding : null;
 }
 
 export function credentialDigest(apiKey) {

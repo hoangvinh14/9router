@@ -54,7 +54,7 @@ test('actual signed session reaches same installed owner retirement CAS without 
  // change profiles or bypass driver startup refusal for already marked files.
  initializeNodeKeyPolicy(db);initializeNodeAttemptLedger(db);createNodeKeyPolicy(db).save('target',0,{weekly:'123',monthly:'456'});
  const active=await GET(request(token),params);assert.equal(active.status,200);assert.equal(active.headers.get('cache-control'),'no-store');
- assert.deepEqual(await active.json(),{readiness:{ready:false,reason:'no_admitted_profile'},policy:{keyId:'target',bindingGeneration:'1',version:1,limits:{weekly:'123',monthly:'456'},lifecycle:'active'},retirementEvent:null,usage:null});
+ assert.deepEqual(await active.json(),{readiness:{ready:true,reason:null},policy:{keyId:'target',bindingGeneration:'1',version:1,limits:{weekly:'123',monthly:'456'},lifecycle:'active'},retirementEvent:null,usage:null});
  assert.equal(db.get('SELECT COUNT(*) AS n FROM accounting_admin_events_v1').n,0);
  assert.equal((await POST(request('not.jwt'),params)).status,401);
  assert.equal(db.get('SELECT COUNT(*) AS n FROM accounting_admin_events_v1').n,0);
@@ -74,7 +74,7 @@ test('actual signed session reaches same installed owner retirement CAS without 
  assert.equal(db.get('SELECT retired FROM accounting_key_generations_v1 WHERE key_id=?',['target']).retired,1);
  assert.equal(db.get('SELECT key FROM apiKeys WHERE id=?',['target']).key,'private-target');
  const status=await GET(request(token),params);assert.equal(status.status,200);assert.equal(status.headers.get('cache-control'),'no-store');
- assert.deepEqual(await status.json(),{readiness:{ready:false,reason:'no_admitted_profile'},policy:{keyId:'target',bindingGeneration:'1',version:2,limits:{weekly:'123',monthly:'456'},lifecycle:'retired'},retirementEvent:{action:'retire',actorClass:'dashboard-session',occurredAt:occurred_at,version:2,previousVersion:1,bindingGeneration:'1'},usage:null});
+ assert.deepEqual(await status.json(),{readiness:{ready:true,reason:null},policy:{keyId:'target',bindingGeneration:'1',version:2,limits:{weekly:'123',monthly:'456'},lifecycle:'retired'},retirementEvent:{action:'retire',actorClass:'dashboard-session',occurredAt:occurred_at,version:2,previousVersion:1,bindingGeneration:'1'},usage:null});
  assert.equal((await POST(request(token),params)).status,503);
  assert.deepEqual(db.all('SELECT * FROM accounting_admin_events_v1'),events);
  assert.equal(db.raw.isTransaction,false);assertAccountingHealthy();

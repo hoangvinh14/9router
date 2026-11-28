@@ -21,6 +21,7 @@ COPY src/shared/utils/keyAccess.js ./src/shared/utils/
 COPY src/shared/constants/keyAccess.js ./src/shared/constants/
 COPY open-sse/services/accountFallback.js ./open-sse/services/
 COPY open-sse/config/errorConfig.js ./open-sse/config/
+COPY open-sse/utils/ordinary-dispatch.js ./open-sse/utils/
 # Keep code root-owned and readable by node even from a private build context.
 RUN --network=none find . -type d -exec chmod 0755 '{}' + \
     && find . -type f -exec chmod 0644 '{}' +

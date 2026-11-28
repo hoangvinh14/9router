@@ -14,7 +14,7 @@ import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { saveRequestUsage } from "@/lib/usageDb.js";
-import { refuseUnadmittedAccountingRequest } from "@/lib/accounting/request-boundary.js";
+import { runOrdinaryAccountingRequest } from "@/lib/accounting/request-boundary.js";
 
 function exactEmbeddingUsage(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw) || raw.estimated === true) return null;
@@ -32,8 +32,10 @@ function exactEmbeddingUsage(raw) {
  * @param {Request} request
  */
 export async function handleEmbeddings(request) {
-  const accountingRefusal = await refuseUnadmittedAccountingRequest(request);
-  if (accountingRefusal) return accountingRefusal;
+  return runOrdinaryAccountingRequest(request, () => handleEmbeddingsOrdinary(request));
+}
+
+async function handleEmbeddingsOrdinary(request) {
   let body;
   try {
     body = await request.json();

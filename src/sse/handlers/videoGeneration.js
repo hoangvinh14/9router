@@ -15,7 +15,7 @@ import { updateProviderCredentials, checkAndRefreshToken } from "../services/tok
 
 const NO_AUTH_VIDEO_PROVIDERS = new Set(["veoaifree-web"]);
 import * as log from "../utils/logger.js";
-import { refuseUnadmittedAccountingRequest } from "@/lib/accounting/request-boundary.js";
+import { runOrdinaryAccountingRequest } from "@/lib/accounting/request-boundary.js";
 
 // Video generation is xAI-only today; requests without a provider prefix
 // (bare model id, or multipart bodies we deliberately don't parse) land here.
@@ -111,8 +111,10 @@ function withConnectionHeader(response, connectionId) {
  * POST /v1/videos/{generations|edits|extensions} — async job creation proxy.
  */
 export async function handleVideoCreate(request, action) {
-  const accountingRefusal = await refuseUnadmittedAccountingRequest(request);
-  if (accountingRefusal) return accountingRefusal;
+  return runOrdinaryAccountingRequest(request, () => handleVideoCreateOrdinary(request, action));
+}
+
+async function handleVideoCreateOrdinary(request, action) {
   const authError = await requireValidApiKey(request);
   if (authError) return authError;
 
@@ -226,8 +228,10 @@ export async function handleVideoCreate(request, action) {
  * caller pins the creating account via `x-connection-id` (returned on create).
  */
 export async function handleVideoGet(request, requestId) {
-  const accountingRefusal = await refuseUnadmittedAccountingRequest(request);
-  if (accountingRefusal) return accountingRefusal;
+  return runOrdinaryAccountingRequest(request, () => handleVideoGetOrdinary(request, requestId));
+}
+
+async function handleVideoGetOrdinary(request, requestId) {
   const authError = await requireValidApiKey(request);
   if (authError) return authError;
 

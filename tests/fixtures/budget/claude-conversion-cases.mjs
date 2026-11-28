@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { createClaudeToolStore } from '../../../src/lib/accounting/claude-tool-continuity.js';
 import { createNodeKeyPolicy } from '../../../src/lib/accounting/node-key-policy.js';
 
-export function exerciseClaudeConversion({ test, fixture, postResponses, workspaceBinding, fs, usage, sseFrame, sseReply }) {
+export function exerciseClaudeConversion({ test, fixture, postResponses, workspaceBinding, usage, sseFrame, sseReply }) {
   test('Claude continuity bounds retained turns and rejects ambiguous upstream IDs', () => {
     const store = createClaudeToolStore({ maxTurns: 1 });
     const scope = ['key','anthropic','model','connection'];
@@ -38,11 +38,6 @@ export function exerciseClaudeConversion({ test, fixture, postResponses, workspa
           { type: 'message_stop' }].map(sseFrame);
       }
       let turn = 0;
-      const bindingPath = '/run/9router/accounting-binding.json';
-      const binding = provider === 'claude' ? { claudeBinding: { connectionId: 'fixture-claude', serviceTier: 'standard' } } : { workspaceBinding };
-      const bind = (key, account = binding) => fs.writeFileSync(bindingPath, JSON.stringify({ clientKeyId: key, ...account }));
-      bind('fixture-key');
-      try {
         await fixture(async ({ state, rows, totals, path, setMonthly, inspectPolicy }) => {
           const model = provider + '/' + target;
           const history = [{ role: 'user', content: 'check tools' }];
@@ -86,17 +81,18 @@ export function exerciseClaudeConversion({ test, fixture, postResponses, workspa
           const errorResult = structuredClone(followup);
           errorResult.at(-1).is_error = 'true';
           assert.equal((await send(errorResult)).status, 503);
-          // The second key is authorized and pinned to the same upstream account.
+          // The second key routes to the same upstream account.
           state.db.run('INSERT INTO apiKeys VALUES (?,?,?,?,?)', ['fixture-key-b', 'fixture-client-b', 1, 1, JSON.stringify([model])]);
           createNodeKeyPolicy(state.db).save('fixture-key-b', 0, { weekly: null, monthly: '70600' });
-          bind('fixture-key-b');
           assert.equal((await send(followup, 'fixture-client-b')).status, 503);
           if (provider === 'anthropic') {
-            bind('fixture-key', { workspaceBinding: { ...workspaceBinding, connectionId: 'fixture-other',
-              keyDigest: createHash('sha256').update('fixture-other-key').digest('hex') } });
+            const alternate = { ...workspaceBinding, connectionId: 'fixture-other',
+              keyDigest: createHash('sha256').update('fixture-other-key').digest('hex') };
+            state.db.run('INSERT INTO kv VALUES (?, ?, ?)', ['accounting.anthropic.workspace.v1', alternate.connectionId, JSON.stringify(alternate)]);
+            state.db.run("UPDATE providerConnections SET isActive = 0 WHERE id = 'fixture-account'");
             assert.equal((await send(followup)).status, 503);
+            state.db.run("UPDATE providerConnections SET isActive = 1 WHERE id = 'fixture-account'");
           }
-          bind('fixture-key');
           assert.equal(state.wire.length, 1);
           if (provider === 'anthropic' && !stream && responses) {
             const fresh = spawnSync(process.execPath, ['--experimental-loader', '/app/tests/fixtures/budget/composed-loader.mjs',
@@ -146,7 +142,6 @@ export function exerciseClaudeConversion({ test, fixture, postResponses, workspa
             rates: { input: '1', cached: '0.10', cache_creation: '1.25', cache_creation_1h: '2', output: '5' },
           })]);
         } });
-      } finally { fs.rmSync(bindingPath, { force: true }); }
     });
   }
 }

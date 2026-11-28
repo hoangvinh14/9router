@@ -1,3 +1,4 @@
+import { assertOrdinaryDispatch } from '../utils/ordinary-dispatch.js';
 import https from "node:https";
 import { Readable } from "node:stream";
 import { randomUUID } from "node:crypto";
@@ -14,6 +15,7 @@ const cors = { "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store" }
 export function codexHttpFetch(url, { headers, body, signal }) {
   return new Promise((resolve, reject) => {
     signal?.throwIfAborted();
+    assertOrdinaryDispatch();
     const req = https.request(url, { method: "POST", headers, signal }, (res) => {
       const cleanup = () => signal?.removeEventListener("abort", abort);
       const abort = () => res.destroy(signal.reason || new Error("Aborted"));
